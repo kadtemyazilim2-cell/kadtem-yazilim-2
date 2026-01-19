@@ -49,50 +49,43 @@ export function Sidebar({ className }: { className?: string }) {
 
             <nav className="flex-1 overflow-y-auto py-4">
                 <ul className="space-y-1 px-3">
-                    <ul className="space-y-1 px-3">
-                        {NAV_ITEMS.map((item) => {
-                            // Permission Check
-                            let permissionId = item.href.split('/').pop() || '';
-                            if (item.href === '/dashboard' && permissionId === 'dashboard') permissionId = 'dashboard';
+                    {NAV_ITEMS.map((item) => {
+                        // Permission Check
+                        let permissionId = item.href.split('/').pop() || '';
+                        if (item.href === '/dashboard' && permissionId === 'dashboard') permissionId = 'dashboard';
 
-                            if (user?.role !== 'ADMIN') {
-                                // Block Admin Page for non-admins
-                                if (item.href === '/dashboard/admin') return null;
+                        if (user?.role !== 'ADMIN') {
+                            // Block Admin Page for non-admins
+                            if (item.href === '/dashboard/admin') return null;
 
-                                // Block modules if permission is NONE or missing (except Dashboard home)
-                                if (item.href !== '/dashboard') {
-                                    const perms = (user?.permissions || {}) as Record<string, string[]>;
-                                    const userPerm = perms[permissionId];
-                                    // Check if permission exists and is not empty/NONE (if 'NONE' was still used in array? unlikely, usually just empty or specific values)
-                                    // Assuming existence implies access, or check for specific 'VIEW' action if needed. 
-                                    // For sidebar visibility, usually just checking if ANY permission exists for that module is enough, or strictly not 'NONE'.
-                                    // But since we moved to [] for permissions, having any entry usually means some access. 
-                                    // Let's assume having the key populated with at least one perm means access.
-                                    if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
-                                }
+                            // Block modules if permission is NONE or missing (except Dashboard home)
+                            if (item.href !== '/dashboard') {
+                                const perms = (user?.permissions || {}) as Record<string, string[]>;
+                                const userPerm = perms[permissionId];
+                                if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
                             }
+                        }
 
-                            const Icon = item.icon;
-                            const isActive = pathname === item.href;
+                        const Icon = item.icon;
+                        const isActive = pathname === item.href;
 
-                            return (
-                                <li key={item.href}>
-                                    <Link
-                                        href={item.href}
-                                        className={cn(
-                                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                                            isActive
-                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                                                : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                                        )}
-                                    >
-                                        <Icon className="w-5 h-5" />
-                                        {item.label}
-                                    </Link>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                        return (
+                            <li key={item.href}>
+                                <Link
+                                    href={item.href}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                                        isActive
+                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                                            : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                                    )}
+                                >
+                                    <Icon className="w-5 h-5" />
+                                    {item.label}
+                                </Link>
+                            </li>
+                        );
+                    })}
                 </ul>
             </nav>
 
