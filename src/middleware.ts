@@ -1,6 +1,7 @@
-import { auth } from "@/auth"
+import NextAuth from "next-auth"
+import { authConfig } from "./auth.config"
 
-export default auth((req) => {
+export default NextAuth(authConfig).auth((req) => {
     const isLoggedIn = !!req.auth
     const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard')
     const isOnLogin = req.nextUrl.pathname.startsWith('/login')

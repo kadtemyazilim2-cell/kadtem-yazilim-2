@@ -1,8 +1,8 @@
-
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
+import { authConfig } from "./auth.config";
 
 async function getUser(username: string) {
     try {
@@ -17,6 +17,7 @@ async function getUser(username: string) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    ...authConfig,
     providers: [
         Credentials({
             async authorize(credentials) {
@@ -40,30 +41,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
         }),
     ],
-    callbacks: {
-        async session({ session, token }) {
-            if (token.sub && session.user) {
-                session.user.id = token.sub;
-                session.user.role = token.role as any;
-                session.user.permissions = token.permissions as any;
-                session.user.username = token.username as string;
-            }
-            return session;
-        },
-        async jwt({ token, user }) {
-            if (user) {
-                token.sub = user.id;
-                token.role = user.role;
-                token.permissions = user.permissions;
-                token.username = user.username;
-            }
-            return token;
-        }
-    },
-    session: {
-        strategy: "jwt"
-    },
-    pages: {
-        signIn: "/login",
-    },
 });
