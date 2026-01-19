@@ -16,19 +16,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/login');
     }
 
-    const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes] = await Promise.all([
-        getCompanies(),
-        getSites(),
-        getVehicles(),
-        getPersonnel(),
-        getUsers()
-    ]);
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [];
 
-    const companies = serializeData(companiesRes.data || []);
-    const sites = serializeData(sitesRes.data || []);
-    const vehicles = serializeData(vehiclesRes.data || []);
-    const personnel = serializeData(personnelRes.data || []);
-    const users = serializeData(usersRes.data || []);
+    try {
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes] = await Promise.all([
+            getCompanies(),
+            getSites(),
+            getVehicles(),
+            getPersonnel(),
+            getUsers()
+        ]);
+
+        companies = serializeData(companiesRes?.data || []);
+        sites = serializeData(sitesRes?.data || []);
+        vehicles = serializeData(vehiclesRes?.data || []);
+        personnel = serializeData(personnelRes?.data || []);
+        users = serializeData(usersRes?.data || []);
+    } catch (error) {
+        console.error("Dashboard Data Fetch Error:", error);
+        // Continue with empty arrays to render the shell at least
+    }
 
     // We should also pass the current user to the store if possible, 
     // but the store User type might differ from NextAuth User type. 
