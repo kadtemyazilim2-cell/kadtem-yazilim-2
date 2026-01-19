@@ -100,6 +100,12 @@ export function Sidebar({ className }: { className?: string }) {
                     </div>
                 </div>
 
+                {/* DEBUG BLOCK - REMOVE AFTER FIX */}
+                <div className="p-2 mb-2 bg-slate-800 rounded text-[10px] text-slate-400 font-mono break-all">
+                    Role: {JSON.stringify(user?.role)} <br />
+                    Perms: {JSON.stringify(Object.keys(user?.permissions || {}).length)} keys
+                </div>
+
                 <button
                     onClick={async () => {
                         logout(); // Clear client state
