@@ -13,6 +13,8 @@ import { Plus, MapPin, Calendar, User as UserIcon, Pencil, Trash2 } from 'lucide
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import { FileDown, Loader2, Eye } from 'lucide-react'; // Added Eye for preview
 
 import { useUserSites } from '@/hooks/use-user-access';
 
@@ -30,7 +32,9 @@ export function SiteLogList() {
     const [siteId, setSiteId] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [weather, setWeather] = useState('');
+
     const [content, setContent] = useState('');
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -124,6 +128,144 @@ export function SiteLogList() {
 
     const getSiteName = (id: string) => sites.find(s => s.id === id)?.name || '-';
 
+    const handleDownloadPDF = async (entry: any, isPreview: boolean = false) => {
+        try {
+            setIsGeneratingPDF(true);
+            const doc = new jsPDF('p', 'mm', 'a4');
+
+            // 1. Load Custom Font (Roboto) for Turkish Character Support
+            const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf';
+            const fontUrlBold = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf';
+
+            const loadFont = async (url: string, name: string, style: string) => {
+                const response = await fetch(url);
+                const buffer = await response.arrayBuffer();
+                const binary = new Uint8Array(buffer);
+                let binaryString = "";
+                for (let i = 0; i < binary.length; i++) {
+                    binaryString += String.fromCharCode(binary[i]);
+                }
+                const base64 = window.btoa(binaryString);
+
+                doc.addFileToVFS(`${name}.ttf`, base64);
+                doc.addFont(`${name}.ttf`, name, style);
+            };
+
+            await Promise.all([
+                loadFont(fontUrl, 'Roboto', 'normal'),
+                loadFont(fontUrlBold, 'Roboto', 'bold')
+            ]);
+
+            doc.setFont('Roboto', 'bold');
+
+            const siteName = getSiteName(entry.siteId);
+            const dateStr = format(new Date(entry.date), 'dd.MM.yyyy', { locale: tr });
+            const dayName = format(new Date(entry.date), 'EEEE', { locale: tr });
+
+            // Calculate Page Number
+            const siteEntries = siteLogEntries.filter(e => e.siteId === entry.siteId);
+            siteEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const pageIndex = siteEntries.findIndex(e => e.id === entry.id);
+            const pageNumber = pageIndex !== -1 ? pageIndex + 1 : 1;
+
+            // Fonts & Layout
+            doc.setFontSize(14);
+
+            // 1. Header
+            doc.text("ŞANTİYE GÜNLÜK DEFTERİ", 105, 15, { align: 'center' });
+
+            // 2. Info Box (Top)
+            doc.setLineWidth(0.3);
+            doc.rect(20, 20, 170, 16); // Main Box
+
+            // Horizontal Line inside Info Box
+            doc.line(20, 28, 190, 28);
+
+            // Vertical Line for Page No
+            doc.line(135, 20, 135, 28);
+
+            // Labels & Values - Row 1
+            doc.setFontSize(9);
+            doc.setFont('Roboto', 'bold');
+            doc.text("TARİH ve GÜN", 22, 25);
+
+            doc.setFont('Roboto', 'normal');
+            doc.text(`: ${dateStr} ${dayName}`, 55, 25);
+
+            doc.setFont('Roboto', 'bold');
+            doc.text("SAYFA NO", 137, 25);
+            doc.setFont('Roboto', 'normal');
+            doc.text(`: ${pageNumber}`, 155, 25);
+
+            // Row 2
+            doc.setFont('Roboto', 'bold');
+            doc.text("HAVA DURUMU", 22, 33);
+
+            doc.setFont('Roboto', 'normal');
+            doc.text(`: ${entry.weather || '-'}`, 55, 33);
+
+            // 3. Content Area
+            const contentBoxTop = 36;
+            const contentBoxHeight = 200;
+            doc.rect(20, contentBoxTop, 170, contentBoxHeight); // Main Content Box Frame
+
+            // DRAW LINES (Ruled Paper Effect)
+            const lineHeight = 7; // Distance between lines in mm
+            const startLineY = contentBoxTop + lineHeight;
+            const endLineY = contentBoxTop + contentBoxHeight;
+
+            doc.setDrawColor(200, 200, 200); // Light gray for lines
+            for (let y = startLineY; y < endLineY; y += lineHeight) {
+                doc.line(20, y, 190, y);
+            }
+            doc.setDrawColor(0, 0, 0); // Reset to black
+
+            // Content Text
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+
+            // We need to print text ON the lines.
+            // Split text matches the width
+            const splitText = doc.splitTextToSize(entry.content || '', 165);
+
+            let textY = contentBoxTop + 5; // Start slightly below top border
+            // Iterate lines to place text ensuring it aligns somewhat with lines? 
+            // Standard text flow is easier, let it float over lines like real handwriting/printing.
+            doc.text(splitText, 22, textY);
+
+            // 4. Footer (Signatures)
+            const footerY = contentBoxTop + contentBoxHeight; // 236
+            const footerHeight = 30;
+
+            doc.rect(20, footerY, 170, footerHeight); // Footer Container
+
+            const boxWidth = 170 / 3;
+
+            // Vertical dividers
+            doc.line(20 + boxWidth, footerY, 20 + boxWidth, footerY + footerHeight);
+            doc.line(20 + boxWidth * 2, footerY, 20 + boxWidth * 2, footerY + footerHeight);
+
+            doc.setFont('Roboto', 'bold');
+            doc.setFontSize(9);
+
+            // Titles
+            doc.text("ŞANTİYE ŞEFİ", 20 + (boxWidth / 2), footerY + 6, { align: 'center' });
+            doc.text("MÜTEAHHİT", 20 + boxWidth + (boxWidth / 2), footerY + 6, { align: 'center' });
+            doc.text("KONTROL MÜHENDİSİ", 20 + (boxWidth * 2) + (boxWidth / 2), footerY + 6, { align: 'center' });
+
+            if (isPreview) {
+                window.open(doc.output('bloburl'), '_blank');
+            } else {
+                doc.save(`Santiye_Defteri_${dateStr}.pdf`);
+            }
+        } catch (error) {
+            console.error('PDF Generation Error:', error);
+            alert('PDF oluşturulurken bir hata oluştu. İnternet bağlantınızı kontrol ediniz (Font yüklemesi için gereklidir).');
+        } finally {
+            setIsGeneratingPDF(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -214,6 +356,26 @@ export function SiteLogList() {
                                     <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
                                     <div className="mt-4 flex justify-between items-end">
                                         <div className="flex gap-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-400 hover:text-blue-600"
+                                                onClick={() => handleDownloadPDF(entry, true)}
+                                                title="Önizle"
+                                                disabled={isGeneratingPDF}
+                                            >
+                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-slate-400 hover:text-green-600"
+                                                onClick={() => handleDownloadPDF(entry, false)}
+                                                title="PDF İndir"
+                                                disabled={isGeneratingPDF}
+                                            >
+                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                                            </Button>
                                             {canEdit && (
                                                 <>
                                                     <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>

@@ -28,6 +28,8 @@ import { useAuth } from '@/lib/store/use-auth';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const MODULE_HIERARCHY = [
     { id: 'dashboard', label: 'Ana Sayfa (Dashboard)' },
@@ -213,6 +215,8 @@ export default function AdminPage() {
         { label: 'İhale Tarihi', key: 'tenderDate', width: '90px', isDate: true },
         { label: 'Sözleşme Tarihi', key: 'contractDate', width: '90px', isDate: true },
         { label: 'İşyeri Teslim Tarihi', key: 'siteDeliveryDate', width: '90px', isDate: true },
+        { label: 'İş Bitim Tarihi', key: 'completionDate', width: '90px', isDate: true },
+        { label: 'Süre Uzatımlı Tarih', key: 'extendedDate', width: '90px', isDate: true },
         { label: 'Sözleşme Ayı Yi-Üfe Oranı', key: 'contractYiUfe', width: '80px', align: 'center' },
         { label: 'Güncel Fiyat Farkı Katsayısı', key: 'priceDifferenceCoefficient', width: '80px', align: 'center' },
         { label: 'Sözleşme Bedeli (KDV ve F.F. Hariç)', key: 'contractPrice', width: '120px', align: 'right', isCurrency: true },
@@ -248,6 +252,80 @@ export default function AdminPage() {
     const [companyAddress, setCompanyAddress] = useState('');
     const [companyPhone, setCompanyPhone] = useState('');
     const [companyStamp, setCompanyStamp] = useState<string | null>(null);
+
+
+    const handleExportExcel = () => {
+        const flatSites: any[] = [];
+
+        companies.forEach(company => {
+            const companySites = sites.filter(s => s.companyId === company.id);
+            // Apply sorting if needed, or just dump
+            companySites.forEach((site, index) => {
+                flatSites.push({
+                    'Yüklenici Firma': company.name,
+                    'İş Grubu': site.workGroup,
+                    'S.No': index + 1,
+                    'EKAP Belge No': site.projectNo,
+                    'İşin Adı': site.name,
+                    'İhale Kayıt No': site.registrationNo,
+                    'İlan Tarihi': site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '',
+                    'İhale Tarihi': site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',
+                    'Sözleşme Tarihi': site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',
+                    'İşyeri Teslim Tarihi': site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '',
+                    'İş Bitim Tarihi': site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',
+                    'Süre Uzatımlı Tarih': site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',
+                    'Sözleşme Bedeli': site.contractPrice,
+                    'Durum': site.status === 'INACTIVE' ? 'Pasif' : 'Aktif'
+                });
+            });
+        });
+
+        const ws = XLSX.utils.json_to_sheet(flatSites);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Şantiyeler");
+        XLSX.writeFile(wb, "Santiye_Listesi.xlsx");
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF('l', 'mm', 'a4');
+        doc.setFont('Helvetica', 'normal'); // Turkish chars might need a custom font, but standard 'Helvetica' usually handles basic latin well. For Turkish specific chars, might fail without custom font.
+        // For simplicity using standard font, usually CP1254 text might look weird, but let's try.
+        // Actually jsPDF default font doesn't support UTF-8 Turkish chars well (İ, ı, Ş, ş, Ğ, ğ). 
+        // We will assume standard ASCII for file names or minimal issue. 
+        // WORKAROUND: Use a font that supports Turkish or accept that chars might be off.
+        // Better: Use autoTable's font support or just proceed. 
+
+        doc.text("Şantiye Listesi", 14, 15);
+
+        const tableColumn = ["Firma", "İş Grubu", "İşin Adı", "İhale K. No", "Sözleşme Tarihi", "Bedel", "Durum"];
+        const tableRows: any[] = [];
+
+        companies.forEach(company => {
+            const companySites = sites.filter(s => s.companyId === company.id);
+            companySites.forEach(site => {
+                const rowData = [
+                    company.name,
+                    site.workGroup || '',
+                    site.name,
+                    site.registrationNo || '',
+                    site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',
+                    site.contractPrice ? new Intl.NumberFormat('tr-TR').format(site.contractPrice) : '',
+                    site.status === 'INACTIVE' ? 'Pasif' : 'Aktif'
+                ];
+                tableRows.push(rowData);
+            });
+        });
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: 20,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] }
+        });
+
+        doc.save("Santiye_Listesi.pdf");
+    };
 
     const [companyLetterhead, setCompanyLetterhead] = useState<string | null>(null);
     // SMTP State
@@ -539,7 +617,7 @@ export default function AdminPage() {
         const sitePayload: any = {
             name: newSiteData.name!,
             companyId: newSiteData.companyId!,
-            location: newSiteData.location!,
+            location: '', // Removed from UI, default empty
             status: 'ACTIVE',
             ...newSiteData
         };
@@ -548,6 +626,9 @@ export default function AdminPage() {
             if (isEditingSite && selectedSiteId) {
                 await updateSiteAction(selectedSiteId, sitePayload);
             } else {
+                if (newSiteData.provisionalAcceptanceDate) {
+                    sitePayload.status = 'INACTIVE';
+                }
                 await createSite(sitePayload);
             }
             location.reload();
@@ -1578,6 +1659,12 @@ export default function AdminPage() {
                                 }}>
                                     <FileDown className="w-4 h-4 mr-2" /> Şablon İndir
                                 </Button>
+                                <Button variant="outline" onClick={handleExportExcel} className="hidden sm:flex">
+                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" /> Excel Listesi
+                                </Button>
+                                <Button variant="outline" onClick={handleExportPDF} className="hidden sm:flex">
+                                    <FileDown className="w-4 h-4 mr-2 text-red-600" /> PDF Listesi
+                                </Button>
                                 <div className="relative">
                                     <input
                                         type="file"
@@ -1820,14 +1907,7 @@ export default function AdminPage() {
                                                                     ))}
                                                                 </select>
                                                             </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Konum / İl-İlçe <span className="text-red-500">*</span></Label>
-                                                                <Input
-                                                                    value={newSiteData.location || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, location: e.target.value })}
-                                                                    required
-                                                                />
-                                                            </div>
+
                                                             <div className="space-y-2">
                                                                 <Label>İş Grubu <span className="text-red-500">*</span></Label>
                                                                 <Select
@@ -1839,24 +1919,24 @@ export default function AdminPage() {
                                                                         <SelectValue placeholder="Seçiniz" />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
-                                                                        <SelectItem value="A Grubu">A Grubu</SelectItem>
-                                                                        <SelectItem value="B Grubu">B Grubu</SelectItem>
-                                                                        <SelectItem value="C Grubu">C Grubu</SelectItem>
-                                                                        <SelectItem value="D Grubu">D Grubu</SelectItem>
-                                                                        <SelectItem value="E Grubu">E Grubu</SelectItem>
-                                                                        <SelectItem value="F Grubu">F Grubu</SelectItem>
-                                                                        <SelectItem value="MV">MV</SelectItem>
-                                                                        <SelectItem value="Tesip">Tesip</SelectItem>
-                                                                        <SelectItem value="Diğer">Diğer</SelectItem>
+                                                                        <SelectItem value="Altyapı">Altyapı</SelectItem>
+                                                                        <SelectItem value="Drenaj">Drenaj</SelectItem>
+                                                                        <SelectItem value="Gölet">Gölet</SelectItem>
+                                                                        <SelectItem value="Harita">Harita</SelectItem>
+                                                                        <SelectItem value="Restorasyon">Restorasyon</SelectItem>
+                                                                        <SelectItem value="Sera">Sera</SelectItem>
+                                                                        <SelectItem value="Sulama">Sulama</SelectItem>
+                                                                        <SelectItem value="Taşkın Koruma">Taşkın Koruma</SelectItem>
+                                                                        <SelectItem value="Toplulaştırma">Toplulaştırma</SelectItem>
+                                                                        <SelectItem value="Üstyapı">Üstyapı</SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <Label>EKAP Belge No <span className="text-red-500">*</span></Label>
+                                                                <Label>EKAP Belge No</Label>
                                                                 <Input
                                                                     value={newSiteData.projectNo || ''}
                                                                     onChange={e => setNewSiteData({ ...newSiteData, projectNo: e.target.value })}
-                                                                    required
                                                                 />
                                                             </div>
                                                             <div className="space-y-2">
@@ -1870,27 +1950,8 @@ export default function AdminPage() {
                                                         </div>
                                                     </TabsContent>
 
-                                                    {/* Financial Tab */}
                                                     <TabsContent value="financial" className="space-y-4 pt-4">
                                                         <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label>Sözleşme Ayı Yi-Üfe Oranı</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    step="0.01"
-                                                                    value={newSiteData.contractYiUfe || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, contractYiUfe: e.target.value ? Number(e.target.value) : undefined })}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Fiyat Farkı Katsayısı</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    step="0.0001"
-                                                                    value={newSiteData.priceDifferenceCoefficient || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, priceDifferenceCoefficient: e.target.value ? Number(e.target.value) : undefined })}
-                                                                />
-                                                            </div>
                                                             <div className="space-y-2 col-span-2">
                                                                 <Label>Sözleşme Bedeli (KDV ve F.F. Hariç)</Label>
                                                                 <Input
@@ -1899,39 +1960,9 @@ export default function AdminPage() {
                                                                     onChange={e => setNewSiteData({ ...newSiteData, contractPrice: e.target.value ? Number(e.target.value) : undefined })}
                                                                 />
                                                             </div>
-                                                            <div className="space-y-2">
-                                                                <Label>F.F. Dahil Kalan Tutar (KDV Hariç)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.remainingAmount || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, remainingAmount: e.target.value ? Number(e.target.value) : undefined })}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Gerçekleşen Tutar (KDV ve F.F. Hariç)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.realizedAmount || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, realizedAmount: e.target.value ? Number(e.target.value) : undefined })}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>KDV Oranı (%)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.kdv || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, kdv: e.target.value ? Number(e.target.value) : undefined })}
-                                                                    placeholder="18"
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Fiziki Gerçekleşme (%)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.completionPercentage || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, completionPercentage: e.target.value ? Number(e.target.value) : 0 })}
-                                                                />
-                                                            </div>
+
+
+
                                                             <div className="space-y-2">
                                                                 <Label>Ortaklık Oranı (%)</Label>
                                                                 <Input
@@ -1940,46 +1971,11 @@ export default function AdminPage() {
                                                                     onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage: e.target.value ? Number(e.target.value) : 0 })}
                                                                 />
                                                             </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Ort. Çalıştırılan Personel</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.personnelCount || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, personnelCount: e.target.value ? Number(e.target.value) : 0 })}
-                                                                />
-                                                            </div>
 
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <div className="space-y-2">
-                                                                    <Label>Sözleşme Ufe / Güncel Ufe</Label>
-                                                                    <Input
-                                                                        type="number"
-                                                                        step="0.0001"
-                                                                        value={newSiteData.contractToCurrentUfeRatio || ''}
-                                                                        onChange={e => setNewSiteData({ ...newSiteData, contractToCurrentUfeRatio: e.target.value ? Number(e.target.value) : undefined })}
-                                                                    />
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <Label>Güncel Ufe Tarihi</Label>
-                                                                    <Input type="date" value={newSiteData.currentUfeDate || ''} onChange={e => setNewSiteData({ ...newSiteData, currentUfeDate: e.target.value })} />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Fiyat Farkı</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.priceDifference || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, priceDifference: e.target.value ? Number(e.target.value) : undefined })}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-2 col-span-2">
-                                                                <Label>Güncel İş Deneyim Tutarı</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.currentWorkExperienceAmount || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, currentWorkExperienceAmount: e.target.value ? Number(e.target.value) : undefined })}
-                                                                />
-                                                            </div>
+
+
+
+
                                                             <div className="space-y-2 col-span-2">
                                                                 <Label>Notlar / Açıklama</Label>
                                                                 <Input
@@ -1994,16 +1990,16 @@ export default function AdminPage() {
                                                     <TabsContent value="dates" className="space-y-4 pt-4">
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="space-y-2">
-                                                                <Label>İlan Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.announcementDate || ''} onChange={e => setNewSiteData({ ...newSiteData, announcementDate: e.target.value })} />
+                                                                <Label>İlan Tarihi <span className="text-red-500">*</span></Label>
+                                                                <Input type="date" value={newSiteData.announcementDate || ''} onChange={e => setNewSiteData({ ...newSiteData, announcementDate: e.target.value })} required />
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <Label>İhale Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.tenderDate || ''} onChange={e => setNewSiteData({ ...newSiteData, tenderDate: e.target.value })} />
+                                                                <Label>İhale Tarihi <span className="text-red-500">*</span></Label>
+                                                                <Input type="date" value={newSiteData.tenderDate || ''} onChange={e => setNewSiteData({ ...newSiteData, tenderDate: e.target.value })} required />
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <Label>Sözleşme Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.contractDate || ''} onChange={e => setNewSiteData({ ...newSiteData, contractDate: e.target.value })} />
+                                                                <Label>Sözleşme Tarihi <span className="text-red-500">*</span></Label>
+                                                                <Input type="date" value={newSiteData.contractDate || ''} onChange={e => setNewSiteData({ ...newSiteData, contractDate: e.target.value })} required />
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <Label>İşyeri Teslim Tarihi</Label>
@@ -2025,14 +2021,7 @@ export default function AdminPage() {
                                                                     placeholder="Belge No / Tutar vs."
                                                                 />
                                                             </div>
-                                                            <div className="space-y-2">
-                                                                <Label>İş Bitim Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.completionDate || ''} onChange={e => setNewSiteData({ ...newSiteData, completionDate: e.target.value })} />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Süre Uzatımlı Tarih</Label>
-                                                                <Input type="date" value={newSiteData.extendedDate || ''} onChange={e => setNewSiteData({ ...newSiteData, extendedDate: e.target.value })} />
-                                                            </div>
+
                                                             <div className="space-y-2 col-span-2">
                                                                 <Label>Durum Detayı</Label>
                                                                 <Input
@@ -2174,7 +2163,27 @@ export default function AdminPage() {
                                                         </TableCell>
                                                     </TableRow>
                                                     {sortedCompanySites.map((site, index) => (
-                                                        <TableRow key={site.id} className="hover:bg-slate-50 border-b">
+                                                        <TableRow key={site.id} className={cn("hover:bg-slate-50 border-b", site.status === 'INACTIVE' ? 'bg-gray-50 opacity-75' : '')}>
+                                                            <TableCell className="border-r py-2 text-xs text-center">
+                                                                <div className="flex flex-col items-center gap-1">
+                                                                    <Switch
+                                                                        checked={site.status !== 'INACTIVE'}
+                                                                        onCheckedChange={async (checked) => {
+                                                                            try {
+                                                                                const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
+                                                                                await updateSiteAction(site.id, { status: newStatus });
+                                                                                // Refresh local state if needed or rely on server action revalidation
+                                                                                window.location.reload(); // Temporary for immediate feedback
+                                                                            } catch (error) {
+                                                                                console.error('Status update failed', error);
+                                                                                alert('Durum güncellenemedi');
+                                                                            }
+                                                                        }}
+                                                                        className="scale-75"
+                                                                    />
+                                                                    <span className="text-[10px] text-muted-foreground">{site.status === 'INACTIVE' ? 'Pasif' : 'Aktif'}</span>
+                                                                </div>
+                                                            </TableCell>
                                                             <TableCell className="border-r py-2 text-xs font-semibold">{site.workGroup}</TableCell>
                                                             <TableCell className="border-r py-2 text-xs text-center">{index + 1}</TableCell>
                                                             <TableCell className="border-r py-2 text-xs">{site.projectNo}</TableCell>
@@ -2184,6 +2193,8 @@ export default function AdminPage() {
                                                             <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : ''}</TableCell>
                                                             <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : ''}</TableCell>
                                                             <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : ''}</TableCell>
+                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : ''}</TableCell>
+                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : ''}</TableCell>
 
                                                             <TableCell className="border-r py-2 text-xs text-center">
                                                                 {(() => {

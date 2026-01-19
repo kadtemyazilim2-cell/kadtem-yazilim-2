@@ -25,8 +25,8 @@ const NAV_ITEMS = [
     { label: 'Yakıt Takip', href: '/dashboard/fuel', icon: Fuel },
     { label: 'Yakıt Hareketleri', href: '/dashboard/fuel/movement', icon: ArrowRightLeft },
     { label: 'Kasa Defteri', href: '/dashboard/cash-book', icon: Wallet },
-    { label: 'Personel Puantaj', href: '/dashboard/personnel', icon: Users },
-    { label: 'Yeni Sekme', href: '/dashboard/new-tab', icon: Users },
+
+    { label: 'Puantaj', href: '/dashboard/new-tab', icon: Users },
 
     { label: 'Araç Puantaj', href: '/dashboard/vehicle-attendance', icon: Clock },
     { label: 'Şantiye Defteri', href: '/dashboard/site-log', icon: BookOpen },
