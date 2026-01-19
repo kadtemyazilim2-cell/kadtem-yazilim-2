@@ -392,6 +392,9 @@ model Correspondence {
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id])
   
+  siteId      String?
+  site        Site?    @relation(fields: [siteId], references: [id])
+
   date        DateTime
   direction   String   // INCOMING, OUTGOING
   type        String   // OFFICIAL, INTERNAL...
@@ -399,6 +402,11 @@ model Correspondence {
   description String
   referenceNumber String?
   senderReceiver String
+  senderReceiverAlignment String? // left, center, right
+  
+  interest    String[]
+  appendices  String[]
+  registrationNumber String?
   
   attachmentUrls String[]
   
@@ -429,7 +437,9 @@ model Institution {
   id          String   @id @default(cuid())
   name        String
   category    String? // BANK, INSURANCE...
+  alignment   String? // left, center, right
   email       String?
   phone       String?
+  mobile      String?
   contactPerson String?
 }
