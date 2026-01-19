@@ -35,44 +35,44 @@ export async function createCompany(data: Partial<Company>) {
         return { success: true, data: company };
     } catch (error) {
         console.error('createCompany Error:', error);
-        return { success: false, error: 'Firma oluşturulamadı.' };
     }
+}
 
-    export async function updateCompany(id: string, data: Partial<Company>) {
-        try {
-            const company = await prisma.company.update({
-                where: { id },
-                data: {
-                    name: data.name,
-                    taxNumber: data.taxNumber,
-                    address: data.address,
-                    phone: data.phone,
-                    stamp: data.stamp,
-                    letterhead: data.letterhead,
-                    smtpHost: data.smtpHost,
-                    smtpPort: data.smtpPort,
-                    smtpUser: data.smtpUser,
-                    smtpPass: data.smtpPass,
-                    smtpFromEmail: data.smtpFromEmail,
-                    smtpSecure: data.smtpSecure,
-                    status: data.status,
-                }
-            });
-            revalidatePath('/dashboard/admin');
-            return { success: true, data: company };
-        } catch (error) {
-            console.error('updateCompany Error:', error);
-            return { success: false, error: 'Firma güncellenemedi.' };
-        }
+export async function updateCompany(id: string, data: Partial<Company>) {
+    try {
+        const company = await prisma.company.update({
+            where: { id },
+            data: {
+                name: data.name,
+                taxNumber: data.taxNumber,
+                address: data.address,
+                phone: data.phone,
+                stamp: data.stamp,
+                letterhead: data.letterhead,
+                smtpHost: data.smtpHost,
+                smtpPort: data.smtpPort,
+                smtpUser: data.smtpUser,
+                smtpPass: data.smtpPass,
+                smtpFromEmail: data.smtpFromEmail,
+                smtpSecure: data.smtpSecure,
+                status: data.status,
+            }
+        });
+        revalidatePath('/dashboard/admin');
+        return { success: true, data: company };
+    } catch (error) {
+        console.error('updateCompany Error:', error);
+        return { success: false, error: 'Firma güncellenemedi.' };
     }
+}
 
-    export async function deleteCompany(id: string) {
-        try {
-            await prisma.company.delete({ where: { id } });
-            revalidatePath('/dashboard/admin');
-            return { success: true };
-        } catch (error) {
-            console.error('deleteCompany Error:', error);
-            return { success: false, error: 'Firma silinemedi.' };
-        }
+export async function deleteCompany(id: string) {
+    try {
+        await prisma.company.delete({ where: { id } });
+        revalidatePath('/dashboard/admin');
+        return { success: true };
+    } catch (error) {
+        console.error('deleteCompany Error:', error);
+        return { success: false, error: 'Firma silinemedi.' };
     }
+}
