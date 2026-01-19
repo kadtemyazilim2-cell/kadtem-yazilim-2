@@ -14,6 +14,10 @@ export async function authenticate(
             switch (error.type) {
                 case 'CredentialsSignin':
                     return 'Geçersiz kullanıcı adı veya şifre.';
+                case 'CallbackRouteError':
+                    // Extract the custom error message thrown from auth.ts
+                    const cause = error.cause as any;
+                    return `Bağlantı Hatası: ${cause?.err?.message || error.message}`;
                 default:
                     return `Hata Detayı: ${error.type} - ${error.message}`;
             }

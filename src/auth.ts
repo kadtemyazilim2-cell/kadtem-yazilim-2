@@ -11,8 +11,10 @@ async function getUser(username: string) {
         });
         return user;
     } catch (error) {
-        console.error("Failed to fetch user:", error);
-        throw new Error("Failed to fetch user.");
+        // [DEBUG] Log error for Vercel logs
+        console.error("DB Error in getUser:", error);
+        // Throw simple string that NextAuth can display or ignore
+        throw new Error("Veritabanına bağlanılamadı. Ayarları kontrol edin.");
     }
 }
 
