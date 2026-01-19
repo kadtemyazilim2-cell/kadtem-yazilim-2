@@ -43,12 +43,38 @@ export default function FuelMovementPage() {
         }
     }, [dispenseTanks, selectedDispenseSiteId]);
 
-    const canView = hasPermission('movement', 'VIEW');
-    const canCreate = hasPermission('movement', 'CREATE');
+    const canViewPage = hasPermission('movement', 'VIEW');
+    const canDispense = hasPermission('movement.dispense', 'VIEW') || hasPermission('movement', 'VIEW');
+    const canTransfer = hasPermission('movement.transfer', 'VIEW') || hasPermission('movement', 'VIEW');
+    const canPurchase = hasPermission('movement.purchase', 'VIEW') || hasPermission('movement', 'VIEW');
 
-    if (!canView) {
+    const canDispenseCreate = hasPermission('movement.dispense', 'CREATE') || hasPermission('movement', 'CREATE');
+    const canTransferCreate = hasPermission('movement.transfer', 'CREATE') || hasPermission('movement', 'CREATE');
+    const canPurchaseCreate = hasPermission('movement.purchase', 'CREATE') || hasPermission('movement', 'CREATE');
+
+    if (!canViewPage) {
         return <div className="p-6 text-center text-muted-foreground">Bu sayfaya erişim yetkiniz yok.</div>;
     }
+
+    // Determine default tab based on permissions
+    const defaultTab = canDispense ? 'dispense' : (canTransfer ? 'transfer' : (canPurchase ? 'purchase' : ''));
+
+    if (!defaultTab) {
+        return <div className="p-6 text-center text-muted-foreground">Görüntülenecek modül bulunamadı.</div>;
+    }
+
+    // ... (rest of code) ...
+
+    // [INSIDE RENDER]
+    // <Tabs defaultValue={defaultTab} ...>
+    //   <TabsList ...>
+    //      {canDispense && <TabsTrigger value="dispense" ...>}
+    //      {canTransfer && <TabsTrigger value="transfer" ...>}
+    //      {canPurchase && <TabsTrigger value="purchase" ...>}
+    //   </TabsList>
+    //   ...
+    //   {canDispense && <TabsContent value="dispense">...</TabsContent>}
+    //   ...
 
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -176,15 +202,21 @@ export default function FuelMovementPage() {
 
             <Tabs defaultValue="dispense" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 h-auto min-h-[3.5rem]">
-                    <TabsTrigger value="dispense" className="gap-2 text-sm md:text-lg whitespace-normal leading-tight py-2 h-full">
-                        <Fuel className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-center">Yakıt Ver (Tüketim)</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="transfer" className="gap-2 text-sm md:text-lg whitespace-normal leading-tight py-2 h-full">
-                        <ArrowRightLeft className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-center">Transfer (Virman)</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="purchase" className="gap-2 text-sm md:text-lg whitespace-normal leading-tight py-2 h-full">
-                        <Droplets className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-center">Yakıt Alımı (Depo)</span>
-                    </TabsTrigger>
+                    {canDispense && (
+                        <TabsTrigger value="dispense" className="gap-2 text-sm md:text-lg whitespace-normal leading-tight py-2 h-full">
+                            <Fuel className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-center">Yakıt Ver (Tüketim)</span>
+                        </TabsTrigger>
+                    )}
+                    {canTransfer && (
+                        <TabsTrigger value="transfer" className="gap-2 text-sm md:text-lg whitespace-normal leading-tight py-2 h-full">
+                            <ArrowRightLeft className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-center">Transfer (Virman)</span>
+                        </TabsTrigger>
+                    )}
+                    {canPurchase && (
+                        <TabsTrigger value="purchase" className="gap-2 text-sm md:text-lg whitespace-normal leading-tight py-2 h-full">
+                            <Droplets className="w-4 h-4 md:w-5 md:h-5 shrink-0" /> <span className="text-center">Yakıt Alımı (Depo)</span>
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 {/* YAKIT VERME (DISPENSE) */}
@@ -289,7 +321,7 @@ export default function FuelMovementPage() {
                                     />
                                 </div>
 
-                                {canCreate ? (
+                                {canDispenseCreate ? (
                                     <Button className="w-full" size="lg">KAYDET</Button>
                                 ) : (
                                     <div className="p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
@@ -386,7 +418,7 @@ export default function FuelMovementPage() {
                                     </div>
                                 </div>
 
-                                {canCreate ? (
+                                {canTransferCreate ? (
                                     <Button className="w-full" size="lg" variant="secondary">TRANSFER YAP</Button>
                                 ) : (
                                     <div className="p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
@@ -455,7 +487,7 @@ export default function FuelMovementPage() {
                                     </div>
                                 </div>
 
-                                {canCreate ? (
+                                {canPurchaseCreate ? (
                                     <Button className="w-full mt-4" size="lg" variant="outline">STOK GİRİŞİ YAP</Button>
                                 ) : (
                                     <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">

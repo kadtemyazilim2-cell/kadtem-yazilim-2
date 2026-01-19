@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Personnel } from '@/lib/types';
 import { useAuth } from '@/lib/store/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
+import { createPersonnel, updatePersonnel as updatePersonnelServer, deletePersonnel as deletePersonnelServer } from '@/actions/personnel';
 
 interface PersonnelFormProps {
     personnelToEdit?: Personnel;
@@ -138,7 +139,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
     }, [finalOpen, personnelToEdit, defaultReferenceDate]);
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Strict Validation
@@ -358,14 +359,33 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
         }
 
         if (personnelToEdit) {
-            updatePersonnel(personnelToEdit.id, personnelData);
-            toast.success("Personel bilgileri güncellendi.");
+            // Server Action for Update
+            const result = await updatePersonnelServer(personnelToEdit.id, personnelData);
+
+            if (result.success && result.data) {
+                updatePersonnel(personnelToEdit.id, result.data);
+                toast.success("Personel bilgileri güncellendi.");
+            } else {
+                toast.error(result.error || "Güncelleme başarısız.");
+                return; // Don't close modal on error
+            }
         } else {
-            addPersonnel({
-                id: crypto.randomUUID(),
-                ...personnelData
-            });
-            toast.success("Personel eklendi.");
+            // Server Action for Create
+            // Ensure ID is handled by server or generated here. Prisma usually handles ID if not provided, 
+            // but we might want to generate it for optimistic or consistency.
+            // Our server action createPersonnel takes Partial<Personnel>.
+            // It creates with random UUID if not provided? Prisma schema usually has @default(cuid()) or uuid().
+            // Let's rely on server return.
+
+            const result = await createPersonnel(personnelData);
+
+            if (result.success && result.data) {
+                addPersonnel(result.data);
+                toast.success("Personel eklendi.");
+            } else {
+                toast.error(result.error || "Ekleme başarısız.");
+                return; // Don't close modal on error
+            }
         }
 
         if (setFinalOpen) setFinalOpen(false);
@@ -599,7 +619,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                 type="button"
                                 variant="destructive"
                                 className="w-1/3"
-                                onClick={() => {
+                                onClick={async () => {
                                     // Validation Logic replicated from PersonnelList
                                     const globalAttendanceCount = personnelAttendance.filter(a => a.personnelId === personnelToEdit.id).length;
                                     const hasTransferHistory = personnelToEdit.transferHistory && personnelToEdit.transferHistory.length > 0;
@@ -617,9 +637,14 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                     }
 
                                     if (confirm(`${personnelToEdit.fullName} isimli personeli silmek istediğinize emin misiniz?\n\nBU İŞLEM GERİ ALINAMAZ!`)) {
-                                        deletePersonnel(personnelToEdit.id);
-                                        toast.success("Personel silindi.");
-                                        if (setFinalOpen) setFinalOpen(false);
+                                        const result = await deletePersonnelServer(personnelToEdit.id);
+                                        if (result.success) {
+                                            deletePersonnel(personnelToEdit.id);
+                                            toast.success("Personel silindi.");
+                                            if (setFinalOpen) setFinalOpen(false);
+                                        } else {
+                                            toast.error(result.error || "Silme işlemi başarısız.");
+                                        }
                                     }
                                 }}
                             >

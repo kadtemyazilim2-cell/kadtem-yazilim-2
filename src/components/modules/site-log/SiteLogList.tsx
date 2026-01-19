@@ -19,7 +19,7 @@ import { FileDown, Loader2, Eye } from 'lucide-react'; // Added Eye for preview
 import { useUserSites } from '@/hooks/use-user-access';
 
 export function SiteLogList() {
-    const { siteLogEntries, addSiteLogEntry, updateSiteLogEntry, deleteSiteLogEntry } = useAppStore();
+    const { siteLogEntries, addSiteLogEntry, updateSiteLogEntry, deleteSiteLogEntry, users } = useAppStore();
     const sites = useUserSites();
     const { user, hasPermission } = useAuth();
     const [open, setOpen] = useState(false);
@@ -162,11 +162,11 @@ export function SiteLogList() {
             const dateStr = format(new Date(entry.date), 'dd.MM.yyyy', { locale: tr });
             const dayName = format(new Date(entry.date), 'EEEE', { locale: tr });
 
-            // Calculate Page Number
+            // Calculate Page Number (Based on Unique Dates)
             const siteEntries = siteLogEntries.filter(e => e.siteId === entry.siteId);
-            siteEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-            const pageIndex = siteEntries.findIndex(e => e.id === entry.id);
-            const pageNumber = pageIndex !== -1 ? pageIndex + 1 : 1;
+            const uniqueDates = Array.from(new Set(siteEntries.map(e => e.date))).sort();
+            const dateIndex = uniqueDates.indexOf(entry.date);
+            const pageNumber = dateIndex !== -1 ? dateIndex + 1 : 1;
 
             // Fonts & Layout
             doc.setFontSize(14);
@@ -198,11 +198,20 @@ export function SiteLogList() {
             doc.text(`: ${pageNumber}`, 155, 25);
 
             // Row 2
+            // Consolidate Weather? Use the current entry's weather or join them?
+            // User entered weather for *this* entry. If multiple people enter logs, weather might differ or be same.
+            // Let's use the weather from the entry triggering the download, or join unique weathers.
+            const dayEntries = siteEntries.filter(e => e.date === entry.date);
+            // Sort by creation or something consistent. Let's assume array order is roughly creation order.
+
+            const uniqueWeather = Array.from(new Set(dayEntries.map(e => e.weather).filter(Boolean)));
+            const weatherStr = uniqueWeather.length > 0 ? uniqueWeather.join(', ') : '-';
+
             doc.setFont('Roboto', 'bold');
             doc.text("HAVA DURUMU", 22, 33);
 
             doc.setFont('Roboto', 'normal');
-            doc.text(`: ${entry.weather || '-'}`, 55, 33);
+            doc.text(`: ${weatherStr}`, 55, 33);
 
             // 3. Content Area
             const contentBoxTop = 36;
@@ -220,18 +229,79 @@ export function SiteLogList() {
             }
             doc.setDrawColor(0, 0, 0); // Reset to black
 
-            // Content Text
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
+            // Content Text Iteration
+            let currentY = contentBoxTop + 6;
 
-            // We need to print text ON the lines.
-            // Split text matches the width
-            const splitText = doc.splitTextToSize(entry.content || '', 165);
+            dayEntries.forEach((dayEntry, index) => {
+                const bullet = "• ";
+                const rawContent = dayEntry.content || '';
+                // Ensure content starts with bullet
+                const contentText = bullet + rawContent;
 
-            let textY = contentBoxTop + 5; // Start slightly below top border
-            // Iterate lines to place text ensuring it aligns somewhat with lines? 
-            // Standard text flow is easier, let it float over lines like real handwriting/printing.
-            doc.text(splitText, 22, textY);
+                const splitText = doc.splitTextToSize(contentText, 165);
+
+                doc.setFont('Roboto', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+
+                const lineHeight = doc.getLineHeight() * 0.3527; // pt to mm approx
+                const lineSpacing = 4.5;
+
+                doc.text(splitText, 22, currentY, { lineHeightFactor: 1.15 });
+
+                // Calculate end position of the last line
+                const lastLine = splitText[splitText.length - 1] || '';
+                const lastLineWidth = doc.getTextWidth(lastLine);
+
+                // Author Style
+                doc.setFont('Roboto', 'normal');
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150); // Gray
+
+                const author = users.find(u => u.id === dayEntry.authorId);
+                const authorName = author ? author.name : 'Bilinmeyen Kullanıcı';
+                const authorStr = ` - ${authorName}`;
+
+                const authorWidth = doc.getTextWidth(authorStr);
+
+                // 22 (Left) + 170 (Width) = 192 (Right Boundary). Let's say 190 margin.
+                let authorX = 22 + lastLineWidth + 1;
+                let authorY = currentY + (splitText.length - 1) * lineSpacing;
+
+                // Check overflow
+                if (authorX + authorWidth > 190) {
+                    authorX = 22; // Wrap to next line, indented? No, just start of line
+                    authorY += lineSpacing;
+                }
+
+                doc.text(authorStr, authorX, authorY);
+
+                // Update Y for next entry
+                // If we wrapped author, we added a line.
+                // Also splitText.length is number of lines of content.
+                // Logic: currentY is start. (splitText.length - 1) * lineSpacing is Y of last content line.
+                // If we stay on same line, total height is determined by content.
+                // If we wrap, we add one line spacing.
+
+                let totalHeight = (splitText.length - 1) * lineSpacing;
+                if (authorX === 22) { // We wrapped
+                    totalHeight += lineSpacing;
+                }
+
+                currentY += totalHeight + 6; // +6 for spacing between entries (paragraph gap)
+
+                // Separator if not last
+                if (index < dayEntries.length - 1) {
+                    // Maybe a small dashed line? Or just space. 
+                    // User said "alt alta", simple spacing is usually enough.
+                    // Let's check boundary
+                    if (currentY > endLineY - 10) {
+                        // Overflow warning or new page? 
+                        // For now, no multi-page logic requested, just stop or let overflow (hidden by clip usually or flows out).
+                    }
+                }
+            });
+
 
             // 4. Footer (Signatures)
             const footerY = contentBoxTop + contentBoxHeight; // 236
@@ -247,6 +317,7 @@ export function SiteLogList() {
 
             doc.setFont('Roboto', 'bold');
             doc.setFontSize(9);
+            doc.setTextColor(0, 0, 0); // Reset black
 
             // Titles
             doc.text("ŞANTİYE ŞEFİ", 20 + (boxWidth / 2), footerY + 6, { align: 'center' });
@@ -316,7 +387,10 @@ export function SiteLogList() {
                                         className="h-32"
                                         placeholder="Bugün yapılan işler, malzemeler, olaylar..."
                                         value={content}
-                                        onChange={e => setContent(e.target.value)}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            setContent(val.charAt(0).toUpperCase() + val.slice(1));
+                                        }}
                                         required
                                     />
                                 </div>

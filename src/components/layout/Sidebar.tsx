@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
+import { logout as serverLogout } from '@/actions/auth';
 
 const NAV_ITEMS = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -107,7 +108,10 @@ export function Sidebar({ className }: { className?: string }) {
                 </div>
 
                 <button
-                    onClick={() => logout()}
+                    onClick={async () => {
+                        logout(); // Clear client state
+                        await serverLogout(); // Clear server session & redirect
+                    }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                 >
                     <LogOut className="w-4 h-4" />

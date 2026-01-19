@@ -63,7 +63,15 @@ const MODULE_HIERARCHY = [
             { id: 'fuel.consumption', label: 'Tüketim Raporu' },
         ]
     },
-    { id: 'movement', label: 'Yakıt Hareketleri' },
+    {
+        id: 'movement',
+        label: 'Yakıt Hareketleri',
+        children: [
+            { id: 'movement.dispense', label: 'Yakıt Ver (Araç Dolum)' },
+            { id: 'movement.transfer', label: 'Transfer (Virman)' },
+            { id: 'movement.purchase', label: 'Yakıt Alımı (Stok)' },
+        ]
+    },
     {
         id: 'cash-book',
         label: 'Kasa Defteri',

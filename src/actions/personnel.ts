@@ -52,3 +52,15 @@ export async function updatePersonnel(id: string, data: Partial<Personnel>) {
         return { success: false, error: 'Personel güncellenemedi.' };
     }
 }
+export async function deletePersonnel(id: string) {
+    try {
+        const person = await prisma.personnel.delete({
+            where: { id }
+        });
+        revalidatePath('/dashboard/personnel');
+        return { success: true, data: person };
+    } catch (error) {
+        console.error('deletePersonnel Error:', error);
+        return { success: false, error: 'Personel silinemedi.' };
+    }
+}

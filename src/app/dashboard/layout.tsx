@@ -1,3 +1,4 @@
+import { getUsers } from '@/actions/user';
 import { getCompanies } from '@/actions/company';
 import { getSites } from '@/actions/site';
 import { getVehicles } from '@/actions/vehicle';
@@ -10,17 +11,19 @@ import { auth } from '@/auth';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const session = await auth();
 
-    const [companiesRes, sitesRes, vehiclesRes, personnelRes] = await Promise.all([
+    const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes] = await Promise.all([
         getCompanies(),
         getSites(),
         getVehicles(),
-        getPersonnel()
+        getPersonnel(),
+        getUsers()
     ]);
 
     const companies = serializeData(companiesRes.data || []);
     const sites = serializeData(sitesRes.data || []);
     const vehicles = serializeData(vehiclesRes.data || []);
     const personnel = serializeData(personnelRes.data || []);
+    const users = serializeData(usersRes.data || []);
 
     // We should also pass the current user to the store if possible, 
     // but the store User type might differ from NextAuth User type. 
@@ -33,6 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 sites={sites}
                 vehicles={vehicles}
                 personnel={personnel}
+                users={users}
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>
