@@ -358,12 +358,36 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             personnelData.salary = Number(newSalary);
         }
 
+        // Helper to sanitize server data for client store (null -> undefined, Date -> string)
+        const sanitizeForStore = <T,>(data: T): Partial<T> => {
+            const clean: any = {};
+            if (!data || typeof data !== 'object') return data as any;
+
+            for (const key in data) {
+                const val = (data as any)[key];
+                if (val === null) {
+                    clean[key] = undefined;
+                } else if (val instanceof Date) {
+                    clean[key] = val.toISOString();
+                } else if (Array.isArray(val)) {
+                    clean[key] = val.map((item: any) => sanitizeForStore(item));
+                } else if (typeof val === 'object') {
+                    clean[key] = sanitizeForStore(val);
+                } else {
+                    clean[key] = val;
+                }
+            }
+            return clean;
+        };
+
         if (personnelToEdit) {
             // Server Action for Update
             const result = await updatePersonnelServer(personnelToEdit.id, personnelData);
 
             if (result.success && result.data) {
-                updatePersonnel(personnelToEdit.id, result.data);
+                const cleanData = sanitizeForStore(result.data);
+                // Explicitly cast to match store type if needed, but cleaner object helps
+                updatePersonnel(personnelToEdit.id, cleanData as any);
                 toast.success("Personel bilgileri güncellendi.");
             } else {
                 toast.error(result.error || "Güncelleme başarısız.");
@@ -371,16 +395,11 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             }
         } else {
             // Server Action for Create
-            // Ensure ID is handled by server or generated here. Prisma usually handles ID if not provided, 
-            // but we might want to generate it for optimistic or consistency.
-            // Our server action createPersonnel takes Partial<Personnel>.
-            // It creates with random UUID if not provided? Prisma schema usually has @default(cuid()) or uuid().
-            // Let's rely on server return.
-
             const result = await createPersonnel(personnelData);
 
             if (result.success && result.data) {
-                addPersonnel(result.data);
+                const cleanData = sanitizeForStore(result.data);
+                addPersonnel(cleanData as any);
                 toast.success("Personel eklendi.");
             } else {
                 toast.error(result.error || "Ekleme başarısız.");
