@@ -12,9 +12,9 @@ import { redirect } from 'next/navigation';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const session = await auth();
 
-    if (!session || !session.user) {
-        redirect('/login');
-    }
+    // if (!session || !session.user) {
+    //     redirect('/login');
+    // }
 
     let companies = [], sites = [], vehicles = [], personnel = [], users = [];
 
@@ -51,6 +51,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 users={users}
                 currentUser={session?.user}
             />
+            {/* SESSION DEBUGGER */}
+            <div className="bg-black text-green-400 p-2 text-xs font-mono break-all border-b border-green-900 z-[9999] relative">
+                <b>SERVER SESSION DEBUG:</b> {JSON.stringify(session, null, 2)}
+            </div>
+
             <AppLayout>{children}</AppLayout>
         </>
     );
