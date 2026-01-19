@@ -2,17 +2,20 @@
 
 import { useRef } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
+import { useAuth } from '@/lib/store/use-auth';
 
 export function StoreInitializer({
     companies,
     sites,
     vehicles,
-    personnel
+    personnel,
+    currentUser
 }: {
     companies: any[],
     sites: any[],
     vehicles: any[],
-    personnel: any[]
+    personnel: any[],
+    currentUser?: any
 }) {
     const initialized = useRef(false);
     if (!initialized.current) {
@@ -21,8 +24,15 @@ export function StoreInitializer({
             sites,
             vehicles,
             personnel,
-            // Add others
         });
+
+        if (currentUser) {
+            useAuth.setState({
+                user: currentUser,
+                isAuthenticated: true
+            });
+        }
+
         initialized.current = true;
     }
     return null;

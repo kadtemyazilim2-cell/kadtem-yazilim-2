@@ -33,6 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 sites={sites}
                 vehicles={vehicles}
                 personnel={personnel}
+                currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>
         </>

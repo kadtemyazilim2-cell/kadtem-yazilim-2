@@ -44,15 +44,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         async session({ session, token }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub;
-                // Fetch extra data if needed, or put in token
-                // session.user.role = token.role ...
+                session.user.role = token.role as any;
+                session.user.permissions = token.permissions as any;
+                session.user.username = token.username as string;
             }
             return session;
         },
         async jwt({ token, user }) {
             if (user) {
                 token.sub = user.id;
-                // token.role = user.role
+                token.role = user.role;
+                token.permissions = user.permissions;
+                token.username = user.username;
             }
             return token;
         }
