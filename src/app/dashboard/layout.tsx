@@ -3,6 +3,8 @@ import { getCompanies } from '@/actions/company';
 import { getSites } from '@/actions/site';
 import { getVehicles } from '@/actions/vehicle';
 import { getPersonnel } from '@/actions/personnel';
+import { getCorrespondenceList } from '@/actions/correspondence';
+import { getInstitutions } from '@/actions/institution';
 import { StoreInitializer } from '@/components/store-initializer';
 import { serializeData } from '@/lib/serializer';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,19 +14,21 @@ import { redirect } from 'next/navigation';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const session = await auth();
 
-    // if (!session || !session.user) {
-    //     redirect('/login');
-    // }
+    if (!session || !session.user) {
+        redirect('/login');
+    }
 
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [];
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
             getPersonnel(),
-            getUsers()
+            getUsers(),
+            getCorrespondenceList(),
+            getInstitutions()
         ]);
 
         companies = serializeData(companiesRes?.data || []);
@@ -32,6 +36,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         vehicles = serializeData(vehiclesRes?.data || []);
         personnel = serializeData(personnelRes?.data || []);
         users = serializeData(usersRes?.data || []);
+        correspondences = serializeData(correspondencesRes?.data || []);
+        institutions = serializeData(institutionsRes?.data || []);
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
         // Continue with empty arrays to render the shell at least
@@ -49,13 +55,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 vehicles={vehicles}
                 personnel={personnel}
                 users={users}
+                correspondences={correspondences}
+                institutions={institutions}
                 currentUser={session?.user}
             />
-            {/* SESSION DEBUGGER */}
-            <div className="bg-black text-green-400 p-2 text-xs font-mono break-all border-b border-green-900 z-[9999] relative">
-                <b>SERVER SESSION DEBUG:</b> {JSON.stringify(session, null, 2)}
-            </div>
-
             <AppLayout>{children}</AppLayout>
         </>
     );

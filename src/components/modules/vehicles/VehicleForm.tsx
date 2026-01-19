@@ -23,6 +23,42 @@ interface VehicleFormProps {
 
 import { useAuth } from '@/lib/store/use-auth';
 
+import { createVehicle, updateVehicle, deleteVehicle } from '@/actions/vehicle';
+
+interface VehicleFormData {
+    plate: string;
+    brand: string;
+    model: string;
+    year?: number;
+    type: 'CAR' | 'TRUCK' | 'LORRY' | 'EXCAVATOR' | 'TRACTOR' | 'OTHER';
+    ownership: 'OWNED' | 'RENTAL';
+    meterType: 'KM' | 'HOURS';
+    currentKm: number;
+    status: 'ACTIVE' | 'PASSIVE' | 'SOLD' | 'PERT';
+
+    // Dates as strings for Input type="date"
+    insuranceExpiry: string;
+    kaskoExpiry: string;
+    inspectionExpiry: string;
+    lastInspectionDate: string;
+
+    insuranceCost: number;
+    kaskoCost: number;
+    insuranceAgency: string;
+    kaskoAgency: string;
+    definition: string;
+
+    companyId: string;
+    rentalCompanyName: string;
+    rentalContact: string;
+    assignedSiteId: string;
+
+    engineNumber: string;
+    chassisNumber: string;
+    fuelType: 'DIESEL' | 'GASOLINE' | 'LPG' | 'ELECTRIC' | 'HYBRID';
+    licenseFile: string;
+}
+
 export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSuccess, vehicleToEdit, open: controlledOpen, onOpenChange: controlledOnOpenChange }: VehicleFormProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const { hasPermission } = useAuth();
@@ -47,38 +83,50 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         }
     };
 
-    const { addVehicle, updateVehicle, deleteVehicle, companies, sites } = useAppStore();
+    // Store is now ONLY used for reading lists (companies, sites)
+    const { companies, sites } = useAppStore();
 
-    const [formData, setFormData] = useState<Partial<Vehicle>>({
+    // Helper to format Date to YYYY-MM-DD
+    const formatDate = (date?: Date | string | null) => {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toISOString().split('T')[0];
+    };
+
+    const [formData, setFormData] = useState<VehicleFormData>({
         plate: vehicleToEdit?.plate || '',
         brand: vehicleToEdit?.brand || '',
         model: vehicleToEdit?.model || '',
         year: vehicleToEdit?.year,
-        type: vehicleToEdit?.type || 'CAR',
-        meterType: vehicleToEdit?.meterType || 'KM',
+        type: (vehicleToEdit?.type as any) || 'CAR',
+        meterType: (vehicleToEdit?.meterType as any) || 'KM',
         currentKm: vehicleToEdit?.currentKm || 0,
-        insuranceExpiry: vehicleToEdit?.insuranceExpiry || '',
-        kaskoExpiry: vehicleToEdit?.kaskoExpiry || '',
+        status: (vehicleToEdit?.status as any) || 'ACTIVE',
+        ownership: (vehicleToEdit?.ownership as any) || initialOwnership,
+
+        insuranceExpiry: formatDate(vehicleToEdit?.insuranceExpiry),
+        kaskoExpiry: formatDate(vehicleToEdit?.kaskoExpiry),
+        inspectionExpiry: formatDate(vehicleToEdit?.inspectionExpiry),
+        lastInspectionDate: formatDate(vehicleToEdit?.lastInspectionDate),
+
         insuranceCost: vehicleToEdit?.insuranceCost || 0,
         kaskoCost: vehicleToEdit?.kaskoCost || 0,
         insuranceAgency: vehicleToEdit?.insuranceAgency || '',
         kaskoAgency: vehicleToEdit?.kaskoAgency || '',
-        inspectionExpiry: vehicleToEdit?.inspectionExpiry || '',
         definition: vehicleToEdit?.definition || '',
-        status: vehicleToEdit?.status || 'ACTIVE',
+
         companyId: vehicleToEdit?.companyId || '',
         rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
         rentalContact: vehicleToEdit?.rentalContact || '',
-        ownership: vehicleToEdit ? vehicleToEdit.ownership : initialOwnership,
         assignedSiteId: vehicleToEdit?.assignedSiteId || '',
+
         engineNumber: vehicleToEdit?.engineNumber || '',
         chassisNumber: vehicleToEdit?.chassisNumber || '',
-        fuelType: vehicleToEdit?.fuelType || 'DIESEL',
-        lastInspectionDate: vehicleToEdit?.lastInspectionDate || '',
-        licenseFile: vehicleToEdit?.licenseFile || '', // [NEW]
+        fuelType: (vehicleToEdit?.fuelType as any) || 'DIESEL',
+        licenseFile: vehicleToEdit?.licenseFile || '',
     });
 
-    // Reset form when modal opens (especially for new vs edit)
+    // Reset form when modal opens
     useEffect(() => {
         if (open) {
             setFormData({
@@ -86,35 +134,39 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 brand: vehicleToEdit?.brand || '',
                 model: vehicleToEdit?.model || '',
                 year: vehicleToEdit?.year,
-                type: vehicleToEdit?.type || 'CAR',
-                meterType: vehicleToEdit?.meterType || 'KM',
+                type: (vehicleToEdit?.type as any) || 'CAR',
+                meterType: (vehicleToEdit?.meterType as any) || 'KM',
                 currentKm: vehicleToEdit?.currentKm || 0,
-                insuranceExpiry: vehicleToEdit?.insuranceExpiry || '',
-                kaskoExpiry: vehicleToEdit?.kaskoExpiry || '',
+                status: (vehicleToEdit?.status as any) || 'ACTIVE',
+                ownership: (vehicleToEdit?.ownership as any) || initialOwnership,
+
+                insuranceExpiry: formatDate(vehicleToEdit?.insuranceExpiry),
+                kaskoExpiry: formatDate(vehicleToEdit?.kaskoExpiry),
+                inspectionExpiry: formatDate(vehicleToEdit?.inspectionExpiry),
+                lastInspectionDate: formatDate(vehicleToEdit?.lastInspectionDate),
+
                 insuranceCost: vehicleToEdit?.insuranceCost || 0,
                 kaskoCost: vehicleToEdit?.kaskoCost || 0,
                 insuranceAgency: vehicleToEdit?.insuranceAgency || '',
                 kaskoAgency: vehicleToEdit?.kaskoAgency || '',
-                inspectionExpiry: vehicleToEdit?.inspectionExpiry || '',
                 definition: vehicleToEdit?.definition || '',
-                status: vehicleToEdit?.status || 'ACTIVE',
+
                 companyId: vehicleToEdit?.companyId || '',
                 rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
                 rentalContact: vehicleToEdit?.rentalContact || '',
-                ownership: vehicleToEdit ? vehicleToEdit.ownership : initialOwnership,
                 assignedSiteId: vehicleToEdit?.assignedSiteId || '',
+
                 engineNumber: vehicleToEdit?.engineNumber || '',
                 chassisNumber: vehicleToEdit?.chassisNumber || '',
-                fuelType: vehicleToEdit?.fuelType || 'DIESEL',
-                lastInspectionDate: vehicleToEdit?.lastInspectionDate || '',
-                licenseFile: vehicleToEdit?.licenseFile || '', // [NEW]
+                fuelType: (vehicleToEdit?.fuelType as any) || 'DIESEL',
+                licenseFile: vehicleToEdit?.licenseFile || '',
             });
         }
     }, [open, vehicleToEdit, initialOwnership]);
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Validation based on ownership
@@ -136,7 +188,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
 
         if (formData.ownership === 'RENTAL') {
             if (!formData.plate) errors.plate = "Plaka zorunludur";
-            if (!formData.rentalCompanyName) errors.rentalCompanyName = "Kiralama firması zorunludur"; // [MOD] Changed from companyId
+            if (!formData.rentalCompanyName) errors.rentalCompanyName = "Kiralama firması zorunludur";
             if (!formData.brand) errors.brand = "Marka zorunludur";
             if (!formData.model) errors.model = "Model zorunludur";
             if (!formData.year) errors.year = "Yıl zorunludur";
@@ -154,69 +206,68 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
             return;
         }
 
-        // Clear errors if valid
         setFormErrors({});
 
-        if (vehicleToEdit) {
-            updateVehicle(vehicleToEdit.id, formData);
-            toast.success("Araç bilgileri güncellendi.");
-        } else {
-            addVehicle({
-                id: crypto.randomUUID(),
-                ...(formData as Omit<Vehicle, 'id'>),
-            });
-            toast.success("Yeni araç eklendi.");
-        }
+        // Prepare payload for server action
+        const payload: any = { ...formData };
 
-        setOpen(false);
-        // Do not reset form data completely here if we want to preserve some state, but usually for Add it's better to reset.
-        if (!vehicleToEdit) {
-            setFormData({
-                plate: '',
-                brand: '',
-                model: '',
-                year: undefined,
-                type: 'CAR',
-                meterType: 'KM',
-                currentKm: 0,
-                insuranceExpiry: '',
-                kaskoExpiry: '',
-                insuranceCost: 0,
-                kaskoCost: 0,
-                insuranceAgency: '',
-                kaskoAgency: '',
-                inspectionExpiry: '',
-                definition: '',
-                status: 'ACTIVE',
-                companyId: '',
-                rentalCompanyName: '',
-                rentalContact: '',
-                ownership: initialOwnership, // Reset to initial
-                assignedSiteId: '',
-                engineNumber: '',
-                chassisNumber: '',
-                fuelType: 'DIESEL',
-                lastInspectionDate: '',
-                licenseFile: '', // [NEW]
-            });
-        }
+        // Convert strings to Dates or null
+        payload.insuranceExpiry = payload.insuranceExpiry ? new Date(payload.insuranceExpiry) : null;
+        payload.kaskoExpiry = payload.kaskoExpiry ? new Date(payload.kaskoExpiry) : null;
+        payload.inspectionExpiry = payload.inspectionExpiry ? new Date(payload.inspectionExpiry) : null;
+        payload.lastInspectionDate = payload.lastInspectionDate ? new Date(payload.lastInspectionDate) : null;
 
-        if (onSuccess) {
-            onSuccess();
+        // Number Conversions
+        if (payload.year) payload.year = parseInt(payload.year as any);
+        if (payload.currentKm) payload.currentKm = parseInt(payload.currentKm as any);
+        if (payload.insuranceCost) payload.insuranceCost = parseFloat(payload.insuranceCost as any);
+        if (payload.kaskoCost) payload.kaskoCost = parseFloat(payload.kaskoCost as any);
+
+
+        try {
+            if (vehicleToEdit) {
+                const result = await updateVehicle(vehicleToEdit.id, payload);
+                if (result.success) {
+                    toast.success("Araç bilgileri güncellendi.");
+                    setOpen(false);
+                    if (onSuccess) onSuccess();
+                } else {
+                    toast.error(result.error || "Güncelleme başarısız.");
+                }
+            } else {
+                const result = await createVehicle({
+                    ...payload,
+                    id: crypto.randomUUID(), // Provide ID for new records if schema allows/needs it
+                });
+                if (result.success) {
+                    toast.success("Yeni araç eklendi.");
+                    setOpen(false);
+                    if (onSuccess) onSuccess();
+                } else {
+                    toast.error(result.error || "Ekleme başarısız.");
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Bir hata oluştu.");
         }
     };
 
-    const handleDelete = () => {
+    // [restored] Handler functions
+    const handleDelete = async () => {
         if (!vehicleToEdit) return;
         if (confirm('Bu aracı silmek istediğinize emin misiniz?')) {
-            deleteVehicle(vehicleToEdit.id);
-            toast.success("Araç silindi.");
-            setOpen(false);
-            if (onSuccess) onSuccess();
+            const result = await deleteVehicle(vehicleToEdit.id);
+            if (result.success) {
+                toast.success("Araç silindi.");
+                setOpen(false);
+                if (onSuccess) onSuccess();
+            } else {
+                toast.error(result.error || "Silme başarısız.");
+            }
         }
     };
 
-    // [NEW] File Handler
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -256,7 +307,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{vehicleToEdit ? 'Araç Düzenle' : (initialOwnership === 'RENTAL' ? 'Kiralık Araç Ekle' : 'Yeni Araç Ekle')}</DialogTitle>
                     <DialogDescription>

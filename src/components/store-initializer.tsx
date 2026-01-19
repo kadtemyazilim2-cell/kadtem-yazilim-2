@@ -10,6 +10,8 @@ export function StoreInitializer({
     vehicles,
     personnel,
     users,
+    correspondences,
+    institutions,
     currentUser
 }: {
     companies: any[],
@@ -17,6 +19,8 @@ export function StoreInitializer({
     vehicles: any[],
     personnel: any[],
     users: any[],
+    correspondences: any[], // [NEW]
+    institutions: any[], // [NEW]
     currentUser?: any
 }) {
     const initialized = useRef(false);
@@ -29,6 +33,8 @@ export function StoreInitializer({
             vehicles,
             personnel,
             users,
+            correspondences, // [NEW]
+            institutions, // [NEW]
         });
         initialized.current = true;
     }
@@ -41,8 +47,10 @@ export function StoreInitializer({
             vehicles,
             personnel,
             users,
+            correspondences, // [NEW]
+            institutions, // [NEW]
         });
-    }, [companies, sites, vehicles, personnel, users]);
+    }, [companies, sites, vehicles, personnel, users, correspondences, institutions]);
 
     // Sync Auth State separately and reactively
     useEffect(() => {

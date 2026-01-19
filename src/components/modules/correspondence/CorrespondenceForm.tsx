@@ -17,6 +17,11 @@ import { Correspondence } from '@/lib/types';
 import { generateCorrespondencePDF } from '@/lib/pdf-generator';
 import { toTurkishLower } from '@/lib/utils';
 
+// Server Actions
+import { createCorrespondence, updateCorrespondence } from '@/actions/correspondence';
+import { createInstitution } from '@/actions/institution';
+import { toast } from 'sonner';
+
 interface CorrespondenceFormProps {
     customTrigger?: React.ReactNode;
     initialType?: 'OFFICIAL' | 'INTERNAL' | 'BANK' | 'OTHER';
@@ -26,12 +31,13 @@ interface CorrespondenceFormProps {
 
 export function CorrespondenceForm({ customTrigger, initialType, initialDirection, initialData }: CorrespondenceFormProps) {
     const [open, setOpen] = useState(false);
-    const { addCorrespondence, updateCorrespondence, companies, institutions, addInstitution, users, sites } = useAppStore();
+    // Use store ONLY for reading lists
+    const { companies, institutions, users, sites } = useAppStore();
     const { user } = useAuth();
 
     const [formData, setFormData] = useState({
         companyId: initialData?.companyId || '',
-        siteId: initialData?.siteId || '', // [NEW]
+        siteId: initialData?.siteId || '',
         date: initialData?.date?.split('T')[0] || format(new Date(), "yyyy-MM-dd"), // Date only for input
         direction: initialData?.direction || initialDirection || 'OUTGOING',
         type: initialData?.type || initialType || 'OFFICIAL',
@@ -51,11 +57,9 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     const [newInstName, setNewInstName] = useState('');
 
-    const [newInstAlign, setNewInstAlign] = useState<'left' | 'center' | 'right'>('center'); // Default Center (UI removed)
+    const [newInstAlign, setNewInstAlign] = useState<'left' | 'center' | 'right'>('center');
     const [newInstCategory, setNewInstCategory] = useState<'BANK' | 'INSTITUTION'>('INSTITUTION');
     const [isAddInstOpen, setIsAddInstOpen] = useState(false);
-
-
 
     const handleMuhatapChange = (val: string) => {
         setFormData(prev => ({ ...prev, senderReceiver: val }));
@@ -86,12 +90,12 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         if (!file) return;
 
         if (file.type !== 'application/pdf') {
-            alert('Sadece PDF dosyaları yüklenebilir.');
+            toast.error('Sadece PDF dosyaları yüklenebilir.');
             return;
         }
 
         if (file.size > 10 * 1024 * 1024) { // 10MB limit
-            alert('Dosya boyutu 10MB\'dan küçük olmalıdır.');
+            toast.error('Dosya boyutu 10MB\'dan küçük olmalıdır.');
             return;
         }
 
@@ -99,35 +103,41 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         reader.onload = (event) => {
             const base64Info = event.target?.result as string;
             setFormData(prev => ({ ...prev, attachmentUrls: [base64Info] }));
+            toast.success("Dosya eklendi.");
         };
         reader.readAsDataURL(file);
     };
 
-    const handleAddInstitution = () => {
+    const handleAddInstitution = async () => {
         if (!newInstName.trim()) return;
-        // Use selected category instead of inferred
-        const category = newInstCategory;
-        const newId = crypto.randomUUID();
-        const trimmedName = newInstName.trim();
-        addInstitution({ id: newId, name: trimmedName, alignment: 'center', category });
 
-        // Auto-select the newly added institution
-        setFormData(prev => ({
-            ...prev,
-            senderReceiver: trimmedName,
-            senderReceiverAlignment: 'center'
-        }));
+        const result = await createInstitution({
+            name: newInstName.trim(),
+            category: newInstCategory,
+            alignment: 'center'
+        });
 
-        setNewInstName('');
-        setNewInstAlign('center');
-        setIsAddInstOpen(false);
+        if (result.success && result.data) {
+            toast.success("Muhatap eklendi.");
+            // Auto-select
+            setFormData(prev => ({
+                ...prev,
+                senderReceiver: result.data.name,
+                senderReceiverAlignment: 'center'
+            }));
+            setNewInstName('');
+            setNewInstAlign('center');
+            setIsAddInstOpen(false);
+        } else {
+            toast.error("Muhatap eklenemedi.");
+        }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => { // Made async if handleFileChange needs await, otherwise sync
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
-        // [NEW] Date Restriction Check
+        // Date Restriction Check
         if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -136,50 +146,61 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
 
             if (diff > user.editLookbackDays) {
-                alert(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
+                toast.error(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
                 return;
             }
         }
 
-        // ... rest of submit logic
-
         const payload = {
             ...formData,
             direction: formData.direction as 'INCOMING' | 'OUTGOING',
-            type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER',
+            type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK', // [FIX] Added BANK to cast
             senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
             date: `${formData.date}T${format(new Date(), 'HH:mm')}` // Add current time to selected date on save
         };
 
-        if (initialData) {
-            updateCorrespondence(initialData.id, payload);
-        } else {
-            addCorrespondence({
-                id: crypto.randomUUID(),
-                ...payload,
-                createdByUserId: user.id
-            });
-        }
+        try {
+            if (initialData) {
+                const result = await updateCorrespondence(initialData.id, payload);
+                if (result.success) {
+                    toast.success("Yazışma güncellendi.");
+                    setOpen(false);
+                } else {
+                    toast.error(result.error);
+                }
+            } else {
+                const result = await createCorrespondence({
+                    ...payload,
+                    createdByUserId: user.id
+                } as any); // Cast because createCorrespondence expect exact types but payload might have loose types
 
-        setOpen(false);
-        setOpen(false);
-        if (!initialData) {
-            setFormData({
-                companyId: '',
-                siteId: '',
-                date: format(new Date(), "yyyy-MM-dd"),
-                direction: initialDirection || 'OUTGOING',
-                type: initialType || 'OFFICIAL',
-                subject: '',
-                description: '',
-                referenceNumber: '',
-                registrationNumber: '',
-                senderReceiver: '',
-                senderReceiverAlignment: 'center',
-                interest: [],
-                appendices: [],
-                attachmentUrls: []
-            });
+                if (result.success) {
+                    toast.success("Yazışma eklendi.");
+                    setOpen(false);
+                    // Reset
+                    setFormData({
+                        companyId: '',
+                        siteId: '',
+                        date: format(new Date(), "yyyy-MM-dd"),
+                        direction: initialDirection || 'OUTGOING',
+                        type: initialType || 'OFFICIAL',
+                        subject: '',
+                        description: '',
+                        referenceNumber: '',
+                        registrationNumber: '',
+                        senderReceiver: '',
+                        senderReceiverAlignment: 'center',
+                        interest: [],
+                        appendices: [],
+                        attachmentUrls: []
+                    });
+                } else {
+                    toast.error(result.error);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error("Bir hata oluştu.");
         }
     };
 
