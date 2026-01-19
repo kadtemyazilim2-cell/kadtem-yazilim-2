@@ -12,7 +12,9 @@ export default NextAuth(authConfig).auth((req) => {
     }
 
     if (isOnLogin) {
-        if (isLoggedIn) return Response.redirect(new URL('/dashboard', req.nextUrl)) // Redirect authenticated users to dashboard
+        // [FIX] Allow access to login page even if "logged in" by cookie, 
+        // to prevent infinite loops if session is partially broken.
+        // if (isLoggedIn) return Response.redirect(new URL('/dashboard', req.nextUrl))
         return
     }
 
