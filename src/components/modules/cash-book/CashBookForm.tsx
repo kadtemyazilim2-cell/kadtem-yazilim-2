@@ -138,7 +138,7 @@ export function CashBookForm() {
         }
 
         if (user.role !== 'ADMIN') {
-            const allowedDays = user.allowedBackdateDays || 0;
+            const allowedDays = user.editLookbackDays || 0;
             const minDate = new Date(today);
             minDate.setDate(today.getDate() - allowedDays);
 
