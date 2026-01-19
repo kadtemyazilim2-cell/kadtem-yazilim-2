@@ -51,6 +51,13 @@ export function StoreInitializer({
                 user: currentUser,
                 isAuthenticated: true
             });
+        } else {
+            // [CRITICAL FIX] If server says no user, enforce it on client!
+            // This prevents "Zombie Session" where middleware thinks yes, but app has no data.
+            useAuth.setState({
+                user: null,
+                isAuthenticated: false
+            });
         }
     }, [currentUser]);
 
