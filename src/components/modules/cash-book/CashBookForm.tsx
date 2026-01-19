@@ -250,7 +250,7 @@ export function CashBookForm() {
                                 max={new Date().toISOString().split('T')[0]} // Future dates disabled
                                 min={user?.role !== 'ADMIN' ? (() => {
                                     const d = new Date();
-                                    d.setDate(d.getDate() - (user?.allowedBackdateDays || 0));
+                                    d.setDate(d.getDate() - (user?.editLookbackDays || 0));
                                     return d.toISOString().split('T')[0];
                                 })() : undefined}
                                 onChange={handleDateChange}
