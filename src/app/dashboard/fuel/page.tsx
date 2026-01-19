@@ -1,0 +1,33 @@
+'use client';
+
+import { FuelTankList } from '@/components/modules/fuel/FuelTankList';
+import { FuelConsumptionReport } from '@/components/modules/fuel/FuelConsumptionReport';
+import { Button } from '@/components/ui/button';
+import { ArrowRightLeft } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/lib/store/use-auth';
+
+export default function FuelPage() {
+    const { user, hasPermission } = useAuth(); // [FIX] Destructure
+    const perms = user?.permissions || {};
+    const isAdmin = user?.role === 'ADMIN';
+
+    const canViewTanks = isAdmin || hasPermission('fuel.tanks', 'VIEW') || hasPermission('fuel.tanks', 'EDIT');
+    const canViewConsumption = isAdmin || hasPermission('fuel.consumption', 'VIEW') || hasPermission('fuel.consumption', 'EDIT');
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 className="text-3xl font-bold tracking-tight">Yakıt Takip ve Stoklar</h2>
+                    <p className="text-muted-foreground">
+                        Depo stok durumları ve detaylı tüketim raporları.
+                    </p>
+                </div>
+            </div>
+
+            {canViewTanks && <FuelTankList />}
+            {canViewConsumption && <FuelConsumptionReport />}
+        </div>
+    );
+}

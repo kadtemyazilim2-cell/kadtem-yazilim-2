@@ -1,0 +1,7 @@
+';
+
+export const addTurkishFont = (doc: jsPDF) => {
+  doc.addFileToVFS('Roboto-Regular.ttf', ROBOTO_BASE64);
+  doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+  doc.setFont('Roboto');
+};
