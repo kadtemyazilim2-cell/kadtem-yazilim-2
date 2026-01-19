@@ -344,12 +344,12 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             category,
             monthlyLeaveAllowance: monthlyLeaveAllowance ? Number(monthlyLeaveAllowance) : undefined,
             isOvertimeAllowed,
-            startDate: startDate || undefined,
+            startDate: startDate ? new Date(startDate) : undefined,
             note,
             // Handle Salary History
             salaryHistory: showSalaryUpdate ? [
                 ...(personnelToEdit?.salaryHistory || []),
-                { amount: Number(newSalary), validFrom: salaryEffectiveDate }
+                { amount: Number(newSalary), validFrom: salaryEffectiveDate ? new Date(salaryEffectiveDate) : new Date() }
             ] : (personnelToEdit?.salaryHistory || [])
         };
 
