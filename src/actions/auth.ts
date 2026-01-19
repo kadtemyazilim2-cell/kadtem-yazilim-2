@@ -15,7 +15,7 @@ export async function authenticate(
                 case 'CredentialsSignin':
                     return 'Geçersiz kullanıcı adı veya şifre.';
                 default:
-                    return 'Bir hata oluştu.';
+                    return `Hata Detayı: ${error.type} - ${error.message}`;
             }
         }
         throw error;
