@@ -34,10 +34,10 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
                 permissions: data.permissions as any || {},
                 editLookbackDays: data.editLookbackDays,
                 assignedCompanies: {
-                    connect: data.assignedCompanyIds?.map(id => ({ id })) || []
+                    connect: data.assignedCompanyIds?.map((id: string) => ({ id })) || []
                 },
                 assignedSites: {
-                    connect: data.assignedSiteIds?.map(id => ({ id })) || []
+                    connect: data.assignedSiteIds?.map((id: string) => ({ id })) || []
                 }
             }
         });
@@ -47,5 +47,40 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
     } catch (error) {
         console.error('createUser Error:', error);
         return { success: false, error: 'Kullanıcı oluşturulamadı.' };
+    }
+}
+
+export async function updateUser(id: string, data: Partial<User> & { assignedSiteIds?: string[] }) {
+    try {
+        const user = await prisma.user.update({
+            where: { id },
+            data: {
+                username: data.username,
+                password: data.password || undefined,
+                role: data.role,
+                permissions: data.permissions as any,
+                editLookbackDays: data.editLookbackDays,
+                status: data.status,
+                assignedSites: data.assignedSiteIds ? {
+                    set: data.assignedSiteIds.map((sid: string) => ({ id: sid }))
+                } : undefined
+            }
+        });
+        revalidatePath('/dashboard/admin');
+        return { success: true, data: user };
+    } catch (error) {
+        console.error('updateUser Error:', error);
+        return { success: false, error: 'Kullanıcı güncellenemedi.' };
+    }
+}
+
+export async function deleteUser(id: string) {
+    try {
+        await prisma.user.delete({ where: { id } });
+        revalidatePath('/dashboard/admin');
+        return { success: true };
+    } catch (error) {
+        console.error('deleteUser Error:', error);
+        return { success: false, error: 'Kullanıcı silinemedi.' };
     }
 }

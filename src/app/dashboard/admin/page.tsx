@@ -3,7 +3,13 @@
 import { useState, useEffect, Fragment } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input'; // ... existing imports
+
+// [NEW] Server Actions
+import { createUser, updateUser as updateUserAction, deleteUser as deleteUserAction } from '@/actions/user';
+import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company';
+import { createSite, updateSite as updateSiteAction, deleteSite as deleteSiteAction } from '@/actions/site';
+import { useRouter } from 'next/navigation'; // Ensure router is imported
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -293,40 +299,41 @@ export default function AdminPage() {
         setUserModalOpen(true);
     };
 
-    const handleSaveUser = (e: React.FormEvent) => {
+    const handleSaveUser = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (isEditing && selectedUserId) {
-            updateUser(selectedUserId, {
-                // name: userName,
-                username: userUsername,
-                password: userPassword || undefined, // Only update if provided
-                role: userRole,
-                permissions: userPermissions,
-                assignedSiteIds: assignedSiteIds,
-                editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
-            });
-        } else {
-            addUser({
-                id: crypto.randomUUID(),
-                name: userName,
-                username: userUsername,
-                password: userPassword,
-                // email: userEmail,
-                role: userRole,
-                permissions: userPermissions,
-                assignedCompanyIds: [],
-                assignedSiteIds: assignedSiteIds,
-                editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
-            });
+        try {
+            if (isEditing && selectedUserId) {
+                await updateUserAction(selectedUserId, {
+                    username: userUsername,
+                    password: userPassword || undefined,
+                    role: userRole,
+                    permissions: userPermissions,
+                    assignedSiteIds: assignedSiteIds,
+                    editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
+                });
+            } else {
+                await createUser({
+                    name: userName,
+                    username: userUsername,
+                    password: userPassword,
+                    role: userRole,
+                    permissions: userPermissions,
+                    assignedSiteIds: assignedSiteIds,
+                    editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
+                });
+            }
+            // Force refresh to update list
+            location.reload();
+        } catch (error) {
+            console.error(error);
+            alert('İşlem başarısız.');
         }
 
         setUserModalOpen(false);
-        // Reset form
         setUserName('');
         setUserUsername('');
         setUserPassword('');
-        // setUserEmail('');
         setUserRole('USER');
         setUserPermissions({});
         setEditLookbackDays('');
@@ -350,50 +357,34 @@ export default function AdminPage() {
         }
     };
 
-    const handleAddCompany = (e: React.FormEvent) => {
+    const handleAddCompany = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (isEditingCompany && selectedCompanyId) {
-            updateCompany(selectedCompanyId, {
-                name: companyName,
-                taxNumber: companyTaxNumber,
-                address: companyAddress,
-                phone: companyPhone,
-                stamp: companyStamp || undefined,
-                letterhead: companyLetterhead || undefined,
-                smtpConfig: companySmtpHost ? {
-                    host: companySmtpHost,
-                    port: Number(companySmtpPort),
-                    auth: {
-                        user: companySmtpUser,
-                        pass: companySmtpPass
-                    },
-                    fromEmail: companySmtpFromEmail,
-                    fromName: companySmtpFromName,
-                    secure: companySmtpSecure
-                } : undefined
-            });
-        } else {
-            addCompany({
-                id: crypto.randomUUID(),
-                name: companyName,
-                taxNumber: companyTaxNumber,
-                address: companyAddress,
-                phone: companyPhone,
-                stamp: companyStamp || undefined,
-                letterhead: companyLetterhead || undefined,
-                smtpConfig: companySmtpHost ? {
-                    host: companySmtpHost,
-                    port: Number(companySmtpPort),
-                    auth: {
-                        user: companySmtpUser,
-                        pass: companySmtpPass
-                    },
-                    fromEmail: companySmtpFromEmail,
-                    fromName: companySmtpFromName,
-                    secure: companySmtpSecure
-                } : undefined
-            });
+        const companyData = {
+            name: companyName,
+            taxNumber: companyTaxNumber,
+            address: companyAddress,
+            phone: companyPhone,
+            stamp: companyStamp || undefined,
+            letterhead: companyLetterhead || undefined,
+            smtpHost: companySmtpHost,
+            smtpPort: companySmtpPort ? Number(companySmtpPort) : undefined,
+            smtpUser: companySmtpUser,
+            smtpPass: companySmtpPass,
+            smtpFromEmail: companySmtpFromEmail,
+            smtpSecure: companySmtpSecure
+        };
+
+        try {
+            if (isEditingCompany && selectedCompanyId) {
+                await updateCompanyAction(selectedCompanyId, companyData);
+            } else {
+                await createCompany(companyData);
+            }
+            location.reload();
+        } catch (err) {
+            console.error(err);
+            alert('İşlem başarısız.');
         }
 
         setCompanyModalOpen(false);
@@ -542,25 +533,29 @@ export default function AdminPage() {
         resetSiteForm();
     };
 
-    const handleAddSite = (e: React.FormEvent) => {
+    const handleAddSite = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const sitePayload: any = {
             name: newSiteData.name!,
             companyId: newSiteData.companyId!,
             location: newSiteData.location!,
-            status: 'ACTIVE', // Default
+            status: 'ACTIVE',
             ...newSiteData
         };
 
-        if (isEditingSite && selectedSiteId) {
-            updateSite(selectedSiteId, sitePayload);
-        } else {
-            addSite({
-                id: crypto.randomUUID(),
-                ...sitePayload
-            });
+        try {
+            if (isEditingSite && selectedSiteId) {
+                await updateSiteAction(selectedSiteId, sitePayload);
+            } else {
+                await createSite(sitePayload);
+            }
+            location.reload();
+        } catch (err) {
+            console.error(err);
+            alert('İşlem başarısız.');
         }
+
         setSiteModalOpen(false);
         resetSiteForm();
     };

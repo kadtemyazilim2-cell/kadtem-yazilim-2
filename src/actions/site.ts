@@ -54,4 +54,17 @@ export async function updateSite(id: string, data: Partial<Site>) {
         console.error('updateSite Error:', error);
         return { success: false, error: 'Şantiye güncellenemedi.' };
     }
+
+}
+
+export async function deleteSite(id: string) {
+    try {
+        await prisma.site.delete({ where: { id } });
+        revalidatePath('/dashboard/admin');
+        revalidatePath('/dashboard/sites');
+        return { success: true };
+    } catch (error) {
+        console.error('deleteSite Error:', error);
+        return { success: false, error: 'Şantiye silinemedi.' };
+    }
 }
