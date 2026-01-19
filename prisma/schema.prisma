@@ -142,6 +142,7 @@ model Site {
   fuelLogs        FuelLog[]
   transactions    CashTransaction[]
   logs            SiteLogEntry[]
+  correspondences Correspondence[]
 }
 
 // -----------------------------------------------------------------------------
