@@ -401,7 +401,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                             <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
                                         ))}
                                         {/* Fallback: If value is set but not in the FILTERED list, show it anyway */}
-                                        {formData.senderReceiver && !dropdownOptions.find(i => i.name === formData.senderReceiver) && (
+                                        {formData.senderReceiver && !dropdownOptions.find((i: any) => i.name === formData.senderReceiver) && (
                                             <SelectItem key="fallback-val" value={formData.senderReceiver}>{formData.senderReceiver}</SelectItem>
                                         )}
                                     </SelectContent>
