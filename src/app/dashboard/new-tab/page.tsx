@@ -176,7 +176,7 @@ export default function NewPage() {
     // Computed Options
     const professionOptions = useMemo(() => generateOptions(names, 'profession'), [names]);
     const roleOptions = useMemo(() => generateOptions(names, 'role'), [names]);
-    const siteOptions = useMemo(() => sites.map(s => ({ label: s.name, value: s.name })), [sites]);
+    const siteOptions = useMemo(() => sites.map((s: any) => ({ label: s.name, value: s.name })), [sites]);
     const overtimeOptions = [{ label: 'Var', value: 'var' }, { label: 'Yok', value: 'yok' }];
 
     const ColumnFilter = ({ title, options, selectedValues, onSelect, onClear }: {
