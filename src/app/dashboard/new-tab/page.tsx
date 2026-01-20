@@ -1095,7 +1095,7 @@ export default function NewPage() {
 
         let siteName = 'Genel Puantaj';
         if (selectedSiteId !== 'all') {
-            const s = sites.find(site => site.id === selectedSiteId);
+            const s = sites.find((site: any) => site.id === selectedSiteId);
             if (s) siteName = s.name;
         }
 
@@ -1691,8 +1691,8 @@ export default function NewPage() {
                                                     <TableCell className="font-medium">{p.name}</TableCell>
                                                     <TableCell>{p.profession}</TableCell>
                                                     <TableCell>{p.role}</TableCell>
-                                                    <TableCell className="max-w-[120px] truncate" title={sites.find(s => s.id === p.siteId)?.name || 'Bilinmiyor'}>
-                                                        {sites.find(s => s.id === p.siteId)?.name || 'Bilinmiyor'}
+                                                    <TableCell className="max-w-[120px] truncate" title={sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}>
+                                                        {sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
@@ -1827,8 +1827,8 @@ export default function NewPage() {
                                                 <TableCell className="font-medium">{p.name}</TableCell>
                                                 <TableCell>{p.profession}</TableCell>
                                                 <TableCell>{p.role}</TableCell>
-                                                <TableCell className="max-w-[120px] truncate" title={sites.find(s => s.id === p.siteId)?.name || 'Bilinmiyor'}>
-                                                    {sites.find(s => s.id === p.siteId)?.name || 'Bilinmiyor'}
+                                                <TableCell className="max-w-[120px] truncate" title={sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}>
+                                                    {sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}
                                                 </TableCell>
                                                 <TableCell className="text-center">
                                                     {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
