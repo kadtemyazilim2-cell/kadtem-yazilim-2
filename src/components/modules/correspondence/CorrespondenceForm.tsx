@@ -36,35 +36,6 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     const { companies, institutions, users, sites, addInstitution, addCorrespondence, updateCorrespondence: updateLocalCorrespondence } = useAppStore();
     const router = useRouter(); // [NEW]
 
-    const handleAddInstitution = async () => {
-        if (!newInstName.trim()) return;
-
-        const result = await createInstitution({
-            name: newInstName.trim(),
-            category: newInstCategory,
-            alignment: 'center'
-        });
-
-        if (result.success && result.data) {
-            toast.success("Muhatap eklendi.");
-
-            // [FIX] Update local store immediately for UI to reflect changes
-            addInstitution(result.data as any);
-            router.refresh(); // Refresh server data
-
-            // Auto-select
-            setFormData(prev => ({
-                ...prev,
-                senderReceiver: result.data!.name, // Use name from result
-                senderReceiverAlignment: 'center'
-            }));
-            setNewInstName('');
-            setNewInstAlign('center');
-            setIsAddInstOpen(false);
-        } else {
-            toast.error("Muhatap eklenemedi.");
-        }
-    };
 
     const [formData, setFormData] = useState({
         companyId: initialData?.companyId || '',
