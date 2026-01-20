@@ -41,7 +41,7 @@ export default function DashboardPage() {
     const userBalances = useMemo(() => {
         const balances: Record<string, number> = {};
 
-        cashTransactions.forEach(t => {
+        cashTransactions.forEach((t: any) => {
             const amount = t.type === 'INCOME' ? t.amount : -t.amount;
             const targetUser = t.responsibleUserId || t.createdByUserId;
             balances[targetUser] = (balances[targetUser] || 0) + amount;
@@ -49,7 +49,7 @@ export default function DashboardPage() {
 
         return Object.entries(balances)
             .map(([userId, balance]) => {
-                const user = users.find(u => u.id === userId);
+                const user = users.find((u: any) => u.id === userId);
                 return {
                     id: userId,
                     name: user?.name || 'Bilinmeyen Kullanıcı',
@@ -67,14 +67,14 @@ export default function DashboardPage() {
         const consumption: Record<string, number> = {};
 
         fuelLogs
-            .filter(log => isSameMonth(new Date(log.date), currentMonth))
-            .forEach(log => {
+            .filter((log: any) => isSameMonth(new Date(log.date), currentMonth))
+            .forEach((log: any) => {
                 consumption[log.siteId] = (consumption[log.siteId] || 0) + (Number(log.liters) || 0);
             });
 
         return Object.entries(consumption)
             .map(([siteId, liters]) => {
-                const site = sites.find(s => s.id === siteId);
+                const site = sites.find((s: any) => s.id === siteId);
                 if (!site || site.status !== 'ACTIVE' || site.finalAcceptanceDate) return null; // [MOD] Filter Passive & Finalized Sites
                 return {
                     id: siteId,
@@ -97,7 +97,7 @@ export default function DashboardPage() {
         });
 
         // Count ACTIVE personnel allocated to each site
-        personnel.forEach(p => {
+        personnel.forEach((p: any) => {
             if (p.status !== 'LEFT' && p.siteId && counts[p.siteId] !== undefined) {
                 counts[p.siteId]++;
             }
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
         return Object.entries(counts)
             .map(([siteId, count]) => {
-                const site = sites.find(s => s.id === siteId);
+                const site = sites.find((s: any) => s.id === siteId);
                 if (!site || site.status !== 'ACTIVE' || site.finalAcceptanceDate) return null; // [MOD] Filter Finalized
                 return {
                     id: siteId,
@@ -122,7 +122,7 @@ export default function DashboardPage() {
         const today = new Date();
         const alerts: any[] = [];
 
-        vehicles.forEach(v => {
+        vehicles.forEach((v: any) => {
             if (v.status === 'SOLD' || v.status === 'PASSIVE') return; // [MOD] Exclude PASSIVE
             if (v.ownership === 'RENTAL') return; // [NEW] Exclude Rentals from Insurance Alerts
 
@@ -177,17 +177,17 @@ export default function DashboardPage() {
 
         // 1. Get External Fuel Transfers (Purchase via Transfer)
         const transfers = fuelTransfers
-            .filter(t => t.fromType === 'EXTERNAL' && new Date(t.date) >= thirtyDaysAgo)
-            .map(t => {
+            .filter((t: any) => t.fromType === 'EXTERNAL' && new Date(t.date) >= thirtyDaysAgo)
+            .map((t: any) => {
                 let siteName = '-';
                 // Resolve To Entity Name
                 if (t.toType === 'TANK') {
-                    const tank = fuelTanks.find(tank => tank.id === t.toId);
-                    const site = sites.find(s => s.id === tank?.siteId);
+                    const tank = fuelTanks.find((tank: any) => tank.id === t.toId);
+                    const site = sites.find((s: any) => s.id === tank?.siteId);
                     siteName = site?.name || tank?.name || 'Bilinmeyen Depo';
                 } else if (t.toType === 'VEHICLE') {
-                    const vehicle = vehicles.find(v => v.id === t.toId);
-                    const site = sites.find(s => s.id === vehicle?.assignedSiteId);
+                    const vehicle = vehicles.find((v: any) => v.id === t.toId);
+                    const site = sites.find((s: any) => s.id === vehicle?.assignedSiteId);
                     siteName = `${vehicle?.plate} (${site?.name || '-'})`;
                 }
 
@@ -222,10 +222,10 @@ export default function DashboardPage() {
         // If tankId is missing, it implies external purchase or unknown source. 
         // We assume logs without tankId are external purchases in this context.
         const directPurchases = fuelLogs
-            .filter(l => !l.tankId && new Date(l.date) >= thirtyDaysAgo)
-            .map(l => {
-                const vehicle = vehicles.find(v => v.id === l.vehicleId);
-                const site = sites.find(s => s.id === l.siteId);
+            .filter((l: any) => !l.tankId && new Date(l.date) >= thirtyDaysAgo)
+            .map((l: any) => {
+                const vehicle = vehicles.find((v: any) => v.id === l.vehicleId);
+                const site = sites.find((s: any) => s.id === l.siteId);
                 const siteName = `${vehicle?.plate} (${site?.name || '-'})`;
 
                 // Calculate Unit Price if missing
@@ -461,7 +461,7 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {missingDocs.map((doc) => (
+                                {missingDocs.map((doc: any) => (
                                     <div
                                         key={doc.id}
                                         onClick={() => router.push('/dashboard/correspondence')}
@@ -474,7 +474,7 @@ export default function DashboardPage() {
                                             <div className="text-xs text-slate-500 flex items-center gap-2">
                                                 <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                <span>{companies.find(c => c.id === doc.companyId)?.name}</span>
+                                                <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
                                             </div>
                                         </div>
                                         <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
@@ -526,9 +526,9 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {siteLogEntries.slice(0, 3).map(entry => {
-                                const site = sites.find(s => s.id === entry.siteId);
-                                const author = users.find(u => u.id === entry.authorId);
+                            {siteLogEntries.slice(0, 3).map((entry: any) => {
+                                const site = sites.find((s: any) => s.id === entry.siteId);
+                                const author = users.find((u: any) => u.id === entry.authorId);
                                 return (
                                     <div key={entry.id} className="border-b last:border-0 pb-3 last:pb-0">
                                         <div className="flex justify-between items-start mb-1">
