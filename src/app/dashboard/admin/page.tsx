@@ -198,7 +198,7 @@ export default function AdminPage() {
 
     const getUniqueValues = (key: keyof Site | undefined, isDate?: boolean, isCurrency?: boolean) => {
         if (!key) return [];
-        const values = sites.map(s => {
+        const values = sites.map((s: any) => {
             let val = s[key];
             if (!val && val !== 0) return 'Boş'; // Map empty/null/undefined to 'Boş'
             if (isDate && val) return format(new Date(val as string), 'dd.MM.yyyy');
