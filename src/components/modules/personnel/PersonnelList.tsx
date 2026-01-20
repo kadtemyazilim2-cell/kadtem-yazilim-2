@@ -181,7 +181,7 @@ export function PersonnelList() {
                 if (!hasOverlap) {
                     // Check for attendance existence (Rule 3 logic)
                     const monthPrefix = format(selectedDate, 'yyyy-MM');
-                    const hasAttendance = personnelAttendance.some(a =>
+                    const hasAttendance = personnelAttendance.some((a: any) =>
                         a.personnelId === p.id &&
                         a.siteId === selectedSiteId &&
                         a.date.startsWith(monthPrefix)
@@ -203,12 +203,12 @@ export function PersonnelList() {
             if (p.siteId === selectedSiteId) return true;
 
             // 2. Transferred FROM this site (History check)
-            if (p.transferHistory?.some(h => h.fromSiteId === selectedSiteId)) return true;
+            if (p.transferHistory?.some((h: any) => h.fromSiteId === selectedSiteId)) return true;
 
             // 3. Or has attendance record for this site in the selected month
             // We check if ANY record exists for this person, this site, and simple string matching YYYY-MM
             const monthPrefix = format(selectedDate, 'yyyy-MM');
-            const hasAttendance = personnelAttendance.some(a =>
+            const hasAttendance = personnelAttendance.some((a: any) =>
                 a.personnelId === p.id &&
                 a.siteId === selectedSiteId &&
                 a.date.startsWith(monthPrefix)
@@ -273,7 +273,6 @@ export function PersonnelList() {
             // Existing logic enforced it. I will keep it but respect `canEdit`.
             // If `canEdit` is true, do we bypass ownership? User didn't specify.
             // Let's assume `canEdit` is powerful. But maybe strict user ownership restricted?
-            // Let's default to: If restricted user, `canEdit` allows editing *their own* entries or recent entries?
             // User request: "düzenleme yetkisi verirsem... gün kadar yapabilsin".
             // He didn't say "only their own". He said "edit permission".
             // So I will remove the "createdByUserId" restriction if they have explicit EDIT perm,
@@ -439,7 +438,7 @@ export function PersonnelList() {
 
         // 1. Employment History (Priority)
         if (p.employmentHistory && p.employmentHistory.length > 0) {
-            const history = [...p.employmentHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const history = [...p.employmentHistory].sort((h1: any, h2: any) => new Date(h1.date).getTime() - new Date(h2.date).getTime());
 
             // Find the latest record on or before date
             const lastRecord = history.filter((h: any) => h.date <= dateStr).pop();
@@ -879,8 +878,8 @@ export function PersonnelList() {
         // Render details, using grouped list to maintain order
         const allOrdered = [...groupedPersonnel.technical, ...groupedPersonnel.field];
 
-        allOrdered.forEach(p => {
-            daysInMonth.forEach(day => {
+        allOrdered.forEach((p: any) => {
+            daysInMonth.forEach((day: any) => {
                 const record = getStatusForDate(p.id, day);
                 if (record && (record.note || (record.overtime && record.overtime > 0))) {
                     const dateStr = format(day, 'dd.MM.yyyy');
@@ -913,7 +912,7 @@ export function PersonnelList() {
     const renderPersonnelRows = (personnelList: typeof personnel) => {
         if (personnelList.length === 0) return null;
 
-        return personnelList.map(p => {
+        return personnelList.map((p: any) => {
             return (
                 <TableRow key={p.id} className="h-10 hover:bg-slate-50/50">
                     {/* Status Column Removed */}
@@ -958,7 +957,7 @@ export function PersonnelList() {
                             </DropdownMenu>
                         )}
                     </TableCell>
-                    {daysInMonth.map((day, index) => {
+                    {daysInMonth.map((day: any, index: any) => {
                         const todayStr = format(day, 'yyyy-MM-dd');
 
 
@@ -988,13 +987,13 @@ export function PersonnelList() {
                             const currentDay = new Date(day);
                             currentDay.setHours(0, 0, 0, 0);
 
-                            const transferIn = p.transferHistory.find(h => h.toSiteId === selectedSiteId);
+                            const transferIn = p.transferHistory.find((h: any) => h.toSiteId === selectedSiteId);
                             if (transferIn) {
                                 const transferDate = new Date(transferIn.date);
                                 transferDate.setHours(0, 0, 0, 0);
 
                                 if (currentDay < transferDate) {
-                                    const oldRecord = personnelAttendance.find(a =>
+                                    const oldRecord = personnelAttendance.find((a: any) =>
                                         a.personnelId === p.id &&
                                         a.siteId !== selectedSiteId && // [Check] Any other site
                                         a.date === todayStr
@@ -1055,7 +1054,7 @@ export function PersonnelList() {
                                     <SelectValue placeholder="Şantiye Seçiniz (Zorunlu)" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableSites.filter(s => s.status === 'ACTIVE').map(s => (
+                                    {availableSites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -1090,7 +1089,7 @@ export function PersonnelList() {
                                         <TableHead className="w-[55px] border-r px-0.5 text-center font-bold text-muted-foreground h-10 truncate hidden lg:table-cell text-[10px]">Görevi</TableHead>
                                         {/* Action Column */}
                                         <TableHead className="w-[25px] border-r p-0 h-10"></TableHead>
-                                        {daysInMonth.map(day => (
+                                        {daysInMonth.map((day: any) => (
                                             <TableHead key={day.toString()} className="p-0 text-center border-r text-[9px] h-10 w-[26px] min-w-0">
                                                 <div className="flex flex-col items-center justify-center h-full">
                                                     <span className="leading-none text-[10px] font-semibold">{format(day, 'd')}</span>
@@ -1234,7 +1233,7 @@ export function PersonnelList() {
                                     className="h-16 flex flex-col items-center justify-center gap-1 border-2 border-transparent hover:bg-red-50 hover:border-red-200 text-red-600"
                                     onClick={() => {
                                         if (!selectedPersonnelId || !modalDate) return;
-                                        const p = personnel.find(per => per.id === selectedPersonnelId);
+                                        const p = personnel.find((per: any) => per.id === selectedPersonnelId);
                                         if (!p) return;
 
                                         // Convert modalDate (yyyy-MM-dd) to yyyy-MM-dd
@@ -1258,13 +1257,13 @@ export function PersonnelList() {
 
                                             // [Step 2] Clean up future attendance to ensure visual consistency
                                             // Find all attendance records for this person on or after the exit date
-                                            const futureRecords = personnelAttendance.filter(a =>
+                                            const futureRecords = personnelAttendance.filter((a: any) =>
                                                 a.personnelId === p.id &&
                                                 a.date >= exitDateIso
                                             );
 
                                             // Delete them one by one (or batch if store supported it, loop is fine for local store)
-                                            futureRecords.forEach(record => {
+                                            futureRecords.forEach((record: any) => {
                                                 deletePersonnelAttendance(record.personnelId, record.date, record.siteId);
                                             });
 
