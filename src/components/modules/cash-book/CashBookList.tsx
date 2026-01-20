@@ -145,21 +145,21 @@ export function CashBookList() {
 
         // Filter transactions strictly BEFORE the start date calculate total balance until then
         // Apply SAME user/site filters as the main list
-        let preTransactions = cashTransactions.filter(t => new Date(t.date) < start);
+        let preTransactions = cashTransactions.filter((t: any) => new Date(t.date) < start);
 
         if (user && user.role !== 'ADMIN') {
-            preTransactions = preTransactions.filter(t => t.responsibleUserId === user.id);
+            preTransactions = preTransactions.filter((t: any) => t.responsibleUserId === user.id);
         } else if (selectedUserId !== 'all') {
-            preTransactions = preTransactions.filter(t => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
+            preTransactions = preTransactions.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
         }
 
         // [NEW] Site Filter for Pre-Transactions
         if (selectedSiteId !== 'all') {
-            preTransactions = preTransactions.filter(t => t.siteId === selectedSiteId);
+            preTransactions = preTransactions.filter((t: any) => t.siteId === selectedSiteId);
         }
 
-        const income = preTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
-        const expense = preTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
+        const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + t.amount, 0);
+        const expense = preTransactions.filter((t: any) => t.type === 'EXPENSE').reduce((sum: number, t: any) => sum + t.amount, 0);
 
         return income - expense;
     }, [cashTransactions, selectedUserId, selectedSiteId, startDate, user]);
@@ -170,7 +170,7 @@ export function CashBookList() {
         let runningBalance = previousBalance;
 
         // Since filteredTransactions is ALREADY sorted by Date Ascending, we can just map
-        const calculated = result.map(t => {
+        const calculated = result.map((t: any) => {
             if (t.type === 'INCOME') runningBalance += t.amount;
             else runningBalance -= t.amount;
 
@@ -213,16 +213,16 @@ export function CashBookList() {
         if (startDate) {
             const start = parseISO(startDate);
 
-            let preList = cashTransactions.filter(t => new Date(t.date) < start);
+            let preList = cashTransactions.filter((t: any) => new Date(t.date) < start);
 
             // Apply same User Filter
             if (user && user.role !== 'ADMIN') {
-                preList = preList.filter(t => t.responsibleUserId === user.id);
+                preList = preList.filter((t: any) => t.responsibleUserId === user.id);
             } else if (selectedUserId !== 'all') {
-                preList = preList.filter(t => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
+                preList = preList.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
             }
 
-            preList.forEach(t => {
+            preList.forEach((t: any) => {
                 if (!balances[t.siteId]) return; // Skip if site deleted or unknown
                 if (t.type === 'INCOME') balances[t.siteId].previousBalance += t.amount;
                 else balances[t.siteId].previousBalance -= t.amount;
@@ -231,7 +231,7 @@ export function CashBookList() {
 
         // 2. Add Current Period Transactions
         // filteredTransactions is already filtered by User and Date
-        filteredTransactions.forEach(t => {
+        filteredTransactions.forEach((t: any) => {
             if (!balances[t.siteId]) return;
             if (t.type === 'INCOME') balances[t.siteId].income += t.amount;
             else balances[t.siteId].expense += t.amount;
@@ -243,7 +243,7 @@ export function CashBookList() {
 
     const exportExcel = () => {
         // Main Data
-        const data: any[] = filteredTransactionsWithBalance.map(t => ({
+        const data: any[] = filteredTransactionsWithBalance.map((t: any) => ({
             'Tarih': format(new Date(t.date), 'dd.MM.yyyy', { locale: tr }),
             'Personel': t.type === 'BALANCE_START' ? '-' : getUserName(t.responsibleUserId || t.createdByUserId),
             'Kategori': t.category,
