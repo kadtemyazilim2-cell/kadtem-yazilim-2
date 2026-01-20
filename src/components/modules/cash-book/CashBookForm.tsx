@@ -198,7 +198,7 @@ export function CashBookForm() {
                                 <SelectValue placeholder="Personel Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                                {users.map(u => (
+                                {users.map((u: any) => (
                                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -217,7 +217,7 @@ export function CashBookForm() {
                                     <SelectValue placeholder="Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {activeSites.map(s => (
+                                    {activeSites.map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
