@@ -17,8 +17,8 @@ export function FuelForm() {
     const { user } = useAuth();
 
     // Filter vehicles by company if needed, but for now show all active
-    const activeVehicles = vehicles.filter(v => v.status === 'ACTIVE');
-    const activeSites = sites.filter(s => s.status === 'ACTIVE');
+    const activeVehicles = vehicles.filter((v: any) => v.status === 'ACTIVE');
+    const activeSites = sites.filter((s: any) => s.status === 'ACTIVE');
 
     const [formData, setFormData] = useState({
         vehicleId: '',
@@ -109,7 +109,7 @@ export function FuelForm() {
                                 <SelectValue placeholder="Araç Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                                {activeVehicles.map(v => (
+                                {activeVehicles.map((v: any) => (
                                     <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -127,7 +127,7 @@ export function FuelForm() {
                                 <SelectValue placeholder="Şantiye Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                                {activeSites.map(s => (
+                                {activeSites.map((s: any) => (
                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                 ))}
                             </SelectContent>
