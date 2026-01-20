@@ -35,7 +35,7 @@ export function GlobalPersonnelList() {
     const canDelete = canEdit;
 
     const filteredPersonnel = useMemo(() => {
-        return personnel.filter(p =>
+        return personnel.filter((p: any) =>
         (p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             p.tcNumber?.includes(searchTerm) ||
             p.profession?.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -46,7 +46,7 @@ export function GlobalPersonnelList() {
         if (!canDelete) return;
 
         // Validation: Exact same logic as PersonnelList
-        const globalAttendanceCount = personnelAttendance.filter(a => a.personnelId === p.id).length;
+        const globalAttendanceCount = personnelAttendance.filter((a: any) => a.personnelId === p.id).length;
         const hasTransferHistory = p.transferHistory && p.transferHistory.length > 0;
 
         if (globalAttendanceCount > 0 || hasTransferHistory) {
@@ -102,8 +102,8 @@ export function GlobalPersonnelList() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredPersonnel.map((p) => {
-                                const site = sites.find(s => s.id === p.siteId);
+                            filteredPersonnel.map((p: any) => {
+                                const site = sites.find((s: any) => s.id === p.siteId);
                                 return (
                                     <TableRow key={p.id}>
                                         <TableCell className="font-medium">{p.fullName}</TableCell>
@@ -160,7 +160,7 @@ export function GlobalPersonnelList() {
 
             {/* Edit Modal */}
             <PersonnelForm
-                personnelToEdit={personnel.find(p => p.id === editingPersonnelId)}
+                personnelToEdit={personnel.find((p: any) => p.id === editingPersonnelId)}
                 open={!!editingPersonnelId}
                 onOpenChange={(open) => !open && setEditingPersonnelId(null)}
             />
