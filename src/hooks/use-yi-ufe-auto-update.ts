@@ -50,7 +50,7 @@ export function useYiUfeAutoUpdate() {
                 const targetYear = prevDate.getFullYear();
                 const targetMonth = prevDate.getMonth() + 1; // 1-12
 
-                const hasData = yiUfeRates.some(r => r.year === targetYear && r.month === targetMonth);
+                const hasData = yiUfeRates.some((r: any) => r.year === targetYear && r.month === targetMonth);
 
                 if (hasData) {
                     console.log('YI-UFE: Data for previous month already exists. Skipping auto-fetch.');
