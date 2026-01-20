@@ -249,7 +249,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     // execCmd moved to SimpleRichTextEditor
 
-    const dropdownOptions = institutions.filter((inst: any) => {any) => {
+    const dropdownOptions = institutions.filter((inst: any) => {
         if (initialType === 'BANK') return inst.category === 'BANK' || !inst.category;
         // If 'OFFICIAL' or others, show non-banks
         return inst.category !== 'BANK';
