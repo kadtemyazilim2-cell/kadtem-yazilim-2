@@ -285,3 +285,61 @@ export interface Institution {
 }
 
 // Re-opening Vehicle interface to add new fields (or just editing the existing one if I had the full file context in one go, but here I'm appending/editing the end of file? No, I need to edit the Vehicle interface earlier in the file. Wait, I should edit the Vehicle interface block directly. I will use a separate tool call for that or just do it here if possible. Actually, I can't edit non-contiguous blocks with this tool. I will only update Institution here and use another call for Vehicle.)
+
+export interface AppState {
+  companies: Company[];
+  sites: Site[];
+  users: User[];
+  vehicles: Vehicle[];
+  correspondences: Correspondence[];
+  cashTransactions: CashTransaction[];
+  personnel: Personnel[];
+  personnelAttendance: PersonnelAttendance[];
+  vehicleAttendance: VehicleAttendance[];
+  siteLogEntries: SiteLogEntry[];
+  fuelLogs: FuelLog[];
+  fuelTanks: FuelTank[];
+  fuelTransfers: FuelTransfer[];
+  yiUfeRates: YiUfeRate[];
+  institutions: Institution[];
+  addCompany: (company: Company) => void;
+  updateCompany: (id: string, updates: Partial<Company>) => void;
+  addSite: (site: Site) => void;
+  updateSite: (id: string, updates: Partial<Site>) => void;
+  deleteSite: (id: string) => void;
+  addUser: (user: User) => void;
+  updateUser: (id: string, updates: Partial<User>) => void;
+  deleteUser: (id: string) => void;
+  addVehicle: (vehicle: Vehicle) => void;
+  updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
+  deleteVehicle: (id: string) => void;
+  addCorrespondence: (item: Correspondence) => void;
+  deleteCorrespondence: (id: string) => void;
+  updateCorrespondence: (id: string, updates: Partial<Correspondence>) => void;
+  addCashTransaction: (item: CashTransaction) => void;
+  deleteCashTransaction: (id: string) => void;
+  updateCashTransaction: (id: string, updates: Partial<CashTransaction>) => void;
+  addPersonnel: (p: Personnel) => void;
+  updatePersonnel: (id: string, updates: Partial<Personnel>) => void;
+  deletePersonnel: (id: string) => void;
+  addPersonnelAttendance: (p: PersonnelAttendance) => void;
+  deletePersonnelAttendance: (id: string) => void;
+  addVehicleAttendance: (v: VehicleAttendance) => void;
+  deleteVehicleAttendance: (id: string) => void;
+  addSiteLogEntry: (entry: SiteLogEntry) => void;
+  deleteSiteLogEntry: (id: string) => void;
+  updateSiteLogEntry: (id: string, updates: Partial<SiteLogEntry>) => void;
+  addFuelLog: (log: FuelLog) => void;
+  deleteFuelLog: (id: string) => void;
+  updateFuelLog: (id: string, updates: Partial<FuelLog>) => void;
+  addFuelTank: (tank: FuelTank) => void;
+  updateFuelTank: (id: string, updates: Partial<FuelTank>) => void;
+  deleteFuelTank: (id: string) => void;
+  addFuelTransfer: (transfer: FuelTransfer) => void;
+  deleteFuelTransfer: (id: string) => void;
+  updateFuelTransfer: (id: string, updates: Partial<FuelTransfer>) => void;
+  addYiUfeRates: (rates: YiUfeRate[]) => void;
+  addInstitution: (institution: Institution) => void;
+  updateInstitution: (id: string, updates: Partial<Institution>) => void;
+  deleteInstitution: (id: string) => void;
+}

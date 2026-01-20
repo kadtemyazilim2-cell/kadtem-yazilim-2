@@ -1,5 +1,7 @@
-// Imports removed
-// import { COMPANIES, SITES, USERS, VEHICLES, CORRESPONDENCES, PERSONNEL } from '../mock-db/initial-data';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { AppState } from '@/lib/types';
+import { indexedDBStorage } from '../idb-storage';
 
 export const useAppStore = create<AppState>()(
     persist(
