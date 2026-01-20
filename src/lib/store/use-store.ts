@@ -1,92 +1,16 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { indexedDBStorage } from '../idb-storage';
-import { Company, Site, User, Vehicle, Correspondence, CashTransaction, Personnel, PersonnelAttendance, VehicleAttendance, SiteLogEntry, FuelTank, FuelTransfer, YiUfeRate, Institution, FuelLog, SmtpConfig } from '../types';
-import { COMPANIES, SITES, USERS, VEHICLES, CORRESPONDENCES, PERSONNEL } from '../mock-db/initial-data';
-
-
-
-interface AppState {
-    companies: Company[];
-    sites: Site[];
-    users: User[];
-    vehicles: Vehicle[];
-    correspondences: Correspondence[];
-    cashTransactions: CashTransaction[];
-    personnel: Personnel[];
-    personnelAttendance: PersonnelAttendance[];
-    vehicleAttendance: VehicleAttendance[];
-    siteLogEntries: SiteLogEntry[];
-    fuelLogs: FuelLog[];
-    fuelTanks: FuelTank[];
-    fuelTransfers: FuelTransfer[];
-    yiUfeRates: YiUfeRate[];
-    institutions: Institution[];
-    smtpConfig: SmtpConfig | null;
-
-    // Actions
-    addCorrespondence: (item: Correspondence) => void;
-    updateCorrespondence: (id: string, data: Partial<Correspondence>) => void;
-    deleteCorrespondence: (id: string, reason: string, userId: string) => void;
-    restoreCorrespondence: (id: string) => void;
-    addVehicle: (vehicle: Vehicle) => void;
-    updateVehicle: (id: string, data: Partial<Vehicle>) => void;
-    deleteVehicle: (id: string) => void; // [NEW]
-    addFuelLog: (log: any) => void;
-    updateFuelLog: (id: string, data: Partial<FuelLog>) => void; // [NEW]
-    deleteFuelLog: (id: string) => void; // [NEW]
-    addCashTransaction: (transaction: CashTransaction) => void;
-    deleteCashTransaction: (id: string) => void; // [NEW]
-    addPersonnel: (person: Personnel) => void;
-    updatePersonnel: (id: string, data: Partial<Personnel>) => void;
-    deletePersonnel: (id: string) => void; // [NEW]
-    addPersonnelAttendance: (attendance: PersonnelAttendance) => void;
-    deletePersonnelAttendance: (personnelId: string, date: string, siteId?: string) => void; // [NEW] Delete attendance (optional specific site)
-    addVehicleAttendance: (attendance: VehicleAttendance) => void;
-    deleteVehicleAttendance: (vehicleId: string, date: string) => void; // [NEW] Delete vehicle attendance
-    addSiteLogEntry: (entry: SiteLogEntry) => void;
-    updateSiteLogEntry: (id: string, data: Partial<SiteLogEntry>) => void; // [NEW]
-    deleteSiteLogEntry: (id: string) => void; // [NEW]
-    addFuelTank: (tank: FuelTank) => void;
-    updateFuelTankLevel: (id: string, amount: number, operation: 'ADD' | 'SUBTRACT') => void;
-    deleteFuelTank: (id: string) => void; // [NEW] feature
-    addFuelTransfer: (transfer: FuelTransfer) => void;
-    updateFuelTransfer: (id: string, data: Partial<FuelTransfer>) => void; // [NEW]
-    deleteFuelTransfer: (id: string) => void; // [NEW]
-    updateSmtpConfig: (config: SmtpConfig) => void;
-
-    // Admin Actions
-    addUser: (user: User) => void;
-    updateUser: (id: string, data: Partial<User>) => void;
-    deleteUser: (id: string) => void; // [NEW] feature
-    addCompany: (company: Company) => void;
-    updateCompany: (id: string, data: Partial<Company>) => void; // [NEW] feature
-    deleteCompany: (id: string) => void; // [NEW] feature
-    addSite: (site: Site) => void;
-    updateSite: (id: string, data: Partial<Site>) => void; // [NEW] feature
-    deleteSite: (id: string) => void; // [NEW] feature
-    assignVehiclesToSite: (vehicleIds: string[], siteIds: string[]) => void; // [NEW] Multi-site
-    setYiUfeRates: (rates: YiUfeRate[]) => void;
-    addYiUfeRates: (rates: YiUfeRate[]) => void;
-    addInstitution: (institution: Institution) => void;
-    updateInstitution: (id: string, data: Partial<Institution>) => void;
-    deleteInstitution: (id: string) => void;
-
-
-    // Initialization
-    resetData: () => void;
-}
+// Imports removed
+// import { COMPANIES, SITES, USERS, VEHICLES, CORRESPONDENCES, PERSONNEL } from '../mock-db/initial-data';
 
 export const useAppStore = create<AppState>()(
     persist(
         (set, get) => ({
-            companies: COMPANIES,
-            sites: SITES,
-            users: USERS,
-            vehicles: VEHICLES,
-            correspondences: CORRESPONDENCES,
+            companies: [],
+            sites: [],
+            users: [],
+            vehicles: [],
+            correspondences: [],
             cashTransactions: [],
-            personnel: PERSONNEL,
+            personnel: [],
             personnelAttendance: [],
             vehicleAttendance: [],
             siteLogEntries: [],
@@ -296,13 +220,13 @@ export const useAppStore = create<AppState>()(
             // Initialization
             resetData: () => {
                 set({
-                    companies: COMPANIES,
-                    sites: SITES,
-                    users: USERS,
-                    vehicles: VEHICLES,
-                    correspondences: CORRESPONDENCES,
+                    companies: [],
+                    sites: [],
+                    users: [],
+                    vehicles: [],
+                    correspondences: [],
                     cashTransactions: [],
-                    personnel: PERSONNEL,
+                    personnel: [],
                     personnelAttendance: [],
                     vehicleAttendance: [],
                     siteLogEntries: [],
