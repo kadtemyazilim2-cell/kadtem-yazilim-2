@@ -904,8 +904,8 @@ export function PersonnelList() {
 
     const groupedPersonnel = useMemo(() => {
         return {
-            technical: filteredPersonnel.filter(p => p.category === 'TECHNICAL'),
-            field: filteredPersonnel.filter(p => !p.category || p.category === 'FIELD') // Default to FIELD
+            technical: filteredPersonnel.filter((p: any) => p.category === 'TECHNICAL'),
+            field: filteredPersonnel.filter((p: any) => !p.category || p.category === 'FIELD') // Default to FIELD
         };
     }, [filteredPersonnel]);
 
