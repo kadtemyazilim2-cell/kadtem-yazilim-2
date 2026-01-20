@@ -92,7 +92,7 @@ export default function DashboardPage() {
         const counts: Record<string, number> = {};
 
         // Initialize counts for all sites
-        sites.forEach(site => {
+        sites.forEach((site: any) => {
             counts[site.id] = 0;
         });
 
