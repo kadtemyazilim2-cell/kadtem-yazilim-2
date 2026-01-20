@@ -21,7 +21,7 @@ export default function FuelMovementPage() {
     const availableSites = useUserSites(); // [NEW]
 
     // Filter Tanks based on available sites
-    const accessibleTanks = fuelTanks.filter(t => availableSites.some(s => s.id === t.siteId));
+    const accessibleTanks = fuelTanks.filter((t: any) => availableSites.some((s: any) => s.id === t.siteId));
 
     const [selectedDispenseSiteId, setSelectedDispenseSiteId] = useState('');
 
