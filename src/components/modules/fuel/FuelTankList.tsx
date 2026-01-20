@@ -23,7 +23,7 @@ export function FuelTankList() {
         e.preventDefault();
 
         // Check if site already has a tank
-        const existingTank = fuelTanks.find(t => t.siteId === siteId);
+        const existingTank = fuelTanks.find((t: any) => t.siteId === siteId);
         if (existingTank) {
             alert('Seçilen şantiyeye ait zaten bir depo bulunmaktadır. Her şantiye için sadece 1 depo tanımlanabilir.');
             return;
@@ -49,7 +49,7 @@ export function FuelTankList() {
         }
     };
 
-    const getSiteName = (id: string) => sites.find(s => s.id === id)?.name || '-';
+    const getSiteName = (id: string) => sites.find((s: any) => s.id === id)?.name || '-';
 
     return (
         <Card>
@@ -73,7 +73,7 @@ export function FuelTankList() {
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                        {sites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -100,7 +100,7 @@ export function FuelTankList() {
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {fuelTanks.map(tank => {
+                    {fuelTanks.map((tank: any) => {
                         const percent = Math.round((tank.currentLevel / tank.capacity) * 100);
                         return (
                             <div key={tank.id} className="border rounded-lg p-4 bg-white shadow-sm relative group">
