@@ -245,7 +245,7 @@ export default function AdminPage() {
 
     const handleDeleteCompany = (id: string, name: string) => {
         // Check for dependencies (Sites)
-        const linkedSites = sites.filter(s => s.companyId === id);
+        const linkedSites = sites.filter((s: any) => s.companyId === id);
         if (linkedSites.length > 0) {
             alert(`Bu firma silinemez!\n\nBağlı ${linkedSites.length} adet şantiye bulunmaktadır.\nLütfen önce bu şantiyelerin firma bağlantısını değiştirin veya silin.`);
             return;
@@ -265,10 +265,10 @@ export default function AdminPage() {
     const handleExportExcel = () => {
         const flatSites: any[] = [];
 
-        companies.forEach(company => {
-            const companySites = sites.filter(s => s.companyId === company.id);
+        companies.forEach((company: any) => {
+            const companySites = sites.filter((s: any) => s.companyId === company.id);
             // Apply sorting if needed, or just dump
-            companySites.forEach((site, index) => {
+            companySites.forEach((site: any, index: number) => {
                 flatSites.push({
                     'Yüklenici Firma': company.name,
                     'İş Grubu': site.workGroup,
@@ -308,9 +308,9 @@ export default function AdminPage() {
         const tableColumn = ["Firma", "İş Grubu", "İşin Adı", "İhale K. No", "Sözleşme Tarihi", "Bedel", "Durum"];
         const tableRows: any[] = [];
 
-        companies.forEach(company => {
-            const companySites = sites.filter(s => s.companyId === company.id);
-            companySites.forEach(site => {
+        companies.forEach((company: any) => {
+            const companySites = sites.filter((s: any) => s.companyId === company.id);
+            companySites.forEach((site: any) => {
                 const rowData = [
                     company.name,
                     site.workGroup || '',
@@ -574,21 +574,21 @@ export default function AdminPage() {
         if (!selectedSiteId) return;
 
         // Validation Checks
-        const assignedVehicles = vehicles.filter(v => v.assignedSiteId === selectedSiteId).length;
+        const assignedVehicles = vehicles.filter((v: any) => v.assignedSiteId === selectedSiteId).length;
         // Personnel don't have direct 'assignedSiteId' on the object usually, they have assigned sites in list?
         // Checking definitions: Personnel interface has 'assignedSiteIds' (plural)? 
         // Let's check 'users'. Users have 'assignedSiteIds'.
         // Personnel assignments are usually tracked via attendance or if we added a specific field. 
         // Use-store says: personnel: Personnel[]. Let's assume logic validation is mostly about attendance for personnel. 
         // But let's check Users assignment too.
-        const assignedUsers = users.filter(u => u.assignedSiteIds?.includes(selectedSiteId)).length;
+        const assignedUsers = users.filter((u: any) => u.assignedSiteIds?.includes(selectedSiteId)).length;
 
         // Attendance
-        const pAttendanceCount = personnelAttendance.filter(a => a.siteId === selectedSiteId).length;
-        const vAttendanceCount = vehicleAttendance.filter(a => a.siteId === selectedSiteId).length;
+        const pAttendanceCount = personnelAttendance.filter((a: any) => a.siteId === selectedSiteId).length;
+        const vAttendanceCount = vehicleAttendance.filter((a: any) => a.siteId === selectedSiteId).length;
 
         // Tanks
-        const tankCount = fuelTanks.filter(t => t.siteId === selectedSiteId).length;
+        const tankCount = fuelTanks.filter((t: any) => t.siteId === selectedSiteId).length;
 
         const totalDependencies = assignedVehicles + assignedUsers + pAttendanceCount + vAttendanceCount + tankCount;
 
@@ -826,7 +826,7 @@ export default function AdminPage() {
 
         // Merge with existing
         // We filter out any existing rate for this year/month
-        const existing = yiUfeRates.filter(r => !(r.year === manualYear && r.month === manualMonth + 1));
+        const existing = yiUfeRates.filter((r: any) => !(r.year === manualYear && r.month === manualMonth + 1));
         setYiUfeRates([...existing, newRate]);
 
         setYiUfeModalOpen(false);
@@ -847,7 +847,7 @@ export default function AdminPage() {
             setAllPermissions('VIEW');
         } else {
             // Check if it's a user ID
-            const sourceUser = users.find(u => u.id === value);
+            const sourceUser = users.find((u: any) => u.id === value);
             if (sourceUser) {
                 // Copy permissions strictly
                 setUserPermissions({ ...(sourceUser.permissions || {}) });
@@ -1048,7 +1048,7 @@ export default function AdminPage() {
                                                 <div className="border rounded-md p-4 space-y-3">
                                                     <Label>Atanan Şantiyeler</Label>
                                                     <div className="grid grid-cols-1 gap-2">
-                                                        {sites.map(site => (
+                                                        {sites.map((site: any) => (
                                                             <div key={site.id} className="flex items-center space-x-2">
                                                                 <Checkbox
                                                                     id={`site-${site.id}`}
@@ -1128,7 +1128,7 @@ export default function AdminPage() {
                                                                     </SelectGroup>
                                                                     <SelectGroup>
                                                                         <SelectLabel>Kullanıcıdan Kopyala</SelectLabel>
-                                                                        {users.filter(u => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map(u => (
+                                                                        {users.filter((u: any) => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map((u: any) => (
                                                                             <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                                                         ))}
                                                                     </SelectGroup>
@@ -1207,7 +1207,7 @@ export default function AdminPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users.map(u => (
+                                    {users.map((u: any) => (
                                         <TableRow key={u.id}>
                                             <TableCell className="font-medium">
                                                 <div>{u.name}</div>
@@ -1227,14 +1227,14 @@ export default function AdminPage() {
                                                     ) : (
                                                         Object.keys(u.permissions || {}).length > 0 ? (
                                                             <div className="flex gap-2">
-                                                                {Object.values(u.permissions || {}).filter(permArray => permArray.includes('EDIT')).length > 0 && (
+                                                                {Object.values(u.permissions || {}).filter((permArray: any) => permArray.includes('EDIT')).length > 0 && (
                                                                     <Badge variant="default" className="text-[10px] bg-green-600 hover:bg-green-700">
-                                                                        {Object.values(u.permissions || {}).filter(permArray => permArray.includes('EDIT')).length} Düzenleme
+                                                                        {Object.values(u.permissions || {}).filter((permArray: any) => permArray.includes('EDIT')).length} Düzenleme
                                                                     </Badge>
                                                                 )}
-                                                                {Object.values(u.permissions || {}).filter(permArray => permArray.includes('VIEW')).length > 0 && (
+                                                                {Object.values(u.permissions || {}).filter((permArray: any) => permArray.includes('VIEW')).length > 0 && (
                                                                     <Badge variant="secondary" className="text-[10px]">
-                                                                        {Object.values(u.permissions || {}).filter(permArray => permArray.includes('VIEW')).length} İzleme
+                                                                        {Object.values(u.permissions || {}).filter((permArray: any) => permArray.includes('VIEW')).length} İzleme
                                                                     </Badge>
                                                                 )}
                                                             </div>
@@ -1406,13 +1406,13 @@ export default function AdminPage() {
                                                 </TableCell>
                                             </TableRow>
                                         )}
-                                        {Array.from(new Set(yiUfeRates.map(r => r.year)))
-                                            .sort((a, b) => b - a)
+                                        {Array.from(new Set(yiUfeRates.map((r: any) => r.year)))
+                                            .sort((a: any, b: any) => b - a)
                                             .map(year => (
                                                 <TableRow key={year}>
                                                     <TableCell className="font-bold">{year}</TableCell>
                                                     {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
-                                                        const rate = yiUfeRates.find(r => r.year === year && r.month === month);
+                                                        const rate = yiUfeRates.find((r: any) => r.year === year && r.month === month);
                                                         return (
                                                             <TableCell key={month} className="text-center text-xs">
                                                                 {rate ? rate.index.toFixed(2) : '-'}
@@ -1578,7 +1578,7 @@ export default function AdminPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {companies.map(c => (
+                                    {companies.map((c: any) => (
                                         <TableRow key={c.id}>
                                             <TableCell className="font-medium">{c.name}</TableCell>
                                             <TableCell className="text-muted-foreground">{c.taxNumber || '-'}</TableCell>
@@ -1759,7 +1759,7 @@ export default function AdminPage() {
                                                         }
 
                                                         // Find Company
-                                                        const company = companies.find(c =>
+                                                        const company = companies.find((c: any) =>
                                                             c.name.trim().toLowerCase() === companyName.toString().trim().toLowerCase()
                                                         );
 
@@ -1837,7 +1837,7 @@ export default function AdminPage() {
                                             });
                                             const latestUfe = sortedRates[0]?.index;
 
-                                            sites.forEach(s => {
+                                            sites.forEach((s: any) => {
                                                 const contractPrice = s.contractPrice || 0;
                                                 const realizedAmount = s.realizedAmount || 0;
                                                 const base = contractPrice - realizedAmount;
@@ -1846,7 +1846,7 @@ export default function AdminPage() {
                                                 if (s.tenderDate) {
                                                     const tDate = new Date(s.tenderDate);
                                                     tDate.setMonth(tDate.getMonth() - 1);
-                                                    const foundRate = yiUfeRates.find(r => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                    const foundRate = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
                                                     if (foundRate) contractUfe = foundRate.index;
                                                 }
 
@@ -1912,7 +1912,7 @@ export default function AdminPage() {
                                                                     required
                                                                 >
                                                                     <option value="" disabled>Seçiniz</option>
-                                                                    {companies.map(c => (
+                                                                    {companies.map((c: any) => (
                                                                         <option key={c.id} value={c.id}>{c.name}</option>
                                                                     ))}
                                                                 </select>
@@ -2089,7 +2089,7 @@ export default function AdminPage() {
                                                         {col.key && (
                                                             <div onClick={e => e.stopPropagation()}>
                                                                 <MultiSelect
-                                                                    options={getUniqueValues(col.key, col.isDate, col.isCurrency).map(v => ({ label: v, value: v }))}
+                                                                    options={getUniqueValues(col.key, col.isDate, col.isCurrency).map((v: any) => ({ label: String(v), value: v }))}
                                                                     selected={siteFilters[col.key] || []}
                                                                     onChange={(val: string[]) => setSiteFilters(prev => ({ ...prev, [col.key!]: val }))}
                                                                     placeholder="Tümü"
@@ -2108,14 +2108,14 @@ export default function AdminPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {companies.map(company => {
+                                        {companies.map((company: any) => {
                                             // 1. Filter Sites
-                                            const filteredCompanySites = sites.filter(s => {
+                                            const filteredCompanySites = sites.filter((s: any) => {
                                                 if (s.companyId !== company.id) return false;
                                                 return Object.entries(siteFilters).every(([key, values]) => {
                                                     if (!values || values.length === 0) return true; // No filter selected
 
-                                                    const col = siteColumns.find(c => c.key === key);
+                                                    const col = siteColumns.find((c: any) => c.key === key);
                                                     let itemVal = s[key as keyof Site];
 
                                                     let formattedVal = 'Boş';
@@ -2134,7 +2134,7 @@ export default function AdminPage() {
                                             // 2. Sort Sites
                                             const sortedCompanySites = [...filteredCompanySites].sort((a, b) => {
                                                 for (const sort of siteSortConfig) {
-                                                    const col = siteColumns.find(c => c.key === sort.key);
+                                                    const col = siteColumns.find((c: any) => c.key === sort.key);
                                                     if (!col || !sort.key) continue;
 
                                                     const key = sort.key as keyof Site;
@@ -2213,7 +2213,7 @@ export default function AdminPage() {
                                                                     date.setMonth(date.getMonth() - 1); // User requested previous month
                                                                     const year = date.getFullYear();
                                                                     const month = date.getMonth() + 1;
-                                                                    const rate = yiUfeRates.find(r => r.year === year && r.month === month);
+                                                                    const rate = yiUfeRates.find((r: any) => r.year === year && r.month === month);
                                                                     return rate ? rate.index : (site.contractYiUfe || '-');
                                                                 })()}
                                                             </TableCell>
@@ -2250,7 +2250,7 @@ export default function AdminPage() {
                                                                             tDate.setMonth(tDate.getMonth() - 1);
                                                                             const tYear = tDate.getFullYear();
                                                                             const tMonth = tDate.getMonth() + 1;
-                                                                            const foundRate = yiUfeRates.find(r => r.year === tYear && r.month === tMonth);
+                                                                            const foundRate = yiUfeRates.find((r: any) => r.year === tYear && r.month === tMonth);
                                                                             if (foundRate) baseIndex = foundRate.index;
                                                                         }
                                                                     }
@@ -2310,7 +2310,7 @@ export default function AdminPage() {
                                                                         tDate.setMonth(tDate.getMonth() - 1);
                                                                         const tYear = tDate.getFullYear();
                                                                         const tMonth = tDate.getMonth() + 1;
-                                                                        const foundRate = yiUfeRates.find(r => r.year === tYear && r.month === tMonth);
+                                                                        const foundRate = yiUfeRates.find((r: any) => r.year === tYear && r.month === tMonth);
                                                                         if (foundRate) contractUfe = foundRate.index;
                                                                     }
 
@@ -2338,7 +2338,7 @@ export default function AdminPage() {
                                                                         tDate.setMonth(tDate.getMonth() - 1);
                                                                         const tYear = tDate.getFullYear();
                                                                         const tMonth = tDate.getMonth() + 1;
-                                                                        const foundRate = yiUfeRates.find(r => r.year === tYear && r.month === tMonth);
+                                                                        const foundRate = yiUfeRates.find((r: any) => r.year === tYear && r.month === tMonth);
                                                                         if (foundRate) contractUfe = foundRate.index;
                                                                     }
 
