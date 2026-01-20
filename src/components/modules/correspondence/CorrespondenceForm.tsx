@@ -76,11 +76,11 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     const handleMuhatapChange = (val: string) => {
         setFormData(prev => ({ ...prev, senderReceiver: val }));
         if (val.trim().length > 0) {
-            const relevantInstitutions = institutions.filter(i => {
+            const relevantInstitutions = institutions.filter((i: any) => {
                 if (initialType === 'BANK') return i.category === 'BANK' || !i.category;
                 return i.category !== 'BANK';
             });
-            const matches = relevantInstitutions.filter(i => toTurkishLower(i.name).includes(toTurkishLower(val)));
+            const matches = relevantInstitutions.filter((i: any) => toTurkishLower(i.name).includes(toTurkishLower(val)));
             setFilteredInstitutions(matches);
             setShowSuggestions(true);
         } else {
@@ -125,7 +125,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     useEffect(() => {
         if (pendingInstSelection) {
-            const exists = institutions.find(i => i.name === pendingInstSelection);
+            const exists = institutions.find((i: any) => i.name === pendingInstSelection);
             if (exists) {
                 setFormData(prev => ({
                     ...prev,
