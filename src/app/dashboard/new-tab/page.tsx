@@ -285,7 +285,7 @@ export default function NewPage() {
                 });
 
                 if (activeMatch) {
-                    const siteName = sites.find(s => s.id === activeMatch.siteId)?.name || 'Bilinmeyen Şantiye';
+                    const siteName = sites.find((s: any) => s.id === activeMatch.siteId)?.name || 'Bilinmeyen Şantiye';
                     alert(`Bu personel (${activeMatch.name}) şu anda "${siteName}" şantiyesinde AKTİF olarak çalışıyor!\n\nAynı TC kimlik numarası ile tekrar kayıt açılamaz.`);
                     setFormData(prev => ({ ...prev, tc: '' }));
                     return;
@@ -441,7 +441,7 @@ export default function NewPage() {
                         if (!values.includes(item.role || '')) return false;
                     }
                     else if (key === 'siteName') {
-                        const siteName = sites.find(s => s.id === item.siteId)?.name || '';
+                        const siteName = sites.find((s: any) => s.id === item.siteId)?.name || '';
                         if (!values.includes(siteName)) return false;
                     }
                     else if (key === 'hasOvertime') {
@@ -465,8 +465,8 @@ export default function NewPage() {
                     else if (sortItem.key === 'profession') comparison = (a.profession || '').localeCompare(b.profession || '');
                     else if (sortItem.key === 'role') comparison = (a.role || '').localeCompare(b.role || '');
                     else if (sortItem.key === 'siteName') {
-                        const siteA = sites.find(s => s.id === a.siteId)?.name || '';
-                        const siteB = sites.find(s => s.id === b.siteId)?.name || '';
+                        const siteA = sites.find((s: any) => s.id === a.siteId)?.name || '';
+                        const siteB = sites.find((s: any) => s.id === b.siteId)?.name || '';
                         comparison = siteA.localeCompare(siteB);
                     }
                     else if (sortItem.key === 'hasOvertime') comparison = (a.hasOvertime === b.hasOvertime) ? 0 : (a.hasOvertime ? -1 : 1);
@@ -548,7 +548,7 @@ export default function NewPage() {
                 if (['FULL', 'HALF', 'OUT', 'LEAVE', 'REPORT'].includes(record.status)) {
                     newAttendance[key] = {
                         status: 'TRANSFER',
-                        note: `Geçmiş Kayıt (Transfer: ${sites.find(s => s.id === originalPerson.siteId)?.name})`
+                        note: `Geçmiş Kayıt (Transfer: ${sites.find((s: any) => s.id === originalPerson.siteId)?.name})`
                     };
                 }
             }
@@ -563,7 +563,7 @@ export default function NewPage() {
             siteId: transferData.targetSiteId,
             inputDate: dateThreshold,
             attendance: newAttendance,
-            note: `${originalPerson.note || ''} (Transfer Geldi: ${sites.find(s => s.id === originalPerson.siteId)?.name} - ${Object.keys(newAttendance).length} Gün)`
+            note: `${originalPerson.note || ''} (Transfer Geldi: ${sites.find((s: any) => s.id === originalPerson.siteId)?.name} - ${Object.keys(newAttendance).length} Gün)`
         };
 
         // Update Old Person
@@ -571,7 +571,7 @@ export default function NewPage() {
             ...originalPerson,
             attendance: oldAttendance,
             transferOutDate: dateThreshold,
-            note: `${originalPerson.note || ''} (Transfer Gitti: -> ${sites.find(s => s.id === transferData.targetSiteId)?.name})`
+            note: `${originalPerson.note || ''} (Transfer Gitti: -> ${sites.find((s: any) => s.id === transferData.targetSiteId)?.name})`
         };
 
         setNames(prev => [
