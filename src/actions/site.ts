@@ -47,9 +47,26 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
         // Exclude id if present (let DB generate it) and any relation objects
         const { id, company, ...rest } = data as any;
 
+        // Helper to ensure dates are Date objects (Server Actions receive them as strings)
+        const dateFields = [
+            'announcementDate', 'tenderDate', 'contractDate', 'siteDeliveryDate',
+            'completionDate', 'extendedDate', 'provisionalAcceptanceDate',
+            'finalAcceptanceDate'
+        ];
+
+        const processedData = { ...rest };
+
+        for (const field of dateFields) {
+            if (processedData[field] && typeof processedData[field] === 'string') {
+                processedData[field] = new Date(processedData[field]);
+            }
+        }
+
+        console.log('Creating Site with processed data:', processedData);
+
         const site = await prisma.site.create({
             data: {
-                ...rest,
+                ...processedData,
                 name: data.name!,
                 companyId: data.companyId,
                 status: data.status || 'ACTIVE',

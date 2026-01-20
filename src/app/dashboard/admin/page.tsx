@@ -1797,7 +1797,7 @@ export default function AdminPage() {
                                                             continue;
                                                         }
 
-                                                        await createSite({
+                                                        const result = await createSite({
                                                             status: 'ACTIVE',
                                                             name: name.toString(),
                                                             companyId: company.id,
@@ -1836,6 +1836,10 @@ export default function AdminPage() {
                                                             personnelCount: getVal(row, ['Ort. Çalıştırılan Personel']) ? Number(getVal(row, ['Ort. Çalıştırılan Personel'])) : 0,
                                                             note: getVal(row, ['Notlar']) ? getVal(row, ['Notlar']).toString() : ''
                                                         });
+
+                                                        if (!result.success) {
+                                                            throw new Error(result.error);
+                                                        }
                                                         successCount++;
                                                     } catch (err) {
                                                         failCount++;
