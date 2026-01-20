@@ -120,6 +120,23 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         reader.readAsDataURL(file);
     };
 
+    // [UX] Watch for newly added institution to ensure it gets selected
+    const [pendingInstSelection, setPendingInstSelection] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (pendingInstSelection) {
+            const exists = institutions.find(i => i.name === pendingInstSelection);
+            if (exists) {
+                setFormData(prev => ({
+                    ...prev,
+                    senderReceiver: exists.name,
+                    senderReceiverAlignment: (exists.alignment as any) || 'center'
+                }));
+                setPendingInstSelection(null); // Clear pending
+            }
+        }
+    }, [institutions, pendingInstSelection]);
+
     const handleAddInstitution = async () => {
         if (!newInstName.trim()) return;
 
@@ -132,16 +149,19 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         if (result.success && result.data) {
             toast.success("Muhatap eklendi.");
 
-            // [FIX] Update local store immediately for UI to reflect changes
+            // Update local store
             addInstitution(result.data as any);
-            router.refresh(); // Refresh server data
 
-            // Auto-select
+            // Trigger auto-select logic
+            setPendingInstSelection(result.data.name);
+
+            // Immediate attempt (in case store is instant or fallback works)
             setFormData(prev => ({
                 ...prev,
                 senderReceiver: result.data!.name,
                 senderReceiverAlignment: 'center'
             }));
+
             setNewInstName('');
             setNewInstAlign('center');
             setIsAddInstOpen(false);
@@ -383,7 +403,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         ))}
                                         {/* Fallback: If value is set but not in the FILTERED list, show it anyway */}
                                         {formData.senderReceiver && !dropdownOptions.find(i => i.name === formData.senderReceiver) && (
-                                            <SelectItem value={formData.senderReceiver}>{formData.senderReceiver}</SelectItem>
+                                            <SelectItem key="fallback-val" value={formData.senderReceiver}>{formData.senderReceiver}</SelectItem>
                                         )}
                                     </SelectContent>
                                 </Select>
