@@ -35,6 +35,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     // Use store ONLY for reading lists
     const { companies, institutions, users, sites, addInstitution, addCorrespondence, updateCorrespondence: updateLocalCorrespondence } = useAppStore();
     const router = useRouter(); // [NEW]
+    const { user } = useAuth();
 
 
     const [formData, setFormData] = useState({
