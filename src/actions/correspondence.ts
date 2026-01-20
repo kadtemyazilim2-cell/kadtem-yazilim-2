@@ -28,9 +28,9 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
         });
         revalidatePath('/dashboard/correspondence');
         return { success: true, data: correspondence };
-    } catch (error) {
+    } catch (error: any) {
         console.error('createCorrespondence Error:', error);
-        return { success: false, error: 'Yazışma eklenemedi.' };
+        return { success: false, error: error.message || 'Yazışma eklenemedi.' };
     }
 }
 
