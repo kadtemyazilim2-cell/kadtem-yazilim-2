@@ -260,13 +260,13 @@ export function CorrespondenceList() {
             }
             return true;
         })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const deletedCorrespondences = correspondences.filter(c => c.status === 'DELETED');
+        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const deletedCorrespondences = correspondences.filter((c: any) => c.status === 'DELETED');
 
     useEffect(() => {
         // Check for items with missing reference numbers (Active only)
-        const missing = activeCorrespondences.filter(c => c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === ''))
-            .map(c => ({ id: c.id, subject: c.subject, date: c.date }));
+        const missing = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === ''))
+            .map((c: any) => ({ id: c.id, subject: c.subject, date: c.date }));
 
         if (missing.length > 0) {
             const today = new Date().toISOString().split('T')[0];
@@ -282,8 +282,8 @@ export function CorrespondenceList() {
         // Check for items with missing REGISTRATION numbers (Outgoing only usually, or user requested generic)
         // User said: "Evrak Kayıt Nosu olmayan evraklara kayıt numarası gir diye uyarıcı bir buton koy"
         // Let's filter for Outgoing non-bank items that don't have a registration number
-        const missingReg = activeCorrespondences.filter(c => c.type !== 'BANK' && c.direction === 'OUTGOING' && (!c.registrationNumber || c.registrationNumber.trim() === ''))
-            .map(c => ({ id: c.id, subject: c.subject, date: c.date, referenceNumber: c.referenceNumber }));
+        const missingReg = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && c.direction === 'OUTGOING' && (!c.registrationNumber || c.registrationNumber.trim() === ''))
+            .map((c: any) => ({ id: c.id, subject: c.subject, date: c.date, referenceNumber: c.referenceNumber }));
 
         // We don't auto-open this usually, or maybe we do? User said "put a button".
         // So we just update the state so the button can appear if there's any.
@@ -380,7 +380,7 @@ export function CorrespondenceList() {
             return str;
         };
 
-        const rows = activeCorrespondences.map(c => [
+        const rows = activeCorrespondences.map((c: any) => [
             escapeCsv(c.date),
             escapeCsv(c.direction === 'INCOMING' ? 'Gelen' : 'Giden'),
             escapeCsv(c.type),
@@ -391,7 +391,7 @@ export function CorrespondenceList() {
         ]);
 
         const csvContent = "\uFEFF" + headers.join(";") + "\n"
-            + rows.map(e => e.join(";")).join("\n");
+            + rows.map((e: any) => e.join(";")).join("\n");
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -759,9 +759,9 @@ export function CorrespondenceList() {
         doc.save(`${item.subject.substring(0, 20)}.pdf`);
     };
 
-    const bankItems = activeCorrespondences.filter(c => c.type === 'BANK');
-    const incomingItems = activeCorrespondences.filter(c => c.type !== 'BANK' && c.direction === 'INCOMING');
-    const outgoingItems = activeCorrespondences.filter(c => c.type !== 'BANK' && c.direction === 'OUTGOING');
+    const bankItems = activeCorrespondences.filter((c: any) => c.type === 'BANK');
+    const incomingItems = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && c.direction === 'INCOMING');
+    const outgoingItems = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && c.direction === 'OUTGOING');
 
     const renderFilters = () => (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
@@ -779,7 +779,7 @@ export function CorrespondenceList() {
             <div>
                 <Label className="text-xs">Firma</Label>
                 <MultiSelect
-                    options={uniqueCompanyIds.map(id => ({ label: getCompanyName(id), value: id }))}
+                    options={uniqueCompanyIds.map((id: any) => ({ label: getCompanyName(id), value: id }))}
                     selected={filterCompany}
                     onChange={setFilterCompany}
                     placeholder="Tümü"
@@ -793,7 +793,7 @@ export function CorrespondenceList() {
             <div>
                 <Label className="text-xs">Oluşturan</Label>
                 <MultiSelect
-                    options={uniqueCreatorIds.map(id => ({ label: getUserName(id), value: id }))}
+                    options={uniqueCreatorIds.map((id: any) => ({ label: getUserName(id), value: id }))}
                     selected={filterCreator}
                     onChange={setFilterCreator}
                     placeholder="Tümü"
@@ -805,7 +805,7 @@ export function CorrespondenceList() {
             <div>
                 <Label className="text-xs">Muhatap</Label>
                 <MultiSelect
-                    options={uniqueSenderReceivers.map(sr => ({ label: sr as string, value: sr as string }))}
+                    options={uniqueSenderReceivers.map((sr: any) => ({ label: sr as string, value: sr as string }))}
                     selected={filterSenderReceiver}
                     onChange={setFilterSenderReceiver}
                     placeholder="Tümü"
@@ -882,7 +882,7 @@ export function CorrespondenceList() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {institutions.map((inst) => (
+                            {institutions.map((inst: any) => (
                                 <TableRow key={inst.id}>
                                     <TableCell className="max-w-[400px] truncate" title={inst.name}>{inst.name}</TableCell>
                                     <TableCell>
@@ -945,7 +945,7 @@ export function CorrespondenceList() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {items.map((item) => {
+                    {items.map((item: any) => {
                         // Determine type-specific edit permission
                         let hasEditPermission = false;
                         if (item.type === 'BANK') hasEditPermission = canEditBank;
@@ -1009,7 +1009,7 @@ export function CorrespondenceList() {
                                                 href={item.attachmentUrls[0]}
                                                 download={`${item.referenceNumber || 'Evrak'}.pdf`}
                                                 className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline"
-                                                onClick={(e) => e.stopPropagation()}
+                                                onClick={(e: any) => e.stopPropagation()}
                                                 title="Dosyayı İndir"
                                             >
                                                 <Download className="w-3 h-3" />
@@ -1109,7 +1109,7 @@ export function CorrespondenceList() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {deletedCorrespondences.map((item) => (
+                    {deletedCorrespondences.map((item: any) => (
                         <TableRow key={item.id} className="bg-red-50">
                             <TableCell className="text-red-700 font-medium">
                                 {item.deletionDate ? format(new Date(item.deletionDate), 'dd MMM yyyy HH:mm', { locale: tr }) : '-'}
@@ -1337,9 +1337,9 @@ export function CorrespondenceList() {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         {(selectedRegId
-                            ? [activeCorrespondences.find(c => c.id === selectedRegId)].filter(Boolean).map(c => ({ id: c!.id, subject: c!.subject, date: c!.date, referenceNumber: c!.referenceNumber }))
+                            ? [activeCorrespondences.find((c: any) => c.id === selectedRegId)].filter(Boolean).map((c: any) => ({ id: c!.id, subject: c!.subject, date: c!.date, referenceNumber: c!.referenceNumber }))
                             : missingRegs
-                        ).map((item) => (
+                        ).map((item: any) => (
                             <div key={item.id} className="grid grid-cols-[1fr,200px] gap-4 items-center border-b pb-4 last:border-0 last:pb-0">
                                 <div>
                                     <div className="font-medium text-sm">{item.subject}</div>
