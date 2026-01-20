@@ -83,13 +83,13 @@ export function VehicleAttendanceReport() {
         // Collect all unique (vehicleId, siteId) pairs involved in the date range
         const relevantSightings = new Set<string>(); // "vehicleId|siteId"
 
-        vehicleAttendance.forEach(a => {
+        vehicleAttendance.forEach((a: any) => {
             if (isWithinInterval(parseISO(a.date), { start: parseISO(startDate), end: parseISO(endDate) })) {
                 relevantSightings.add(`${a.vehicleId}|${a.siteId}`);
             }
         });
 
-        fuelLogs.forEach(f => {
+        fuelLogs.forEach((f: any) => {
             if (isWithinInterval(parseISO(f.date), { start: parseISO(startDate), end: parseISO(endDate) })) {
                 relevantSightings.add(`${f.vehicleId}|${f.siteId}`);
             }
@@ -97,7 +97,7 @@ export function VehicleAttendanceReport() {
 
         const rows: any[] = [];
 
-        Array.from(relevantSightings).forEach(key => {
+        Array.from(relevantSightings).forEach((key: any) => {
             const [vId, sId] = key.split('|');
 
             // Site Filter
@@ -105,7 +105,7 @@ export function VehicleAttendanceReport() {
             // Vehicle Filter
             if (selectedVehicleIds.length > 0 && !selectedVehicleIds.includes(vId)) return;
 
-            const vehicle = vehicles.find(v => v.id === vId);
+            const vehicle = vehicles.find((v: any) => v.id === vId);
             if (!vehicle || vehicle.status !== 'ACTIVE') return;
 
             // Company Filter
@@ -114,13 +114,13 @@ export function VehicleAttendanceReport() {
             }
 
             // Records for this specific Site + Vehicle
-            const siteAttendance = vehicleAttendance.filter(a =>
+            const siteAttendance = vehicleAttendance.filter((a: any) =>
                 a.vehicleId === vId &&
                 a.siteId === sId &&
                 isWithinInterval(parseISO(a.date), { start: parseISO(startDate), end: parseISO(endDate) })
             );
 
-            const siteFuel = fuelLogs.filter(f =>
+            const siteFuel = fuelLogs.filter((f: any) =>
                 f.vehicleId === vId &&
                 f.siteId === sId &&
                 isWithinInterval(parseISO(f.date), { start: parseISO(startDate), end: parseISO(endDate) })
@@ -133,7 +133,7 @@ export function VehicleAttendanceReport() {
             let noOperatorDays = 0;
             let holidayDays = 0;
 
-            siteAttendance.forEach(r => {
+            siteAttendance.forEach((r: any) => {
                 if (r.status === 'WORK') workDays++;
                 if (r.status === 'HALF_DAY') halfDays++;
                 if (r.status === 'IDLE') idleDays++;
@@ -142,7 +142,7 @@ export function VehicleAttendanceReport() {
                 if (r.status === 'HOLIDAY') holidayDays++;
             });
 
-            const totalFuel = siteFuel.reduce((sum, log) => sum + Number(log.liters), 0);
+            const totalFuel = siteFuel.reduce((sum: any, log: any) => sum + Number(log.liters), 0);
             const totalWorkedDays = workDays + (halfDays * 0.5);
 
             // Rental Cost Calculation (Pro-rated for days worked AT THIS SOURCE)
@@ -152,11 +152,11 @@ export function VehicleAttendanceReport() {
             }
 
             // Site Name
-            const site = sites.find(s => s.id === sId);
+            const site = sites.find((s: any) => s.id === sId);
             const siteName = site?.name || 'Bilinmeyen Şantiye';
 
             // Company Name
-            const c = companies.find(comp => comp.id === vehicle.companyId);
+            const c = companies.find((comp: any) => comp.id === vehicle.companyId);
             const companyName = c?.name || vehicle.rentalCompanyName || '-';
 
             rows.push({
@@ -178,7 +178,7 @@ export function VehicleAttendanceReport() {
         });
 
         // Sort based on configuration
-        return rows.sort((a, b) => {
+        return rows.sort((a: any, b: any) => {
             for (const sortItem of sortConfig) {
                 let comparison = 0;
                 if (sortItem.key === 'siteName') {
@@ -198,7 +198,7 @@ export function VehicleAttendanceReport() {
     }, [vehicles, vehicleAttendance, fuelLogs, startDate, endDate, selectedSiteIds, selectedVehicleIds, selectedCompanyIds, companies, sites, sortConfig]);
 
     const totals = useMemo(() => {
-        return reportData.reduce((acc, row) => ({
+        return reportData.reduce((acc: any, row: any) => ({
             totalFuel: acc.totalFuel + row.totalFuel,
             totalWorkedDays: acc.totalWorkedDays + row.totalWorkedDays,
             totalRentalCost: acc.totalRentalCost + row.totalRentalCost
@@ -206,7 +206,7 @@ export function VehicleAttendanceReport() {
     }, [reportData]);
 
     const handleExport = () => {
-        const data = reportData.map((d, index) => ({
+        const data = reportData.map((d: any, index: any) => ({
             'Sıra No': index + 1,
             'Şantiye': d.siteName,
             'Araç Sahibi Firma': d.companyName,
@@ -265,7 +265,7 @@ export function VehicleAttendanceReport() {
             "Top. Gün", "Top. Kira"
         ];
 
-        const tableRows = reportData.map((d, i) => [
+        const tableRows = reportData.map((d: any, i: any) => [
             (i + 1).toString(),
             d.siteName,
             d.companyName,
@@ -353,7 +353,7 @@ export function VehicleAttendanceReport() {
                     <div className="space-y-2">
                         <Label>Araç Sahibi Firma</Label>
                         <MultiSelect
-                            options={companies.map(c => ({ label: c.name, value: c.id }))}
+                            options={companies.map((c: any) => ({ label: c.name, value: c.id }))}
                             selected={selectedCompanyIds}
                             onChange={setSelectedCompanyIds}
                             placeholder="Tüm Firmalar"
@@ -364,7 +364,7 @@ export function VehicleAttendanceReport() {
                     <div className="space-y-2">
                         <Label>Şantiye Filtresi</Label>
                         <MultiSelect
-                            options={sites.filter(s => s.status === 'ACTIVE').map(s => ({ label: s.name, value: s.id }))}
+                            options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
                             selected={selectedSiteIds}
                             onChange={setSelectedSiteIds}
                             placeholder="Tüm Şantiyeler"
@@ -374,7 +374,7 @@ export function VehicleAttendanceReport() {
                     <div className="space-y-2">
                         <Label>Araç Filtresi</Label>
                         <MultiSelect
-                            options={vehicles.filter(v => v.status === 'ACTIVE').map(v => ({ label: `${v.plate} (${typeMap[v.type] || v.type})`, value: v.id }))}
+                            options={vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => ({ label: `${v.plate} (${typeMap[v.type] || v.type})`, value: v.id }))}
                             selected={selectedVehicleIds}
                             onChange={setSelectedVehicleIds}
                             placeholder="Tüm Araçlar"
@@ -395,7 +395,7 @@ export function VehicleAttendanceReport() {
                                     <div className="flex items-center gap-1">
                                         Şantiye
                                         {(() => {
-                                            const sortItem = sortConfig.find(sc => sc.key === 'siteName');
+                                            const sortItem = sortConfig.find((sc: any) => sc.key === 'siteName');
                                             if (sortItem) {
                                                 return (
                                                     <div className="flex items-center">
@@ -415,7 +415,7 @@ export function VehicleAttendanceReport() {
                                     <div className="flex items-center gap-1">
                                         Araç Sahibi Firma
                                         {(() => {
-                                            const sortItem = sortConfig.find(sc => sc.key === 'companyName');
+                                            const sortItem = sortConfig.find((sc: any) => sc.key === 'companyName');
                                             if (sortItem) {
                                                 return (
                                                     <div className="flex items-center">
@@ -465,7 +465,7 @@ export function VehicleAttendanceReport() {
                                 </TableRow>
                             ) : (
                                 <>
-                                    {reportData.map((row, index) => (
+                                    {reportData.map((row: any, index: any) => (
                                         <TableRow key={row.id}>
                                             <TableCell className="font-medium text-slate-500 text-xs">
                                                 {index + 1}
