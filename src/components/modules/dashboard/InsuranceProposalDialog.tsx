@@ -38,8 +38,8 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
     const [customNote, setCustomNote] = useState<string>(''); // Additional note
 
     // Get vehicle and its company for SMTP check
-    const vehicle = item ? vehicles.find(v => v.id === item.vehicleId) : null;
-    const vehicleCompany = vehicle ? companies.find(c => c.id === vehicle.companyId) : null;
+    const vehicle = item ? vehicles.find((v: any) => v.id === item.vehicleId) : null;
+    const vehicleCompany = vehicle ? companies.find((c: any) => c.id === vehicle.companyId) : null;
 
     // Determine effective SMTP Config (Company specific > Global > Null)
     const effectiveSmtpConfig = vehicleCompany?.smtpConfig || globalSmtpConfig;
@@ -47,8 +47,8 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
 
     // Filter agencies
     const agencies = institutions
-        .filter(i => i.category === 'INSURANCE_AGENCY' || i.category === 'INSURANCE_COMPANY')
-        .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+        .filter((i: any) => i.category === 'INSURANCE_AGENCY' || i.category === 'INSURANCE_COMPANY')
+        .sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
 
     // Load preferences and auto-select on open
     useEffect(() => {
@@ -62,7 +62,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                 try {
                     const parsed = JSON.parse(saved);
                     // Filter to ensure they still exist
-                    const validIds = parsed.filter((id: string) => agencies.some(a => a.id === id));
+                    const validIds = parsed.filter((id: string) => agencies.some((a: any) => a.id === id));
                     setSelectedAgencyIds(validIds);
                 } catch (e) { console.error(e); }
             }
