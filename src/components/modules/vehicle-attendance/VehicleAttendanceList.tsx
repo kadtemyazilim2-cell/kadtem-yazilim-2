@@ -499,7 +499,7 @@ export function VehicleAttendanceList() {
                                                     // Calculate Fuel for this day
                                                     const dailyFuel = showFuel ? fuelLogs
                                                         .filter((l: any) => l.vehicleId === v.id && l.date === format(day, 'yyyy-MM-dd'))
-                                                        .reduce((sum, l) => sum + Number(l.liters), 0) : 0;
+                                                        .reduce((sum: any, l: any) => sum + Number(l.liters), 0) : 0;
 
                                                     return (
                                                         <TableCell
