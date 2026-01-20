@@ -1302,7 +1302,7 @@ export function PersonnelList() {
                         {/* Creator Info */}
                         {(() => {
                             const record = modalDate ? getStatusForDate(selectedPersonnelId, new Date(modalDate)) : undefined;
-                            const creator = record?.createdByUserId ? users.find(u => u.id === record.createdByUserId) : undefined;
+                            const creator = record?.createdByUserId ? users.find((u: any) => u.id === record.createdByUserId) : undefined;
                             if (creator) {
                                 return (
                                     <div className="text-xs text-muted-foreground pt-2">
