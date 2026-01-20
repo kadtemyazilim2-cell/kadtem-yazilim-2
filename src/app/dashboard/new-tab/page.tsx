@@ -1003,7 +1003,7 @@ export default function NewPage() {
 
         let siteName = 'Tum Santiyeler';
         if (selectedSiteId !== 'all') {
-            const site = sites.find(s => s.id === selectedSiteId);
+            const site = sites.find((s: any) => s.id === selectedSiteId);
             if (site) siteName = site.name;
         }
 
