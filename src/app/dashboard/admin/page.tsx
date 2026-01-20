@@ -988,6 +988,10 @@ export default function AdminPage() {
                         <TrendingUp className="w-4 h-4 mr-2" />
                         Yi-Üfe
                     </TabsTrigger>
+                    <TabsTrigger value="system" className="flex items-center gap-2 text-red-600 data-[state=active]:text-red-700 data-[state=active]:bg-red-50">
+                        <ShieldAlert className="w-4 h-4 mr-2" />
+                        Sistem Yönetimi
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* USER MANAGEMENT TAB */}
