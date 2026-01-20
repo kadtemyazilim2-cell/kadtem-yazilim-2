@@ -1,6 +1,7 @@
 'use client';
 
 import { SimpleRichTextEditor } from '@/components/ui/simple-rich-text-editor';
+import { useRouter } from 'next/navigation';
 
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
@@ -32,8 +33,38 @@ interface CorrespondenceFormProps {
 export function CorrespondenceForm({ customTrigger, initialType, initialDirection, initialData }: CorrespondenceFormProps) {
     const [open, setOpen] = useState(false);
     // Use store ONLY for reading lists
-    const { companies, institutions, users, sites } = useAppStore();
-    const { user } = useAuth();
+    const { companies, institutions, users, sites, addInstitution, addCorrespondence, updateCorrespondence: updateLocalCorrespondence } = useAppStore();
+    const router = useRouter(); // [NEW]
+
+    const handleAddInstitution = async () => {
+        if (!newInstName.trim()) return;
+
+        const result = await createInstitution({
+            name: newInstName.trim(),
+            category: newInstCategory,
+            alignment: 'center'
+        });
+
+        if (result.success && result.data) {
+            toast.success("Muhatap eklendi.");
+
+            // [FIX] Update local store immediately for UI to reflect changes
+            addInstitution(result.data as any);
+            router.refresh(); // Refresh server data
+
+            // Auto-select
+            setFormData(prev => ({
+                ...prev,
+                senderReceiver: result.data!.name, // Use name from result
+                senderReceiverAlignment: 'center'
+            }));
+            setNewInstName('');
+            setNewInstAlign('center');
+            setIsAddInstOpen(false);
+        } else {
+            toast.error("Muhatap eklenemedi.");
+        }
+    };
 
     const [formData, setFormData] = useState({
         companyId: initialData?.companyId || '',
@@ -119,10 +150,15 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
         if (result.success && result.data) {
             toast.success("Muhatap eklendi.");
+
+            // [FIX] Update local store immediately for UI to reflect changes
+            addInstitution(result.data as any);
+            router.refresh(); // Refresh server data
+
             // Auto-select
             setFormData(prev => ({
                 ...prev,
-                senderReceiver: result.data.name,
+                senderReceiver: result.data!.name,
                 senderReceiverAlignment: 'center'
             }));
             setNewInstName('');
@@ -153,10 +189,13 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
         const payload = {
             ...formData,
+            siteId: formData.siteId === 'none' ? undefined : formData.siteId, // Handle "No Selection"
             direction: formData.direction as 'INCOMING' | 'OUTGOING',
-            type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK', // [FIX] Added BANK to cast
+            type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
             senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
-            date: `${formData.date}T${format(new Date(), 'HH:mm')}` // Add current time to selected date on save
+            date: `${formData.date}T${format(new Date(), 'HH:mm')}`,
+            // Ensure description is not empty if hidden (Incoming)
+            description: formData.description || '-'
         };
 
         try {
@@ -434,6 +473,20 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             </div>
 
                             {/* PDF Preview REMOVED as per request */}
+
+                            <div className="space-y-2">
+                                <Label>Dosya Yükle (PDF)</Label>
+                                <Input
+                                    type="file"
+                                    accept="application/pdf"
+                                    onChange={handleFileChange}
+                                />
+                                {formData.attachmentUrls.length > 0 && (
+                                    <p className="text-xs text-green-600 mt-1">
+                                        {formData.attachmentUrls.length} dosya eklendi.
+                                    </p>
+                                )}
+                            </div>
 
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
