@@ -94,7 +94,7 @@ function StatusCell({ record }: { record: { status: string, overtime?: number, n
 export function PersonnelList() {
     const { personnel, personnelAttendance, addPersonnelAttendance, deletePersonnelAttendance, updatePersonnel, users, deletePersonnel } = useAppStore();
     const { user, hasPermission } = useAuth();
-    const availableSites = useUserSites().filter(s => !s.finalAcceptanceDate && !s.provisionalAcceptanceDate);
+    const availableSites = useUserSites().filter((s: any) => !s.finalAcceptanceDate && !s.provisionalAcceptanceDate);
 
     // Permission Checks
     const canCreate = hasPermission('personnel', 'CREATE');
@@ -139,7 +139,7 @@ export function PersonnelList() {
     // Filter Personnel by Site (Current Site OR Worked at Site in selected month)
     const filteredPersonnel = useMemo(() => {
         if (!selectedSiteId) return [];
-        return personnel.filter(p => {
+        return personnel.filter((p: any) => {
             // [NEW] Check if left before this month
             if (p.status === 'LEFT' && p.leftDate) {
                 const monthStart = format(selectedDate, 'yyyy-MM-01');
@@ -214,7 +214,7 @@ export function PersonnelList() {
                 a.date.startsWith(monthPrefix)
             );
             return hasAttendance;
-        }).sort((a, b) => a.fullName.localeCompare(b.fullName));
+        }).sort((a: any, b: any) => a.fullName.localeCompare(b.fullName));
     }, [personnel, selectedSiteId, personnelAttendance, selectedDate]);
 
     const openAttendanceModal = (pid: string, dateStr: string) => {
@@ -222,7 +222,7 @@ export function PersonnelList() {
 
         // Date Restriction Check
         // Check for existing record to determine if this is Create or Edit
-        const existing = personnelAttendance.find(a => a.personnelId === pid && a.date === dateStr && a.siteId === selectedSiteId);
+        const existing = personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr && a.siteId === selectedSiteId);
 
         // 1. Permission Check (View Only / Create / Edit)
         let isDateRestricted = false;
@@ -304,7 +304,7 @@ export function PersonnelList() {
 
         // Validation: Check if personnel already has attendance at another site for this date
         // Note: The store prepends new records, so finding the first match gives the latest record.
-        const existingRecord = personnelAttendance.find(a =>
+        const existingRecord = personnelAttendance.find((a: any) =>
             a.personnelId === selectedPersonnelId &&
             a.date === modalDate
         );
@@ -325,7 +325,7 @@ export function PersonnelList() {
         }
 
         // [NEW] Auto-Rehire Logic if Inactive
-        const p = personnel.find(per => per.id === selectedPersonnelId);
+        const p = personnel.find((per: any) => per.id === selectedPersonnelId);
         if (p) {
             const isActive = isPersonnelActive(p, new Date(modalDate));
             if (!isActive) {
@@ -388,7 +388,7 @@ export function PersonnelList() {
     const handleTransfer = () => {
         if (!personnelToTransfer || !transferTargetSiteId) return;
 
-        const person = personnel.find(p => p.id === personnelToTransfer);
+        const person = personnel.find((p: any) => p.id === personnelToTransfer);
         if (!person) return;
 
         const newHistory = [
@@ -412,7 +412,7 @@ export function PersonnelList() {
     const handleDeletePersonnel = (p: typeof personnel[0]) => {
         // Validation: Check for attendance records in ANY site
         // personnelAttendance store contains records for all sites
-        const globalAttendanceCount = personnelAttendance.filter(a => a.personnelId === p.id).length;
+        const globalAttendanceCount = personnelAttendance.filter((a: any) => a.personnelId === p.id).length;
 
         // Also check transfer history - if they have moved around, they have history.
         const hasTransferHistory = p.transferHistory && p.transferHistory.length > 0;
@@ -442,7 +442,7 @@ export function PersonnelList() {
             const history = [...p.employmentHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             // Find the latest record on or before date
-            const lastRecord = history.filter(h => h.date <= dateStr).pop();
+            const lastRecord = history.filter((h: any) => h.date <= dateStr).pop();
 
             if (!lastRecord) {
                 // If the first record is HIRE, they were inactive before.
@@ -498,12 +498,12 @@ export function PersonnelList() {
 
         // Priority: Exact match for this site
         if (preferredSiteId) {
-            const siteRecord = personnelAttendance.find(a => a.personnelId === pid && a.date === dateStr && a.siteId === preferredSiteId);
+            const siteRecord = personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr && a.siteId === preferredSiteId);
             if (siteRecord) return siteRecord;
         }
 
         // Fallback: Return any record (e.g. OUT_DUTY from another site)
-        return personnelAttendance.find(a => a.personnelId === pid && a.date === dateStr);
+        return personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr);
     };
 
     const changeMonth = (delta: number) => {
@@ -524,13 +524,13 @@ export function PersonnelList() {
 
     const handleExportExcel = () => {
         if (!selectedSiteId) return;
-        const siteName = availableSites.find(s => s.id === selectedSiteId)?.name || 'Şantiye';
+        const siteName = availableSites.find((s: any) => s.id === selectedSiteId)?.name || 'Şantiye';
         const monthStr = format(selectedDate, 'MMMM yyyy', { locale: tr });
-        const dayHeaders = daysInMonth.map(d => format(d, 'dd'));
+        const dayHeaders = daysInMonth.map((d: any) => format(d, 'dd'));
 
         // Helper to create rows
         const createRows = (list: typeof personnel) => {
-            return list.map(p => {
+            return list.map((p: any) => {
                 const endOfMonthDate = daysInMonth[daysInMonth.length - 1]; // Use last day of viewing month
                 const isActiveAtMonthEnd = isPersonnelActive(p, endOfMonthDate);
                 const row: any = {
@@ -547,7 +547,7 @@ export function PersonnelList() {
                 let globalWorkedDays = 0;
                 let globalLeaveTaken = 0;
 
-                daysInMonth.forEach(day => {
+                daysInMonth.forEach((day: any) => {
                     const dateStr = format(day, 'dd');
                     const record = getStatusForDate(p.id, day, selectedSiteId);
 
@@ -661,7 +661,7 @@ export function PersonnelList() {
 
     const handleExportPDF = () => {
         if (!selectedSiteId) return;
-        const siteName = availableSites.find(s => s.id === selectedSiteId)?.name || 'Şantiye';
+        const siteName = availableSites.find((s: any) => s.id === selectedSiteId)?.name || 'Şantiye';
         const monthStr = format(selectedDate, 'MMMM yyyy', { locale: tr });
 
         const doc = new jsPDF('l', 'mm', 'a4');
@@ -671,18 +671,18 @@ export function PersonnelList() {
         doc.setFontSize(14);
         doc.text(`${siteName} - ${monthStr} - Personel Puantajı`, 14, 15);
 
-        const tableColumn = ["Ad Soyad", "Görevi", ...daysInMonth.map(d => format(d, 'dd')), "Ç (Gün)", "FM (Sa)", "İzin"];
+        const tableColumn = ["Ad Soyad", "Görevi", ...daysInMonth.map((d: any) => format(d, 'dd')), "Ç (Gün)", "FM (Sa)", "İzin"];
         const tableRows: any[] = [];
 
         // Helper to generate rows
         const generateTableRows = (list: typeof personnel) => {
-            return list.map(p => {
+            return list.map((p: any) => {
                 let workedDays = 0;
                 let overtimeTotal = 0;
                 let leaveTotal = 0;
                 let actualLeaveCount = 0;
 
-                const dayCells = daysInMonth.map(day => {
+                const dayCells = daysInMonth.map((day: any) => {
                     const record = getStatusForDate(p.id, day, selectedSiteId);
                     const isActive = isPersonnelActive(p, day);
 

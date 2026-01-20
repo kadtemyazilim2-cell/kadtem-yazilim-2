@@ -84,7 +84,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
     useEffect(() => {
         if (!isControlled && !personnelToEdit && tcNumber.length === 11) {
             // Check if this person exists as 'LEFT'
-            const exEmployee = personnel.find(p => p.tcNumber === tcNumber && p.status === 'LEFT');
+            const exEmployee = personnel.find((p: any) => p.tcNumber === tcNumber && p.status === 'LEFT');
 
             if (exEmployee) {
                 if (confirm(`Bu TC kimlik numarası ile daha önce çalışan "${exEmployee.fullName}" tespit edildi. Personel tekrar işe alınsın mı?\n\n(Bilgiler otomatik doldurulacak, maaş bilgisi boş bırakılacaktır.)`)) {
@@ -176,12 +176,12 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
 
         // Unified TC Check Logic
         // Find ANY record with same TC (excluding self)
-        const existingRecord = personnel.find(p => p.tcNumber === tcNumber && p.id !== personnelToEdit?.id);
+        const existingRecord = personnel.find((p: any) => p.tcNumber === tcNumber && p.id !== personnelToEdit?.id);
 
         if (existingRecord) {
             // Case 1: Already Active (Anywhere)
             if (existingRecord.status === 'ACTIVE') {
-                const siteName = sites.find(s => s.id === existingRecord.siteId)?.name || 'Bilinmeyen Şantiye';
+                const siteName = sites.find((s: any) => s.id === existingRecord.siteId)?.name || 'Bilinmeyen Şantiye';
                 if (existingRecord.siteId === siteId) {
                     setFormErrors({ ...errors, tcNumber: "Bu personel bu şantiyede zaten aktif." });
                     toast.error("Bu personel zaten bu şantiyede çalışıyor.");
@@ -195,7 +195,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             // Case 2: Inactive (Left/Passive/etc) - Offer Resume
             // Determine prompt message
             let promptMsg = '';
-            const oldSiteName = sites.find(s => s.id === existingRecord.siteId)?.name || 'Diğer Şantiye';
+            const oldSiteName = sites.find((s: any) => s.id === existingRecord.siteId)?.name || 'Diğer Şantiye';
 
             if (existingRecord.siteId === siteId) {
                 promptMsg = `"${existingRecord.fullName}" isimli personelin bu şantiyede eski bir kaydı bulundu.\n\nYeni kayıt açmak yerine mevcut kaydı tekrar aktif etmek (geçmişi korumak) ister misiniz?`;
@@ -268,10 +268,10 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
 
         // [NEW] Global Inactive Check (Re-hire from ANY site)
         // If we reached here, it's not active globally. Check if it exists as LEFT anywhere.
-        const existingInactiveGlobal = personnel.find(p => p.tcNumber === tcNumber && p.status === 'LEFT' && p.id !== personnelToEdit?.id);
+        const existingInactiveGlobal = personnel.find((p: any) => p.tcNumber === tcNumber && p.status === 'LEFT' && p.id !== personnelToEdit?.id);
 
         if (existingInactiveGlobal) {
-            const oldSiteName = sites.find(s => s.id === existingInactiveGlobal.siteId)?.name || 'Diğer Şantiye';
+            const oldSiteName = sites.find((s: any) => s.id === existingInactiveGlobal.siteId)?.name || 'Diğer Şantiye';
 
             if (confirm(`"${name}" isimli personel "${oldSiteName}" şantiyesinde "İşten Ayrıldı" olarak kayıtlı.\n\nYeni bir kayıt oluşturmak yerine, bu personeli şu anki şantiyeye taşıyıp tekrar işe almak (geçmiş verilerini korumak) ister misiniz?`)) {
 
@@ -583,7 +583,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                 <SelectValue placeholder="Şantiye Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                                {sites.filter(s => s.status === 'ACTIVE').map(s => (
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -640,7 +640,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                 className="w-1/3"
                                 onClick={async () => {
                                     // Validation Logic replicated from PersonnelList
-                                    const globalAttendanceCount = personnelAttendance.filter(a => a.personnelId === personnelToEdit.id).length;
+                                    const globalAttendanceCount = personnelAttendance.filter((a: any) => a.personnelId === personnelToEdit.id).length;
                                     const hasTransferHistory = personnelToEdit.transferHistory && personnelToEdit.transferHistory.length > 0;
 
                                     if (globalAttendanceCount > 0 || hasTransferHistory) {
