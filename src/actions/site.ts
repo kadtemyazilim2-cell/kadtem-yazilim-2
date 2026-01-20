@@ -45,7 +45,21 @@ export async function getSites() {
 export async function createSite(data: Partial<Site> & { companyId: string }) {
     try {
         // Exclude id if present (let DB generate it) and any relation objects
-        const { id, company, ...rest } = data as any;
+        // Exclude id and known non-schema fields
+        const {
+            id,
+            company,
+            // Exclude fields not in Prisma schema to avoid Unknown Argument Error
+            currentUfeDate,
+            remainingAmount,
+            contractToCurrentUfeRatio,
+            currentWorkExperienceAmount,
+            priceDifference,
+            completionPercentage,
+            personnelCount,
+            note,
+            ...rest
+        } = data as any;
 
         // Helper to ensure dates are Date objects (Server Actions receive them as strings)
         const dateFields = [

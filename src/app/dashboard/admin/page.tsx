@@ -1841,9 +1841,9 @@ export default function AdminPage() {
                                                             throw new Error(result.error);
                                                         }
                                                         successCount++;
-                                                    } catch (err) {
+                                                    } catch (err: any) {
                                                         failCount++;
-                                                        errors.push(`Satır ${index + 2}: İşlem hatası.`);
+                                                        errors.push(`Satır ${index + 2}: ${err.message || 'İşlem hatası'}`);
                                                     }
                                                 }
 
