@@ -90,7 +90,7 @@ export function FuelTransferForm() {
                                 <Select value={fromId} onValueChange={setFromId} required>
                                     <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                     <SelectContent>
-                                        {fuelTanks.map(t => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
+                                        {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             )}
@@ -111,7 +111,7 @@ export function FuelTransferForm() {
                                 <Select value={toId} onValueChange={setToId} required>
                                     <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                     <SelectContent>
-                                        {fuelTanks.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                        {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             )}
@@ -119,7 +119,7 @@ export function FuelTransferForm() {
                                 <Select value={toId} onValueChange={setToId} required>
                                     <SelectTrigger><SelectValue placeholder="Araç Seçiniz" /></SelectTrigger>
                                     <SelectContent>
-                                        {vehicles.filter(v => v.status === 'ACTIVE').map(v => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.model}</SelectItem>)}
+                                        {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.model}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             )}
