@@ -23,8 +23,8 @@ export async function getVehicles() {
 export async function createVehicle(data: Partial<Vehicle>) {
     try {
         // Ensure constraints
-        if (!data.plate || !data.brand || !data.model) {
-            return { success: false, error: 'Eksik bilgi.' };
+        if (!data.plate || !data.brand || !data.model || !data.companyId) {
+            return { success: false, error: 'Eksik bilgi (Plaka, Marka, Model veya Firma).' };
         }
 
         const vehicle = await prisma.vehicle.create({
@@ -44,7 +44,7 @@ export async function createVehicle(data: Partial<Vehicle>) {
                 insuranceExpiry: data.insuranceExpiry,
                 kaskoExpiry: data.kaskoExpiry,
                 assignedSiteId: data.assignedSiteId || null,
-                companyId: data.companyId || null, // companyId might be null for RENTAL? Check schema. usually required for OWNED.
+                companyId: data.companyId!, // Checked above or enforced by types now
 
                 // Other fields just in case
                 rentalCompanyName: data.rentalCompanyName,
