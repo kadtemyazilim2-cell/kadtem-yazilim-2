@@ -1359,7 +1359,7 @@ export function PersonnelList() {
 
             {/* Edit Personnel Modal */}
             <PersonnelForm
-                personnelToEdit={personnel.find(p => p.id === editingPersonnelId)}
+                personnelToEdit={personnel.find((p: any) => p.id === editingPersonnelId)}
                 open={!!editingPersonnelId}
                 onOpenChange={(open) => !open && setEditingPersonnelId(null)}
             />
