@@ -3,12 +3,37 @@
 import { prisma } from '@/lib/db';
 import { Site } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
 
 export async function getSites() {
     try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        let whereClause: any = {};
+
+        // [SCOPING] If not Admin, filter by assigned sites
+        if (session.user.role !== 'ADMIN') {
+            // Fetch fresh user data to get assigned sites
+            const user = await prisma.user.findUnique({
+                where: { id: session.user.id },
+                include: { assignedSites: true }
+            });
+
+            if (user) {
+                const assignedSiteIds = user.assignedSites.map((s: { id: string }) => s.id);
+                whereClause.id = { in: assignedSiteIds };
+                // Also restrict to active if needed, but usually users see their inactive sites too?
+                // Let's keep it broad for now, UI filters status.
+            } else {
+                return { success: false, error: 'Kullanıcı bulunamadı.' };
+            }
+        }
+
         const sites = await prisma.site.findMany({
             orderBy: { name: 'asc' },
-            include: { company: true }
+            include: { company: true },
+            where: whereClause
         });
         return { success: true, data: sites };
     } catch (error) {

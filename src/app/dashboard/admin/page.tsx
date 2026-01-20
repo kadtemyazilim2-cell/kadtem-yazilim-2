@@ -380,7 +380,9 @@ export default function AdminPage() {
         // setUserEmail(user.email);
         setUserRole(user.role);
         setUserPermissions(user.permissions || {});
-        setAssignedSiteIds(user.assignedSiteIds || []);
+        // Fix: Map objects to IDs if the flat array doesn't exist
+        const siteIds = user.assignedSiteIds || user.assignedSites?.map((s: any) => s.id) || [];
+        setAssignedSiteIds(siteIds);
         setEditLookbackDays(user.editLookbackDays !== undefined ? user.editLookbackDays : '');
         setUserModalOpen(true);
     };
