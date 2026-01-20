@@ -249,7 +249,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     // execCmd moved to SimpleRichTextEditor
 
-    const dropdownOptions = institutions.filter((inst: any) => {
+    const dropdownOptions = institutions.filter((inst: any) => {any) => {
         if (initialType === 'BANK') return inst.category === 'BANK' || !inst.category;
         // If 'OFFICIAL' or others, show non-banks
         return inst.category !== 'BANK';
@@ -397,7 +397,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         <SelectValue placeholder="Muhatap Seçiniz..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {dropdownOptions.map(inst => (
+                                        {dropdownOptions.map((inst: any) => (
                                             <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
                                         ))}
                                         {/* Fallback: If value is set but not in the FILTERED list, show it anyway */}
