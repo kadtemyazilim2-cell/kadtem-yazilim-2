@@ -1769,6 +1769,24 @@ export default function AdminPage() {
                                                     return undefined;
                                                 };
 
+                                                // Helper to parse numbers robustly
+                                                const parseNumber = (val: any) => {
+                                                    if (val === undefined || val === null || val === '') return undefined;
+                                                    if (typeof val === 'number') return isNaN(val) ? undefined : val;
+
+                                                    // Handle string numbers (e.g., "1.234,56" or "1000")
+                                                    let s = val.toString().trim();
+                                                    // Remove thousands separators if present (e.g. 1.000 for 1000 in TR, but wait, Excel raw usually doesn't have formatting)
+                                                    // If we assume standard JS float "1000.50" it's fine.
+                                                    // If we encounter Turkish comma "1000,50", replace comma with dot
+                                                    if (s.includes(',') && !s.includes('.')) {
+                                                        s = s.replace(',', '.');
+                                                    }
+
+                                                    const num = Number(s);
+                                                    return isNaN(num) ? undefined : num;
+                                                };
+
                                                 for (const [index, row] of jsonData.entries()) {
                                                     try {
                                                         // Flexible key matching
@@ -1818,22 +1836,22 @@ export default function AdminPage() {
                                                             currentUfeDate: parseDate(getVal(row, ['Güncel Ufe Tarihi'])),
 
                                                             // Financial
-                                                            contractYiUfe: getVal(row, ['Sözleşme Ayı Yi-Üfe Katsayısı']) ? Number(getVal(row, ['Sözleşme Ayı Yi-Üfe Katsayısı'])) : undefined,
-                                                            priceDifferenceCoefficient: getVal(row, ['Güncel Fiyat Farkı Katsayısı']) ? Number(getVal(row, ['Güncel Fiyat Farkı Katsayısı'])) : undefined,
-                                                            contractPrice: getVal(row, ['Sözleşme Bedeli Kdv ve F.F. Hariç']) ? Number(getVal(row, ['Sözleşme Bedeli Kdv ve F.F. Hariç'])) : undefined,
-                                                            kdv: getVal(row, ['KDV Oranı']) ? Number(getVal(row, ['KDV Oranı'])) : 20,
-                                                            remainingAmount: getVal(row, ['F.F. Dahil Kalan Tutar (Kdv Hariç)']) ? Number(getVal(row, ['F.F. Dahil Kalan Tutar (Kdv Hariç)'])) : undefined,
-                                                            realizedAmount: getVal(row, ['Sözleşme Fiyatıyla Gerçekleşen tutar Kdv ve F.F. Hariç']) ? Number(getVal(row, ['Sözleşme Fiyatıyla Gerçekleşen tutar Kdv ve F.F. Hariç'])) : undefined,
-                                                            contractToCurrentUfeRatio: getVal(row, ['Sözleşme Ufe / Güncel Ufe']) ? Number(getVal(row, ['Sözleşme Ufe / Güncel Ufe'])) : undefined,
-                                                            currentWorkExperienceAmount: getVal(row, ['Güncel İş Deneyim tutarı']) ? Number(getVal(row, ['Güncel İş Deneyim tutarı'])) : undefined,
-                                                            priceDifference: getVal(row, ['Fiyat Farkı']) ? Number(getVal(row, ['Fiyat Farkı'])) : undefined,
+                                                            contractYiUfe: parseNumber(getVal(row, ['Sözleşme Ayı Yi-Üfe Katsayısı'])),
+                                                            priceDifferenceCoefficient: parseNumber(getVal(row, ['Güncel Fiyat Farkı Katsayısı'])),
+                                                            contractPrice: parseNumber(getVal(row, ['Sözleşme Bedeli Kdv ve F.F. Hariç'])),
+                                                            kdv: parseNumber(getVal(row, ['KDV Oranı'])) || 20,
+                                                            remainingAmount: parseNumber(getVal(row, ['F.F. Dahil Kalan Tutar (Kdv Hariç)'])),
+                                                            realizedAmount: parseNumber(getVal(row, ['Sözleşme Fiyatıyla Gerçekleşen tutar Kdv ve F.F. Hariç'])),
+                                                            contractToCurrentUfeRatio: parseNumber(getVal(row, ['Sözleşme Ufe / Güncel Ufe'])),
+                                                            currentWorkExperienceAmount: parseNumber(getVal(row, ['Güncel İş Deneyim tutarı'])),
+                                                            priceDifference: parseNumber(getVal(row, ['Fiyat Farkı'])),
 
                                                             // Details
                                                             workExperienceCertificate: getVal(row, ['İş Deneyim Belgesi']) ? getVal(row, ['İş Deneyim Belgesi']).toString() : '',
                                                             statusDetail: getVal(row, ['Durum']) ? getVal(row, ['Durum']).toString() : '',
-                                                            partnershipPercentage: getVal(row, ['Ortaklık Oranı']) ? Number(getVal(row, ['Ortaklık Oranı'])) : 100,
-                                                            completionPercentage: getVal(row, ['Fiziki Gerçekleşme (%)']) ? Number(getVal(row, ['Fiziki Gerçekleşme (%)'])) : 0,
-                                                            personnelCount: getVal(row, ['Ort. Çalıştırılan Personel']) ? Number(getVal(row, ['Ort. Çalıştırılan Personel'])) : 0,
+                                                            partnershipPercentage: parseNumber(getVal(row, ['Ortaklık Oranı'])) || 100,
+                                                            completionPercentage: parseNumber(getVal(row, ['Fiziki Gerçekleşme (%)'])) || 0,
+                                                            personnelCount: parseNumber(getVal(row, ['Ort. Çalıştırılan Personel'])) || 0,
                                                             note: getVal(row, ['Notlar']) ? getVal(row, ['Notlar']).toString() : ''
                                                         });
 
@@ -1856,7 +1874,8 @@ export default function AdminPage() {
                                                 if (successCount > 0) window.location.reload();
                                             };
                                             reader.readAsArrayBuffer(file);
-                                        }}
+                                        }
+                                        }
                                     />
                                     <Button variant="outline" onClick={() => document.getElementById('site-excel-upload')?.click()} className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200">
                                         <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel Yükle
