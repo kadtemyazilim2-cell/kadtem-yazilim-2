@@ -1714,7 +1714,7 @@ export default function AdminPage() {
                                             if (!file) return;
 
                                             const reader = new FileReader();
-                                            reader.onload = (event) => {
+                                            reader.onload = async (event) => {
                                                 const data = new Uint8Array(event.target?.result as ArrayBuffer);
                                                 const workbook = XLSX.read(data, { type: 'array' });
                                                 const sheetName = workbook.SheetNames[0];
@@ -1769,7 +1769,7 @@ export default function AdminPage() {
                                                     return undefined;
                                                 };
 
-                                                jsonData.forEach((row, index) => {
+                                                for (const [index, row] of jsonData.entries()) {
                                                     try {
                                                         // Flexible key matching
                                                         const name = getVal(row, ['İşin Adı', 'İşin Adı *']);
@@ -1783,7 +1783,7 @@ export default function AdminPage() {
                                                         if (!name || !companyName) {
                                                             failCount++;
                                                             errors.push(`Satır ${index + 2}: İş adı veya Firma eksik.`);
-                                                            return;
+                                                            continue;
                                                         }
 
                                                         // Find Company
@@ -1794,11 +1794,10 @@ export default function AdminPage() {
                                                         if (!company) {
                                                             failCount++;
                                                             errors.push(`Satır ${index + 2}: Firma sistemde bulunamadı: "${companyName}".`);
-                                                            return;
+                                                            continue;
                                                         }
 
-                                                        addSite({
-                                                            id: crypto.randomUUID(),
+                                                        await createSite({
                                                             status: 'ACTIVE',
                                                             name: name.toString(),
                                                             companyId: company.id,
@@ -1842,7 +1841,7 @@ export default function AdminPage() {
                                                         failCount++;
                                                         errors.push(`Satır ${index + 2}: İşlem hatası.`);
                                                     }
-                                                });
+                                                }
 
                                                 if (successCount === 0 && failCount === 0) {
                                                     alert('İşlem yapılamadı.');
@@ -1850,6 +1849,7 @@ export default function AdminPage() {
                                                     alert(`İşlem Tamamlandı.\nBaşarılı: ${successCount}\nHatalı: ${failCount}\n\n${errors.slice(0, 15).join('\n')}${errors.length > 15 ? '\n...' : ''}`);
                                                 }
                                                 e.target.value = ''; // Reset input
+                                                if (successCount > 0) window.location.reload();
                                             };
                                             reader.readAsArrayBuffer(file);
                                         }}

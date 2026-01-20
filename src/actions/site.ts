@@ -44,15 +44,15 @@ export async function getSites() {
 
 export async function createSite(data: Partial<Site> & { companyId: string }) {
     try {
+        // Exclude id if present (let DB generate it) and any relation objects
+        const { id, company, ...rest } = data as any;
+
         const site = await prisma.site.create({
             data: {
+                ...rest,
                 name: data.name!,
                 companyId: data.companyId,
-                location: data.location,
                 status: data.status || 'ACTIVE',
-                contractPrice: data.contractPrice,
-                // Add other fields as necessary
-                partnershipPercentage: data.partnershipPercentage
             }
         });
         revalidatePath('/dashboard/admin');
