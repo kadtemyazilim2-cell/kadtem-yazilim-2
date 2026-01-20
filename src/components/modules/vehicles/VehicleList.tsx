@@ -7,9 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VehicleForm } from './VehicleForm';
 import { format, parseISO, isAfter, addMonths } from 'date-fns';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'; // [NEW]
-import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X } from 'lucide-react'; // [NEW] ListFilter, X
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X } from 'lucide-react';
 import { InsurancePolicyDialog } from './InsurancePolicyDialog';
 import { InsuranceRenewalDialog } from './InsuranceRenewalDialog';
 import { useAuth } from '@/lib/store/use-auth';
@@ -509,51 +512,124 @@ export function VehicleList() {
                         <CardTitle>Araç Listesi</CardTitle>
                     </div>
                     <div className="flex items-center gap-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder="Genel arama (Plaka, Model, Firma vb.)..."
-                                className="pl-8 bg-white"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            {/* Export Buttons */}
-                            {(activeTab === 'list' || activeTab === 'insurance' || activeTab === 'rental-costs') && (
-                                <>
-                                    <Button variant="outline" size="sm" onClick={exportPDF} className="gap-2">
-                                        <FileText className="w-4 h-4 text-red-600" /> PDF
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={exportExcel} className="gap-2">
-                                        <FileSpreadsheet className="w-4 h-4 text-green-600" /> Excel
-                                    </Button>
-                                </>
-                            )}
-                            {activeTab === 'agency-tracking' && (
-                                <>
-                                    <Button variant="outline" size="sm" onClick={exportPoliciesPDF} className="gap-2">
-                                        <FileText className="w-4 h-4 text-red-600" /> PDF
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={exportPoliciesExcel} className="gap-2">
-                                        <FileSpreadsheet className="w-4 h-4 text-green-600" /> Excel
-                                    </Button>
-                                </>
-                            )}
-
-                            {canCreateOwned && <VehicleForm initialOwnership="OWNED" />}
-                            {canCreateRental && (
-                                <VehicleForm
-                                    initialOwnership="RENTAL"
-                                    customTrigger={
-                                        <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                                            <Plus className="w-4 h-4 mr-2" /> Kiralık Araç Ekle
-                                        </Button>
-                                    }
+                        <div className="relative flex-1 flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="search"
+                                    placeholder="Genel arama (Plaka, Model, Firma vb.)..."
+                                    className="pl-8 bg-white"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                 />
-                            )}
+                            </div>
+
+                            {/* Filter Sheet Trigger */}
+                            <Sheet>
+                                <SheetTrigger asChild>
+                                    <Button variant="outline" className="relative gap-2">
+                                        <ListFilter className="w-4 h-4" />
+                                        <span className="hidden md:inline">Filtrele</span>
+                                        {Object.values(filters).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0) > 0 && (
+                                            <Badge variant="secondary" className="px-1.5 h-5 min-w-5 flex items-center justify-center ml-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                                                {Object.values(filters).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0)}
+                                            </Badge>
+                                        )}
+                                    </Button>
+                                </SheetTrigger>
+                                <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+                                    <SheetHeader>
+                                        <SheetTitle>Filtreleme Seçenekleri</SheetTitle>
+                                        <SheetDescription>
+                                            Listeyi daraltmak için aşağıdaki kriterleri kullanın.
+                                        </SheetDescription>
+                                    </SheetHeader>
+                                    <div className="grid grid-cols-1 gap-4 mt-6">
+                                        <div className="space-y-2">
+                                            <Label>Firma</Label>
+                                            <MultiSelect
+                                                options={uniqueCompanyNames.map((c: any) => ({ label: c, value: c }))}
+                                                selected={filters.company}
+                                                onChange={(val: string[]) => setFilters({ ...filters, company: val })}
+                                                placeholder="Tümü"
+                                                searchPlaceholder="Ara..."
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Mülkiyet</Label>
+                                            <MultiSelect
+                                                options={[{ label: 'Öz Mal', value: 'OWNED' }, { label: 'Kiralık', value: 'RENTAL' }]}
+                                                selected={filters.ownership}
+                                                onChange={(val: string[]) => setFilters({ ...filters, ownership: val })}
+                                                placeholder="Tümü"
+                                                vertical
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Plaka</Label>
+                                            <MultiSelect
+                                                options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
+                                                selected={filters.plate}
+                                                onChange={(val: string[]) => setFilters({ ...filters, plate: val })}
+                                                placeholder="Tümü"
+                                                searchPlaceholder="Ara..."
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Marka</Label>
+                                            <MultiSelect
+                                                options={uniqueBrands.map((b: any) => ({ label: b, value: b }))}
+                                                selected={filters.brand}
+                                                onChange={(val: string[]) => setFilters({ ...filters, brand: val })}
+                                                placeholder="Tümü"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Model</Label>
+                                            <MultiSelect
+                                                options={uniqueModels.map((m: any) => ({ label: m, value: m }))}
+                                                selected={filters.model}
+                                                onChange={(val: string[]) => setFilters({ ...filters, model: val })}
+                                                placeholder="Tümü"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Model Yılı</Label>
+                                            <MultiSelect
+                                                options={uniqueYears.map((y: any) => ({ label: y.toString(), value: y.toString() }))}
+                                                selected={filters.year}
+                                                onChange={(val: string[]) => setFilters({ ...filters, year: val })}
+                                                placeholder="Tümü"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Tip</Label>
+                                            <MultiSelect
+                                                options={uniqueTypes.map((t: any) => ({ label: typeMap[t] || t, value: t }))}
+                                                selected={filters.type}
+                                                onChange={(val: string[]) => setFilters({ ...filters, type: val })}
+                                                placeholder="Tümü"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Durum</Label>
+                                            <MultiSelect
+                                                options={[{ label: 'Aktif', value: 'ACTIVE' }, { label: 'Bakımda', value: 'MAINTENANCE' }, { label: 'Pasif', value: 'PASSIVE' }]}
+                                                selected={filters.status}
+                                                onChange={(val: string[]) => setFilters({ ...filters, status: val })}
+                                                placeholder="Tümü"
+                                            />
+                                        </div>
+                                        <Button
+                                            variant="secondary"
+                                            onClick={() => setFilters({ ...filters, company: [], ownership: ['OWNED'], plate: [], brand: [], model: [], year: [], type: [], status: ['ACTIVE'], insuranceAgency: [], kaskoAgency: [], insuranceCompany: [], kaskoCompany: [], definition: [], policyType: [], policyProvider: [], policyAgency: [], policyYear: [], policyPlate: [], policyOwner: [] })}
+                                            className="w-full mt-4"
+                                        >
+                                            Filtreleri Temizle
+                                        </Button>
+                                    </div>
+                                </SheetContent>
+                            </Sheet>
                         </div>
                     </div>
 
@@ -567,84 +643,6 @@ export function VehicleList() {
                 <CardContent>
 
                     <TabsContent value="list" className="space-y-4">
-                        {/* Filter Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4 p-4 bg-muted/20 rounded-lg">
-                            <div className="space-y-2">
-                                <Label>Firma</Label>
-                                <MultiSelect
-                                    options={uniqueCompanyNames.map((c: any) => ({ label: c, value: c }))}
-                                    selected={filters.company}
-                                    onChange={(val: string[]) => setFilters({ ...filters, company: val })}
-                                    placeholder="Tümü"
-                                    searchPlaceholder="Ara..."
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Mülkiyet</Label>
-                                <MultiSelect
-                                    options={[{ label: 'Öz Mal', value: 'OWNED' }, { label: 'Kiralık', value: 'RENTAL' }]}
-                                    selected={filters.ownership}
-                                    onChange={(val: string[]) => setFilters({ ...filters, ownership: val })}
-                                    placeholder="Tümü"
-                                    vertical // Assuming vertical prop exists based on usage, or standard grid
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Plaka</Label>
-                                <MultiSelect
-                                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
-                                    selected={filters.plate}
-                                    onChange={(val: string[]) => setFilters({ ...filters, plate: val })}
-                                    placeholder="Tümü"
-                                    searchPlaceholder="Ara..."
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Marka</Label>
-                                <MultiSelect
-                                    options={uniqueBrands.map((b: any) => ({ label: b, value: b }))}
-                                    selected={filters.brand}
-                                    onChange={(val: string[]) => setFilters({ ...filters, brand: val })}
-                                    placeholder="Tümü"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Model</Label>
-                                <MultiSelect
-                                    options={uniqueModels.map((m: any) => ({ label: m, value: m }))}
-                                    selected={filters.model}
-                                    onChange={(val: string[]) => setFilters({ ...filters, model: val })}
-                                    placeholder="Tümü"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Model Yılı</Label>
-                                <MultiSelect
-                                    options={uniqueYears.map((y: any) => ({ label: y.toString(), value: y.toString() }))}
-                                    selected={filters.year}
-                                    onChange={(val: string[]) => setFilters({ ...filters, year: val })}
-                                    placeholder="Tümü"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Tip</Label>
-                                <MultiSelect
-                                    options={uniqueTypes.map((t: any) => ({ label: typeMap[t] || t, value: t }))}
-                                    selected={filters.type}
-                                    onChange={(val: string[]) => setFilters({ ...filters, type: val })}
-                                    placeholder="Tümü"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Durum</Label>
-                                <MultiSelect
-                                    options={[{ label: 'Aktif', value: 'ACTIVE' }, { label: 'Bakımda', value: 'MAINTENANCE' }, { label: 'Pasif', value: 'PASSIVE' }]}
-                                    selected={filters.status}
-                                    onChange={(val: string[]) => setFilters({ ...filters, status: val })}
-                                    placeholder="Tümü"
-                                />
-                            </div>
-                        </div>
 
                         <Table>
                             <TableHeader>
