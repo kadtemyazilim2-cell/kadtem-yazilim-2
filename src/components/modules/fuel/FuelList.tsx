@@ -25,19 +25,19 @@ export function FuelList() {
         // Only show sites that are available to user AND present in logs (or just available sites?)
         // Typically we want filter options to be relevant.
         // Let's intersect availableSites with log sites.
-        const logSiteIds = new Set(fuelLogs.map(l => l.siteId));
+        const logSiteIds = new Set(fuelLogs.map((l: any) => l.siteId));
         return availableSites
-            .filter(s => logSiteIds.has(s.id))
-            .map(s => ({ label: s.name, value: s.id }))
-            .sort((a, b) => a.label.localeCompare(b.label));
+            .filter((s: any) => logSiteIds.has(s.id))
+            .map((s: any) => ({ label: s.name, value: s.id }))
+            .sort((a: any, b: any) => a.label.localeCompare(b.label));
     }, [fuelLogs, availableSites]);
 
     const uniqueVehicles = useMemo(() => {
-        const relevantVehicleIds = Array.from(new Set(fuelLogs.map(l => l.vehicleId)));
-        return relevantVehicleIds.map(id => {
-            const v = vehicles.find(veh => veh.id === id);
+        const relevantVehicleIds = Array.from(new Set(fuelLogs.map((l: any) => l.vehicleId)));
+        return relevantVehicleIds.map((id: any) => {
+            const v = vehicles.find((veh: any) => veh.id === id);
             return { label: v?.plate || 'Bilinmeyen', value: id };
-        }).sort((a, b) => a.label.localeCompare(b.label));
+        }).sort((a: any, b: any) => a.label.localeCompare(b.label));
     }, [fuelLogs, vehicles]);
 
     const getVehiclePlate = (id: string) => vehicles.find(v => v.id === id)?.plate || '-';
@@ -45,9 +45,9 @@ export function FuelList() {
     const getSiteName = (id: string) => availableSites.find(s => s.id === id)?.name || '-';
 
     const filteredLogs = fuelLogs
-        .filter(log => {
+        .filter((log: any) => {
             // [NEW] Isolation Logic: Check if site is in availableSites
-            const hasAccess = availableSites.some(s => s.id === log.siteId);
+            const hasAccess = availableSites.some((s: any) => s.id === log.siteId);
             if (!hasAccess) return false;
 
             // [NEW] Filters
@@ -123,7 +123,7 @@ export function FuelList() {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            filteredLogs.map((log) => (
+                            filteredLogs.map((log: any) => (
                                 <TableRow key={log.id}>
                                     <TableCell>{format(new Date(log.date), 'dd MMM yyyy', { locale: tr })}</TableCell>
                                     <TableCell className="font-bold">{getVehiclePlate(log.vehicleId)}</TableCell>
@@ -131,7 +131,7 @@ export function FuelList() {
                                     <TableCell>{log.liters.toFixed(2)} Lt</TableCell>
                                     <TableCell>{log.cost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
                                     <TableCell>{log.mileage.toLocaleString()} km</TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">{users.find(u => u.id === log.filledByUserId)?.name || '-'}</TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">{users.find((u: any) => u.id === log.filledByUserId)?.name || '-'}</TableCell>
                                 </TableRow>
                             ))
                         )}
