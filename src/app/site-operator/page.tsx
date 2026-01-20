@@ -32,7 +32,7 @@ export default function SiteOperatorPage() {
     const handleDispense = () => {
         if (!dispenseData.vehicleId || !dispenseData.liters || !dispenseData.tankId) return;
 
-        const vehicle = vehicles.find(v => v.id === dispenseData.vehicleId);
+        const vehicle = vehicles.find((v: any) => v.id === dispenseData.vehicleId);
         if (!vehicle) return;
 
         addFuelLog({
@@ -68,7 +68,7 @@ export default function SiteOperatorPage() {
                             <Select onValueChange={v => setDispenseData({ ...dispenseData, tankId: v })}>
                                 <SelectTrigger><SelectValue placeholder="Hangi depodan?" /></SelectTrigger>
                                 <SelectContent>
-                                    {fuelTanks.filter(t => t.siteId === selectedSiteId).map(t => (
+                                    {fuelTanks.filter((t: any) => t.siteId === selectedSiteId).map((t: any) => (
                                         <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -79,7 +79,7 @@ export default function SiteOperatorPage() {
                             <Select onValueChange={v => setDispenseData({ ...dispenseData, vehicleId: v })}>
                                 <SelectTrigger><SelectValue placeholder="Plaka seçiniz" /></SelectTrigger>
                                 <SelectContent>
-                                    {vehicles.filter(v => v.status === 'ACTIVE').map(v => (
+                                    {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => (
                                         <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -115,7 +115,7 @@ export default function SiteOperatorPage() {
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-xl font-bold">Saha Operasyon</h1>
-                    <p className="text-sm text-slate-500">{sites.find(s => s.id === selectedSiteId)?.name}</p>
+                    <p className="text-sm text-slate-500">{sites.find((s: any) => s.id === selectedSiteId)?.name}</p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => { logout(); router.push('/login'); }}>
                     <LogOut className="w-5 h-5" />
@@ -155,7 +155,7 @@ export default function SiteOperatorPage() {
                 <Card className="mt-8 bg-slate-50">
                     <CardHeader><CardTitle className="text-sm uppercase text-slate-500">Depo Durumları</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
-                        {fuelTanks.filter(t => t.siteId === selectedSiteId).map(t => (
+                        {fuelTanks.filter((t: any) => t.siteId === selectedSiteId).map((t: any) => (
                             <div key={t.id}>
                                 <div className="flex justify-between text-sm mb-1">
                                     <span className="font-medium">{t.name}</span>
@@ -169,7 +169,7 @@ export default function SiteOperatorPage() {
                                 </div>
                             </div>
                         ))}
-                        {fuelTanks.filter(t => t.siteId === selectedSiteId).length === 0 && (
+                        {fuelTanks.filter((t: any) => t.siteId === selectedSiteId).length === 0 && (
                             <p className="text-sm text-slate-400">Bu şantiyede tanımlı depo yok.</p>
                         )}
                     </CardContent>
