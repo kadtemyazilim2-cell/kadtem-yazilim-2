@@ -93,7 +93,7 @@ export function VehicleList() {
         if (vehicle.ownership === 'RENTAL') {
             return vehicle.rentalCompanyName || '-';
         }
-        return companies.find(c => c.id === vehicle.companyId)?.name || '-';
+        return companies.find((c: any) => c.id === vehicle.companyId)?.name || '-';
     };
 
     const getExpiryStatus = (dateStr?: string) => {
@@ -248,7 +248,7 @@ export function VehicleList() {
 
         // Historical Records
         if (v.insuranceHistory && v.insuranceHistory.length > 0) {
-            v.insuranceHistory.forEach(record => {
+            v.insuranceHistory.forEach((record: any) => {
                 policies.push({
                     id: record.id,
                     plate: v.plate,
@@ -268,7 +268,7 @@ export function VehicleList() {
         }
 
         // Fallback: If no history but current fields exist (migration/legacy case)
-        const currentTrafficInHistory = v.insuranceHistory?.some(h => h.type === 'TRAFFIC' && h.active);
+        const currentTrafficInHistory = v.insuranceHistory?.some((h: any) => h.type === 'TRAFFIC' && h.active);
         if (!currentTrafficInHistory && (v.insuranceAgency || v.insuranceCost || v.insuranceExpiry)) {
             policies.push({
                 id: `${v.id}-traffic-legacy`,
@@ -287,7 +287,7 @@ export function VehicleList() {
             });
         }
 
-        const currentKaskoInHistory = v.insuranceHistory?.some(h => h.type === 'KASKO' && h.active);
+        const currentKaskoInHistory = v.insuranceHistory?.some((h: any) => h.type === 'KASKO' && h.active);
         if (!currentKaskoInHistory && (v.kaskoAgency || v.kaskoCost || v.kaskoExpiry)) {
             policies.push({
                 id: `${v.id}-kasko-legacy`,
@@ -314,12 +314,12 @@ export function VehicleList() {
     });
 
     // --- DERIVE FILTER OPTIONS ---
-    const uniqueCompanyNames = Array.from(new Set(vehicles.map(v => getCompanyName(v)))).sort();
-    const uniquePlates = Array.from(new Set(vehicles.map(v => v.plate))).sort();
-    const uniqueBrands = Array.from(new Set(vehicles.map(v => v.brand))).sort();
-    const uniqueModels = Array.from(new Set(vehicles.map(v => v.model))).sort();
-    const uniqueYears = Array.from(new Set(vehicles.map(v => v.year))).sort((a, b) => b - a);
-    const uniqueTypes = Array.from(new Set(vehicles.map(v => v.type)));
+    const uniqueCompanyNames = Array.from(new Set(vehicles.map((v: any) => getCompanyName(v)))).sort();
+    const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
+    const uniqueBrands = Array.from(new Set(vehicles.map((v: any) => v.brand))).sort();
+    const uniqueModels = Array.from(new Set(vehicles.map((v: any) => v.model))).sort();
+    const uniqueYears = Array.from(new Set(vehicles.map((v: any) => v.year))).sort((a: any, b: any) => b - a);
+    const uniqueTypes = Array.from(new Set(vehicles.map((v: any) => v.type)));
 
     // --- FILTER LOGIC ---
     // 1. Vehicle List Filter (Existing)
@@ -481,10 +481,10 @@ export function VehicleList() {
 
     const handleDeleteVehicle = (vehicle: Vehicle) => {
         // 1. Check for usage in Vehicle Attendance
-        const attendanceCount = vehicleAttendance.filter(a => a.vehicleId === vehicle.id).length;
+        const attendanceCount = vehicleAttendance.filter((a: any) => a.vehicleId === vehicle.id).length;
 
         // 2. Check for usage in Fuel Logs
-        const fuelCount = fuelLogs.filter(f => f.vehicleId === vehicle.id).length;
+        const fuelCount = fuelLogs.filter((f: any) => f.vehicleId === vehicle.id).length;
 
         if (attendanceCount > 0 || fuelCount > 0) {
             alert(
@@ -574,7 +574,7 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Firma</Label>
                                 <MultiSelect
-                                    options={uniqueCompanyNames.map(c => ({ label: c, value: c }))}
+                                    options={uniqueCompanyNames.map((c: any) => ({ label: c, value: c }))}
                                     selected={filters.company}
                                     onChange={(val: string[]) => setFilters({ ...filters, company: val })}
                                     placeholder="Tümü"
@@ -594,7 +594,7 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Plaka</Label>
                                 <MultiSelect
-                                    options={uniquePlates.map(p => ({ label: p, value: p }))}
+                                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
                                     selected={filters.plate}
                                     onChange={(val: string[]) => setFilters({ ...filters, plate: val })}
                                     placeholder="Tümü"
@@ -604,7 +604,7 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Marka</Label>
                                 <MultiSelect
-                                    options={uniqueBrands.map(b => ({ label: b, value: b }))}
+                                    options={uniqueBrands.map((b: any) => ({ label: b, value: b }))}
                                     selected={filters.brand}
                                     onChange={(val: string[]) => setFilters({ ...filters, brand: val })}
                                     placeholder="Tümü"
@@ -613,7 +613,7 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Model</Label>
                                 <MultiSelect
-                                    options={uniqueModels.map(m => ({ label: m, value: m }))}
+                                    options={uniqueModels.map((m: any) => ({ label: m, value: m }))}
                                     selected={filters.model}
                                     onChange={(val: string[]) => setFilters({ ...filters, model: val })}
                                     placeholder="Tümü"
@@ -622,7 +622,7 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Model Yılı</Label>
                                 <MultiSelect
-                                    options={uniqueYears.map(y => ({ label: y.toString(), value: y.toString() }))}
+                                    options={uniqueYears.map((y: any) => ({ label: y.toString(), value: y.toString() }))}
                                     selected={filters.year}
                                     onChange={(val: string[]) => setFilters({ ...filters, year: val })}
                                     placeholder="Tümü"
@@ -631,7 +631,7 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Tip</Label>
                                 <MultiSelect
-                                    options={uniqueTypes.map(t => ({ label: typeMap[t] || t, value: t }))}
+                                    options={uniqueTypes.map((t: any) => ({ label: typeMap[t] || t, value: t }))}
                                     selected={filters.type}
                                     onChange={(val: string[]) => setFilters({ ...filters, type: val })}
                                     placeholder="Tümü"
