@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'; // ... existing imports
 import { createUser, updateUser as updateUserAction, deleteUser as deleteUserAction } from '@/actions/user';
 import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company';
 import { createSite, updateSite as updateSiteAction, deleteSite as deleteSiteAction } from '@/actions/site';
+import { resetDatabase } from '@/actions/system';
 import { useRouter } from 'next/navigation'; // Ensure router is imported
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -138,6 +139,29 @@ export default function AdminPage() {
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
     const [isEditingCompany, setIsEditingCompany] = useState(false); // [NEW]
     const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+
+    // System Reset State
+    const [resetDialogOpen, setResetDialogOpen] = useState(false);
+    const [resetting, setResetting] = useState(false);
+
+    const handleResetSystem = async () => {
+        setResetting(true);
+        try {
+            const res = await resetDatabase();
+            if (res.success) {
+                alert('Sistem başarıyla sıfırlandı. Çıkış yapılıyor...');
+                window.location.href = '/login'; // Force full reload to login to clear client states
+            } else {
+                alert('Hata: ' + res.error);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Bir hata oluştu.');
+        } finally {
+            setResetting(false);
+            setResetDialogOpen(false);
+        }
+    };
 
     // Site Filters
     const [siteFilters, setSiteFilters] = useState<Record<string, string[]>>({}); // Changed to string[]
@@ -2418,7 +2442,68 @@ export default function AdminPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+
+                {/* SYSTEM TAB */}
+                <TabsContent value="system" className="space-y-4 mt-6">
+                    <Card className="border-red-200">
+                        <CardHeader className="bg-red-50/50">
+                            <CardTitle className="text-red-700 flex items-center gap-2">
+                                <ShieldAlert className="h-5 w-5" />
+                                Tehlikeli Bölge
+                            </CardTitle>
+                            <CardDescription className="text-red-600/80">
+                                Bu alandaki işlemler geri alınamaz ve veri kaybına neden olabilir.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-slate-900">Sistemi Sıfırla (Fabrika Ayarları)</div>
+                                    <div className="text-sm text-slate-500 max-w-xl">
+                                        Bu işlem, <strong>Admin kullanıcısı dışındaki</strong> tüm verileri (şantiyeler, firmalar, araçlar, personeller, loglar vb.) kalıcı olarak siler.
+                                        <br />
+                                        <span className="text-red-600 font-medium">Bu işlem sadece örnek verileri temizlemek ve temiz bir başlangıç yapmak için kullanılmalıdır.</span>
+                                    </div>
+                                </div>
+                                <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="destructive" className="gap-2">
+                                            <Trash2 className="w-4 h-4" />
+                                            Sistemi Sıfırla
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="border-red-200 sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-red-700 flex items-center gap-2">
+                                                <ShieldAlert className="w-5 h-5" />
+                                                Tüm Veriler Silinecek!
+                                            </DialogTitle>
+                                            <DialogDescription className="pt-2 space-y-2">
+                                                <p>Bu işlem geri alınamaz. Onaylıyor musunuz?</p>
+                                                <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 bg-slate-50 p-2 rounded">
+                                                    <li>Tüm Şantiyeler ve Firmalar silinecek.</li>
+                                                    <li>Tüm Araçlar ve Personeller silinecek.</li>
+                                                    <li>Tüm mali kayıtlar ve loglar silinecek.</li>
+                                                    <li><strong>Mevcut Admin hesabınız korunacaktır.</strong></li>
+                                                </ul>
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter className="gap-2 sm:justify-between">
+                                            <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
+                                                Vazgeç
+                                            </Button>
+                                            <Button variant="destructive" onClick={handleResetSystem} disabled={resetting}>
+                                                {resetting ? 'Siliniyor...' : 'Evet, Tüm Verileri Sil'}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
             </Tabs>
         </div>
     );
 }
+

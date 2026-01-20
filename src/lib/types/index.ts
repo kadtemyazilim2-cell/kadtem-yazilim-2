@@ -304,9 +304,12 @@ export interface AppState {
   institutions: Institution[];
   addCompany: (company: Company) => void;
   updateCompany: (id: string, updates: Partial<Company>) => void;
+  deleteCompany: (id: string) => void;
   addSite: (site: Site) => void;
   updateSite: (id: string, updates: Partial<Site>) => void;
   deleteSite: (id: string) => void;
+  assignVehiclesToSite: (vehicleIds: string[], siteIds: string[]) => void;
+  setYiUfeRates: (rates: YiUfeRate[]) => void;
   addUser: (user: User) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
