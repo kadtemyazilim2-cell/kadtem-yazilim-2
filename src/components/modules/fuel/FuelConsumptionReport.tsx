@@ -130,7 +130,7 @@ export function FuelConsumptionReport() {
         });
 
         // Sort each group by mileage/date desc
-        Object.keys(grouped).forEach(k => {
+        Object.keys(grouped).forEach((k: any) => {
             grouped[k].sort((a: any, b: any) => b.mileage - a.mileage);
         });
 
@@ -142,7 +142,7 @@ export function FuelConsumptionReport() {
         const processedVehicles = new Set<string>();
 
         // 1. Process Fuel Logs
-        Object.keys(vehicleLogs).forEach(vehicleId => {
+        Object.keys(vehicleLogs).forEach((vehicleId: any) => {
             processedVehicles.add(vehicleId);
             const logs = vehicleLogs[vehicleId];
             const vehicle = vehicles.find((v: any) => v.id === vehicleId);

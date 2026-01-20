@@ -23,8 +23,8 @@ interface InsurancePolicyDialogProps {
 export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD', policy }: InsurancePolicyDialogProps) {
     const { updateVehicle, institutions } = useAppStore();
 
-    const companies = institutions.filter(i => i.category === 'INSURANCE_COMPANY');
-    const agencies = institutions.filter(i => i.category === 'INSURANCE_AGENCY');
+    const companies = institutions.filter((i: any) => i.category === 'INSURANCE_COMPANY');
+    const agencies = institutions.filter((i: any) => i.category === 'INSURANCE_AGENCY');
 
     const [formData, setFormData] = useState<Partial<InsuranceRecord>>({
         type: '' as any,
@@ -45,7 +45,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
     const getLastExpiry = (type: string) => {
         // 1. Try History first for most accurate latest date
         if (vehicle.insuranceHistory && vehicle.insuranceHistory.length > 0) {
-            const relevantPolicies = vehicle.insuranceHistory.filter(p =>
+            const relevantPolicies = vehicle.insuranceHistory.filter((p: any) =>
                 (type === 'TRAFFIC' && (p.type === 'TRAFFIC' || (p.type as any) === 'Trafik Sigortası')) ||
                 (type === 'KASKO' && (p.type === 'KASKO' || (p.type as any) === 'Kasko')) ||
                 (p.type === type) // Fallback for exact match
@@ -239,7 +239,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
             } else {
                 // EDIT MODE
                 // 1. Update record in history
-                newHistory = newHistory.map(r => r.id === policy.id ? newRecord : r);
+                newHistory = newHistory.map((r: any) => r.id === policy.id ? newRecord : r);
 
                 // 2. If this was the "active" or displayed policy logic, we might need to sync vehicle props too
                 // Simplified: If the dates match the vehicle's current props, update them too.
@@ -325,7 +325,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                                         >
                                             <SelectTrigger className="flex-1"><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {companies.map(c => (
+                                                {companies.map((c: any) => (
                                                     <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -350,7 +350,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                                         >
                                             <SelectTrigger className="flex-1"><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {agencies.map(a => (
+                                                {agencies.map((a: any) => (
                                                     <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
                                                 ))}
                                             </SelectContent>

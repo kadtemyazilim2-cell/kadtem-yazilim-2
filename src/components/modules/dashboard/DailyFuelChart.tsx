@@ -25,16 +25,16 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
             };
         });
 
-        const activeSites = sites.filter(s => s.status === 'ACTIVE');
+        const activeSites = sites.filter((s: any) => s.status === 'ACTIVE');
 
         // Initialize data structure
-        const data = days.map(day => {
+        const data = days.map((day: any) => {
             const row: any = {
                 name: day.label,
                 fullDate: day.key,
                 details: {} as Record<string, { label: string; liters: number; type: 'IN' | 'OUT' }[]>
             };
-            activeSites.forEach(site => {
+            activeSites.forEach((site: any) => {
                 row[site.name] = 0;
                 row.details[site.name] = [];
             });
@@ -42,13 +42,13 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
         });
 
         // 1. Process Logs (OUT)
-        fuelLogs.forEach(log => {
+        fuelLogs.forEach((log: any) => {
             const logDate = format(new Date(log.date), 'yyyy-MM-dd');
-            const dataRow = data.find(d => d.fullDate === logDate);
+            const dataRow = data.find((d: any) => d.fullDate === logDate);
 
             if (dataRow) {
-                const site = sites.find(s => s.id === log.siteId);
-                const vehicle = vehicles.find(v => v.id === log.vehicleId);
+                const site = sites.find((s: any) => s.id === log.siteId);
+                const vehicle = vehicles.find((v: any) => v.id === log.vehicleId);
 
                 if (site && site.status === 'ACTIVE') {
                     // For Chart Line: We use Total Activity (Sum of Liters) to ensure point exists
@@ -65,15 +65,15 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
 
         // 2. Process Transfers (IN & OUT)
         if (fuelTransfers && fuelTanks) {
-            fuelTransfers.forEach(t => {
+            fuelTransfers.forEach((t: any) => {
                 const tDate = format(new Date(t.date), 'yyyy-MM-dd');
-                const dataRow = data.find(d => d.fullDate === tDate);
+                const dataRow = data.find((d: any) => d.fullDate === tDate);
 
                 if (dataRow) {
                     // A. INCOMING (Target is Tank)
                     if (t.toType === 'TANK') {
-                        const tank = fuelTanks.find(tk => tk.id === t.toId);
-                        const site = sites.find(s => s.id === tank?.siteId);
+                        const tank = fuelTanks.find((tk: any) => tk.id === t.toId);
+                        const site = sites.find((s: any) => s.id === tank?.siteId);
 
                         if (site && site.status === 'ACTIVE') {
                             // Add to Activity Sum so it shows on chart
@@ -90,8 +90,8 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
 
                     // B. OUTGOING (Source is Tank)
                     if (t.fromType === 'TANK') {
-                        const tank = fuelTanks.find(tk => tk.id === t.fromId);
-                        const site = sites.find(s => s.id === tank?.siteId);
+                        const tank = fuelTanks.find((tk: any) => tk.id === t.fromId);
+                        const site = sites.find((s: any) => s.id === tank?.siteId);
 
                         if (site && site.status === 'ACTIVE') {
                             dataRow[site.name] = (dataRow[site.name] || 0) + t.amount;
@@ -179,7 +179,7 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                             />
                             <Tooltip content={<CustomTooltip />} shared={false} cursor={{ strokeDasharray: '3 3' }} />
                             {/* Legend removed to prevent UI clutter with many sites */}
-                            {sites.filter(s => s.status === 'ACTIVE').map((site, index) => (
+                            {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any, index: any) => (
                                 <Line
                                     key={site.id}
                                     type="monotone"

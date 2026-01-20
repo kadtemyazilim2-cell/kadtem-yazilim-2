@@ -28,7 +28,7 @@ export function VehicleAssignment() {
     const [targetSiteIds, setTargetSiteIds] = useState<string[]>([]); // [MODIFIED]
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredVehicles = vehicles.filter(v => {
+    const filteredVehicles = vehicles.filter((v: any) => {
         const matchesOwnership = ownershipFilter === 'ALL' || v.ownership === ownershipFilter;
         // Use helper with safe string access (in case plate/model are somehow undefined, though they shouldn't be)
         const plate = v.plate || '';
@@ -42,7 +42,7 @@ export function VehicleAssignment() {
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedVehicles(filteredVehicles.map(v => v.id));
+            setSelectedVehicles(filteredVehicles.map((v: any) => v.id));
         } else {
             setSelectedVehicles([]);
         }
@@ -52,7 +52,7 @@ export function VehicleAssignment() {
         if (checked) {
             setSelectedVehicles([...selectedVehicles, id]);
         } else {
-            setSelectedVehicles(selectedVehicles.filter(vId => vId !== id));
+            setSelectedVehicles(selectedVehicles.filter((vId: any) => vId !== id));
         }
     };
 
@@ -115,7 +115,7 @@ export function VehicleAssignment() {
                             <div className="space-y-2 w-64">
                                 <Label>Atanacak Şantiyeler</Label>
                                 <MultiSelect
-                                    options={sites.filter(s => s.status === 'ACTIVE').map(s => ({ label: s.name, value: s.id }))}
+                                    options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
                                     selected={targetSiteIds}
                                     onChange={setTargetSiteIds}
                                     placeholder="Şantiye Seçiniz"
@@ -153,16 +153,16 @@ export function VehicleAssignment() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    filteredVehicles.map(v => {
+                                    filteredVehicles.map((v: any) => {
                                         // Display assigned sites
                                         let displaySites = '-';
                                         if (v.assignedSiteIds && v.assignedSiteIds.length > 0) {
                                             displaySites = v.assignedSiteIds
-                                                .map(sid => sites.find(s => s.id === sid)?.name)
+                                                .map((sid: any) => sites.find((s: any) => s.id === sid)?.name)
                                                 .filter(Boolean)
                                                 .join(', ');
                                         } else if (v.assignedSiteId) {
-                                            displaySites = sites.find(s => s.id === v.assignedSiteId)?.name || '-';
+                                            displaySites = sites.find((s: any) => s.id === v.assignedSiteId)?.name || '-';
                                         }
 
                                         return (

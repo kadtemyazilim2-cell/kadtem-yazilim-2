@@ -127,7 +127,7 @@ export function InsuranceDefinitionsDialog({
     }
 
     const exportExcel = () => {
-        const data = items.map(i => ({
+        const data = items.map((i: any) => ({
             'Adı': i.name,
             'Kategori': type === 'INSURANCE_COMPANY' ? 'Sigorta Firması' : 'Acente',
             'İlgili Kişi': i.contactPerson || '-',
@@ -150,7 +150,7 @@ export function InsuranceDefinitionsDialog({
         doc.setFont('Roboto');
 
         const tableColumn = ["Adı", "İlgili Kişi", "Telefon", "Cep", "E-posta"];
-        const tableRows = items.map(i => [
+        const tableRows = items.map((i: any) => [
             i.name,
             i.contactPerson || '-',
             i.phone || '-',

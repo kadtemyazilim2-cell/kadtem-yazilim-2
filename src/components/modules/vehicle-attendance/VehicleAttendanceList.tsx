@@ -58,7 +58,7 @@ export function VehicleAttendanceList() {
             return;
         }
 
-        const record = vehicleAttendance.find(a =>
+        const record = vehicleAttendance.find((a: any) =>
             a.vehicleId === vehicleId &&
             a.date === format(date, 'yyyy-MM-dd')
         );
@@ -127,13 +127,13 @@ export function VehicleAttendanceList() {
 
         // Check for cross-site conflict
         const targetDateStr = format(editingCell.date, 'yyyy-MM-dd');
-        const existingRecord = vehicleAttendance.find(a =>
+        const existingRecord = vehicleAttendance.find((a: any) =>
             a.vehicleId === editingCell.vehicleId &&
             a.date === targetDateStr
         );
 
         if (existingRecord && existingRecord.siteId !== selectedSiteId) {
-            const otherSite = sites.find(s => s.id === existingRecord.siteId)?.name || 'Bilinmeyen Şantiye';
+            const otherSite = sites.find((s: any) => s.id === existingRecord.siteId)?.name || 'Bilinmeyen Şantiye';
             alert(`Bu araç için ${targetDateStr} tarihinde "${otherSite}" şantiyesinde zaten puantaj girilmiş. Farklı şantiyelerde aynı gün işlem yapılamaz.`);
             return;
         }
@@ -159,7 +159,7 @@ export function VehicleAttendanceList() {
     };
 
     const getStatusForDate = (vid: string, date: Date) => {
-        return vehicleAttendance.find(a => a.vehicleId === vid && a.date === format(date, 'yyyy-MM-dd'));
+        return vehicleAttendance.find((a: any) => a.vehicleId === vid && a.date === format(date, 'yyyy-MM-dd'));
     };
 
     const getStatusBadge = (status: string) => {
@@ -181,7 +181,7 @@ export function VehicleAttendanceList() {
     };
 
     // Filter vehicles by status (Active only) AND Assigned Site
-    const activeVehicles = vehicles.filter(v =>
+    const activeVehicles = vehicles.filter((v: any) =>
         v.status === 'ACTIVE' &&
         (
             (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
@@ -192,10 +192,10 @@ export function VehicleAttendanceList() {
     // Export Logic
     const handleExportExcel = () => {
         if (!selectedSiteId) return;
-        const siteName = sites.find(s => s.id === selectedSiteId)?.name || 'Santiye';
+        const siteName = sites.find((s: any) => s.id === selectedSiteId)?.name || 'Santiye';
         const monthStr = format(selectedDate, 'MMMM yyyy', { locale: tr });
 
-        const data = activeVehicles.map(v => {
+        const data = activeVehicles.map((v: any) => {
             const row: any = {
                 'Plaka': v.plate,
                 'Cinsi': v.definition || v.type
@@ -203,7 +203,7 @@ export function VehicleAttendanceList() {
 
             let totalWorked = 0;
 
-            daysInMonth.forEach(day => {
+            daysInMonth.forEach((day: any) => {
                 const dateStr = format(day, 'dd'); // Column header as day number
                 const record = getStatusForDate(v.id, day);
 
@@ -226,7 +226,7 @@ export function VehicleAttendanceList() {
         });
 
         // Define explicit header order
-        const header = ['Plaka', 'Cinsi', ...daysInMonth.map(d => format(d, 'dd')), 'Toplam'];
+        const header = ['Plaka', 'Cinsi', ...daysInMonth.map((d: any) => format(d, 'dd')), 'Toplam'];
 
         const ws = XLSX.utils.json_to_sheet(data, { header });
         const wb = XLSX.utils.book_new();
@@ -236,7 +236,7 @@ export function VehicleAttendanceList() {
 
     const handleExportPDF = () => {
         if (!selectedSiteId) return;
-        const siteName = sites.find(s => s.id === selectedSiteId)?.name || 'Santiye';
+        const siteName = sites.find((s: any) => s.id === selectedSiteId)?.name || 'Santiye';
         const monthStr = format(selectedDate, 'MMMM yyyy', { locale: tr });
 
         const doc = new jsPDF('l', 'mm', 'a4');
@@ -248,15 +248,15 @@ export function VehicleAttendanceList() {
         doc.setFontSize(14);
         doc.text(`${siteName} - ${monthStr} - Araç Puantajı`, 14, 15);
 
-        const tableColumn = ["Plaka", "Cinsi", ...daysInMonth.map(d => format(d, 'dd')), "Toplam"];
+        const tableColumn = ["Plaka", "Cinsi", ...daysInMonth.map((d: any) => format(d, 'dd')), "Toplam"];
         const tableRows: any[] = [];
 
-        activeVehicles.forEach(v => {
+        activeVehicles.forEach((v: any) => {
             let totalWorked = 0;
             const rowData = [
                 v.plate,
                 v.definition || v.type,
-                ...daysInMonth.map(day => {
+                ...daysInMonth.map((day: any) => {
                     const record = getStatusForDate(v.id, day);
                     if (record && record.siteId === selectedSiteId) {
                         if (record.status === 'WORK') totalWorked += 1;
@@ -411,7 +411,7 @@ export function VehicleAttendanceList() {
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {sites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map(s => (
+                                    {sites.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -443,7 +443,7 @@ export function VehicleAttendanceList() {
                                     <TableRow className="bg-muted/50">
                                         <TableHead className="w-[140px] sticky left-0 z-20 bg-slate-100 font-bold border-r shadow-[1px_0_2px_rgba(0,0,0,0.05)]">Araç / Plaka</TableHead>
                                         {/* Cinsi column merged into Plaka */}
-                                        {daysInMonth.map(day => (
+                                        {daysInMonth.map((day: any) => (
                                             <TableHead key={day.toISOString()} className="p-0 text-center w-8 min-w-[32px] text-[10px] font-medium border-l">
                                                 <div className="flex flex-col items-center justify-center py-1">
                                                     <span>{format(day, 'dd')}</span>
@@ -455,7 +455,7 @@ export function VehicleAttendanceList() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {activeVehicles.map(v => {
+                                    {activeVehicles.map((v: any) => {
                                         let totalWorked = 0;
                                         const typeMap: Record<string, string> = {
                                             CAR: 'Binek Araç',
@@ -477,7 +477,7 @@ export function VehicleAttendanceList() {
                                                 </TableCell>
                                                 {/* Cinsi cell removed */}
 
-                                                {daysInMonth.map(day => {
+                                                {daysInMonth.map((day: any) => {
                                                     const record = getStatusForDate(v.id, day);
                                                     // Only show record if it belongs to selected site or if we decide to show all history? 
                                                     // User requested filtering by site for personnel, assuming same for vehicles.
@@ -498,7 +498,7 @@ export function VehicleAttendanceList() {
 
                                                     // Calculate Fuel for this day
                                                     const dailyFuel = showFuel ? fuelLogs
-                                                        .filter(l => l.vehicleId === v.id && l.date === format(day, 'yyyy-MM-dd'))
+                                                        .filter((l: any) => l.vehicleId === v.id && l.date === format(day, 'yyyy-MM-dd'))
                                                         .reduce((sum, l) => sum + Number(l.liters), 0) : 0;
 
                                                     return (
@@ -614,7 +614,7 @@ export function VehicleAttendanceList() {
                         {(() => {
                             if (!editingCell) return null;
                             const record = getStatusForDate(editingCell.vehicleId, editingCell.date);
-                            const creator = record?.createdByUserId ? useAppStore.getState().users.find(u => u.id === record.createdByUserId) : undefined;
+                            const creator = record?.createdByUserId ? useAppStore.getState().users.find((u: any) => u.id === record.createdByUserId) : undefined;
                             if (creator) {
                                 return (
                                     <div className="text-xs text-muted-foreground">
