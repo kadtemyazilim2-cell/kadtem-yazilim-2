@@ -1341,7 +1341,7 @@ export function PersonnelList() {
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableSites.filter(s => s.status === 'ACTIVE' && s.id !== selectedSiteId).map(s => (
+                                    {availableSites.filter((s: any) => s.status === 'ACTIVE' && s.id !== selectedSiteId).map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
