@@ -53,15 +53,23 @@ export function StoreInitializer({
     }, [companies, sites, vehicles, personnel, users, correspondences, institutions]);
 
     // Sync Auth State separately and reactively
+    // Sync Auth State separately and reactively
     useEffect(() => {
         if (currentUser) {
+            // [SELF-HEALING] Check for stale "fake" admin session
+            if (currentUser.id === 'admin-id') {
+                console.warn("Detected stale admin session. Forcing logout...");
+                // Dynamic import to avoid SSR issues with next-auth/react
+                import('next-auth/react').then(mod => mod.signOut());
+                return;
+            }
+
             useAuth.setState({
                 user: currentUser,
                 isAuthenticated: true
             });
         } else {
             // [CRITICAL FIX] If server says no user, enforce it on client!
-            // This prevents "Zombie Session" where middleware thinks yes, but app has no data.
             useAuth.setState({
                 user: null,
                 isAuthenticated: false
