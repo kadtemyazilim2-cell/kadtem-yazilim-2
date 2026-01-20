@@ -112,6 +112,7 @@ export default function AdminPage() {
         personnel, personnelAttendance, vehicleAttendance, fuelTanks // [FIX] Added missing deps for delete logic
     } = useAppStore();
     const { user } = useAuth();
+    const router = useRouter(); // [NEW] Router for soft refresh
 
     // User Form State
     const [userModalOpen, setUserModalOpen] = useState(false);
@@ -2232,12 +2233,19 @@ export default function AdminPage() {
                                                                         onCheckedChange={async (checked) => {
                                                                             try {
                                                                                 const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
+                                                                                // 1. Optimistic / Local Store Update
+                                                                                updateSite(site.id, { status: newStatus });
+
+                                                                                // 2. Server Action
                                                                                 await updateSiteAction(site.id, { status: newStatus });
-                                                                                // Refresh local state if needed or rely on server action revalidation
-                                                                                window.location.reload(); // Temporary for immediate feedback
+
+                                                                                // 3. Soft Refresh (Keeps tab state)
+                                                                                router.refresh();
                                                                             } catch (error) {
                                                                                 console.error('Status update failed', error);
                                                                                 alert('Durum güncellenemedi');
+                                                                                // Revert on error if needed, but strict consistency ensures next refresh fixes it
+                                                                                window.location.reload();
                                                                             }
                                                                         }}
                                                                         className="scale-75"
