@@ -47,7 +47,7 @@ export function FuelConsumptionReport() {
             if (id.includes('_OUT') || id.includes('_IN')) {
                 const realId = id.split('_')[0];
                 deleteFuelTransfer(realId);
-            } else if (fuelTransfers.some(t => t.id === id || 'PUR_' + t.id === id)) {
+            } else if (fuelTransfers.some((t: any) => t.id === id || 'PUR_' + t.id === id)) {
                 // Check if it matches a Transfer directly or via prefix (Purchase might keep ID or Prefix)
                 // In mapping: Purchase ID = t.id.
                 // So if it exists in transfers, delete it.
@@ -78,14 +78,14 @@ export function FuelConsumptionReport() {
         }
 
         if (isTransfer) {
-            const transfer = fuelTransfers.find(t => t.id === realId);
+            const transfer = fuelTransfers.find((t: any) => t.id === realId);
             if (!transfer) return alert('Kayıt bulunamadı.');
             setEditingLog({ ...transfer, recordType: 'TRANSFER' } as any);
             setEditForm({
                 date: transfer.date,
                 liters: transfer.amount,
                 mileage: 0, // Not used
-                siteId: transfer.toType === 'TANK' ? (fuelTanks.find(t => t.id === transfer.toId)?.siteId) : undefined
+                siteId: transfer.toType === 'TANK' ? (fuelTanks.find((t: any) => t.id === transfer.toId)?.siteId) : undefined
             });
         } else {
             // Fuel Log
@@ -145,11 +145,11 @@ export function FuelConsumptionReport() {
         Object.keys(vehicleLogs).forEach(vehicleId => {
             processedVehicles.add(vehicleId);
             const logs = vehicleLogs[vehicleId];
-            const vehicle = vehicles.find(v => v.id === vehicleId);
+            const vehicle = vehicles.find((v: any) => v.id === vehicleId);
             if (!vehicle) return;
 
             // Calculate consumption stats
-            const rangeLiters = logs.length > 1 ? logs.reduce((acc, l) => acc + l.liters, 0) - logs[logs.length - 1].liters : 0;
+            const rangeLiters = logs.length > 1 ? logs.reduce((acc: any, l: any) => acc + l.liters, 0) - logs[logs.length - 1].liters : 0;
             const rangeDist = logs.length > 1 ? logs[0].mileage - logs[logs.length - 1].mileage : 0;
             const lifetimeAvg = rangeDist > 0 ? (vehicle.meterType === 'HOURS' ? (rangeLiters / rangeDist) : (rangeLiters / rangeDist) * 100) : 0;
 
@@ -158,7 +158,7 @@ export function FuelConsumptionReport() {
                 let consumption = 0;
                 let prevLog = null;
 
-                const originalIndex = logs.findIndex(l => l.id === log.id);
+                const originalIndex = logs.findIndex((l: any) => l.id === log.id);
                 if (originalIndex < logs.length - 1) {
                     prevLog = logs[originalIndex + 1];
                 }
@@ -198,13 +198,13 @@ export function FuelConsumptionReport() {
             // Helpers to resolve Names and SiteIDs
             const resolveEntity = (type: string, id: string) => {
                 if (type === 'TANK') {
-                    const tank = fuelTanks.find(x => x.id === id);
-                    const site = sites.find(s => s.id === tank?.siteId);
+                    const tank = fuelTanks.find((x: any) => x.id === id);
+                    const site = sites.find((s: any) => s.id === tank?.siteId);
                     return { name: site?.name || tank?.name || 'Depo', siteId: tank?.siteId, isTank: true };
                 }
                 if (type === 'VEHICLE') {
-                    const v = vehicles.find(x => x.id === id);
-                    const site = sites.find(s => s.id === v?.assignedSiteId);
+                    const v = vehicles.find((x: any) => x.id === id);
+                    const site = sites.find((s: any) => s.id === v?.assignedSiteId);
                     return { name: v?.plate || 'Araç', siteId: v?.assignedSiteId, isTank: false };
                 }
                 if (type === 'EXTERNAL') {
@@ -301,10 +301,10 @@ export function FuelConsumptionReport() {
 
         // A. Entity Filters
         if (plateFilter.length > 0) {
-            processedData = processedData.filter(item => plateFilter.includes(item.vehicle.plate));
+            processedData = processedData.filter((item: any) => plateFilter.includes(item.vehicle.plate));
         }
         if (siteFilter.length > 0) {
-            processedData = processedData.filter(item => item.siteId && siteFilter.includes(item.siteId));
+            processedData = processedData.filter((item: any) => item.siteId && siteFilter.includes(item.siteId));
         }
 
         // B. Calculate Previous Balance (Devreden)
@@ -323,23 +323,23 @@ export function FuelConsumptionReport() {
 
         if (dateRange.start) {
             startDateObj = startOfDay(parseISO(dateRange.start));
-            const preItems = processedData.filter(item => parseISO(item.date) < startDateObj!);
-            preItems.forEach(item => {
+            const preItems = processedData.filter((item: any) => parseISO(item.date) < startDateObj!);
+            preItems.forEach((item: any) => {
                 previousTotal += calculateStockVal(item);
             });
-            processedData = processedData.filter(item => parseISO(item.date) >= startDateObj!);
+            processedData = processedData.filter((item: any) => parseISO(item.date) >= startDateObj!);
         }
 
         // C. Apply End Date Filter
         if (dateRange.end) {
             const endDateObj = endOfDay(parseISO(dateRange.end));
-            processedData = processedData.filter(item => parseISO(item.date) <= endDateObj);
+            processedData = processedData.filter((item: any) => parseISO(item.date) <= endDateObj);
         }
 
         // D. Apply Search Filter
         if (searchTerm) {
             const lowerSearch = normalizeSearchText(searchTerm);
-            processedData = processedData.filter(item => {
+            processedData = processedData.filter((item: any) => {
                 const plate = normalizeSearchText(item.vehicle.plate);
                 const type = normalizeSearchText(item.vehicle.type);
                 const brand = normalizeSearchText(item.vehicle.brand || '');
@@ -348,13 +348,13 @@ export function FuelConsumptionReport() {
         }
 
         // E. Calculate Schedule (Running Total)
-        processedData.sort((a, b) => {
+        processedData.sort((a: any, b: any) => {
             const d = new Date(a.date).getTime() - new Date(b.date).getTime();
             return d !== 0 ? d : a.id.localeCompare(b.id);
         });
 
         let runningTotal = previousTotal;
-        processedData.forEach(item => {
+        processedData.forEach((item: any) => {
             runningTotal += calculateStockVal(item);
             item.cumulativeTotal = runningTotal;
         });
@@ -541,7 +541,7 @@ export function FuelConsumptionReport() {
                                     {row.cumulativeTotal?.toLocaleString()} Lt
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
-                                    {row.sourceName || (users.find(u => u.id === row.filledByUserId)?.name || '-')}
+                                    {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
                                 </TableCell>
                                 <TableCell>
                                     {canEditFuel && row.recordType !== 'BALANCE_START' && (
