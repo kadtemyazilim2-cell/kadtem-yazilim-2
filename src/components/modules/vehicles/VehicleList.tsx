@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X } from 'lucide-react';
 import { InsurancePolicyDialog } from './InsurancePolicyDialog';
 import { InsuranceRenewalDialog } from './InsuranceRenewalDialog';
@@ -43,6 +42,7 @@ export function VehicleList() {
 
     // General Search State
     const [searchTerm, setSearchTerm] = useState('');
+    const [showFilters, setShowFilters] = useState(false); // [NEW] Collapsible filter state
 
     // Permission Check
     // 1. Finance (Mali/Kiralama)
@@ -524,114 +524,113 @@ export function VehicleList() {
                                 />
                             </div>
 
-                            {/* Filter Sheet Trigger */}
-                            <Sheet>
-                                <SheetTrigger asChild>
-                                    <Button variant="outline" className="relative gap-2">
-                                        <ListFilter className="w-4 h-4" />
-                                        <span className="hidden md:inline">Filtrele</span>
-                                        {Object.values(filters).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0) > 0 && (
-                                            <Badge variant="secondary" className="px-1.5 h-5 min-w-5 flex items-center justify-center ml-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
-                                                {Object.values(filters).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0)}
-                                            </Badge>
-                                        )}
-                                    </Button>
-                                </SheetTrigger>
-                                <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-                                    <SheetHeader>
-                                        <SheetTitle>Filtreleme Seçenekleri</SheetTitle>
-                                        <SheetDescription>
-                                            Listeyi daraltmak için aşağıdaki kriterleri kullanın.
-                                        </SheetDescription>
-                                    </SheetHeader>
-                                    <div className="grid grid-cols-1 gap-4 mt-6">
-                                        <div className="space-y-2">
-                                            <Label>Firma</Label>
-                                            <MultiSelect
-                                                options={uniqueCompanyNames.map((c: any) => ({ label: c, value: c }))}
-                                                selected={filters.company}
-                                                onChange={(val: string[]) => setFilters({ ...filters, company: val })}
-                                                placeholder="Tümü"
-                                                searchPlaceholder="Ara..."
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Mülkiyet</Label>
-                                            <MultiSelect
-                                                options={[{ label: 'Öz Mal', value: 'OWNED' }, { label: 'Kiralık', value: 'RENTAL' }]}
-                                                selected={filters.ownership}
-                                                onChange={(val: string[]) => setFilters({ ...filters, ownership: val })}
-                                                placeholder="Tümü"
-                                                vertical
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Plaka</Label>
-                                            <MultiSelect
-                                                options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
-                                                selected={filters.plate}
-                                                onChange={(val: string[]) => setFilters({ ...filters, plate: val })}
-                                                placeholder="Tümü"
-                                                searchPlaceholder="Ara..."
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Marka</Label>
-                                            <MultiSelect
-                                                options={uniqueBrands.map((b: any) => ({ label: b, value: b }))}
-                                                selected={filters.brand}
-                                                onChange={(val: string[]) => setFilters({ ...filters, brand: val })}
-                                                placeholder="Tümü"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Model</Label>
-                                            <MultiSelect
-                                                options={uniqueModels.map((m: any) => ({ label: m, value: m }))}
-                                                selected={filters.model}
-                                                onChange={(val: string[]) => setFilters({ ...filters, model: val })}
-                                                placeholder="Tümü"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Model Yılı</Label>
-                                            <MultiSelect
-                                                options={uniqueYears.map((y: any) => ({ label: y.toString(), value: y.toString() }))}
-                                                selected={filters.year}
-                                                onChange={(val: string[]) => setFilters({ ...filters, year: val })}
-                                                placeholder="Tümü"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Tip</Label>
-                                            <MultiSelect
-                                                options={uniqueTypes.map((t: any) => ({ label: typeMap[t] || t, value: t }))}
-                                                selected={filters.type}
-                                                onChange={(val: string[]) => setFilters({ ...filters, type: val })}
-                                                placeholder="Tümü"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Durum</Label>
-                                            <MultiSelect
-                                                options={[{ label: 'Aktif', value: 'ACTIVE' }, { label: 'Bakımda', value: 'MAINTENANCE' }, { label: 'Pasif', value: 'PASSIVE' }]}
-                                                selected={filters.status}
-                                                onChange={(val: string[]) => setFilters({ ...filters, status: val })}
-                                                placeholder="Tümü"
-                                            />
-                                        </div>
-                                        <Button
-                                            variant="secondary"
-                                            onClick={() => setFilters({ ...filters, company: [], ownership: ['OWNED'], plate: [], brand: [], model: [], year: [], type: [], status: ['ACTIVE'], insuranceAgency: [], kaskoAgency: [], insuranceCompany: [], kaskoCompany: [], definition: [], policyType: [], policyProvider: [], policyAgency: [], policyYear: [], policyPlate: [], policyOwner: [] })}
-                                            className="w-full mt-4"
-                                        >
-                                            Filtreleri Temizle
-                                        </Button>
-                                    </div>
-                                </SheetContent>
-                            </Sheet>
+                            {/* Filter Toggle Button */}
+                            <Button
+                                variant={showFilters ? "default" : "outline"}
+                                className="relative gap-2"
+                                onClick={() => setShowFilters(!showFilters)}
+                            >
+                                <ListFilter className="w-4 h-4" />
+                                <span className="hidden md:inline">{showFilters ? "Filtreleri Gizle" : "Filtrele"}</span>
+                                {!showFilters && Object.values(filters).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0) > 0 && (
+                                    <Badge variant="secondary" className="px-1.5 h-5 min-w-5 flex items-center justify-center ml-1 bg-blue-100 text-blue-700 hover:bg-blue-100">
+                                        {Object.values(filters).reduce((acc, curr) => acc + (curr ? curr.length : 0), 0)}
+                                    </Badge>
+                                )}
+                            </Button>
                         </div>
                     </div>
+
+                    {/* Inline Collapsible Filters */}
+                    {showFilters && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4 p-4 bg-muted/20 rounded-lg animate-in slide-in-from-top-2 duration-200">
+                            <div className="space-y-2">
+                                <Label>Firma</Label>
+                                <MultiSelect
+                                    options={uniqueCompanyNames.map((c: any) => ({ label: c, value: c }))}
+                                    selected={filters.company}
+                                    onChange={(val: string[]) => setFilters({ ...filters, company: val })}
+                                    placeholder="Tümü"
+                                    searchPlaceholder="Ara..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Mülkiyet</Label>
+                                <MultiSelect
+                                    options={[{ label: 'Öz Mal', value: 'OWNED' }, { label: 'Kiralık', value: 'RENTAL' }]}
+                                    selected={filters.ownership}
+                                    onChange={(val: string[]) => setFilters({ ...filters, ownership: val })}
+                                    placeholder="Tümü"
+                                    vertical
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Plaka</Label>
+                                <MultiSelect
+                                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
+                                    selected={filters.plate}
+                                    onChange={(val: string[]) => setFilters({ ...filters, plate: val })}
+                                    placeholder="Tümü"
+                                    searchPlaceholder="Ara..."
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Marka</Label>
+                                <MultiSelect
+                                    options={uniqueBrands.map((b: any) => ({ label: b, value: b }))}
+                                    selected={filters.brand}
+                                    onChange={(val: string[]) => setFilters({ ...filters, brand: val })}
+                                    placeholder="Tümü"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Model</Label>
+                                <MultiSelect
+                                    options={uniqueModels.map((m: any) => ({ label: m, value: m }))}
+                                    selected={filters.model}
+                                    onChange={(val: string[]) => setFilters({ ...filters, model: val })}
+                                    placeholder="Tümü"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Model Yılı</Label>
+                                <MultiSelect
+                                    options={uniqueYears.map((y: any) => ({ label: y.toString(), value: y.toString() }))}
+                                    selected={filters.year}
+                                    onChange={(val: string[]) => setFilters({ ...filters, year: val })}
+                                    placeholder="Tümü"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Tip</Label>
+                                <MultiSelect
+                                    options={uniqueTypes.map((t: any) => ({ label: typeMap[t] || t, value: t }))}
+                                    selected={filters.type}
+                                    onChange={(val: string[]) => setFilters({ ...filters, type: val })}
+                                    placeholder="Tümü"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Durum</Label>
+                                <MultiSelect
+                                    options={[{ label: 'Aktif', value: 'ACTIVE' }, { label: 'Bakımda', value: 'MAINTENANCE' }, { label: 'Pasif', value: 'PASSIVE' }]}
+                                    selected={filters.status}
+                                    onChange={(val: string[]) => setFilters({ ...filters, status: val })}
+                                    placeholder="Tümü"
+                                />
+                            </div>
+                            <div className="flex items-end">
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setFilters({ ...filters, company: [], ownership: ['OWNED'], plate: [], brand: [], model: [], year: [], type: [], status: ['ACTIVE'], insuranceAgency: [], kaskoAgency: [], insuranceCompany: [], kaskoCompany: [], definition: [], policyType: [], policyProvider: [], policyAgency: [], policyYear: [], policyPlate: [], policyOwner: [] })}
+                                    className="w-full"
+                                >
+                                    Filtreleri Temizle
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
 
                     <TabsList className="grid w-full grid-cols-4 lg:w-[550px]">
                         <TabsTrigger value="list">Araç Listesi</TabsTrigger>
