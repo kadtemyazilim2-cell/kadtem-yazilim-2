@@ -206,10 +206,10 @@ export default function AdminPage() {
             return val ? String(val) : 'Boş';
         });
         // Filter out duplicates and sort
-        return Array.from(new Set(values)).sort((a, b) => {
+        return Array.from(new Set(values)).sort((a: any, b: any) => {
             if (a === 'Boş') return -1; // Put 'Boş' at the top
             if (b === 'Boş') return 1;
-            return a.localeCompare(b);
+            return String(a).localeCompare(String(b));
         });
     };
 
