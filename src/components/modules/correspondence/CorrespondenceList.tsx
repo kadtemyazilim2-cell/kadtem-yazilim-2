@@ -125,7 +125,7 @@ export function CorrespondenceList() {
         if (itemId) {
             setSelectedRegId(itemId);
             // Pre-fill if editing existing
-            const item = activeCorrespondences.find(c => c.id === itemId);
+            const item = activeCorrespondences.find((c: any) => c.id === itemId);
             if (item && item.registrationNumber) {
                 setEditRegs(prev => ({ ...prev, [itemId]: item.registrationNumber || '' }));
             }
@@ -165,7 +165,7 @@ export function CorrespondenceList() {
     // const [editInstCategory, setEditInstCategory] = useState<'BANK' | 'INSTITUTION'>('INSTITUTION'); // Already declared above
     // const [isAddressModalOpen, setIsAddressModalOpen] = useState(false); // Already declared above
 
-    const getCompanyName = (id: string) => companies.find(c => c.id === id)?.name || '-';
+    const getCompanyName = (id: string) => companies.find((c: any) => c.id === id)?.name || '-';
 
     const openAddressModal = (item?: any) => {
         if (item) {
@@ -181,7 +181,7 @@ export function CorrespondenceList() {
         }
         setIsAddressModalOpen(true);
     };
-    const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'Bilinmeyen';
+    const getUserName = (id: string) => users.find((u: any) => u.id === id)?.name || 'Bilinmeyen';
 
     const handleSaveAddress = () => {
         if (!editInstName.trim()) return;
@@ -201,14 +201,14 @@ export function CorrespondenceList() {
 
     // Extract Unique Values for Dropdowns
     // We only care about active correspondences to avoid cluttering filters with deleted items' data
-    const baseList = correspondences.filter(c => c.status !== 'DELETED');
+    const baseList = correspondences.filter((c: any) => c.status !== 'DELETED');
 
-    const uniqueCompanyIds = Array.from(new Set(baseList.map(c => c.companyId)));
-    const uniqueCreatorIds = Array.from(new Set(baseList.map(c => c.createdByUserId)));
-    const uniqueSenderReceivers = Array.from(new Set(baseList.map(c => c.senderReceiver).filter(Boolean))).sort();
+    const uniqueCompanyIds = Array.from(new Set(baseList.map((c: any) => c.companyId)));
+    const uniqueCreatorIds = Array.from(new Set(baseList.map((c: any) => c.createdByUserId)));
+    const uniqueSenderReceivers = Array.from(new Set(baseList.map((c: any) => c.senderReceiver).filter(Boolean))).sort();
 
     const activeCorrespondences = baseList
-        .filter(c => {
+        .filter((c: any) => {
             // 1. Search Term (Fuzzy)
             if (searchTerm) {
                 const lowerSearch = normalizeSearchText(searchTerm);
