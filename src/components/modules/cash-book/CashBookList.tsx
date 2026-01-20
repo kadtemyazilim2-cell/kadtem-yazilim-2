@@ -507,7 +507,7 @@ export function CashBookList() {
 
     const handleDelete = (id: string) => {
         // [NEW] Find transaction to check date
-        const transaction = cashTransactions.find(t => t.id === id);
+        const transaction = cashTransactions.find((t: any) => t.id === id);
         if (!transaction) return;
 
         // [NEW] Date Restriction Check
