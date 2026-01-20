@@ -189,7 +189,6 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         }
 
         const payload = {
-            ...formData,
             siteId: formData.siteId === 'none' ? undefined : formData.siteId, // Handle "No Selection"
             direction: formData.direction as 'INCOMING' | 'OUTGOING',
             type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
@@ -250,7 +249,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     // execCmd moved to SimpleRichTextEditor
 
-    const dropdownOptions = institutions.filter(inst => {
+    const dropdownOptions = institutions.filter((inst: any) => {
         if (initialType === 'BANK') return inst.category === 'BANK' || !inst.category;
         // If 'OFFICIAL' or others, show non-banks
         return inst.category !== 'BANK';
@@ -304,7 +303,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                             </span>
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {companies.map(c => (
+                                            {companies.map((c: any) => (
                                                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -325,7 +324,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">Seçim Yok</SelectItem>
-                                            {sites.filter(s => s.status === 'ACTIVE').map(s => (
+                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -385,7 +384,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         if (v === 'NEW') {
                                             setIsAddInstOpen(true);
                                         } else {
-                                            const inst = institutions.find(i => i.name === v);
+                                            const inst = institutions.find((i: any) => i.name === v);
                                             setFormData({
                                                 ...formData,
                                                 senderReceiver: v,
