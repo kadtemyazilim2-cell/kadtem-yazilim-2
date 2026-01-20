@@ -9,7 +9,11 @@ export async function authenticate(
 ) {
     try {
         console.log("Authentication started for user:", formData.get('username'));
-        await signIn('credentials', formData);
+        await signIn('credentials', {
+            username: formData.get('username'),
+            password: formData.get('password'),
+            redirectTo: '/dashboard'
+        });
         console.log("Authentication successful, redirecting...");
     } catch (error) {
         console.error("Authentication error:", error);

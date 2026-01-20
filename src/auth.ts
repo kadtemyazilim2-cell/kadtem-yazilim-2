@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { z } from "zod";
 import { authConfig } from "./auth.config";
 
+console.log("AUTH_SECRET exists:", !!process.env.AUTH_SECRET);
+
 async function getUser(username: string) {
     try {
         console.log("Prisma: Finding user...", username);
