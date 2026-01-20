@@ -67,8 +67,8 @@ export function CashBookList() {
         setQuickYear(year);
     };
 
-    const getSiteName = (id: string) => sites.find(s => s.id === id)?.name || '-';
-    const getUserName = (id?: string) => users.find(u => u.id === id)?.name || '-';
+    const getSiteName = (id: string) => sites.find((s: any) => s.id === id)?.name || '-';
+    const getUserName = (id?: string) => users.find((u: any) => u.id === id)?.name || '-';
 
     // Permission check for Reports & Date Filtering
     const canExport = user?.role === 'ADMIN' || user?.permissions?.['cash-book.reports']?.includes('VIEW') || user?.permissions?.['cash-book.reports']?.includes('EDIT');
@@ -205,7 +205,7 @@ export function CashBookList() {
         const balances: Record<string, { name: string; income: number; expense: number; previousBalance: number }> = {};
 
         // Initialize with active sites
-        sites.forEach(s => {
+        sites.forEach((s: any) => {
             balances[s.id] = { name: s.name, income: 0, expense: 0, previousBalance: 0 };
         });
 
@@ -572,7 +572,7 @@ export function CashBookList() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Tüm Şantiyeler</SelectItem>
-                                    {sites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map(s => (
+                                    {sites.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -588,7 +588,7 @@ export function CashBookList() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tüm Personel</SelectItem>
-                                        {users.map(u => (
+                                        {users.map((u: any) => (
                                             <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                         ))}
                                     </SelectContent>
