@@ -17,7 +17,7 @@ export default function SiteOperatorPage() {
     const { user, logout } = useAuth();
     const router = useRouter();
 
-    const [selectedSiteId, setSelectedSiteId] = useState(user?.assignedSiteIds?.[0] || sites[0].id);
+    const [selectedSiteId, setSelectedSiteId] = useState(user?.assignedSiteIds?.[0] || sites?.[0]?.id || '');
     const [view, setView] = useState<'MENU' | 'DISPENSE' | 'FILL_TANK'>('MENU');
 
     // Dispense Form State
