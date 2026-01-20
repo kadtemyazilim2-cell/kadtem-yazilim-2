@@ -185,6 +185,7 @@ model Vehicle {
   kaskoExpiry     DateTime?
   kaskoStartDate  DateTime?
   inspectionExpiry DateTime?
+  lastInspectionDate DateTime?
   
   insuranceAgency String?
   insuranceCompany String?
