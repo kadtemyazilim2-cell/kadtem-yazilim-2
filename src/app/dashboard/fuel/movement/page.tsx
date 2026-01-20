@@ -33,7 +33,7 @@ export default function FuelMovementPage() {
     }, [availableSites, selectedDispenseSiteId]);
 
     // Filter Tanks based on selected site for Dispense (Yakıt Verme)
-    const dispenseTanks = fuelTanks.filter(t => t.siteId === selectedDispenseSiteId);
+    const dispenseTanks = fuelTanks.filter((t: any) => t.siteId === selectedDispenseSiteId);
 
     // Auto-select tank if only one in selected site
     useEffect(() => {
@@ -103,7 +103,7 @@ export default function FuelMovementPage() {
             return;
         }
 
-        const sourceTank = fuelTanks.find(t => t.id === transferData.fromId);
+        const sourceTank = fuelTanks.find((t: any) => t.id === transferData.fromId);
         if (!sourceTank) {
             toast.error('Kaynak depo bulunamadı.');
             return;
@@ -168,7 +168,7 @@ export default function FuelMovementPage() {
             return;
         }
 
-        const sourceTank = fuelTanks.find(t => t.id === dispenseData.tankId);
+        const sourceTank = fuelTanks.find((t: any) => t.id === dispenseData.tankId);
         if (!sourceTank) {
             toast.error('Kaynak depo bulunamadı.');
             return;
@@ -241,7 +241,7 @@ export default function FuelMovementPage() {
                                         >
                                             <SelectTrigger><SelectValue placeholder="Şantiye Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {availableSites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                {availableSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -255,7 +255,7 @@ export default function FuelMovementPage() {
                                         >
                                             <SelectTrigger><SelectValue placeholder={!selectedDispenseSiteId ? "Önce Şantiye Seçiniz" : "Depo Seçiniz"} /></SelectTrigger>
                                             <SelectContent>
-                                                {dispenseTanks.map(t => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
+                                                {dispenseTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -265,7 +265,7 @@ export default function FuelMovementPage() {
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
                                                 {vehicles
-                                                    .filter(v =>
+                                                    .filter((v: any) =>
                                                         v.status === 'ACTIVE' &&
                                                         // Optional: Filter vehicle by site too? 
                                                         // User request was specific about "Depo" (Tank). But usually vehicles are also site specific.
@@ -278,7 +278,7 @@ export default function FuelMovementPage() {
                                                         // Let's stick to showing active vehicles for now, maybe filtered by availableSites logic (global check).
                                                         true
                                                     )
-                                                    .map(v => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand}</SelectItem>)}
+                                                    .map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -355,7 +355,7 @@ export default function FuelMovementPage() {
                                         >
                                             <SelectTrigger><SelectValue placeholder="Şantiye Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {availableSites.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                {availableSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -369,7 +369,7 @@ export default function FuelMovementPage() {
                                         >
                                             <SelectTrigger><SelectValue placeholder={!selectedDispenseSiteId ? "Önce Şantiye Seçiniz" : "Seçiniz"} /></SelectTrigger>
                                             <SelectContent>
-                                                {dispenseTanks.map(t => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
+                                                {dispenseTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -393,14 +393,14 @@ export default function FuelMovementPage() {
                                             <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {accessibleTanks.filter(t => t.id !== transferData.fromId).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                                    {accessibleTanks.filter((t: any) => t.id !== transferData.fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         ) : (
                                             <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Araç Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {vehicles.filter(v => v.status === 'ACTIVE').map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                                                    {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         )}
@@ -462,14 +462,14 @@ export default function FuelMovementPage() {
                                             <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {accessibleTanks.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                                    {accessibleTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         ) : (
                                             <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {vehicles.filter(v => v.status === 'ACTIVE').map(v => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                                                    {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         )}
