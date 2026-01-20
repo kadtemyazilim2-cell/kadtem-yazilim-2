@@ -7,16 +7,25 @@ import { authConfig } from "./auth.config";
 async function getUser(username: string) {
     try {
         console.log("Prisma: Finding user...", username);
-        const user = await prisma.user.findUnique({
-            where: { username },
-        });
+        console.log("DB URL exists:", !!process.env.POSTGRES_PRISMA_URL);
+
+        // Timeout after 5 seconds
+        const user = await Promise.race([
+            prisma.user.findUnique({
+                where: { username },
+            }),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('DB Timeout (5s)')), 5000)
+            )
+        ]) as any;
+
         console.log("Prisma: User found (or null).");
         return user;
     } catch (error) {
         // [DEBUG] Log error for Vercel logs
         console.error("DB Error in getUser:", error);
         // Throw simple string that NextAuth can display or ignore
-        throw new Error("Veritabanına bağlanılamadı. Ayarları kontrol edin.");
+        throw new Error("Veritabanına bağlanılamadı. (Zaman Aşımı/Hata)");
     }
 }
 
