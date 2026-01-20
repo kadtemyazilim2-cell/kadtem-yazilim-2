@@ -24,8 +24,8 @@ export function InsuranceRenewalDialog({ vehicle, open, onOpenChange, mode = 'RE
 
 
 
-    const companies = institutions.filter(i => i.category === 'INSURANCE_COMPANY');
-    const agencies = institutions.filter(i => i.category === 'INSURANCE_AGENCY');
+    const companies = institutions.filter((i: any) => i.category === 'INSURANCE_COMPANY');
+    const agencies = institutions.filter((i: any) => i.category === 'INSURANCE_AGENCY');
 
     const [formData, setFormData] = useState({
         insuranceExpiry: '',
@@ -179,7 +179,7 @@ export function InsuranceRenewalDialog({ vehicle, open, onOpenChange, mode = 'RE
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {companies.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                        {companies.map((c: any) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -193,7 +193,7 @@ export function InsuranceRenewalDialog({ vehicle, open, onOpenChange, mode = 'RE
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {agencies.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
+                                        {agencies.map((a: any) => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -241,7 +241,7 @@ export function InsuranceRenewalDialog({ vehicle, open, onOpenChange, mode = 'RE
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {companies.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                                        {companies.map((c: any) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -255,7 +255,7 @@ export function InsuranceRenewalDialog({ vehicle, open, onOpenChange, mode = 'RE
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {agencies.map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
+                                        {agencies.map((a: any) => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>

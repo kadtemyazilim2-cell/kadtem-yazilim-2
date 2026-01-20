@@ -339,7 +339,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {companies.map(c => (
+                                        {companies.map((c: any) => (
                                             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -441,7 +441,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                     <SelectValue placeholder="Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[200px]">
-                                    {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() + 1 - i).map(y => (
+                                    {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() + 1 - i).map((y: any) => (
                                         <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -494,7 +494,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                         <SelectValue placeholder="Şantiye Seçiniz (Opsiyonel)" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.filter(s => s.status === 'ACTIVE').map(s => (
+                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>

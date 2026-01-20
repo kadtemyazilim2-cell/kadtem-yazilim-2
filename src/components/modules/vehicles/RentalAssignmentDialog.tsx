@@ -22,9 +22,9 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Filter for OWNED vehicles only
-    const ownedVehicles = vehicles.filter(v => v.ownership === 'OWNED');
+    const ownedVehicles = vehicles.filter((v: any) => v.ownership === 'OWNED');
 
-    const filteredVehicles = ownedVehicles.filter(v => {
+    const filteredVehicles = ownedVehicles.filter((v: any) => {
         if (!searchTerm) return true;
         const search = normalizeSearchText(searchTerm);
         return (
@@ -42,7 +42,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedIds(filteredVehicles.map(v => v.id));
+            setSelectedIds(filteredVehicles.map((v: any) => v.id));
         } else {
             setSelectedIds([]);
         }
@@ -55,7 +55,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
             return;
         }
 
-        selectedIds.forEach(id => {
+        selectedIds.forEach((id: any) => {
             updateVehicle(id, {
                 companyId: targetCompanyId, // [NEW] Update owner to the rental company
                 ownership: 'RENTAL',
@@ -95,7 +95,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                             onChange={(e) => setTargetCompanyId(e.target.value)}
                         >
                             <option value="">Firma Seçiniz...</option>
-                            {companies.map(c => (
+                            {companies.map((c: any) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
@@ -123,7 +123,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                         </div>
                     ) : (
                         <div className="divide-y">
-                            {filteredVehicles.map(vehicle => (
+                            {filteredVehicles.map((vehicle: any) => (
                                 <div key={vehicle.id} className="flex items-center space-x-3 p-3 hover:bg-slate-50">
                                     <Checkbox
                                         id={vehicle.id}
@@ -136,7 +136,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                                     >
                                         <div className="font-bold">{vehicle.plate}</div>
                                         <div className="text-muted-foreground text-xs">
-                                            {companies.find(c => c.id === vehicle.companyId)?.name} • {vehicle.brand} {vehicle.model}
+                                            {companies.find((c: any) => c.id === vehicle.companyId)?.name} • {vehicle.brand} {vehicle.model}
                                         </div>
                                     </label>
                                 </div>

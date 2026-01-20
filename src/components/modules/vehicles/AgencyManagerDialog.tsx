@@ -24,7 +24,7 @@ export function AgencyManagerDialog({
     const { institutions, addInstitution, deleteInstitution } = useAppStore()
     const [newAgencyName, setNewAgencyName] = useState("")
 
-    const agencies = institutions.filter((i) => i.category === "INSURANCE_AGENCY")
+    const agencies = institutions.filter((i: any) => i.category === "INSURANCE_AGENCY")
 
     const handleAdd = () => {
         if (!newAgencyName.trim()) return
@@ -79,7 +79,7 @@ export function AgencyManagerDialog({
                                 Henüz eklenmiş acente yok.
                             </div>
                         ) : (
-                            agencies.map((agency) => (
+                            agencies.map((agency: any) => (
                                 <div
                                     key={agency.id}
                                     className="flex items-center justify-between p-3 hover:bg-muted/50"
