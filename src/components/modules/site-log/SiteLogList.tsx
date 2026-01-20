@@ -126,7 +126,7 @@ export function SiteLogList() {
         }
     };
 
-    const getSiteName = (id: string) => sites.find(s => s.id === id)?.name || '-';
+    const getSiteName = (id: string) => sites.find((s: any) => s.id === id)?.name || '-';
 
     const handleDownloadPDF = async (entry: any, isPreview: boolean = false) => {
         try {
