@@ -124,14 +124,14 @@ export function FuelConsumptionReport() {
     // Group logs by vehicle
     const vehicleLogs = useMemo(() => {
         const grouped: Record<string, typeof fuelLogs> = {};
-        fuelLogs.forEach(log => {
+        fuelLogs.forEach((log: any) => {
             if (!grouped[log.vehicleId]) grouped[log.vehicleId] = [];
             grouped[log.vehicleId].push(log);
         });
 
         // Sort each group by mileage/date desc
         Object.keys(grouped).forEach(k => {
-            grouped[k].sort((a, b) => b.mileage - a.mileage);
+            grouped[k].sort((a: any, b: any) => b.mileage - a.mileage);
         });
 
         return grouped;
@@ -153,7 +153,7 @@ export function FuelConsumptionReport() {
             const rangeDist = logs.length > 1 ? logs[0].mileage - logs[logs.length - 1].mileage : 0;
             const lifetimeAvg = rangeDist > 0 ? (vehicle.meterType === 'HOURS' ? (rangeLiters / rangeDist) : (rangeLiters / rangeDist) * 100) : 0;
 
-            logs.forEach((log, index) => {
+            logs.forEach((log: any, index: any) => {
                 let diffKm = 0;
                 let consumption = 0;
                 let prevLog = null;
@@ -194,7 +194,7 @@ export function FuelConsumptionReport() {
 
         // 2 & 3. Process Transfers (Uniform Logic for VIRMAN & PURCHASE)
         const allTransfers = fuelTransfers || [];
-        allTransfers.forEach(t => {
+        allTransfers.forEach((t: any) => {
             // Helpers to resolve Names and SiteIDs
             const resolveEntity = (type: string, id: string) => {
                 if (type === 'TANK') {
@@ -381,8 +381,8 @@ export function FuelConsumptionReport() {
 
     }, [vehicleLogs, vehicles, plateFilter, siteFilter, dateRange, searchTerm, sites, fuelTransfers, fuelTanks]);
 
-    const uniquePlates = Array.from(new Set(vehicles.map(v => v.plate))).sort();
-    const uniqueSites = Array.from(new Set(sites.map(s => s.name))).sort();
+    const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
+    const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
 
     const renderFilters = () => (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
@@ -400,7 +400,7 @@ export function FuelConsumptionReport() {
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Plaka</Label>
                 <MultiSelect
-                    options={uniquePlates.map(p => ({ label: p, value: p }))}
+                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
                     selected={plateFilter}
                     onChange={setPlateFilter}
                     placeholder="Tümü"
@@ -413,7 +413,7 @@ export function FuelConsumptionReport() {
             <div className="flex flex-col gap-1">
                 <Label className="text-xs">Şantiye</Label>
                 <MultiSelect
-                    options={sites.filter(s => s.status === 'ACTIVE').map(s => ({ label: s.name, value: s.id }))}
+                    options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
                     selected={siteFilter}
                     onChange={setSiteFilter}
                     placeholder="Tümü"
@@ -594,7 +594,7 @@ export function FuelConsumptionReport() {
                                             <SelectValue placeholder="Seçiniz" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {sites.filter(s => s.status === 'ACTIVE').map(s => (
+                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                             ))}
                                         </SelectContent>
