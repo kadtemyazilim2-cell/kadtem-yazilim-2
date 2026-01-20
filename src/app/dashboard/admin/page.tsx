@@ -1408,7 +1408,7 @@ export default function AdminPage() {
                                         )}
                                         {Array.from(new Set(yiUfeRates.map((r: any) => r.year)))
                                             .sort((a: any, b: any) => b - a)
-                                            .map(year => (
+                                            .map((year: any) => (
                                                 <TableRow key={year}>
                                                     <TableCell className="font-bold">{year}</TableCell>
                                                     {Array.from({ length: 12 }, (_, i) => i + 1).map(month => {
