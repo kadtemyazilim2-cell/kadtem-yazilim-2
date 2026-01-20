@@ -216,7 +216,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                                 </div>
                             ) : (
                                 <div className="space-y-1">
-                                    {agencies.map(agency => (
+                                    {agencies.map((agency: any) => (
                                         <div key={agency.id} className="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-md border border-transparent hover:border-slate-100 transition-colors">
                                             <Checkbox
                                                 id={`agency-${agency.id}`}
