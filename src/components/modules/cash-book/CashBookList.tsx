@@ -121,7 +121,7 @@ export function CashBookList() {
         }
 
         // [NEW] Sort by Date Ascending (Oldest First) for chronological order
-        result.sort((a, b) => {
+        result.sort((a: any, b: any) => {
             const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
             if (dateDiff !== 0) return dateDiff;
 
