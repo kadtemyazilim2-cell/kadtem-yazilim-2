@@ -34,7 +34,7 @@ export default function DashboardPage() {
         : null;
 
     // Get Missing Reference Numbers (excluding BANK) - Only show to creator
-    const missingDocs = correspondences.filter(c => c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
+    const missingDocs = correspondences.filter((c: any) => c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
 
     // 1. Financial Status (Balance per User)
     const { users } = useAppStore();
