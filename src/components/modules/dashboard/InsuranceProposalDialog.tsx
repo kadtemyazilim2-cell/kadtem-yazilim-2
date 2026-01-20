@@ -97,7 +97,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
         let successCount = 0;
         let failCount = 0;
 
-        const targets = agencies.filter(a => selectedAgencyIds.includes(a.id));
+        const targets = agencies.filter((a: any) => selectedAgencyIds.includes(a.id));
         setProgress({ current: 0, total: targets.length });
 
         for (let i = 0; i < targets.length; i++) {
