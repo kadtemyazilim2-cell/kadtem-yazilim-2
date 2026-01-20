@@ -21,7 +21,7 @@ export function CashBookForm() {
     // [NEW] Separate permission for Edit/Delete actions within the list, but this form is for Create.
     // However, if we are in "Edit Mode" (not implemented here yet, but good practice), we'd check EDIT.
 
-    const activeSites = sites.filter(s => s.status === 'ACTIVE');
+    const activeSites = sites.filter((s: any) => s.status === 'ACTIVE');
 
     const [formData, setFormData] = useState({
         siteId: '',
