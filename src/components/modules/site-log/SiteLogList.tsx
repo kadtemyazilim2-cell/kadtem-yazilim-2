@@ -163,8 +163,8 @@ export function SiteLogList() {
             const dayName = format(new Date(entry.date), 'EEEE', { locale: tr });
 
             // Calculate Page Number (Based on Unique Dates)
-            const siteEntries = siteLogEntries.filter(e => e.siteId === entry.siteId);
-            const uniqueDates = Array.from(new Set(siteEntries.map(e => e.date))).sort();
+            const siteEntries = siteLogEntries.filter((e: any) => e.siteId === entry.siteId);
+            const uniqueDates = Array.from(new Set(siteEntries.map((e: any) => e.date))).sort();
             const dateIndex = uniqueDates.indexOf(entry.date);
             const pageNumber = dateIndex !== -1 ? dateIndex + 1 : 1;
 
@@ -201,10 +201,10 @@ export function SiteLogList() {
             // Consolidate Weather? Use the current entry's weather or join them?
             // User entered weather for *this* entry. If multiple people enter logs, weather might differ or be same.
             // Let's use the weather from the entry triggering the download, or join unique weathers.
-            const dayEntries = siteEntries.filter(e => e.date === entry.date);
+            const dayEntries = siteEntries.filter((e: any) => e.date === entry.date);
             // Sort by creation or something consistent. Let's assume array order is roughly creation order.
 
-            const uniqueWeather = Array.from(new Set(dayEntries.map(e => e.weather).filter(Boolean)));
+            const uniqueWeather = Array.from(new Set(dayEntries.map((e: any) => e.weather).filter(Boolean)));
             const weatherStr = uniqueWeather.length > 0 ? uniqueWeather.join(', ') : '-';
 
             doc.setFont('Roboto', 'bold');
@@ -232,7 +232,7 @@ export function SiteLogList() {
             // Content Text Iteration
             let currentY = contentBoxTop + 6;
 
-            dayEntries.forEach((dayEntry, index) => {
+            dayEntries.forEach((dayEntry: any, index: any) => {
                 const bullet = "• ";
                 const rawContent = dayEntry.content || '';
                 // Ensure content starts with bullet
