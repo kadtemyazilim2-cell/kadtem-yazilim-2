@@ -3,7 +3,7 @@
 import { SimpleRichTextEditor } from '@/components/ui/simple-rich-text-editor';
 import { useRouter } from 'next/navigation';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,15 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     const [filteredInstitutions, setFilteredInstitutions] = useState<typeof institutions>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [hasAutoSelectedSite, setHasAutoSelectedSite] = useState(false);
+
+    // [UX] Auto-select site if user has only one assigned site
+    useEffect(() => {
+        if (sites.length === 1 && !formData.siteId && !initialData && !hasAutoSelectedSite) {
+            setFormData(prev => ({ ...prev, siteId: sites[0].id }));
+            setHasAutoSelectedSite(true);
+        }
+    }, [sites, formData.siteId, initialData, hasAutoSelectedSite]);
 
     const [newInstName, setNewInstName] = useState('');
 
