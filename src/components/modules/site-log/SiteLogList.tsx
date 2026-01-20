@@ -258,7 +258,7 @@ export function SiteLogList() {
                 doc.setFontSize(8);
                 doc.setTextColor(150, 150, 150); // Gray
 
-                const author = users.find(u => u.id === dayEntry.authorId);
+                const author = users.find((u: any) => u.id === dayEntry.authorId);
                 const authorName = author ? author.name : 'Bilinmeyen Kullanıcı';
                 const authorStr = ` - ${authorName}`;
 
@@ -366,7 +366,7 @@ export function SiteLogList() {
                                                 <SelectValue placeholder="Seçiniz" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {sites.filter(s => s.status === 'ACTIVE').map(s => (
+                                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -406,7 +406,7 @@ export function SiteLogList() {
                         {siteLogEntries.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">Kayıt bulunamadı.</div>
                         ) : (
-                            siteLogEntries.map(entry => (
+                            siteLogEntries.map((entry: any) => (
                                 <div key={entry.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                                         <div className="flex items-center gap-3">
