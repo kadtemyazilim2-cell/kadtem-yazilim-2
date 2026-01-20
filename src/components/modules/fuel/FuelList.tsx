@@ -40,9 +40,9 @@ export function FuelList() {
         }).sort((a: any, b: any) => a.label.localeCompare(b.label));
     }, [fuelLogs, vehicles]);
 
-    const getVehiclePlate = (id: string) => vehicles.find(v => v.id === id)?.plate || '-';
+    const getVehiclePlate = (id: string) => vehicles.find((v: any) => v.id === id)?.plate || '-';
     // const getSiteName = (id: string) => sites.find(s => s.id === id)?.name || '-'; // Replaced sites usage
-    const getSiteName = (id: string) => availableSites.find(s => s.id === id)?.name || '-';
+    const getSiteName = (id: string) => availableSites.find((s: any) => s.id === id)?.name || '-';
 
     const filteredLogs = fuelLogs
         .filter((log: any) => {
