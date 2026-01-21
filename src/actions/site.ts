@@ -71,8 +71,16 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
         const processedData = { ...rest };
 
         for (const field of dateFields) {
-            if (processedData[field] && typeof processedData[field] === 'string') {
-                processedData[field] = new Date(processedData[field]);
+            const val = processedData[field];
+            if (val === '' || val === null || val === undefined) {
+                processedData[field] = null;
+            } else if (typeof val === 'string') {
+                const d = new Date(val);
+                if (!isNaN(d.getTime())) {
+                    processedData[field] = d;
+                } else {
+                    processedData[field] = null; // invalid date string
+                }
             }
         }
 
