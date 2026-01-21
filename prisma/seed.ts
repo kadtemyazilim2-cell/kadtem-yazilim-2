@@ -4,18 +4,68 @@ const prisma = new PrismaClient()
 
 // --- INLINED DATA ---
 
-const COMPANIES: any[] = [];
+const COMPANIES: any[] = [
+    {
+        id: 'comp_ikikat',
+        name: 'İKİKAT LTD. ŞTİ.',
+        address: 'Merkez',
+        status: 'ACTIVE'
+    },
+    {
+        id: 'comp_kadtem',
+        name: 'KAD-TEM A.Ş.',
+        address: 'Merkez',
+        status: 'ACTIVE'
+    }
+];
 
 const SITES: any[] = [];
 
 const USERS = [
     {
         id: 'u1', name: 'Sistem Yöneticisi', username: 'admin', password: '123', email: 'admin@system.com', role: 'ADMIN',
-        assignedCompanyIds: [], assignedSiteIds: [], permissions: {}
+        assignedCompanyIds: ['comp_ikikat', 'comp_kadtem'], assignedSiteIds: [], permissions: {}
     }
 ];
 
-const VEHICLES: any[] = [];
+const VEHICLES: any[] = [
+    // İKİKAT Vehicles
+    { id: 'v_ik_1', plate: '06 CIG 90', brand: 'HIDROMEK', model: 'HMK 102S', year: 2006, type: 'EXCAVATOR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'HOURS' },
+    { id: 'v_ik_2', plate: '06 GEY 72', brand: 'HITACHI', model: '200 LC', year: 2007, type: 'EXCAVATOR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'HOURS' },
+    { id: 'v_ik_3', plate: '60 ES 765', brand: 'SKODA', model: 'Octavia', year: 2014, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_4', plate: '60 BP 166', brand: 'FIAT', model: 'Symbol', year: 2011, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_5', plate: '60 ADG 721', brand: 'FIAT', model: 'Egea', year: 2017, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_6', plate: '60 ACN 101', brand: 'DACIA', model: 'Duster', year: 2012, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_7', plate: '60 ADH 729', brand: 'DACIA', model: 'Duster', year: 2022, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_8', plate: '60 ADH 964', brand: 'DACIA', model: 'Duster', year: 2022, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_9', plate: '60 ADH 750', brand: 'DACIA', model: 'Duster', year: 2022, type: 'CAR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_ik_10', plate: '60 BG 225', brand: 'MASSEY FERGUSON', model: '398', year: 1997, type: 'TRACTOR', companyId: 'comp_ikikat', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'HOURS' },
+
+    // KAD-TEM Vehicles
+    { id: 'v_kt_1', plate: '60 AAE 458', brand: 'MERCEDES', model: 'CLA 200', year: 2013, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_2', plate: '60 ACV 721', brand: 'HONDA', model: 'PCX', year: 2014, type: 'OTHER', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_3', plate: '06 DU 1084', brand: 'HIDROMEK', model: '140 W', year: 1997, type: 'EXCAVATOR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'HOURS' },
+    { id: 'v_kt_4', plate: '06 DU 140661', brand: 'HIDROMEK', model: '200 W', year: 2010, type: 'EXCAVATOR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'HOURS' },
+    { id: 'v_kt_5', plate: '54 ADU 144', brand: 'CITROEN', model: 'AMI', year: 2022, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_6', plate: '06 BIZ 067', brand: 'VW', model: 'Golf', year: 2011, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_7', plate: '06 HB 0878', brand: 'VW', model: 'Caddy', year: 2015, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_8', plate: '60 HN 450', brand: 'RENAULT', model: 'Fluence', year: 2013, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_9', plate: '60 AAH 991', brand: 'OPEL', model: 'Corsa', year: 2011, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_10', plate: '60 HP 555', brand: 'RENAULT', model: 'Symbol', year: 2011, type: 'CAR', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+
+    // Kamyons / Trucks
+    { id: 'v_kt_11', plate: '06 AJ 485', brand: 'FORD', model: 'M550 Kamyonet', year: 2006, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_12', plate: '06 AUT 444', brand: 'FORD', model: 'Transit', year: 2013, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_13', plate: '60 AFA 401', brand: 'FORD', model: 'Transit', year: 2012, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_14', plate: '06 AU 3649', brand: 'MERCEDES', model: 'Sprinter', year: 2015, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_15', plate: '06 BF 042', brand: 'MERCEDES', model: 'Arocs', year: 2018, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_16', plate: '06 BF 546', brand: 'MERCEDES', model: 'Arocs', year: 2018, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_17', plate: '06 BF 544', brand: 'MERCEDES', model: 'Arocs', year: 2018, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_18', plate: '06 BF 952', brand: 'MERCEDES', model: 'Arocs', year: 2021, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_19', plate: '06 BF 954', brand: 'MERCEDES', model: 'Arocs', year: 2021, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_20', plate: '06 BU 280', brand: 'DODGE', model: 'AS 950', year: 2016, type: 'TRUCK', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'KM' },
+    { id: 'v_kt_21', plate: '45 M 0860', brand: 'ÇUKUROVA', model: 'Forklift', year: 1997, type: 'OTHER', companyId: 'comp_kadtem', status: 'ACTIVE', ownership: 'OWNED', currentKm: 0, meterType: 'HOURS' },
+];
 
 const PERSONNEL: any[] = [];
 
