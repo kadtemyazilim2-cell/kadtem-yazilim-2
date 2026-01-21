@@ -482,6 +482,11 @@ export default function AdminPage() {
             return;
         }
 
+        if (!companyShortName.trim()) {
+            toast.error('Firma kısa adı zorunludur.');
+            return;
+        }
+
         const companyData = {
             name: companyName,
             taxNumber: companyTaxNumber,
@@ -1560,6 +1565,18 @@ export default function AdminPage() {
                                                     <Input value={companyName} onChange={e => setCompanyName(e.target.value)} required />
                                                 </div>
                                                 <div className="space-y-2">
+                                                    <Label>Firma Kısa Adı <span className="text-red-500">*</span></Label>
+                                                    <Input
+                                                        value={companyShortName}
+                                                        onChange={e => setCompanyShortName(e.target.value)}
+                                                        placeholder="Örn: KAD-TEM"
+                                                        required
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground">
+                                                        Rapor ve formlarda kullanılır.
+                                                    </p>
+                                                </div>
+                                                <div className="space-y-2">
                                                     <Label>Vergi Numarası</Label>
                                                     <Input value={companyTaxNumber} onChange={e => setCompanyTaxNumber(e.target.value)} placeholder="0123456789" />
                                                 </div>
@@ -1672,24 +1689,7 @@ export default function AdminPage() {
                                                 </div>
                                             </TabsContent>
 
-                                            <TabsContent value="shortname" className="space-y-4 pt-4">
-                                                <div className="space-y-4 border p-4 rounded-lg bg-slate-50">
-                                                    <h4 className="font-medium flex items-center gap-2 text-sm text-slate-700">
-                                                        <Building2 className="w-4 h-4" /> Firma Kısa Adı
-                                                    </h4>
-                                                    <div className="space-y-2">
-                                                        <Label>Kısa Ad</Label>
-                                                        <Input
-                                                            value={companyShortName}
-                                                            onChange={e => setCompanyShortName(e.target.value)}
-                                                            placeholder="Örn: KAD-TEM"
-                                                        />
-                                                        <p className="text-[10px] text-muted-foreground">
-                                                            Bu kısa ad, bazı rapor ve formlarda (ör: Yakıt Takip) yer kazanmak için kullanılabilir.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </TabsContent>
+
                                         </Tabs>
                                         <DialogFooter>
                                             <Button type="submit">Kaydet</Button>
