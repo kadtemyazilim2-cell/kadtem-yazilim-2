@@ -743,7 +743,7 @@ export function VehicleList() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            {canEditVehicles && (
+                                            {canEdit && (
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -894,7 +894,7 @@ export function VehicleList() {
                                                     <Badge variant={vehicle.status === 'ACTIVE' ? 'default' : 'secondary'}>{statusMap[vehicle.status] || vehicle.status}</Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {canEditVehicles && (
+                                                    {canEditInsurance && (
                                                         <div className="flex items-center gap-1">
                                                             <Button
                                                                 variant="outline"
@@ -1094,30 +1094,27 @@ export function VehicleList() {
                                                     >
                                                         <FileEdit className="w-3 h-3 mr-2" /> Güncelle
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                        {canEdit && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                                onClick={() => {
-                                                                    if (confirm('Bu aracı kiralık listesinden çıkarmak istediğinize emin misiniz? Araç "Öz Mal" olarak işaretlenecektir.')) {
-                                                                        updateVehicle(vehicle.id, {
-                                                                            ownership: 'OWNED',
-                                                                            rentalCompanyName: '',
-                                                                            monthlyRentalFee: 0,
-                                                                            rentalLastUpdate: new Date().toISOString()
-                                                                        });
-                                                                    }
-                                                                }}
-                                                                title="Listeden Çıkar"
-                                                            >
-                                                                <Trash2 className="w-3 h-3 mr-1" /> Sil
-                                                            </Button>
-                                                        )}
+
+                                                    {canEdit && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => {
+                                                                if (confirm('Bu aracı kiralık listesinden çıkarmak istediğinize emin misiniz? Araç "Öz Mal" olarak işaretlenecektir.')) {
+                                                                    updateVehicle(vehicle.id, {
+                                                                        ownership: 'OWNED',
+                                                                        rentalCompanyName: '',
+                                                                        monthlyRentalFee: 0,
+                                                                        rentalLastUpdate: new Date().toISOString()
+                                                                    });
+                                                                }
+                                                            }}
+                                                            title="Listeden Çıkar"
+                                                        >
+                                                            <Trash2 className="w-3 h-3 mr-1" /> Sil
+                                                        </Button>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
