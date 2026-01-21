@@ -430,6 +430,8 @@ model Correspondence {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  includeStamp Boolean @default(false) // [NEW]
 }
 
 model YiUfeRate {
