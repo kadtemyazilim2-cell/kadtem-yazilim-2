@@ -2126,14 +2126,14 @@ export default function AdminPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="px-0">
-                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-350px)]">
+                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-450px)]">
                                 <Table>
                                     <TableHeader>
                                         <TableRow className="bg-slate-100">
                                             {siteColumns.map((col, idx) => (
                                                 <TableHead
                                                     key={idx}
-                                                    className={`font-bold text-black border-r cursor-pointer hover:bg-slate-200 transition-colors select-none ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
+                                                    className={`sticky top-0 z-20 bg-slate-100 font-bold text-black border-r cursor-pointer hover:bg-slate-200 transition-colors select-none ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}`}
                                                     style={{ width: col.width }}
                                                     onClick={(e) => col.key && handleSiteSort(col.key, e)}
                                                 >
@@ -2150,7 +2150,7 @@ export default function AdminPage() {
                                                                 />
                                                             </div>
                                                         )}
-                                                        <div className="flex items-center justify-between gap-1 mt-1">
+                                                        <div className={`flex items-center gap-1 mt-1 ${col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start'}`}>
                                                             <span className="text-[11px] leading-tight whitespace-normal">{col.label}</span>
                                                             {col.key && getSiteSortIcon(col.key)}
                                                         </div>
