@@ -816,30 +816,48 @@ export function VehicleList() {
                                                 <TableCell>{vehicle.brand} - {vehicle.model}</TableCell>
                                                 <TableCell className="text-xs">{typeMap[vehicle.type] || vehicle.type}</TableCell>
                                                 <TableCell>
-                                                    <div
-                                                        className="flex flex-col gap-1 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors group"
-                                                        onClick={() => setSelectedVehicleForProposal({ vehicle, type: 'Trafik Sigortası' })}
-                                                        title="Teklif İste"
-                                                    >
-                                                        <span className="font-medium text-slate-700 flex items-center gap-1 group-hover:text-blue-600">
-                                                            {formatDateSafe(vehicle.insuranceExpiry)}
-                                                            <Mail className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                        </span>
-                                                        {getExpiryStatus(vehicle.insuranceExpiry)}
-                                                    </div>
+                                                    {canCreateInsurance ? (
+                                                        <div
+                                                            className="flex flex-col gap-1 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors group"
+                                                            onClick={() => setSelectedVehicleForProposal({ vehicle, type: 'Trafik Sigortası' })}
+                                                            title="Teklif İste"
+                                                        >
+                                                            <span className="font-medium text-slate-700 flex items-center gap-1 group-hover:text-blue-600">
+                                                                {formatDateSafe(vehicle.insuranceExpiry)}
+                                                                <Mail className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </span>
+                                                            {getExpiryStatus(vehicle.insuranceExpiry)}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-1 p-1">
+                                                            <span className="font-medium text-slate-700 flex items-center gap-1">
+                                                                {formatDateSafe(vehicle.insuranceExpiry)}
+                                                            </span>
+                                                            {getExpiryStatus(vehicle.insuranceExpiry)}
+                                                        </div>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div
-                                                        className="flex flex-col gap-1 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors group"
-                                                        onClick={() => setSelectedVehicleForProposal({ vehicle, type: 'Kasko' })}
-                                                        title="Teklif İste"
-                                                    >
-                                                        <span className="font-medium text-slate-700 flex items-center gap-1 group-hover:text-blue-600">
-                                                            {formatDateSafe(vehicle.kaskoExpiry)}
-                                                            <Mail className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                        </span>
-                                                        {getExpiryStatus(vehicle.kaskoExpiry)}
-                                                    </div>
+                                                    {canCreateInsurance ? (
+                                                        <div
+                                                            className="flex flex-col gap-1 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors group"
+                                                            onClick={() => setSelectedVehicleForProposal({ vehicle, type: 'Kasko' })}
+                                                            title="Teklif İste"
+                                                        >
+                                                            <span className="font-medium text-slate-700 flex items-center gap-1 group-hover:text-blue-600">
+                                                                {formatDateSafe(vehicle.kaskoExpiry)}
+                                                                <Mail className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            </span>
+                                                            {getExpiryStatus(vehicle.kaskoExpiry)}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-1 p-1">
+                                                            <span className="font-medium text-slate-700 flex items-center gap-1">
+                                                                {formatDateSafe(vehicle.kaskoExpiry)}
+                                                            </span>
+                                                            {getExpiryStatus(vehicle.kaskoExpiry)}
+                                                        </div>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     {canEditInsurance ? (
