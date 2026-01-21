@@ -193,6 +193,7 @@ export interface Correspondence { // Yazışmalar
   interest?: string[]; // [NEW] İlgi (A, B, C...)
   appendices?: string[]; // [NEW] Ekler (1, 2, 3...)
   registrationNumber?: string; // [NEW] Evrak Kayıt Numarası
+  includeStamp?: boolean; // [NEW] Kaşe Ekle
   createdAt?: string; // ISO Date
   updatedAt?: string; // ISO Date
 }

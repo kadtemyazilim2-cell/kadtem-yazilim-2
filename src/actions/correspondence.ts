@@ -65,6 +65,7 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
                     appendices: data.appendices || [],
                     attachmentUrls: data.attachmentUrls || [],
                     createdByUserId: data.createdByUserId,
+                    includeStamp: data.includeStamp || false,
                     status: 'ACTIVE',
                 }
             });

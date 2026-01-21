@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/store/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -72,6 +73,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         appendices: initialData?.appendices || [] as string[],
         registrationNumber: initialData?.registrationNumber || '',
         attachmentUrls: initialData?.attachmentUrls || [] as string[],
+        includeStamp: initialData?.includeStamp || false, // [NEW]
     });
 
     // [NEW] Auto-Generate Reference Number
@@ -298,7 +300,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                         senderReceiverAlignment: 'center',
                         interest: [],
                         appendices: [],
-                        attachmentUrls: []
+                        attachmentUrls: [],
+                        includeStamp: false, // [NEW]
                     });
                 } else {
                     toast.error(result.error);
@@ -366,22 +369,32 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 </div>
                                 <div className="space-y-2">
                                     <Label>İlgili Firma</Label>
-                                    <Select
-                                        value={formData.companyId}
-                                        onValueChange={(v) => setFormData({ ...formData, companyId: v })}
-                                        required
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <span className="truncate">
-                                                <SelectValue placeholder="Seçiniz" />
-                                            </span>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {companies.map((c: any) => (
-                                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="flex gap-2">
+                                        <Select
+                                            value={formData.companyId}
+                                            onValueChange={(v) => setFormData({ ...formData, companyId: v })}
+                                            required
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                <span className="truncate">
+                                                    <SelectValue placeholder="Seçiniz" />
+                                                </span>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {companies.map((c: any) => (
+                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <div className="flex items-center space-x-2 border p-2 rounded bg-slate-50 min-w-fit">
+                                            <Checkbox
+                                                id="includeStamp"
+                                                checked={formData.includeStamp}
+                                                onCheckedChange={(c) => setFormData({ ...formData, includeStamp: !!c })}
+                                            />
+                                            <Label htmlFor="includeStamp" className="whitespace-nowrap cursor-pointer">Kaşe Ekle</Label>
+                                        </div>
+                                    </div>
                                 </div>
 
                             </div>

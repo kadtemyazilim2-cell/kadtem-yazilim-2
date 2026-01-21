@@ -85,8 +85,26 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // }
     // yPos += 6;
 
+    // 6. Footer (Signature)
+    const ySignature = 240;
+
+    // [NEW] Stamp Logic
+    if ((item as any).includeStamp) { // Changed 'data' to 'item' based on function signature
+        const company = companies.find(c => c.id === item.companyId);
+        if (company && company.stamp) {
+            // Add Stamp
+            // Position: Bottom Right, slightly above signature or overlapping
+            // x: 140 (Right side), y: 220
+            try {
+                doc.addImage(company.stamp, 'PNG', 130, 220, 50, 50); // Adjust size/pos as needed
+            } catch (e) {
+                console.error('Error adding stamp:', e);
+            }
+        }
+    }
+
     // 4. Subject (Konu)
-    doc.setFont(fontName, 'bold');
+    doc.setFont(fontName, 'bold'); // Changed from "helvetica" to fontName
     doc.text('Konu:', marginLeft, yPos);
     doc.setFont(fontName, 'normal');
     const subjectText = item.subject || '';
