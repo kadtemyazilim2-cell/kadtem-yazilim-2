@@ -89,8 +89,8 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
                 insuranceAgency: data.insuranceAgency,
                 kaskoAgency: data.kaskoAgency, // Ensure these schema fields are mapped if they exist in Partial<Vehicle>
 
-                assignedSiteId: data.assignedSiteId,
-                companyId: data.companyId,
+                assignedSiteId: data.assignedSiteId || null,
+                companyId: data.companyId, // companyId is required, must be valid
 
                 rentalCompanyName: data.rentalCompanyName,
                 rentalContact: data.rentalContact,
@@ -104,9 +104,9 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
         });
         revalidatePath('/dashboard/vehicles');
         return { success: true, data: vehicle };
-    } catch (error) {
+    } catch (error: any) {
         console.error('updateVehicle Error:', error);
-        return { success: false, error: 'Araç güncellenemedi.' };
+        return { success: false, error: error.message || 'Araç güncellenemedi.' };
     }
 }
 
