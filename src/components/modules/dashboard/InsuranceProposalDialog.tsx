@@ -42,7 +42,19 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
     const vehicleCompany = vehicle ? companies.find((c: any) => c.id === vehicle.companyId) : null;
 
     // Determine effective SMTP Config (Company specific > Global > Null)
-    const effectiveSmtpConfig = vehicleCompany?.smtpConfig || globalSmtpConfig;
+    const companySmtp = vehicleCompany?.smtpHost ? {
+        host: vehicleCompany.smtpHost,
+        port: vehicleCompany.smtpPort,
+        secure: vehicleCompany.smtpSecure,
+        auth: {
+            user: vehicleCompany.smtpUser,
+            pass: vehicleCompany.smtpPass
+        },
+        fromEmail: vehicleCompany.smtpFromEmail,
+        fromName: vehicleCompany.smtpFromName
+    } : null;
+
+    const effectiveSmtpConfig = companySmtp || vehicleCompany?.smtpConfig || globalSmtpConfig;
     const canUseSmtp = !!(effectiveSmtpConfig && effectiveSmtpConfig.host);
 
     // Filter agencies
@@ -183,7 +195,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                     <DialogTitle>Teklif İsteği Gönder (Otomatik)</DialogTitle>
                     <DialogDescription>
                         <span className="font-semibold text-slate-900">{item.plate}</span> aracı için <span className="font-semibold text-slate-900">{policyType}</span> teklifi istenecek acenteleri seçiniz.
-                        {vehicleCompany && <span className="block mt-1 text-xs text-blue-600">Firma: {vehicleCompany.name} (SMTP: {vehicleCompany.smtpConfig ? 'Mevcut' : 'Yok, Global Kullanılacak'})</span>}
+                        {vehicleCompany && <span className="block mt-1 text-xs text-blue-600">Firma: {vehicleCompany.name} (SMTP: {vehicleCompany.smtpHost || vehicleCompany.smtpConfig ? 'Mevcut' : 'Yok, Global Kullanılacak'})</span>}
                     </DialogDescription>
                 </DialogHeader>
 
