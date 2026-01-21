@@ -23,14 +23,19 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // const getUserName = (id: string) => users.find(u => u.id === id)?.name || 'Bilinmeyen'; // Unused in print logic for now
 
     // 1. Header (Logo)
-    const companyName = getCompanyName(item.companyId);
+    // 1. Header (Logo)
+    const company = companies.find(c => c.id === item.companyId);
+    const companyName = company?.name || '-';
     const normalizedName = companyName.toLocaleLowerCase('tr');
 
-    let logoToUse = null;
-    if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
-        logoToUse = IKIKAT_LOGO_BASE64;
-    } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
-        logoToUse = KADTEM_LOGO_BASE64;
+    let logoToUse = company?.letterhead || company?.logoUrl;
+
+    if (!logoToUse) {
+        if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
+            logoToUse = IKIKAT_LOGO_BASE64;
+        } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
+            logoToUse = KADTEM_LOGO_BASE64;
+        }
     }
 
     if (logoToUse) {
