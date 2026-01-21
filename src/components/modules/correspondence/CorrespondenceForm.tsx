@@ -90,6 +90,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         // Parts
         const compShort = (company.shortName || company.name).toUpperCase();
         const year = formData.date ? new Date(formData.date).getFullYear() : new Date().getFullYear();
+        const yearShort = year.toString().slice(-2);
 
         let instShort = formData.senderReceiver.toUpperCase();
         if (inst && inst.shortName) {
@@ -106,7 +107,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
         const seq = (company.currentDocumentNumber || 1).toString().padStart(4, '0');
 
-        const newRef = `${compShort} - ${year} / ${instShort} . ${seq}`;
+        // Format: [Short]-[YY]/[RecipientShort].[Seq] (No spaces)
+        const newRef = `${compShort}-${yearShort}/${instShort}.${seq}`;
 
         // Only update if different to avoid infinite loop (though dependencies handle this)
         if (formData.referenceNumber !== newRef) {
@@ -264,7 +266,16 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
             date: `${formData.date}T${format(new Date(), 'HH:mm')}`,
             // Ensure description is not empty if hidden (Incoming)
-            description: formData.description || '-'
+            description: formData.description || '-',
+            // [FIX] Added missing fields
+            subject: formData.subject,
+            referenceNumber: formData.referenceNumber,
+            senderReceiver: formData.senderReceiver,
+            interest: formData.interest,
+            appendices: formData.appendices,
+            registrationNumber: formData.registrationNumber,
+            attachmentUrls: formData.attachmentUrls,
+            includeStamp: formData.includeStamp
         };
 
         try {
@@ -427,6 +438,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                             placeholder="Ref-123"
                                             value={formData.referenceNumber}
                                             onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                                            readOnly={!initialData && formData.direction === 'OUTGOING'}
+                                            className={(!initialData && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
                                         />
                                     </div>
                                     {/* Registration Number hidden for Outgoing as per request - will receive warning after save */}
