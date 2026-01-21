@@ -363,7 +363,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     return (
         <>
-            <Dialog open={open} onOpenChange={setOpen}>
+
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
                     {customTrigger ? customTrigger : (
                         <Button className="bg-blue-600 hover:bg-blue-700">

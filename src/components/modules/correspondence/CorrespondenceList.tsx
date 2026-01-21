@@ -1440,6 +1440,18 @@ export function CorrespondenceList() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* [NEW] Copy Form */}
+            {copyItem && (
+                <CorrespondenceForm
+                    initialData={copyItem}
+                    isCopy={true}
+                    open={!!copyItem}
+                    onOpenChange={(open) => {
+                        if (!open) setCopyItem(null);
+                    }}
+                />
+            )}
         </Card >
     );
 }
