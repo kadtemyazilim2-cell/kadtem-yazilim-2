@@ -118,6 +118,8 @@ export function VehicleList() {
         LORRY: 'Tır',
         EXCAVATOR: 'İş Makinesi',
         TRACTOR: 'Traktör',
+        MOTORCYCLE: 'Motosiklet',
+        PICKUP: 'Kamyonet',
         OTHER: 'Diğer'
     };
 
