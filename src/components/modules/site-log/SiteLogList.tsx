@@ -14,7 +14,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import jsPDF from 'jspdf';
-import { FileDown, Loader2, Eye } from 'lucide-react'; // Added Eye for preview
+import { FileDown, Loader2, Eye, FileSpreadsheet, FileText } from 'lucide-react'; // Added icons
+import * as XLSX from 'xlsx';
+import autoTable from 'jspdf-autotable';
+import { fontBase64 } from '@/lib/pdf-font';
 
 import { useUserSites } from '@/hooks/use-user-access';
 
@@ -337,69 +340,120 @@ export function SiteLogList() {
         }
     };
 
+    const exportExcel = () => {
+        const data = siteLogEntries.map((e: any) => ({
+            'Tarih': format(new Date(e.date), 'dd.MM.yyyy', { locale: tr }),
+            'Şantiye': getSiteName(e.siteId),
+            'Hava': e.weather,
+            'İçerik': e.content,
+            'Kaydeden': users.find((u: any) => u.id === e.authorId)?.name || '-'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Şantiye Defteri");
+        XLSX.writeFile(wb, `santiye-defteri-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    };
+
+    const exportListPDF = () => {
+        const doc = new jsPDF();
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.setFont('Roboto');
+
+        const tableColumn = ["Tarih", "Şantiye", "Hava", "İçerik"];
+        const tableRows = siteLogEntries.map((e: any) => [
+            format(new Date(e.date), 'dd.MM.yyyy', { locale: tr }),
+            getSiteName(e.siteId),
+            e.weather,
+            e.content.substring(0, 100) + (e.content.length > 100 ? '...' : '') // Truncate content
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            styles: { font: 'Roboto', fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] },
+            startY: 20,
+        });
+
+        doc.text("Şantiye Defteri Listesi", 14, 15);
+        doc.save(`santiye-defteri-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    };
+
     return (
         <div className="space-y-6">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Şantiye Defteri Kayıtları</CardTitle>
-                    <Dialog open={open} onOpenChange={(val) => {
-                        if (!val) resetForm();
-                        setOpen(val);
-                    }}>
-                        {canCreate && (
-                            <DialogTrigger asChild>
-                                <Button className="bg-blue-600 hover:bg-blue-700">
-                                    <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
-                                </Button>
-                            </DialogTrigger>
-                        )}
-                        <DialogContent className="sm:max-w-[600px]">
-                            <DialogHeader>
-                                <DialogTitle>{editingId ? 'Kaydı Düzenle' : 'Şantiye Defteri Girişi'}</DialogTitle>
-                            </DialogHeader>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Şantiye</Label>
-                                        <Select value={siteId} onValueChange={setSiteId} required>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seçiniz" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => exportListPDF()} title="Listeyi PDF İndir">
+                            <FileText className="h-4 w-4 text-red-600 mr-2" />
+                            Liste PDF
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => exportExcel()} title="Listeyi Excel İndir">
+                            <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
+                            Liste Excel
+                        </Button>
+                        <Dialog open={open} onOpenChange={(val) => {
+                            if (!val) resetForm();
+                            setOpen(val);
+                        }}>
+                            {canCreate && (
+                                <DialogTrigger asChild>
+                                    <Button className="bg-blue-600 hover:bg-blue-700">
+                                        <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
+                                    </Button>
+                                </DialogTrigger>
+                            )}
+                            <DialogContent className="sm:max-w-[600px]">
+                                <DialogHeader>
+                                    <DialogTitle>{editingId ? 'Kaydı Düzenle' : 'Şantiye Defteri Girişi'}</DialogTitle>
+                                </DialogHeader>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Şantiye</Label>
+                                            <Select value={siteId} onValueChange={setSiteId} required>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seçiniz" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Tarih</Label>
+                                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Tarih</Label>
-                                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                        <Label>Hava Durumu</Label>
+                                        <Input placeholder="Örn: Güneşli, 25°C" value={weather} onChange={e => setWeather(e.target.value)} />
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Hava Durumu</Label>
-                                    <Input placeholder="Örn: Güneşli, 25°C" value={weather} onChange={e => setWeather(e.target.value)} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Günlük Rapor / Notlar</Label>
-                                    <Textarea
-                                        className="h-32"
-                                        placeholder="Bugün yapılan işler, malzemeler, olaylar..."
-                                        value={content}
-                                        onChange={e => {
-                                            const val = e.target.value;
-                                            setContent(val.charAt(0).toUpperCase() + val.slice(1));
-                                        }}
-                                        required
-                                    />
-                                </div>
-                                <DialogFooter>
-                                    <Button type="submit">Kaydet</Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+                                    <div className="space-y-2">
+                                        <Label>Günlük Rapor / Notlar</Label>
+                                        <Textarea
+                                            className="h-32"
+                                            placeholder="Bugün yapılan işler, malzemeler, olaylar..."
+                                            value={content}
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                setContent(val.charAt(0).toUpperCase() + val.slice(1));
+                                            }}
+                                            required
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit">Kaydet</Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">

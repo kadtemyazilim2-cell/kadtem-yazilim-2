@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
-import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil } from "lucide-react";
+import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -64,6 +64,10 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
         />
     );
 };
+
+import * as XLSX from 'xlsx';
+import autoTable from 'jspdf-autotable';
+import { fontBase64 } from '@/lib/pdf-font'; // Assume this exists as used in other files
 
 export function CorrespondenceList() {
     const { correspondences, companies, updateCorrespondence, users, deleteCorrespondence, restoreCorrespondence, institutions, deleteInstitution, updateInstitution, addInstitution, addCorrespondence, sites } = useAppStore();
@@ -761,6 +765,53 @@ export function CorrespondenceList() {
     const incomingItems = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && c.direction === 'INCOMING');
     const outgoingItems = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && c.direction === 'OUTGOING');
 
+    const exportExcel = () => {
+        const data = activeCorrespondences.map(c => ({
+            'Tarih': format(new Date(c.date), 'dd.MM.yyyy', { locale: tr }),
+            'Yön': c.direction === 'INCOMING' ? 'Gelen' : 'Giden',
+            'Tip': c.type,
+            'Firma': getCompanyName(c.companyId),
+            'Konu': c.subject,
+            'Sayı': c.referenceNumber || '-',
+            'Muhatap': c.senderReceiver,
+            'Oluşturan': getUserName(c.createdByUserId)
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Yazışmalar");
+        XLSX.writeFile(wb, `yazismalar-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    };
+
+    const exportListPDF = () => {
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.setFont('Roboto');
+
+        const tableColumn = ["Tarih", "Yön", "Tip", "Firma", "Konu", "Sayı", "Muhatap"];
+        const tableRows = activeCorrespondences.map(c => [
+            format(new Date(c.date), 'dd.MM.yyyy', { locale: tr }),
+            c.direction === 'INCOMING' ? 'Gelen' : 'Giden',
+            c.type,
+            getCompanyName(c.companyId),
+            c.subject,
+            c.referenceNumber || '-',
+            c.senderReceiver
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            styles: { font: 'Roboto', fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] },
+            startY: 20,
+        });
+
+        doc.text("Yazışma Listesi", 14, 15);
+        doc.save(`yazisma-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    };
+
     const renderFilters = () => (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
             {/* Date Range */}
@@ -798,6 +849,18 @@ export function CorrespondenceList() {
                     searchPlaceholder="Kullanıcı Ara..."
                 />
             </div>
+
+            <div className="md:col-span-5 flex justify-end gap-2 mt-2">
+                <Button variant="outline" size="sm" onClick={exportListPDF} title="Listeyi PDF İndir">
+                    <FileText className="h-4 w-4 text-red-600 mr-2" />
+                    Listeyi Yazdır (PDF)
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportExcel} title="Listeyi Excel İndir">
+                    <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
+                    Excel İndir
+                </Button>
+            </div>
+
 
             {/* Sender/Receiver (Muhatap) Filter */}
             <div>
@@ -854,7 +917,7 @@ export function CorrespondenceList() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 
     const renderAddressBook = () => {

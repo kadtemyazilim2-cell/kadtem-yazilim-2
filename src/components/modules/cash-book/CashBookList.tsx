@@ -538,11 +538,13 @@ export function CashBookList() {
                     <div className="flex gap-2">
                         {canExport && (
                             <>
-                                <Button variant="outline" size="icon" onClick={exportPDF} title="PDF İndir">
-                                    <FileText className="h-4 w-4 text-red-600" />
+                                <Button variant="outline" onClick={exportPDF} title="PDF İndir">
+                                    <FileText className="h-4 w-4 text-red-600 mr-2" />
+                                    PDF
                                 </Button>
-                                <Button variant="outline" size="icon" onClick={exportExcel} title="Excel İndir">
-                                    <FileSpreadsheet className="h-4 w-4 text-green-600" />
+                                <Button variant="outline" onClick={exportExcel} title="Excel İndir">
+                                    <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
+                                    Excel
                                 </Button>
                             </>
                         )}
