@@ -272,7 +272,9 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         const now = new Date();
         const [y, m, d] = formData.date.split('-').map(Number);
         const dateObj = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
-        const dateStr = format(dateObj, "yyyy-MM-dd'T'HH:mm:ss");
+        // Use ISO String to preserve timezone (Browser Local -> UTC)
+        // Previous method led to server treating Local Time as UTC, resulting in +3 Hours when viewed back in TR.
+        const dateStr = dateObj.toISOString();
 
         const payload = {
             companyId: formData.companyId,
@@ -450,26 +452,15 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             )}
 
                             {initialType !== 'BANK' && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Evrak Sayı Numarası</Label>
-                                        <Input
-                                            placeholder="Ref-123"
-                                            value={formData.referenceNumber}
-                                            onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                                            readOnly={!initialData && formData.direction === 'OUTGOING'}
-                                            className={(!initialData && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Evrak Kayıt Numarası</Label>
-                                        <Input
-                                            placeholder="Kayıt Numarası (Manuel)"
-                                            value={formData.registrationNumber}
-                                            onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-                                            required={formData.direction === 'OUTGOING'}
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label>Evrak Sayı Numarası</Label>
+                                    <Input
+                                        placeholder="Ref-123"
+                                        value={formData.referenceNumber}
+                                        onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                                        readOnly={!initialData && formData.direction === 'OUTGOING'}
+                                        className={(!initialData && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
+                                    />
                                 </div>
                             )}
 

@@ -269,6 +269,7 @@ export function CorrespondenceList() {
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const deletedCorrespondences = correspondences.filter((c: any) => c.status === 'DELETED');
 
+
     useEffect(() => {
         // Check for items with missing reference numbers (Active only)
         const missing = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === ''))
@@ -943,7 +944,8 @@ export function CorrespondenceList() {
                                 .filter((inst: any) => {
                                     const lowerName = normalizeSearchText(inst.name || '');
                                     // Filter out Insurance companies as they are for Mailing only
-                                    if (lowerName.includes('sigorta') || lowerName.includes('kasko')) return false;
+                                    // [UPDATED] Added 'acente' to filter
+                                    if (lowerName.includes('sigorta') || lowerName.includes('kasko') || lowerName.includes('acente')) return false;
                                     return true;
                                 })
                                 .map((inst: any) => (

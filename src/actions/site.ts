@@ -81,11 +81,14 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
         const site = await prisma.site.create({
             data: {
                 ...processedData,
+                // Explicitly ensure 'name' is what we expect and no 'id' was passed (processedData has id removed?)
                 name: data.name!,
                 companyId: data.companyId,
                 status: data.status || 'ACTIVE',
             }
         });
+
+        console.log('Site Created:', { id: site.id, name: site.name, companyId: site.companyId });
         revalidatePath('/dashboard/admin');
         revalidatePath('/dashboard/sites');
         return { success: true, data: site };
