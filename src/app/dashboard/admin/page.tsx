@@ -491,6 +491,7 @@ export default function AdminPage() {
             smtpUser: companySmtpUser,
             smtpPass: companySmtpPass,
             smtpFromEmail: companySmtpFromEmail,
+            smtpFromName: companySmtpFromName,
             smtpSecure: companySmtpSecure
         };
 

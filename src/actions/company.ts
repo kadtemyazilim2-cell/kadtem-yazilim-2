@@ -28,6 +28,7 @@ export async function createCompany(data: Partial<Company>) {
                 smtpUser: data.smtpUser,
                 smtpPass: data.smtpPass,
                 smtpFromEmail: data.smtpFromEmail,
+                smtpFromName: data.smtpFromName,
                 smtpSecure: data.smtpSecure,
             }
         });
@@ -54,6 +55,7 @@ export async function updateCompany(id: string, data: Partial<Company>) {
                 smtpUser: data.smtpUser,
                 smtpPass: data.smtpPass,
                 smtpFromEmail: data.smtpFromEmail,
+                smtpFromName: data.smtpFromName,
                 smtpSecure: data.smtpSecure,
                 status: data.status,
             }
