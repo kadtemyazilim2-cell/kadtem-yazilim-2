@@ -116,6 +116,7 @@ export function CorrespondenceList() {
     const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
     const [editInstId, setEditInstId] = useState<string | null>(null);
     const [editInstName, setEditInstName] = useState('');
+    const [editInstShortName, setEditInstShortName] = useState(''); // [NEW]
     const [editInstCategory, setEditInstCategory] = useState<'INSTITUTION' | 'BANK'>('INSTITUTION');
     const [editInstAlign, setEditInstAlign] = useState<'left' | 'center' | 'right'>('center');
 
@@ -174,11 +175,13 @@ export function CorrespondenceList() {
         if (item) {
             setEditInstId(item.id);
             setEditInstName(item.name);
+            setEditInstShortName(item.shortName || ''); // [NEW]
             setEditInstAlign(item.alignment || 'left');
             setEditInstCategory(item.category || 'INSTITUTION');
         } else {
             setEditInstId(null);
             setEditInstName('');
+            setEditInstShortName(''); // [NEW]
             setEditInstAlign('center'); // Center by default
             setEditInstCategory('INSTITUTION'); // Default
         }
@@ -190,9 +193,9 @@ export function CorrespondenceList() {
         if (!editInstName.trim()) return;
 
         if (editInstId) {
-            updateInstitution(editInstId, { name: editInstName, alignment: 'center', category: editInstCategory });
+            updateInstitution(editInstId, { name: editInstName, shortName: editInstShortName, alignment: 'center', category: editInstCategory });
         } else {
-            addInstitution({ id: crypto.randomUUID(), name: editInstName, alignment: 'center', category: editInstCategory });
+            addInstitution({ id: crypto.randomUUID(), name: editInstName, shortName: editInstShortName, alignment: 'center', category: editInstCategory });
         }
         setIsAddressModalOpen(false);
     };
@@ -1344,7 +1347,15 @@ export function CorrespondenceList() {
                                 value={editInstName}
                                 onChange={(e) => setEditInstName(e.target.value)}
                                 placeholder="Örn: T.C. Enerji Bakanlığı..."
-                                rows={5}
+                                rows={4}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Kısa Ad (Opsiyonel)</Label>
+                            <Input
+                                value={editInstShortName}
+                                onChange={(e) => setEditInstShortName(e.target.value)}
+                                placeholder="Örn: EKB"
                             />
                         </div>
                     </div>
