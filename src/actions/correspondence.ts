@@ -27,19 +27,17 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
         const result = await prisma.$transaction(async (tx) => {
             let regNum = data.registrationNumber;
 
-            // Auto-Generate Document Number for OUTGOING if empty
-            if (data.direction === 'OUTGOING' && !regNum) {
+            // Increment Document Number for OUTGOING (Used for Reference Number Sequence)
+            if (data.direction === 'OUTGOING') {
                 const company = await tx.company.findUnique({
                     where: { id: data.companyId }
                 });
 
                 if (company) {
                     const nextNum = company.currentDocumentNumber || 1;
-                    // Format: YYYY/Number - Standard business practice
-                    // or just Number. User asked for "Sequential Numbering" matching the input "Start Number".
-                    // If I input 100, I expect 100, 101.
-                    // I will use just the number to match the input exactly.
-                    regNum = String(nextNum);
+
+                    // User requested Manual Entry for Registration Number.
+                    // We only increment the counter for the Reference Number generation logic.
 
                     await tx.company.update({
                         where: { id: data.companyId },

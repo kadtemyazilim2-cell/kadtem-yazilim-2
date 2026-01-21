@@ -442,7 +442,15 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                             className={(!initialData && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
                                         />
                                     </div>
-                                    {/* Registration Number hidden for Outgoing as per request - will receive warning after save */}
+                                    <div className="space-y-2">
+                                        <Label>Evrak Kayıt Numarası</Label>
+                                        <Input
+                                            placeholder="Kayıt Numarası (Manuel)"
+                                            value={formData.registrationNumber}
+                                            onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                                            required={formData.direction === 'OUTGOING'}
+                                        />
+                                    </div>
                                 </div>
                             )}
 
