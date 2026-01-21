@@ -22,7 +22,54 @@ export function InsuranceDefinitionsDialog({
     type,
 }: InsuranceDefinitionsDialogProps) {
     const { institutions, addInstitution, updateInstitution, deleteInstitution } = useAppStore()
-    // ... state
+    const [newName, setNewName] = useState("")
+    const [email, setEmail] = useState("")
+    const [phone, setPhone] = useState("")
+    const [mobile, setMobile] = useState("")
+    const [contactPerson, setContactPerson] = useState("")
+    const [editingId, setEditingId] = useState<string | null>(null)
+
+    // Filter based on the passed type and sort alphabetically
+    const items = institutions
+        .filter((i: Institution) => i.category === type)
+        .sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'))
+
+    const title = type === 'INSURANCE_COMPANY' ? 'Sigorta Firmaları' : 'Sigorta Acenteleri'
+    const description = type === 'INSURANCE_COMPANY'
+        ? 'Çalışılan sigorta firmalarını buradan yönetebilirsiniz.'
+        : 'Çalışılan sigorta acentelerini buradan yönetebilirsiniz.'
+    const label = type === 'INSURANCE_COMPANY' ? 'Firma Adı' : 'Acente Adı'
+    const placeholder = type === 'INSURANCE_COMPANY' ? 'Örn: Allianz, Axa' : 'Örn: Çınar Sigorta'
+    const Icon = type === 'INSURANCE_COMPANY' ? Building2 : Users
+
+    const formatPhoneNumber = (value: string) => {
+        // Remove all non-digits
+        const digits = value.replace(/\D/g, '').substring(0, 11);
+
+        // Build the formatted string
+        let formatted = '';
+        if (digits.length > 0) {
+            formatted = digits.substring(0, 1); // 0 or first digit
+            // Force it to start with 0 if it doesn't? Let's just trust input for now but format chunks
+            // User wants 0 212... format. If they type '212', we might want to auto-prepend 0, but simplicity first.
+            // Standard format: 0 (1) + 3 + 3 + 2 + 2
+
+            if (digits.length > 1) formatted += ' ' + digits.substring(1, 4);
+            if (digits.length > 4) formatted += ' ' + digits.substring(4, 7);
+            if (digits.length > 7) formatted += ' ' + digits.substring(7, 9);
+            if (digits.length > 9) formatted += ' ' + digits.substring(9, 11);
+        }
+        return formatted;
+    }
+
+    const resetForm = () => {
+        setNewName("")
+        setEmail("")
+        setPhone("")
+        setMobile("")
+        setContactPerson("")
+        setEditingId(null)
+    }
 
     const handleSave = async () => {
         if (!newName.trim()) return
