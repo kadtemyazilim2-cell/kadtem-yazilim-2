@@ -122,7 +122,7 @@ export function CorrespondenceList() {
 
     // [NEW] Track specific item for single-entry
     const [selectedRegId, setSelectedRegId] = useState<string | null>(null);
-
+    const [copyItem, setCopyItem] = useState<null | any>(null);
 
     // New helper to open specific reg number edit
     const openRegReminder = (itemId?: string) => {
@@ -344,20 +344,7 @@ export function CorrespondenceList() {
     };
 
     const handleDuplicate = (item: any) => {
-        if (!confirm('Bu evrakın bir kopyasını oluşturmak istiyor musunuz?')) return;
-
-        const newItem = {
-            ...item,
-            id: crypto.randomUUID(),
-            date: new Date().toISOString(),
-            // Clear unique tracking numbers for the copy, as it's a new document
-            referenceNumber: '',
-            registrationNumber: '',
-            createdAt: new Date().toISOString(),
-            createdByUserId: user?.id
-        };
-
-        addCorrespondence(newItem);
+        setCopyItem(item);
     };
 
     const confirmDelete = () => {
