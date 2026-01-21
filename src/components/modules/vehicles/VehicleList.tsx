@@ -845,18 +845,28 @@ export function VehicleList() {
                                                                     <p className="text-xs text-muted-foreground">{vehicle.plate}</p>
                                                                 </div>
                                                                 <div className="p-3">
-                                                                    <Input
-                                                                        type="date"
-                                                                        defaultValue={vehicle.inspectionExpiry ? vehicle.inspectionExpiry.split('T')[0] : ''}
-                                                                        onChange={(e) => {
-                                                                            if (e.target.value) {
-                                                                                if (confirm(`${vehicle.plate} aracı için muayene tarihini ${format(new Date(e.target.value), 'dd.MM.yyyy')} olarak güncellemek istiyor musunuz?`)) {
-                                                                                    updateVehicle(vehicle.id, { inspectionExpiry: new Date(e.target.value).toISOString() });
-                                                                                    toast.success('Muayene tarihi güncellendi.');
-                                                                                }
+                                                                    <form
+                                                                        onSubmit={(e) => {
+                                                                            e.preventDefault();
+                                                                            const form = e.target as HTMLFormElement;
+                                                                            const dateInput = form.elements.namedItem('date') as HTMLInputElement;
+                                                                            if (dateInput.value) {
+                                                                                updateVehicle(vehicle.id, { inspectionExpiry: new Date(dateInput.value).toISOString() });
+                                                                                toast.success('Muayene tarihi güncellendi.');
                                                                             }
                                                                         }}
-                                                                    />
+                                                                        className="flex flex-col gap-2"
+                                                                    >
+                                                                        <Input
+                                                                            name="date"
+                                                                            type="date"
+                                                                            defaultValue={vehicle.inspectionExpiry ? vehicle.inspectionExpiry.split('T')[0] : ''}
+                                                                            className="w-full"
+                                                                        />
+                                                                        <Button size="sm" type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                                                            Kaydet
+                                                                        </Button>
+                                                                    </form>
                                                                 </div>
                                                             </PopoverContent>
                                                         </Popover>
