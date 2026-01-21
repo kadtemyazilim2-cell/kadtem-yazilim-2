@@ -74,6 +74,45 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         attachmentUrls: initialData?.attachmentUrls || [] as string[],
     });
 
+    // [NEW] Auto-Generate Reference Number
+    useEffect(() => {
+        if (initialData) return; // Don't auto-change on edit
+        if (formData.direction !== 'OUTGOING') return;
+        if (!formData.companyId || !formData.senderReceiver) return;
+
+        const company = companies.find(c => c.id === formData.companyId);
+        if (!company) return;
+
+        const inst = institutions.find(i => i.name === formData.senderReceiver);
+
+        // Parts
+        const compShort = (company.shortName || company.name).toUpperCase();
+        const year = formData.date ? new Date(formData.date).getFullYear() : new Date().getFullYear();
+
+        let instShort = formData.senderReceiver.toUpperCase();
+        if (inst && inst.shortName) {
+            instShort = inst.shortName.toUpperCase();
+        } else if (inst) {
+            // If recognized institution but no shortname, maybe use first word? 
+            // User requested "Muhatap kısa adı", implying preference for configured short name.
+            // If not configured, full name might be too long. Let's try to be smart or just use full.
+            // Requirement says " / Muhatap kısa adı . ". 
+            // I'll stick to full name if no short name is found, or first 3 letters? 
+            // Better to just use what we have.
+            instShort = inst.name.toUpperCase();
+        }
+
+        const seq = (company.currentDocumentNumber || 1).toString().padStart(4, '0');
+
+        const newRef = `${compShort} - ${year} / ${instShort} . ${seq}`;
+
+        // Only update if different to avoid infinite loop (though dependencies handle this)
+        if (formData.referenceNumber !== newRef) {
+            setFormData(prev => ({ ...prev, referenceNumber: newRef }));
+        }
+
+    }, [formData.companyId, formData.senderReceiver, formData.date, formData.direction, companies, institutions, initialData]);
+
     const [filteredInstitutions, setFilteredInstitutions] = useState<typeof institutions>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [hasAutoSelectedSite, setHasAutoSelectedSite] = useState(false);
