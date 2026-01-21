@@ -510,6 +510,24 @@ export function VehicleList() {
                 <CardHeader className="flex flex-col space-y-4">
                     <div className="flex flex-row items-center justify-between">
                         <CardTitle>Araç Listesi</CardTitle>
+                        <div className="flex gap-2">
+                            {canCreateRental && (
+                                <VehicleForm initialOwnership="RENTAL" customTrigger={
+                                    <Button variant="outline" className="h-8 gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Kiralık Araç</span>
+                                    </Button>
+                                } />
+                            )}
+                            {canCreateOwned && (
+                                <VehicleForm initialOwnership="OWNED" customTrigger={
+                                    <Button className="h-8 gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Yeni Araç</span>
+                                    </Button>
+                                } />
+                            )}
+                        </div>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="relative flex-1 flex gap-2">
