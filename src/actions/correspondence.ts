@@ -24,26 +24,52 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
             }
         }
 
-        const correspondence = await prisma.correspondence.create({
-            data: {
-                companyId: data.companyId,
-                siteId: data.siteId || null,
-                date: new Date(data.date), // Ensure it's Date object for Prisma
-                direction: data.direction,
-                type: data.type,
-                subject: data.subject,
-                description: data.description,
-                referenceNumber: data.referenceNumber,
-                senderReceiver: data.senderReceiver,
-                senderReceiverAlignment: data.senderReceiverAlignment,
-                registrationNumber: data.registrationNumber,
-                interest: data.interest || [],
-                appendices: data.appendices || [],
-                attachmentUrls: data.attachmentUrls || [],
-                createdByUserId: data.createdByUserId,
-                status: 'ACTIVE',
+        const result = await prisma.$transaction(async (tx) => {
+            let regNum = data.registrationNumber;
+
+            // Auto-Generate Document Number for OUTGOING if empty
+            if (data.direction === 'OUTGOING' && !regNum) {
+                const company = await tx.company.findUnique({
+                    where: { id: data.companyId }
+                });
+
+                if (company) {
+                    const nextNum = company.currentDocumentNumber || 1;
+                    // Format: YYYY/Number - Standard business practice
+                    // or just Number. User asked for "Sequential Numbering" matching the input "Start Number".
+                    // If I input 100, I expect 100, 101.
+                    // I will use just the number to match the input exactly.
+                    regNum = String(nextNum);
+
+                    await tx.company.update({
+                        where: { id: data.companyId },
+                        data: { currentDocumentNumber: nextNum + 1 }
+                    });
+                }
             }
+
+            return await tx.correspondence.create({
+                data: {
+                    companyId: data.companyId,
+                    siteId: data.siteId || null,
+                    date: new Date(data.date),
+                    direction: data.direction,
+                    type: data.type,
+                    subject: data.subject,
+                    description: data.description,
+                    referenceNumber: data.referenceNumber,
+                    senderReceiver: data.senderReceiver,
+                    senderReceiverAlignment: data.senderReceiverAlignment,
+                    registrationNumber: regNum,
+                    interest: data.interest || [],
+                    appendices: data.appendices || [],
+                    attachmentUrls: data.attachmentUrls || [],
+                    createdByUserId: data.createdByUserId,
+                    status: 'ACTIVE',
+                }
+            });
         });
+        const correspondence = result;
         revalidatePath('/dashboard/correspondence');
         return { success: true, data: correspondence };
     } catch (error: any) {

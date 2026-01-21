@@ -90,6 +90,9 @@ model Company {
   smtpFromEmail String?
   smtpFromName  String?
   
+  // Document Numbering
+  currentDocumentNumber Int? @default(1)
+  
   // Relations
   sites           Site[]
   users           User[]

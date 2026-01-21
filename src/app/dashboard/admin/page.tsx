@@ -285,6 +285,8 @@ export default function AdminPage() {
     const [companyAddress, setCompanyAddress] = useState('');
     const [companyPhone, setCompanyPhone] = useState('');
     const [companyStamp, setCompanyStamp] = useState<string | null>(null);
+    const [companyLetterhead, setCompanyLetterhead] = useState<string | null>(null);
+    const [companyDocumentNumber, setCompanyDocumentNumber] = useState('1'); // [NEW] Document Tracking
 
 
     const handleExportExcel = () => {
@@ -360,7 +362,7 @@ export default function AdminPage() {
         doc.save("Santiye_Listesi.pdf");
     };
 
-    const [companyLetterhead, setCompanyLetterhead] = useState<string | null>(null);
+
     // SMTP State
     const [companySmtpHost, setCompanySmtpHost] = useState('');
     const [companySmtpPort, setCompanySmtpPort] = useState('');
@@ -492,7 +494,8 @@ export default function AdminPage() {
             smtpPass: companySmtpPass,
             smtpFromEmail: companySmtpFromEmail,
             smtpFromName: companySmtpFromName,
-            smtpSecure: companySmtpSecure
+            smtpSecure: companySmtpSecure,
+            currentDocumentNumber: parseInt(companyDocumentNumber) || 1
         };
 
         try {
@@ -547,7 +550,9 @@ export default function AdminPage() {
         setCompanySmtpPass('');
         setCompanySmtpFromEmail('');
         setCompanySmtpFromName('');
+        setCompanySmtpFromName('');
         setCompanySmtpSecure(false);
+        setCompanyDocumentNumber('1');
     };
 
     const openAddCompanyModal = () => {
@@ -564,6 +569,7 @@ export default function AdminPage() {
         setCompanyPhone(company.phone || '');
         setCompanyStamp(company.stamp || null);
         setCompanyLetterhead(company.letterhead || null);
+        setCompanyDocumentNumber(company.currentDocumentNumber?.toString() || '1');
 
         // [FIX] Check for flat fields first (Prisma default), then fallback to nested config
         if (company.smtpHost || company.smtpConfig) {
@@ -1538,118 +1544,154 @@ export default function AdminPage() {
                                         <DialogTitle>{isEditingCompany ? 'Firma Düzenle' : 'Yeni Firma Ekle'}</DialogTitle>
                                     </DialogHeader>
                                     <form onSubmit={handleAddCompany} className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label>Firma Adı <span className="text-red-500">*</span></Label>
-                                            <Input value={companyName} onChange={e => setCompanyName(e.target.value)} required />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Vergi Numarası</Label>
-                                            <Input value={companyTaxNumber} onChange={e => setCompanyTaxNumber(e.target.value)} placeholder="0123456789" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Telefon</Label>
-                                            <Input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder="0555 555 55 55" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Adres</Label>
-                                            <Input value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="Adres satırı..." />
-                                        </div>
+                                        <Tabs defaultValue="general" className="w-full">
+                                            <TabsList className="w-full grid grid-cols-3">
+                                                <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
+                                                <TabsTrigger value="smtp">SMTP Ayarları</TabsTrigger>
+                                                <TabsTrigger value="document">Evrak Numarası</TabsTrigger>
+                                            </TabsList>
+                                            <TabsContent value="general" className="space-y-4 pt-4">
+                                                <div className="space-y-2">
+                                                    <Label>Firma Adı <span className="text-red-500">*</span></Label>
+                                                    <Input value={companyName} onChange={e => setCompanyName(e.target.value)} required />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Vergi Numarası</Label>
+                                                    <Input value={companyTaxNumber} onChange={e => setCompanyTaxNumber(e.target.value)} placeholder="0123456789" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Telefon</Label>
+                                                    <Input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder="0555 555 55 55" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Adres</Label>
+                                                    <Input value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="Adres satırı..." />
+                                                </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Firma Kaşesi</Label>
-                                                <div className="flex flex-col gap-2">
-                                                    <Input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => handleCompanyFileUpload(e, 'stamp')}
-                                                        className="cursor-pointer"
-                                                    />
-                                                    {companyStamp && (
-                                                        <div className="relative border p-1 rounded bg-slate-50 w-full h-20 flex items-center justify-center">
-                                                            <img src={companyStamp} alt="Kaşe" className="max-h-full max-w-full object-contain" />
-                                                            <Button
-                                                                type="button"
-                                                                variant="destructive"
-                                                                size="icon"
-                                                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
-                                                                onClick={() => setCompanyStamp(null)}
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </Button>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label>Firma Kaşesi</Label>
+                                                        <div className="flex flex-col gap-2">
+                                                            <Input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => handleCompanyFileUpload(e, 'stamp')}
+                                                                className="cursor-pointer"
+                                                            />
+                                                            {companyStamp && (
+                                                                <div className="relative border p-1 rounded bg-slate-50 w-full h-20 flex items-center justify-center">
+                                                                    <img src={companyStamp} alt="Kaşe" className="max-h-full max-w-full object-contain" />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                                                                        onClick={() => setCompanyStamp(null)}
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Firma Anteti</Label>
-                                                <div className="flex flex-col gap-2">
-                                                    <Input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => handleCompanyFileUpload(e, 'letterhead')}
-                                                        className="cursor-pointer"
-                                                    />
-                                                    {companyLetterhead && (
-                                                        <div className="relative border p-1 rounded bg-slate-50 w-full h-20 flex items-center justify-center">
-                                                            <img src={companyLetterhead} alt="Antet" className="max-h-full max-w-full object-contain" />
-                                                            <Button
-                                                                type="button"
-                                                                variant="destructive"
-                                                                size="icon"
-                                                                className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
-                                                                onClick={() => setCompanyLetterhead(null)}
-                                                            >
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </Button>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Firma Anteti</Label>
+                                                        <div className="flex flex-col gap-2">
+                                                            <Input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => handleCompanyFileUpload(e, 'letterhead')}
+                                                                className="cursor-pointer"
+                                                            />
+                                                            {companyLetterhead && (
+                                                                <div className="relative border p-1 rounded bg-slate-50 w-full h-20 flex items-center justify-center">
+                                                                    <img src={companyLetterhead} alt="Antet" className="max-h-full max-w-full object-contain" />
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        className="absolute -top-2 -right-2 w-6 h-6 rounded-full"
+                                                                        onClick={() => setCompanyLetterhead(null)}
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4 pt-4 border-t">
-                                            <h4 className="font-medium flex items-center gap-2 text-sm text-slate-700">
-                                                <Mail className="w-4 h-4" /> SMTP Mail Ayarları
-                                            </h4>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">SMTP Host</Label>
-                                                    <Input className="h-8" value={companySmtpHost} onChange={e => setCompanySmtpHost(e.target.value)} placeholder="mail.ornek.com" />
+                                            </TabsContent>
+
+                                            <TabsContent value="smtp" className="space-y-4 pt-4">
+                                                <div className="space-y-4">
+                                                    <h4 className="font-medium flex items-center gap-2 text-sm text-slate-700">
+                                                        <Mail className="w-4 h-4" /> SMTP Mail Ayarları
+                                                    </h4>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">SMTP Host</Label>
+                                                            <Input className="h-8" value={companySmtpHost} onChange={e => setCompanySmtpHost(e.target.value)} placeholder="mail.ornek.com" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">SMTP Port</Label>
+                                                            <Input className="h-8" value={companySmtpPort} onChange={e => setCompanySmtpPort(e.target.value)} placeholder="587" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Kullanıcı (User)</Label>
+                                                            <Input className="h-8" value={companySmtpUser} onChange={e => setCompanySmtpUser(e.target.value)} placeholder="info@ornek.com" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Şifre</Label>
+                                                            <Input className="h-8" type="password" value={companySmtpPass} onChange={e => setCompanySmtpPass(e.target.value)} placeholder="****" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gönderen Adı</Label>
+                                                            <Input className="h-8" value={companySmtpFromName} onChange={e => setCompanySmtpFromName(e.target.value)} placeholder="Firma Adı" />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-xs">Gönderen Email</Label>
+                                                            <Input className="h-8" value={companySmtpFromEmail} onChange={e => setCompanySmtpFromEmail(e.target.value)} placeholder="info@ornek.com" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="smtp-secure"
+                                                            checked={companySmtpSecure}
+                                                            onCheckedChange={(c) => setCompanySmtpSecure(!!c)}
+                                                        />
+                                                        <Label htmlFor="smtp-secure" className="text-xs font-normal">Güvenli Bağlantı (SSL/TLS)</Label>
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">SMTP Port</Label>
-                                                    <Input className="h-8" value={companySmtpPort} onChange={e => setCompanySmtpPort(e.target.value)} placeholder="587" />
+                                            </TabsContent>
+
+                                            <TabsContent value="document" className="space-y-4 pt-4">
+                                                <div className="space-y-4 border p-4 rounded-lg bg-slate-50">
+                                                    <h4 className="font-medium flex items-center gap-2 text-sm text-slate-700">
+                                                        <TrendingUp className="w-4 h-4" /> Evrak Sayı Numarası (Sıralı)
+                                                    </h4>
+                                                    <div className="space-y-2">
+                                                        <Label>Dosya Numarası Başlangıcı</Label>
+                                                        <div className="flex gap-2 items-center">
+                                                            <Input
+                                                                type="number"
+                                                                min="1"
+                                                                value={companyDocumentNumber}
+                                                                onChange={e => setCompanyDocumentNumber(e.target.value)}
+                                                                placeholder="1"
+                                                            />
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground">
+                                                            Bu numara, giden evrak ve diğer yazışmalar için otomatik artan bir sayaç görevi görecektir.
+                                                            Her yeni işlemde bu numara kullanılıp arttırılacaktır.
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Kullanıcı (User)</Label>
-                                                    <Input className="h-8" value={companySmtpUser} onChange={e => setCompanySmtpUser(e.target.value)} placeholder="info@ornek.com" />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Şifre</Label>
-                                                    <Input className="h-8" type="password" value={companySmtpPass} onChange={e => setCompanySmtpPass(e.target.value)} placeholder="****" />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Gönderen Adı</Label>
-                                                    <Input className="h-8" value={companySmtpFromName} onChange={e => setCompanySmtpFromName(e.target.value)} placeholder="Firma Adı" />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs">Gönderen Email</Label>
-                                                    <Input className="h-8" value={companySmtpFromEmail} onChange={e => setCompanySmtpFromEmail(e.target.value)} placeholder="info@ornek.com" />
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <Checkbox
-                                                    id="smtp-secure"
-                                                    checked={companySmtpSecure}
-                                                    onCheckedChange={(c) => setCompanySmtpSecure(!!c)}
-                                                />
-                                                <Label htmlFor="smtp-secure" className="text-xs font-normal">Güvenli Bağlantı (SSL/TLS)</Label>
-                                            </div>
-                                        </div>
+                                            </TabsContent>
+                                        </Tabs>
                                         <DialogFooter>
                                             <Button type="submit">Kaydet</Button>
                                         </DialogFooter>

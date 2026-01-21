@@ -30,6 +30,11 @@ export async function createCompany(data: Partial<Company>) {
                 smtpFromEmail: data.smtpFromEmail,
                 smtpFromName: data.smtpFromName,
                 smtpSecure: data.smtpSecure,
+                currentDocumentNumber: data.currentDocumentNumber,
+                taxNumber: data.taxNumber,
+                phone: data.phone,
+                stamp: data.stamp,
+                letterhead: data.letterhead,
             }
         });
         revalidatePath('/dashboard/admin');
@@ -57,6 +62,7 @@ export async function updateCompany(id: string, data: Partial<Company>) {
                 smtpFromEmail: data.smtpFromEmail,
                 smtpFromName: data.smtpFromName,
                 smtpSecure: data.smtpSecure,
+                currentDocumentNumber: data.currentDocumentNumber,
                 status: data.status,
             }
         });

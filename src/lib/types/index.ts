@@ -26,6 +26,7 @@ export interface Company {
   taxNumber?: string; // [NEW]
   phone?: string; // [NEW]
   smtpConfig?: SmtpConfig; // [NEW] Per-company SMTP settings
+  currentDocumentNumber?: number; // [NEW] Document Tracking
 }
 
 export interface Site {
