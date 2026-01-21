@@ -1,5 +1,7 @@
 'use client';
 
+import { toast } from 'sonner';
+
 import { useAppStore } from '@/lib/store/use-store';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // [NEW]
+import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X, Calendar as CalendarIcon } from 'lucide-react'; // Added CalendarIcon
 import { InsurancePolicyDialog } from './InsurancePolicyDialog';
 import { InsuranceRenewalDialog } from './InsuranceRenewalDialog';
 import { useAuth } from '@/lib/store/use-auth';
@@ -825,10 +828,44 @@ export function VehicleList() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="font-medium text-slate-700">{formatDateSafe(vehicle.inspectionExpiry)}</span>
-                                                        {getExpiryStatus(vehicle.inspectionExpiry)}
-                                                    </div>
+                                                    {canEditInsurance ? (
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <div className="flex flex-col gap-1 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors group">
+                                                                    <span className="font-medium text-slate-700 flex items-center gap-1 group-hover:text-blue-600">
+                                                                        {formatDateSafe(vehicle.inspectionExpiry)}
+                                                                        <CalendarIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                    </span>
+                                                                    {getExpiryStatus(vehicle.inspectionExpiry)}
+                                                                </div>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-auto p-0" align="start">
+                                                                <div className="p-3 border-b bg-slate-50">
+                                                                    <p className="text-sm font-medium">Muayene Tarihini Güncelle</p>
+                                                                    <p className="text-xs text-muted-foreground">{vehicle.plate}</p>
+                                                                </div>
+                                                                <div className="p-3">
+                                                                    <Input
+                                                                        type="date"
+                                                                        defaultValue={vehicle.inspectionExpiry ? vehicle.inspectionExpiry.split('T')[0] : ''}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.value) {
+                                                                                if (confirm(`${vehicle.plate} aracı için muayene tarihini ${format(new Date(e.target.value), 'dd.MM.yyyy')} olarak güncellemek istiyor musunuz?`)) {
+                                                                                    updateVehicle(vehicle.id, { inspectionExpiry: new Date(e.target.value).toISOString() });
+                                                                                    toast.success('Muayene tarihi güncellendi.');
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="font-medium text-slate-700">{formatDateSafe(vehicle.inspectionExpiry)}</span>
+                                                            {getExpiryStatus(vehicle.inspectionExpiry)}
+                                                        </div>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <Badge variant={vehicle.status === 'ACTIVE' ? 'default' : 'secondary'}>{statusMap[vehicle.status] || vehicle.status}</Badge>

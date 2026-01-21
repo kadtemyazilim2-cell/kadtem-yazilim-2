@@ -490,14 +490,28 @@ export default function AdminPage() {
 
         try {
             if (isEditingCompany && selectedCompanyId) {
-                await updateCompanyAction(selectedCompanyId, companyData);
+                const result = await updateCompanyAction(selectedCompanyId, companyData);
+                if (result.success && result.data) {
+                    updateCompany(selectedCompanyId, result.data as any); // Update Local Store
+                    toast.success('Firma başarıyla güncellendi.');
+                } else {
+                    toast.error(result.error || 'Güncelleme başarısız.');
+                    return;
+                }
             } else {
-                await createCompany(companyData);
+                const result = await createCompany(companyData);
+                if (result.success && result.data) {
+                    addCompany(result.data as any); // Update Local Store
+                    toast.success('Firma başarıyla eklendi.');
+                } else {
+                    toast.error('Ekleme başarısız.');
+                    return;
+                }
             }
-            location.reload();
+            router.refresh(); // Soft refresh to sync server components if any
         } catch (err) {
             console.error(err);
-            alert('İşlem başarısız.');
+            toast.error('İşlem başarısız.');
         }
 
         setCompanyModalOpen(false);

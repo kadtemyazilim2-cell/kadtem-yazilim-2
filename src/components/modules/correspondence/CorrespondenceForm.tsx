@@ -35,7 +35,26 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     // Use store ONLY for reading lists
     const { companies, institutions, users, sites, addInstitution, addCorrespondence, updateCorrespondence: updateLocalCorrespondence } = useAppStore();
     const router = useRouter(); // [NEW]
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
+
+    // Permissions
+    const canCreateIncoming = hasPermission('correspondence.incoming', 'CREATE');
+    const canEditIncoming = hasPermission('correspondence.incoming', 'EDIT');
+    const canCreateOutgoing = hasPermission('correspondence.outgoing', 'CREATE');
+    const canEditOutgoing = hasPermission('correspondence.outgoing', 'EDIT');
+    const canCreateBank = hasPermission('correspondence.bank', 'CREATE');
+    const canEditBank = hasPermission('correspondence.bank', 'EDIT');
+
+    // Determine current permission based on form state
+    const getCurrentPermission = () => {
+        const type = formData.type || initialType;
+        const direction = formData.direction || initialDirection;
+        const isEdit = !!initialData;
+
+        if (type === 'BANK') return isEdit ? canEditBank : canCreateBank;
+        if (direction === 'INCOMING') return isEdit ? canEditIncoming : canCreateIncoming;
+        return isEdit ? canEditOutgoing : canCreateOutgoing; // Default OUTGOING
+    };
 
 
     const [formData, setFormData] = useState({
@@ -173,6 +192,11 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
+
+        if (user.role !== 'ADMIN' && !getCurrentPermission()) {
+            toast.error('Bu işlem için yetkiniz bulunmamaktadır.');
+            return;
+        }
 
         // Date Restriction Check
         if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
@@ -541,7 +565,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                         <Button type="button" variant="outline" onClick={handlePreview} className="gap-2">
                             <Printer className="w-4 h-4" /> Ön İzleme
                         </Button>
-                        <Button type="submit" form="correspondence-form">Kaydet</Button>
+                        <Button type="submit" form="correspondence-form" disabled={user?.role !== 'ADMIN' && !getCurrentPermission()}>Kaydet</Button>
                     </DialogFooter>
                 </DialogContent >
             </Dialog >
