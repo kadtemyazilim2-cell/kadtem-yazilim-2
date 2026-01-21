@@ -92,6 +92,7 @@ model Company {
   
   // Document Numbering
   currentDocumentNumber Int? @default(1)
+  shortName             String? // [NEW]
   
   // Relations
   sites           Site[]

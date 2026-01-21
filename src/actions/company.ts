@@ -35,12 +35,14 @@ export async function createCompany(data: Partial<Company>) {
                 phone: data.phone,
                 stamp: data.stamp,
                 letterhead: data.letterhead,
+                shortName: data.shortName // [NEW]
             }
         });
         revalidatePath('/dashboard/admin');
         return { success: true, data: company };
     } catch (error) {
         console.error('createCompany Error:', error);
+        return { success: false, error: 'Firma oluşturulurken hata oluştu.' };
     }
 }
 
@@ -55,6 +57,7 @@ export async function updateCompany(id: string, data: Partial<Company>) {
                 phone: data.phone,
                 stamp: data.stamp,
                 letterhead: data.letterhead,
+                shortName: data.shortName, // [NEW]
                 smtpHost: data.smtpHost,
                 smtpPort: data.smtpPort,
                 smtpUser: data.smtpUser,

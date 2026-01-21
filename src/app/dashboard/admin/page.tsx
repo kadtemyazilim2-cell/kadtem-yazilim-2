@@ -286,7 +286,8 @@ export default function AdminPage() {
     const [companyPhone, setCompanyPhone] = useState('');
     const [companyStamp, setCompanyStamp] = useState<string | null>(null);
     const [companyLetterhead, setCompanyLetterhead] = useState<string | null>(null);
-    const [companyDocumentNumber, setCompanyDocumentNumber] = useState('1'); // [NEW] Document Tracking
+    const [companyShortName, setCompanyShortName] = useState(''); // [NEW] Replaces Document Number tab content usage (logic wise doc number moved to background or other tab if needed, but per request we reuse space)
+    const [companyDocumentNumber, setCompanyDocumentNumber] = useState('1'); // Keep state if needed for API but hide UI
 
 
     const handleExportExcel = () => {
@@ -495,7 +496,8 @@ export default function AdminPage() {
             smtpFromEmail: companySmtpFromEmail,
             smtpFromName: companySmtpFromName,
             smtpSecure: companySmtpSecure,
-            currentDocumentNumber: parseInt(companyDocumentNumber) || 1
+            currentDocumentNumber: parseInt(companyDocumentNumber) || 1, // [NEW] Document Tracking
+            shortName: companyShortName // [NEW]
         };
 
         try {
@@ -552,7 +554,9 @@ export default function AdminPage() {
         setCompanySmtpFromName('');
         setCompanySmtpFromName('');
         setCompanySmtpSecure(false);
+        setCompanySmtpSecure(false);
         setCompanyDocumentNumber('1');
+        setCompanyShortName(''); // [NEW]
     };
 
     const openAddCompanyModal = () => {
@@ -570,6 +574,7 @@ export default function AdminPage() {
         setCompanyStamp(company.stamp || null);
         setCompanyLetterhead(company.letterhead || null);
         setCompanyDocumentNumber(company.currentDocumentNumber?.toString() || '1');
+        setCompanyShortName(company.shortName || ''); // [NEW]
 
         // [FIX] Check for flat fields first (Prisma default), then fallback to nested config
         if (company.smtpHost || company.smtpConfig) {
@@ -1668,25 +1673,20 @@ export default function AdminPage() {
                                                 </div>
                                             </TabsContent>
 
-                                            <TabsContent value="document" className="space-y-4 pt-4">
+                                            <TabsContent value="shortname" className="space-y-4 pt-4">
                                                 <div className="space-y-4 border p-4 rounded-lg bg-slate-50">
                                                     <h4 className="font-medium flex items-center gap-2 text-sm text-slate-700">
-                                                        <TrendingUp className="w-4 h-4" /> Evrak Sayı Numarası (Sıralı)
+                                                        <Building2 className="w-4 h-4" /> Firma Kısa Adı
                                                     </h4>
                                                     <div className="space-y-2">
-                                                        <Label>Dosya Numarası Başlangıcı</Label>
-                                                        <div className="flex gap-2 items-center">
-                                                            <Input
-                                                                type="number"
-                                                                min="1"
-                                                                value={companyDocumentNumber}
-                                                                onChange={e => setCompanyDocumentNumber(e.target.value)}
-                                                                placeholder="1"
-                                                            />
-                                                        </div>
+                                                        <Label>Kısa Ad</Label>
+                                                        <Input
+                                                            value={companyShortName}
+                                                            onChange={e => setCompanyShortName(e.target.value)}
+                                                            placeholder="Örn: KAD-TEM"
+                                                        />
                                                         <p className="text-[10px] text-muted-foreground">
-                                                            Bu numara, giden evrak ve diğer yazışmalar için otomatik artan bir sayaç görevi görecektir.
-                                                            Her yeni işlemde bu numara kullanılıp arttırılacaktır.
+                                                            Bu kısa ad, bazı rapor ve formlarda (ör: Yakıt Takip) yer kazanmak için kullanılabilir.
                                                         </p>
                                                     </div>
                                                 </div>

@@ -952,28 +952,35 @@ export function CorrespondenceList() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {institutions.map((inst: any) => (
-                                <TableRow key={inst.id}>
-                                    <TableCell className="max-w-[400px] truncate" title={inst.name}>{inst.name}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">{inst.category === 'BANK' ? 'Banka' : 'Kurum/Şahıs'}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {(user?.role === 'ADMIN' || canEditContacts) && (
-                                            <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
-                                                    <Edit className="w-4 h-4 text-blue-600" />
-                                                </Button>
-                                                <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
-                                                    if (confirm('Silmek istediğinize emin misiniz?')) deleteInstitution(inst.id);
-                                                }}>
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                            {institutions
+                                .filter((inst: any) => {
+                                    const lowerName = normalizeSearchText(inst.name || '');
+                                    // Filter out Insurance companies as they are for Mailing only
+                                    if (lowerName.includes('sigorta') || lowerName.includes('kasko')) return false;
+                                    return true;
+                                })
+                                .map((inst: any) => (
+                                    <TableRow key={inst.id}>
+                                        <TableCell className="max-w-[400px] truncate" title={inst.name}>{inst.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">{inst.category === 'BANK' ? 'Banka' : 'Kurum/Şahıs'}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            {(user?.role === 'ADMIN' || canEditContacts) && (
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
+                                                        <Edit className="w-4 h-4 text-blue-600" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
+                                                        if (confirm('Silmek istediğinize emin misiniz?')) deleteInstitution(inst.id);
+                                                    }}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                         </TableBody>
                     </Table>
                 )}

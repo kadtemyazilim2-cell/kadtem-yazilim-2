@@ -27,6 +27,7 @@ export interface Company {
   phone?: string; // [NEW]
   smtpConfig?: SmtpConfig; // [NEW] Per-company SMTP settings
   currentDocumentNumber?: number; // [NEW] Document Tracking
+  shortName?: string; // [NEW]
 }
 
 export interface Site {
