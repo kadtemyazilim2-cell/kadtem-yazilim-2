@@ -9,7 +9,7 @@ interface AuthState {
     login: (username: string, password?: string) => Promise<boolean>;
     logout: () => void;
     hasRole: (role: Role | Role[]) => boolean;
-    hasPermission: (module: string, level: 'VIEW' | 'CREATE' | 'EDIT') => boolean;
+    hasPermission: (module: string, level: 'VIEW' | 'CREATE' | 'EDIT' | 'EXPORT') => boolean;
     getAccessibleSites: (allSites: import('../types').Site[]) => import('../types').Site[]; // [NEW]
 }
 

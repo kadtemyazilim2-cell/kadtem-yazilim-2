@@ -789,7 +789,7 @@ export default function AdminPage() {
         setUserPermissions(newPerms);
     };
 
-    const toggleColumn = (colType: 'VIEW' | 'CREATE' | 'EDIT') => {
+    const toggleColumn = (colType: 'VIEW' | 'CREATE' | 'EDIT' | 'EXPORT') => {
         // 1. Flatten modules to get all IDs
         const allModuleIds: string[] = [];
         const collectModuleIds = (modules: any[]) => {
@@ -915,6 +915,7 @@ export default function AdminPage() {
         const hasView = perms.includes('VIEW');
         const hasCreate = perms.includes('CREATE');
         const hasEdit = perms.includes('EDIT');
+        const hasExport = perms.includes('EXPORT');
 
         const paddingLeft = depth * 24;
 
@@ -986,6 +987,26 @@ export default function AdminPage() {
                             >
                                 <Pencil className="w-3 h-3 mr-1" />
                                 Düzenle
+                            </Button>
+                        </div>
+                    </TableCell>
+                    {/* Export Button */}
+                    <TableCell className="text-center">
+                        <div className="flex justify-center">
+                            <Button
+                                type="button"
+                                variant={hasExport ? "default" : "outline"}
+                                size="sm"
+                                className={cn(
+                                    "h-8 w-24 text-xs font-semibold",
+                                    hasExport ? "bg-purple-600 hover:bg-purple-700" : "text-slate-500",
+                                    !hasView && "opacity-50 cursor-not-allowed"
+                                )}
+                                onClick={() => hasView && setPermission(module.id, 'EXPORT', hasExport ? 'REMOVE' : 'ADD')}
+                                disabled={!hasView}
+                            >
+                                <FileDown className="w-3 h-3 mr-1" />
+                                İndir
                             </Button>
                         </div>
                     </TableCell>
@@ -1233,6 +1254,17 @@ export default function AdminPage() {
                                                                                 className="font-bold flex items-center gap-1 mx-auto text-orange-700 hover:text-orange-800 hover:bg-orange-50"
                                                                             >
                                                                                 <Pencil className="w-3 h-3" /> Düzenle
+                                                                            </Button>
+                                                                        </TableHead>
+                                                                        <TableHead className="text-center">
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="sm"
+                                                                                onClick={() => toggleColumn('EXPORT')}
+                                                                                className="font-bold flex items-center gap-1 mx-auto text-purple-700 hover:text-purple-800 hover:bg-purple-50"
+                                                                            >
+                                                                                <FileDown className="w-3 h-3" /> İndirme
                                                                             </Button>
                                                                         </TableHead>
                                                                     </TableRow>

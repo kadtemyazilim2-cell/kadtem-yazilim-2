@@ -30,6 +30,7 @@ export function SiteLogList() {
 
     const canCreate = hasPermission('site-log', 'CREATE');
     const canEdit = hasPermission('site-log', 'EDIT');
+    const canExport = hasPermission('site-log', 'EXPORT');
 
     // Form State
     const [siteId, setSiteId] = useState('');
@@ -387,72 +388,78 @@ export function SiteLogList() {
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Şantiye Defteri Kayıtları</CardTitle>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => exportListPDF()} title="Listeyi PDF İndir">
-                            <FileText className="h-4 w-4 text-red-600 mr-2" />
-                            Liste PDF
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => exportExcel()} title="Listeyi Excel İndir">
-                            <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
-                            Liste Excel
-                        </Button>
-                        <Dialog open={open} onOpenChange={(val) => {
-                            if (!val) resetForm();
-                            setOpen(val);
-                        }}>
-                            {canCreate && (
-                                <DialogTrigger asChild>
-                                    <Button className="bg-blue-600 hover:bg-blue-700">
-                                        <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
-                                    </Button>
-                                </DialogTrigger>
-                            )}
-                            <DialogContent className="sm:max-w-[600px]">
-                                <DialogHeader>
-                                    <DialogTitle>{editingId ? 'Kaydı Düzenle' : 'Şantiye Defteri Girişi'}</DialogTitle>
-                                </DialogHeader>
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Şantiye</Label>
-                                            <Select value={siteId} onValueChange={setSiteId} required>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Seçiniz" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                        {canExport && (
+                            <>
+                                <Button variant="outline" size="sm" onClick={exportListPDF} disabled={isGeneratingPDF} title="Listeyi PDF İndir">
+                                    {isGeneratingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2 text-red-600" />}
+                                    Liste PDF
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={exportExcel} title="Listeyi Excel İndir">
+                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                    Liste Excel
+                                </Button>
+                            </>
+                        )}
+                        {canCreate && (
+                            <Dialog open={open} onOpenChange={(val) => {
+                                if (!val) resetForm();
+                                setOpen(val);
+                            }}>
+                                {canCreate && (
+                                    <DialogTrigger asChild>
+                                        <Button className="bg-blue-600 hover:bg-blue-700">
+                                            <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
+                                        </Button>
+                                    </DialogTrigger>
+                                )}
+                                <DialogContent className="sm:max-w-[600px]">
+                                    <DialogHeader>
+                                        <DialogTitle>{editingId ? 'Kaydı Düzenle' : 'Şantiye Defteri Girişi'}</DialogTitle>
+                                    </DialogHeader>
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Şantiye</Label>
+                                                <Select value={siteId} onValueChange={setSiteId} required>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Seçiniz" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Tarih</Label>
+                                                <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                            </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Tarih</Label>
-                                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                            <Label>Hava Durumu</Label>
+                                            <Input placeholder="Örn: Güneşli, 25°C" value={weather} onChange={e => setWeather(e.target.value)} />
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Hava Durumu</Label>
-                                        <Input placeholder="Örn: Güneşli, 25°C" value={weather} onChange={e => setWeather(e.target.value)} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Günlük Rapor / Notlar</Label>
-                                        <Textarea
-                                            className="h-32"
-                                            placeholder="Bugün yapılan işler, malzemeler, olaylar..."
-                                            value={content}
-                                            onChange={e => {
-                                                const val = e.target.value;
-                                                setContent(val.charAt(0).toUpperCase() + val.slice(1));
-                                            }}
-                                            required
-                                        />
-                                    </div>
-                                    <DialogFooter>
-                                        <Button type="submit">Kaydet</Button>
-                                    </DialogFooter>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
+                                        <div className="space-y-2">
+                                            <Label>Günlük Rapor / Notlar</Label>
+                                            <Textarea
+                                                className="h-32"
+                                                placeholder="Bugün yapılan işler, malzemeler, olaylar..."
+                                                value={content}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setContent(val.charAt(0).toUpperCase() + val.slice(1));
+                                                }}
+                                                required
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <Button type="submit">Kaydet</Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>

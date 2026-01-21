@@ -69,3 +69,32 @@ export async function getFuelTanks() {
         return { success: false, error: 'Depolar alınamadı.' };
     }
 }
+
+export async function createFuelTank(data: Partial<FuelTank>) {
+    try {
+        const tank = await prisma.fuelTank.create({
+            data: {
+                siteId: data.siteId!,
+                name: data.name!,
+                capacity: data.capacity!,
+                currentLevel: data.currentLevel || 0
+            }
+        });
+        revalidatePath('/dashboard/fuel');
+        return { success: true, data: tank };
+    } catch (error) {
+        console.error('createFuelTank Error:', error);
+        return { success: false, error: 'Depo oluşturulamadı.' };
+    }
+}
+
+export async function deleteFuelTank(id: string) {
+    try {
+        await prisma.fuelTank.delete({ where: { id } });
+        revalidatePath('/dashboard/fuel');
+        return { success: true };
+    } catch (error) {
+        console.error('deleteFuelTank Error:', error);
+        return { success: false, error: 'Depo silinemedi.' };
+    }
+}

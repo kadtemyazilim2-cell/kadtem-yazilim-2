@@ -91,6 +91,7 @@ export function CorrespondenceList() {
     const canEditContacts = hasPermission('correspondence.contacts', 'EDIT');
 
     const canViewDeleted = hasPermission('correspondence.deleted', 'VIEW');
+    const canExport = hasPermission('correspondence', 'EXPORT');
 
     // Default Tab Logic
     const getDefaultTab = () => {
@@ -851,14 +852,18 @@ export function CorrespondenceList() {
             </div>
 
             <div className="md:col-span-5 flex justify-end gap-2 mt-2">
-                <Button variant="outline" size="sm" onClick={exportListPDF} title="Listeyi PDF İndir">
-                    <FileText className="h-4 w-4 text-red-600 mr-2" />
-                    Listeyi Yazdır (PDF)
-                </Button>
-                <Button variant="outline" size="sm" onClick={exportExcel} title="Listeyi Excel İndir">
-                    <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
-                    Excel İndir
-                </Button>
+                {canExport && (
+                    <>
+                        <Button variant="outline" size="sm" onClick={exportListPDF} title="Listeyi PDF İndir">
+                            <FileText className="h-4 w-4 text-red-600 mr-2" />
+                            Listeyi Yazdır (PDF)
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={exportExcel} title="Listeyi Excel İndir">
+                            <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
+                            Excel İndir
+                        </Button>
+                    </>
+                )}
             </div>
 
 

@@ -317,7 +317,8 @@ export interface AppState {
   updateVehicle: (id: string, updates: Partial<Vehicle>) => void;
   deleteVehicle: (id: string) => void;
   addCorrespondence: (item: Correspondence) => void;
-  deleteCorrespondence: (id: string) => void;
+  deleteCorrespondence: (id: string, reason?: string, userId?: string) => void;
+  restoreCorrespondence: (id: string) => void; // [NEW]
   updateCorrespondence: (id: string, updates: Partial<Correspondence>) => void;
   addCashTransaction: (item: CashTransaction) => void;
   deleteCashTransaction: (id: string) => void;
@@ -338,6 +339,7 @@ export interface AppState {
   addFuelTank: (tank: FuelTank) => void;
   updateFuelTank: (id: string, updates: Partial<FuelTank>) => void;
   deleteFuelTank: (id: string) => void;
+  setFuelTanks: (tanks: FuelTank[]) => void; // [NEW]
   addFuelTransfer: (transfer: FuelTransfer) => void;
   deleteFuelTransfer: (id: string) => void;
   updateFuelTransfer: (id: string, updates: Partial<FuelTransfer>) => void;

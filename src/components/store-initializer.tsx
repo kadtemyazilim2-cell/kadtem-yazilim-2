@@ -12,6 +12,7 @@ export function StoreInitializer({
     users,
     correspondences,
     institutions,
+    fuelTanks, // [NEW]
     currentUser
 }: {
     companies: any[],
@@ -19,8 +20,9 @@ export function StoreInitializer({
     vehicles: any[],
     personnel: any[],
     users: any[],
-    correspondences: any[], // [NEW]
-    institutions: any[], // [NEW]
+    correspondences: any[],
+    institutions: any[],
+    fuelTanks: any[], // [NEW]
     currentUser?: any
 }) {
     const initialized = useRef(false);
@@ -33,8 +35,9 @@ export function StoreInitializer({
             vehicles,
             personnel,
             users,
-            correspondences, // [NEW]
-            institutions, // [NEW]
+            correspondences,
+            institutions,
+            fuelTanks, // [NEW]
         });
         initialized.current = true;
     }
@@ -47,10 +50,11 @@ export function StoreInitializer({
             vehicles,
             personnel,
             users,
-            correspondences, // [NEW]
-            institutions, // [NEW]
+            correspondences,
+            institutions,
+            fuelTanks, // [NEW]
         });
-    }, [companies, sites, vehicles, personnel, users, correspondences, institutions]);
+    }, [companies, sites, vehicles, personnel, users, correspondences, institutions, fuelTanks]);
 
     // Sync Auth State separately and reactively
     // Sync Auth State separately and reactively

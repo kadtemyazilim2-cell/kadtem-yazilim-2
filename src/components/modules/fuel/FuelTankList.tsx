@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Fuel, Trash2 } from 'lucide-react';
+import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel';
 
 export function FuelTankList() {
     const { fuelTanks, addFuelTank, deleteFuelTank, sites } = useAppStore();
@@ -19,7 +20,7 @@ export function FuelTankList() {
     const [currentLevel, setCurrentLevel] = useState(0);
     const [siteId, setSiteId] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         // Check if site already has a tank
@@ -29,23 +30,38 @@ export function FuelTankList() {
             return;
         }
 
-        addFuelTank({
-            id: crypto.randomUUID(),
+        const tankData = {
             siteId,
             name,
             capacity,
             currentLevel
-        });
-        setOpen(false);
-        setName('');
-        setCapacity(0);
-        setCurrentLevel(0);
-        setSiteId(''); // Reset site selection too
+        };
+
+        const result = await createFuelTank(tankData);
+
+        if (result.success && result.data) {
+            addFuelTank({
+                ...result.data,
+                currentLevel: result.data.currentLevel || 0
+            });
+            setOpen(false);
+            setName('');
+            setCapacity(0);
+            setCurrentLevel(0);
+            setSiteId(''); // Reset site selection too
+        } else {
+            alert('Depo oluşturulamadı: ' + (result.error || 'Bilinmeyen hata'));
+        }
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Bu depoyu silmek istediğinize emin misiniz?')) {
-            deleteFuelTank(id);
+            const result = await deleteFuelTankAction(id);
+            if (result.success) {
+                deleteFuelTank(id);
+            } else {
+                alert('Depo silinemedi.');
+            }
         }
     };
 

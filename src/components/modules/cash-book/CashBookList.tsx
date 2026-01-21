@@ -23,7 +23,7 @@ import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO
 
 export function CashBookList() {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     const [selectedSiteId, setSelectedSiteId] = useState<string>('all'); // [NEW]
     const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
@@ -71,7 +71,7 @@ export function CashBookList() {
     const getUserName = (id?: string) => users.find((u: any) => u.id === id)?.name || '-';
 
     // Permission check for Reports & Date Filtering
-    const canExport = user?.role === 'ADMIN' || user?.permissions?.['cash-book.reports']?.includes('VIEW') || user?.permissions?.['cash-book.reports']?.includes('EDIT');
+    const canExport = hasPermission('cash-book', 'EXPORT');
 
     const filteredTransactions = useMemo(() => {
         let result = [...cashTransactions];

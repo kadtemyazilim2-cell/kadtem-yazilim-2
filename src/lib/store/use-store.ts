@@ -98,17 +98,21 @@ export const useAppStore = create<AppState>()(
                 const log = state.fuelLogs.find(l => l.id === id);
                 if (!log) return {};
 
+                // Revert tank changes
                 let newTanks = state.fuelTanks;
                 if (log.tankId) {
-                    // Revert tank level (Add back)
-                    newTanks = state.fuelTanks.map(t => t.id === log.tankId ? { ...t, currentLevel: t.currentLevel + log.liters } : t);
+                    // Add back the liters
+                    newTanks = newTanks.map(t => t.id === log.tankId ? { ...t, currentLevel: t.currentLevel + log.liters } : t);
                 }
 
                 return {
-                    fuelLogs: state.fuelLogs.filter(l => l.id !== id),
+                    fuelLogs: state.fuelLogs.filter((l) => l.id !== id),
                     fuelTanks: newTanks
                 };
             }),
+            setFuelTanks: (tanks) => set({ fuelTanks: tanks }),
+
+
             addCashTransaction: (transaction) => set((state) => ({ cashTransactions: [transaction, ...state.cashTransactions] })),
             deleteCashTransaction: (id) => set((state) => ({ cashTransactions: state.cashTransactions.filter(t => t.id !== id) })),
             addPersonnel: (person) => set((state) => ({ personnel: [person, ...state.personnel] })),

@@ -56,7 +56,8 @@ export function VehicleList() {
     const canEditInsurance = hasPermission('vehicles.insurance', 'EDIT');
 
     // 3. General Edit (Araç Ekle/Düzenle/Sil)
-    const canEditVehicles = hasPermission('vehicles.list', 'EDIT');
+    const canEdit = hasPermission('vehicles', 'EDIT');
+    const canExport = hasPermission('vehicles', 'EXPORT');
 
     // 4. Creation Permissions
     const canCreateOwned = hasPermission('vehicles.owned-create', 'CREATE');
@@ -548,14 +549,16 @@ export function VehicleList() {
                             </div>
 
                             {/* Export Buttons */}
-                            <Button variant="outline" onClick={exportPDF} title="PDF İndir">
-                                <FileText className="h-4 w-4 text-red-600 mr-2" />
-                                PDF
-                            </Button>
-                            <Button variant="outline" onClick={exportExcel} title="Excel İndir">
-                                <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
-                                Excel
-                            </Button>
+                            {canExport && (
+                                <>
+                                    <Button variant="outline" size="sm" onClick={exportPDF} title="PDF İndir">
+                                        <FileText className="h-4 w-4 text-red-600 mr-2" /> PDF Listesi
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={exportExcel} title="Excel İndir">
+                                        <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" /> Excel Listesi
+                                    </Button>
+                                </>
+                            )}
 
                             {/* Filter Toggle Button */}
                             <Button
@@ -1095,20 +1098,26 @@ export function VehicleList() {
                                                         variant="ghost"
                                                         size="sm"
                                                         className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                        onClick={() => {
-                                                            if (confirm('Bu aracı kiralık listesinden çıkarmak istediğinize emin misiniz? Araç "Öz Mal" olarak işaretlenecektir.')) {
-                                                                updateVehicle(vehicle.id, {
-                                                                    ownership: 'OWNED',
-                                                                    rentalCompanyName: '',
-                                                                    monthlyRentalFee: 0,
-                                                                    rentalLastUpdate: new Date().toISOString()
-                                                                });
-                                                            }
-                                                        }}
-                                                        title="Listeden Çıkar"
-                                                    >
-                                                        <Trash2 className="w-3 h-3 mr-1" /> Sil
-                                                    </Button>
+                                                        {canEdit && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={() => {
+                                                                    if (confirm('Bu aracı kiralık listesinden çıkarmak istediğinize emin misiniz? Araç "Öz Mal" olarak işaretlenecektir.')) {
+                                                                        updateVehicle(vehicle.id, {
+                                                                            ownership: 'OWNED',
+                                                                            rentalCompanyName: '',
+                                                                            monthlyRentalFee: 0,
+                                                                            rentalLastUpdate: new Date().toISOString()
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                title="Listeden Çıkar"
+                                                            >
+                                                                <Trash2 className="w-3 h-3 mr-1" /> Sil
+                                                            </Button>
+                                                        )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
