@@ -268,7 +268,7 @@ export default function AdminPage() {
 
 
 
-    const handleDeleteCompany = (id: string, name: string) => {
+    const handleDeleteCompany = async (id: string, name: string) => {
         // Check for dependencies (Sites)
         const linkedSites = sites.filter((s: any) => s.companyId === id);
         if (linkedSites.length > 0) {
@@ -277,7 +277,18 @@ export default function AdminPage() {
         }
 
         if (confirm(`"${name}" firmasını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.`)) {
-            deleteCompany(id);
+            try {
+                const res = await deleteCompanyAction(id);
+                if (res.success) {
+                    deleteCompany(id); // Update Local Store
+                    toast.success('Firma başarıyla silindi.');
+                } else {
+                    toast.error(res.error || 'Silme işlemi başarısız.');
+                }
+            } catch (error) {
+                console.error(error);
+                toast.error('Bir hata oluştu.');
+            }
         }
     }; // [NEW]
     const [companyName, setCompanyName] = useState('');
