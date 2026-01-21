@@ -28,14 +28,20 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     const companyName = company?.name || '-';
     const normalizedName = companyName.toLocaleLowerCase('tr');
 
-    let logoToUse = company?.letterhead || company?.logoUrl;
+    let logoToUse = null;
 
-    if (!logoToUse) {
-        if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
-            logoToUse = IKIKAT_LOGO_BASE64;
-        } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
-            logoToUse = KADTEM_LOGO_BASE64;
-        }
+    // [FIX] Priority: Specific hardcoded logos (Text Headers) for known companies
+    // User reported dynamic logos (Red/Blue IKIKAT) are "wrong", prefers the Text Header style (Preview).
+    // Preview likely used fallback because dynamic logo failed to load.
+    // We enforce the fallback for these specific companies.
+
+    if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
+        logoToUse = IKIKAT_LOGO_BASE64;
+    } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
+        logoToUse = KADTEM_LOGO_BASE64;
+    } else {
+        // Fallback to dynamic logo for others
+        logoToUse = company?.letterhead || company?.logoUrl;
     }
 
     if (logoToUse) {
