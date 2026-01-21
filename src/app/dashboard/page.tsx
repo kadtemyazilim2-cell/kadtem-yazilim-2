@@ -15,11 +15,53 @@ import { useMemo, useState } from 'react';
 import { InsuranceProposalDialog } from '@/components/modules/dashboard/InsuranceProposalDialog';
 import { cn } from '@/lib/utils';
 
+import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // Ensure these are imported
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+
 export default function DashboardPage() {
-    const { companies, vehicles, correspondences, yiUfeRates, cashTransactions, personnel, fuelLogs, fuelTransfers, sites, fuelTanks, siteLogEntries } = useAppStore();
+    const { companies, vehicles, correspondences, yiUfeRates, cashTransactions, personnel, fuelLogs, fuelTransfers, sites, fuelTanks, siteLogEntries, updateVehicle: updateVehicleStore } = useAppStore();
     const userSites = useUserSites();
     const { user, hasPermission } = useAuth(); // To check if admin for other things if needed
     const router = useRouter();
+
+    // Inspection Dialog State
+    const [inspectionModalOpen, setInspectionModalOpen] = useState(false);
+    const [selectedInspection, setSelectedInspection] = useState<any>(null);
+    const [inspectionDate, setInspectionDate] = useState('');
+
+    const handleAlertClick = (item: any) => {
+        if (item.type === 'Muayene') {
+            setSelectedInspection(item);
+            setInspectionDate(item.date ? item.date.split('T')[0] : '');
+            setInspectionModalOpen(true);
+        } else {
+            setSelectedAlertForMail(item);
+        }
+    };
+
+    const handleSaveInspectionDate = async () => {
+        if (!selectedInspection || !inspectionDate) return;
+
+        try {
+            const res = await updateVehicleAction(selectedInspection.vehicleId, {
+                inspectionExpiry: new Date(inspectionDate).toISOString()
+            });
+
+            if (res.success) {
+                toast.success('Muayene tarihi güncellendi.');
+                updateVehicleStore(selectedInspection.vehicleId, { inspectionExpiry: new Date(inspectionDate).toISOString() });
+                setInspectionModalOpen(false);
+            } else {
+                toast.error(res.error || 'Güncelleme başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Bir hata oluştu.');
+        }
+    };
 
     // ... (rest of code)
 
@@ -376,8 +418,8 @@ export default function DashboardPage() {
                                     <div
                                         key={item.id}
                                         className="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-100 cursor-pointer transition-colors border border-transparent hover:border-slate-200"
-                                        onClick={() => setSelectedAlertForMail(item)}
-                                        title="Acenteye Mail Gönder"
+                                        onClick={() => handleAlertClick(item)}
+                                        title={item.type === 'Muayene' ? "Tarihi Güncelle" : "Acenteye Mail Gönder"}
                                     >
                                         <div className="flex flex-col">
                                             <span className="font-bold font-mono text-slate-800">{item.plate}</span>
@@ -576,6 +618,33 @@ export default function DashboardPage() {
                 onOpenChange={(v) => !v && setSelectedAlertForMail(null)}
                 item={selectedAlertForMail}
             />
+
+            {/* Inspection Update Dialog */}
+            <Dialog open={inspectionModalOpen} onOpenChange={setInspectionModalOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Muayene Tarihi Güncelle</DialogTitle>
+                        <DialogDescription>
+                            <span className="font-semibold text-slate-900">{selectedInspection?.plate}</span> aracı için yeni muayene tarihini giriniz.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="inspection-date">Yeni Muayene Bitiş Tarihi</Label>
+                            <Input
+                                id="inspection-date"
+                                type="date"
+                                value={inspectionDate}
+                                onChange={(e) => setInspectionDate(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setInspectionModalOpen(false)}>İptal</Button>
+                        <Button onClick={handleSaveInspectionDate} disabled={!inspectionDate}>Kaydet</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }
