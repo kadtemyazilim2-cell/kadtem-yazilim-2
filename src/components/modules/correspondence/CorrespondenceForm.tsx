@@ -29,13 +29,21 @@ interface CorrespondenceFormProps {
     initialType?: 'OFFICIAL' | 'INTERNAL' | 'BANK' | 'OTHER';
     initialDirection?: 'INCOMING' | 'OUTGOING';
     initialData?: Correspondence;
+    isCopy?: boolean;
+    open?: boolean; // [NEW] External Control
+    onOpenChange?: (open: boolean) => void; // [NEW] External Control
 }
 
-export function CorrespondenceForm({ customTrigger, initialType, initialDirection, initialData }: CorrespondenceFormProps) {
-    const [open, setOpen] = useState(false);
+export function CorrespondenceForm({ customTrigger, initialType, initialDirection, initialData, isCopy = false, open, onOpenChange }: CorrespondenceFormProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+
+    // Use external control if provided, otherwise internal
+    const isOpen = open !== undefined ? open : internalOpen;
+    const setIsOpen = onOpenChange || setInternalOpen;
+
     // Use store ONLY for reading lists
     const { companies, institutions, users, sites, addInstitution, addCorrespondence, updateCorrespondence: updateLocalCorrespondence } = useAppStore();
-    const router = useRouter(); // [NEW]
+    const router = useRouter();
     const { user, hasPermission } = useAuth();
 
     // Permissions
@@ -50,7 +58,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     const getCurrentPermission = () => {
         const type = formData.type || initialType;
         const direction = formData.direction || initialDirection;
-        const isEdit = !!initialData;
+        const isEdit = !!initialData && !isCopy;
 
         if (type === 'BANK') return isEdit ? canEditBank : canCreateBank;
         if (direction === 'INCOMING') return isEdit ? canEditIncoming : canCreateIncoming;
@@ -61,24 +69,26 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     const [formData, setFormData] = useState({
         companyId: initialData?.companyId || '',
         siteId: initialData?.siteId || '',
-        date: initialData?.date?.split('T')[0] || format(new Date(), "yyyy-MM-dd"), // Date only for input
+        // If Copy, set Date to TODAY. Else Initial Date or Today.
+        date: (initialData && !isCopy) ? (initialData.date?.split('T')[0] || format(new Date(), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
         direction: initialData?.direction || initialDirection || 'OUTGOING',
         type: initialData?.type || initialType || 'OFFICIAL',
         subject: initialData?.subject || '',
         description: initialData?.description || '',
-        referenceNumber: initialData?.referenceNumber || '',
+        // If Copy, clear Numbers.
+        referenceNumber: (initialData && !isCopy) ? initialData.referenceNumber : '',
         senderReceiver: initialData?.senderReceiver || '',
         senderReceiverAlignment: initialData?.senderReceiverAlignment || 'center',
         interest: initialData?.interest || [] as string[],
         appendices: initialData?.appendices || [] as string[],
-        registrationNumber: initialData?.registrationNumber || '',
+        registrationNumber: (initialData && !isCopy) ? initialData.registrationNumber : '',
         attachmentUrls: initialData?.attachmentUrls || [] as string[],
         includeStamp: initialData?.includeStamp || false, // [NEW]
     });
 
     // [NEW] Auto-Generate Reference Number
     useEffect(() => {
-        if (initialData) return; // Don't auto-change on edit
+        if (initialData && !isCopy) return; // Don't auto-change on edit (but allow on Copy)
         if (formData.direction !== 'OUTGOING') return;
         if (!formData.companyId || !formData.senderReceiver) return;
 
@@ -115,7 +125,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             setFormData(prev => ({ ...prev, referenceNumber: newRef }));
         }
 
-    }, [formData.companyId, formData.senderReceiver, formData.date, formData.direction, companies, institutions, initialData]);
+    }, [formData.companyId, formData.senderReceiver, formData.date, formData.direction, companies, institutions, initialData, isCopy]);
 
     const [filteredInstitutions, setFilteredInstitutions] = useState<typeof institutions>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -258,13 +268,19 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             }
         }
 
+        // [FIX] Correct Date Time Construction
+        const now = new Date();
+        const [y, m, d] = formData.date.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+        const dateStr = format(dateObj, "yyyy-MM-dd'T'HH:mm:ss");
+
         const payload = {
             companyId: formData.companyId,
             siteId: formData.siteId === 'none' ? undefined : formData.siteId, // Handle "No Selection"
             direction: formData.direction as 'INCOMING' | 'OUTGOING',
             type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
             senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
-            date: `${formData.date}T${format(new Date(), 'HH:mm')}`,
+            date: dateStr,
             // Ensure description is not empty if hidden (Incoming)
             description: formData.description || '-',
             // [FIX] Added missing fields
@@ -279,11 +295,11 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         };
 
         try {
-            if (initialData) {
+            if (initialData && !isCopy) {
                 const result = await updateCorrespondence(initialData.id, payload);
                 if (result.success) {
                     toast.success("Yazışma güncellendi.");
-                    setOpen(false);
+                    setIsOpen(false);
                 } else {
                     toast.error(result.error);
                 }
@@ -291,29 +307,31 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                 const result = await createCorrespondence({
                     ...payload,
                     createdByUserId: user.id
-                } as any); // Cast because createCorrespondence expect exact types but payload might have loose types
+                } as any);
 
                 if (result.success) {
-                    toast.success("Yazışma eklendi.");
-                    setOpen(false);
-                    // Reset
-                    setFormData({
-                        companyId: '',
-                        siteId: '',
-                        date: format(new Date(), "yyyy-MM-dd"),
-                        direction: initialDirection || 'OUTGOING',
-                        type: initialType || 'OFFICIAL',
-                        subject: '',
-                        description: '',
-                        referenceNumber: '',
-                        registrationNumber: '',
-                        senderReceiver: '',
-                        senderReceiverAlignment: 'center',
-                        interest: [],
-                        appendices: [],
-                        attachmentUrls: [],
-                        includeStamp: false, // [NEW]
-                    });
+                    toast.success(isCopy ? "Yazışma kopyalandı." : "Yazışma eklendi.");
+                    setIsOpen(false);
+                    // Reset ...
+                    if (!isCopy) { // Only reset if not copy (copy usually closes modal anyway)
+                        setFormData({
+                            companyId: '',
+                            siteId: '',
+                            date: format(new Date(), "yyyy-MM-dd"),
+                            direction: initialDirection || 'OUTGOING',
+                            type: initialType || 'OFFICIAL',
+                            subject: '',
+                            description: '',
+                            referenceNumber: '',
+                            registrationNumber: '',
+                            senderReceiver: '',
+                            senderReceiverAlignment: 'center',
+                            interest: [],
+                            appendices: [],
+                            attachmentUrls: [],
+                            includeStamp: false,
+                        });
+                    }
                 } else {
                     toast.error(result.error);
                 }
