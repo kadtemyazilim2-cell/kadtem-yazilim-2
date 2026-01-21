@@ -1077,7 +1077,7 @@ export default function AdminPage() {
                                                 <div className="border rounded-md p-4 space-y-3">
                                                     <Label>Atanan Şantiyeler</Label>
                                                     <div className="grid grid-cols-1 gap-2">
-                                                        {sites.map((site: any) => (
+                                                        {sites.filter((s: any) => s.status !== 'INACTIVE').map((site: any) => (
                                                             <div key={site.id} className="flex items-center space-x-2">
                                                                 <Checkbox
                                                                     id={`site-${site.id}`}
@@ -2124,34 +2124,6 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex justify-between items-center mt-4 px-1">
-                                <div className="text-sm font-medium text-slate-800">
-                                    {(() => {
-                                        const sorted = [...yiUfeRates].sort((a, b) => {
-                                            if (a.year !== b.year) return b.year - a.year;
-                                            return b.month - a.month;
-                                        });
-                                        const latest = sorted[0];
-                                        if (latest) {
-                                            return `Son Açıklanan Yi-ÜFE: ${latest.index} (${latest.month}/${latest.year})`;
-                                        }
-                                        return null;
-                                    })()}
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-orange-600 hover:text-orange-700 border-orange-200 hover:bg-orange-50"
-                                    onClick={async () => {
-                                        if (confirm('Geçici kabul tarihi girilmiş ancak durumu Aktif olan tüm işler Pasif (Tamamlandı) durumuna getirilecektir. Onaylıyor musunuz?')) {
-                                            await import('@/actions/site').then(mod => mod.fixSiteStatuses());
-                                            router.refresh();
-                                        }
-                                    }}
-                                >
-                                    Geçici Kabulü Yapılanları Pasife Çek
-                                </Button>
-                            </div>
                         </CardHeader>
                         <CardContent className="px-0 py-0">
                             <div className="border rounded-md overflow-auto max-h-[calc(100vh-200px)] w-full">
@@ -2503,7 +2475,7 @@ export default function AdminPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-        </div>
+        </div >
     );
 }
 

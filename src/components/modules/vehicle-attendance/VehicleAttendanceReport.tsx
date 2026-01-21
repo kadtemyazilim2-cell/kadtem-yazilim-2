@@ -153,6 +153,7 @@ export function VehicleAttendanceReport() {
 
             // Site Name
             const site = sites.find((s: any) => s.id === sId);
+            if (!site || site.status === 'INACTIVE') return; // [MOD] Filter Passive Sites
             const siteName = site?.name || 'Bilinmeyen Şantiye';
 
             // Company Name

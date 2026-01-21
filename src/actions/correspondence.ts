@@ -7,6 +7,23 @@ import { auth } from '@/auth';
 
 export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'createdAt' | 'updatedAt'>) {
     try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        // Permission Check
+        const user = session.user;
+        if (user.role !== 'ADMIN') {
+            let requiredModule = '';
+            if (data.type === 'BANK') requiredModule = 'correspondence.bank';
+            else if (data.direction === 'INCOMING') requiredModule = 'correspondence.incoming';
+            else requiredModule = 'correspondence.outgoing';
+
+            const perms = user.permissions?.[requiredModule] || [];
+            if (!perms.includes('CREATE')) {
+                return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+            }
+        }
+
         const correspondence = await prisma.correspondence.create({
             data: {
                 companyId: data.companyId,
@@ -37,6 +54,41 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
 
 export async function updateCorrespondence(id: string, data: Partial<Correspondence>) {
     try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        // 1. Fetch existing to determine module
+        const existing = await prisma.correspondence.findUnique({ where: { id } });
+        if (!existing) return { success: false, error: 'Kayıt bulunamadı.' };
+
+        // Permission Check
+        const user = session.user;
+        if (user.role !== 'ADMIN') {
+            let requiredModule = '';
+            // Use existing data to verify type/direction
+            if (existing.type === 'BANK') requiredModule = 'correspondence.bank';
+            else if (existing.direction === 'INCOMING') requiredModule = 'correspondence.incoming';
+            else requiredModule = 'correspondence.outgoing';
+
+            const perms = user.permissions?.[requiredModule] || [];
+            if (!perms.includes('EDIT')) {
+                return { success: false, error: 'Bu işlem için düzenleme yetkiniz bulunmamaktadır.' };
+            }
+
+            // Date Restriction Check (Backend Enforcement)
+            if (user.editLookbackDays !== undefined) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const target = new Date(existing.date);
+                target.setHours(0, 0, 0, 0);
+                const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
+
+                if (diff > user.editLookbackDays) {
+                    return { success: false, error: `Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.` };
+                }
+            }
+        }
+
         const payload: any = { ...data };
         if (payload.date) payload.date = new Date(payload.date);
 
@@ -54,6 +106,45 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
 
 export async function deleteCorrespondence(id: string) {
     try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        // 1. Fetch existing
+        const existing = await prisma.correspondence.findUnique({ where: { id } });
+        if (!existing) return { success: false, error: 'Kayıt bulunamadı.' };
+
+        // Permission Check
+        const user = session.user;
+        if (user.role !== 'ADMIN') {
+            let requiredModule = '';
+            if (existing.type === 'BANK') requiredModule = 'correspondence.bank';
+            else if (existing.direction === 'INCOMING') requiredModule = 'correspondence.incoming';
+            else requiredModule = 'correspondence.outgoing';
+
+            const perms = user.permissions?.[requiredModule] || [];
+            if (!perms.includes('EDIT')) { // Using EDIT as proxy for Delete per user request
+                return { success: false, error: 'Bu işlem için silme yetkiniz bulunmamaktadır.' };
+            }
+
+            // Date Restriction Check (Backend Enforcement)
+            if (user.editLookbackDays !== undefined) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const target = new Date(existing.date);
+                target.setHours(0, 0, 0, 0);
+                const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
+
+                if (diff > user.editLookbackDays) {
+                    return { success: false, error: `Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.` };
+                }
+            }
+
+            // Outgoing with Reg No - Admin Only
+            if (existing.direction === 'OUTGOING' && existing.registrationNumber) {
+                return { success: false, error: 'Evrak kayıt numarası girilmiş giden evrakları silemezsiniz.' };
+            }
+        }
+
         await prisma.correspondence.delete({
             where: { id }
         });

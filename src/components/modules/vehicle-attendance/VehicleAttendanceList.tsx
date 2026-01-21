@@ -27,8 +27,9 @@ import { useEffect } from 'react';
 
 export function VehicleAttendanceList() {
     const { vehicles, vehicleAttendance, addVehicleAttendance, deleteVehicleAttendance, fuelLogs } = useAppStore();
-    const sites = useUserSites();
-    const { user, hasPermission } = useAuth(); // [NEW]
+    const rawSites = useUserSites();
+    const sites = rawSites.filter((s: any) => s.status !== 'INACTIVE');
+    const { hasPermission, user } = useAuth(); // [NEW]
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedSiteId, setSelectedSiteId] = useState('');
 

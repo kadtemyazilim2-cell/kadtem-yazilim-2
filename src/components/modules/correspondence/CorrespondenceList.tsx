@@ -83,10 +83,8 @@ export function CorrespondenceList() {
     const canEditBank = hasPermission('correspondence.bank', 'EDIT');
 
     const canViewContacts = hasPermission('correspondence.contacts', 'VIEW');
-    // Contacts usually don't have separate Create/Edit but let's assume if you can VIEW, you might be able to CREATE if you have global CREATE or just implicit. 
-    // Actually, let's use Create/Edit for Contacts too if defined. If not, default to View.
-    // For now, let's assume Contacts management is part of general correspondence creation or needs its own check.
-    // Let's stick to View for tab visibility.
+    const canCreateContacts = hasPermission('correspondence.contacts', 'CREATE');
+    const canEditContacts = hasPermission('correspondence.contacts', 'EDIT');
 
     const canViewDeleted = hasPermission('correspondence.deleted', 'VIEW');
 
@@ -863,9 +861,11 @@ export function CorrespondenceList() {
         return (
             <div className="space-y-4">
                 <div className="flex justify-end">
-                    <Button onClick={() => openAddressModal()} className="bg-purple-600 hover:bg-purple-700">
-                        <Plus className="w-4 h-4 mr-2" /> Yeni Muhatap Ekle
-                    </Button>
+                    {(user?.role === 'ADMIN' || canCreateContacts) && (
+                        <Button onClick={() => openAddressModal()} className="bg-purple-600 hover:bg-purple-700">
+                            <Plus className="w-4 h-4 mr-2" /> Yeni Muhatap Ekle
+                        </Button>
+                    )}
                 </div>
                 {institutions.length === 0 ? (
                     <div className="text-center py-10 text-slate-500">
@@ -899,16 +899,18 @@ export function CorrespondenceList() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
-                                                <Edit className="w-4 h-4 text-blue-600" />
-                                            </Button>
-                                            <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
-                                                if (confirm('Silmek istediğinize emin misiniz?')) deleteInstitution(inst.id);
-                                            }}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
+                                        {(user?.role === 'ADMIN' || canEditContacts) && (
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
+                                                    <Edit className="w-4 h-4 text-blue-600" />
+                                                </Button>
+                                                <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
+                                                    if (confirm('Silmek istediğinize emin misiniz?')) deleteInstitution(inst.id);
+                                                }}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

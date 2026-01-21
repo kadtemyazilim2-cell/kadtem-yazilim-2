@@ -18,7 +18,9 @@ import { useUserSites } from '@/hooks/use-user-access';
 export default function FuelMovementPage() {
     const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
     const { hasPermission, user } = useAuth();
-    const availableSites = useUserSites(); // [NEW]
+    const { hasPermission, user } = useAuth();
+    const rawAvailableSites = useUserSites();
+    const availableSites = rawAvailableSites.filter((s: any) => s.status !== 'INACTIVE'); // [MOD] Filter Passive Sites
 
     // Filter Tanks based on available sites
     const accessibleTanks = fuelTanks.filter((t: any) => availableSites.some((s: any) => s.id === t.siteId));
