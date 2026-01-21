@@ -150,6 +150,83 @@ async function main() {
         })
     }
 
+    // 7. Insurance Companies
+    const INSURANCE_COMPANIES = [
+        "AK SİGORTA",
+        "ALLIANZ SİGORTA",
+        "ANADOLU SİGORTA",
+        "ANKARA SİGORTA",
+        "AXA SİGORTA",
+        "BEREKET SİGORTA",
+        "DOĞA SİGORTA",
+        "EMAA SİGORTA",
+        "HDI SİGORTA",
+        "HEPİYİ SİGORTA",
+        "MAGDEBURGER SİGORTA",
+        "NEOVA SİGORTA",
+        "QUICK SİGORTA",
+        "RAY SİGORTA",
+        "SOMPO JAPON SİGORTA",
+        "TÜRK NİPPON",
+        "TÜRKİYE KATILIM SİGORTA",
+        "TÜRKİYE SİGORTA",
+        "UNICO SİGORTA"
+    ];
+
+    for (const name of INSURANCE_COMPANIES) {
+        const exists = await prisma.institution.findFirst({
+            where: { name, category: 'INSURANCE_COMPANY' }
+        });
+        if (!exists) {
+            await prisma.institution.create({
+                data: {
+                    name,
+                    category: 'INSURANCE_COMPANY'
+                }
+            });
+        }
+    }
+
+    // 8. Insurance Agencies
+    const INSURANCE_AGENCIES = [
+        "ADİN ULUĞ",
+        "ARMANTE SİGORTA",
+        "AYKUT GÖLPINAR",
+        "CANTAŞ SİGORTA",
+        "CEMAL ŞEN",
+        "EMİN KATILIM SİGORTA",
+        "HAKAN ÖZDEMİR",
+        "HARUN GÜN",
+        "HİDAY SİGORTA (TAŞIT)",
+        "İSA ANTEPLİ",
+        "İŞ BANKASI",
+        "KASIM GAZİ DIRICAN",
+        "KESKİNLER SİGORTA",
+        "MELİH EKİNCİ",
+        "MURAT AKMAN",
+        "NİKA SİGORTA",
+        "ÖMER FARUK ÖZDEMİR",
+        "SELİN ARSLAN (İSTANBUL)",
+        "SİGORTAM ÇANAKKALE",
+        "ŞAHİN KARAKILINÇ",
+        "YİĞİT SİGORTA",
+        "ZİRAAT KATILIM BANKASI"
+    ];
+
+    for (const name of INSURANCE_AGENCIES) {
+        const exists = await prisma.institution.findFirst({
+            where: { name, category: 'INSURANCE_AGENCY' }
+        });
+        if (!exists) {
+            await prisma.institution.create({
+                data: {
+                    name,
+                    category: 'INSURANCE_AGENCY'
+                }
+            });
+        }
+    }
+
     console.log('Seeding finished.')
 }
 
