@@ -940,7 +940,6 @@ export function CorrespondenceList() {
                             <TableRow>
                                 <TableHead>Muhatap Adı</TableHead>
                                 <TableHead>Kategori</TableHead>
-                                <TableHead>Hizalama</TableHead>
                                 <TableHead className="w-[100px]">İşlemler</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -950,16 +949,6 @@ export function CorrespondenceList() {
                                     <TableCell className="max-w-[400px] truncate" title={inst.name}>{inst.name}</TableCell>
                                     <TableCell>
                                         <Badge variant="outline">{inst.category === 'BANK' ? 'Banka' : 'Kurum/Şahıs'}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            {inst.alignment === 'left' && <AlignLeft className="w-4 h-4" />}
-                                            {inst.alignment === 'center' && <AlignCenter className="w-4 h-4" />}
-                                            {inst.alignment === 'right' && <AlignRight className="w-4 h-4" />}
-                                            <span className="text-xs text-muted-foreground capitalize">
-                                                {inst.alignment === 'center' ? 'Orta' : inst.alignment === 'right' ? 'Sağ' : 'Sol'}
-                                            </span>
-                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         {(user?.role === 'ADMIN' || canEditContacts) && (
