@@ -30,7 +30,7 @@ interface VehicleFormData {
     brand: string;
     model: string;
     year?: number;
-    type: 'CAR' | 'TRUCK' | 'LORRY' | 'EXCAVATOR' | 'TRACTOR' | 'OTHER';
+    type: 'CAR' | 'TRUCK' | 'LORRY' | 'EXCAVATOR' | 'TRACTOR' | 'MOTORCYCLE' | 'OTHER';
     ownership: 'OWNED' | 'RENTAL';
     meterType: 'KM' | 'HOURS';
     currentKm: number;
@@ -422,6 +422,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                     <SelectItem value="LORRY">Tır</SelectItem>
                                     <SelectItem value="EXCAVATOR">İş Makinesi</SelectItem>
                                     <SelectItem value="TRACTOR">Traktör</SelectItem>
+                                    <SelectItem value="MOTORCYCLE">Motosiklet</SelectItem>
                                     <SelectItem value="OTHER">Diğer</SelectItem>
                                 </SelectContent>
                             </Select>

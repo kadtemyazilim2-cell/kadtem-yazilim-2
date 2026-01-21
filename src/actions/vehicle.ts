@@ -69,7 +69,37 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
         const vehicle = await prisma.vehicle.update({
             where: { id },
             data: {
-                ...data
+                plate: data.plate,
+                brand: data.brand,
+                model: data.model,
+                year: data.year,
+                type: data.type,
+                ownership: data.ownership,
+                status: data.status,
+                meterType: data.meterType,
+                currentKm: data.currentKm,
+
+                insuranceExpiry: data.insuranceExpiry,
+                kaskoExpiry: data.kaskoExpiry,
+                inspectionExpiry: data.inspectionExpiry,
+                lastInspectionDate: data.lastInspectionDate,
+
+                insuranceCost: data.insuranceCost,
+                kaskoCost: data.kaskoCost,
+                insuranceAgency: data.insuranceAgency,
+                kaskoAgency: data.kaskoAgency, // Ensure these schema fields are mapped if they exist in Partial<Vehicle>
+
+                assignedSiteId: data.assignedSiteId,
+                companyId: data.companyId,
+
+                rentalCompanyName: data.rentalCompanyName,
+                rentalContact: data.rentalContact,
+                monthlyRentalFee: data.monthlyRentalFee,
+
+                engineNumber: data.engineNumber,
+                chassisNumber: data.chassisNumber,
+                fuelType: data.fuelType,
+                licenseFile: data.licenseFile
             }
         });
         revalidatePath('/dashboard/vehicles');

@@ -155,6 +155,7 @@ enum VehicleType {
   CAR
   EXCAVATOR
   TRACTOR
+  MOTORCYCLE
   OTHER
 }
 
