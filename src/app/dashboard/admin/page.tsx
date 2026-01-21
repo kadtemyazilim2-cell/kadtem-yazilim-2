@@ -472,6 +472,12 @@ export default function AdminPage() {
 
     const handleAddCompany = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('handleAddCompany tetiklendi. Veriler:', { companyName, companyTaxNumber, isEditingCompany, selectedCompanyId });
+
+        if (!companyName.trim()) {
+            toast.error('Firma adı zorunludur.');
+            return;
+        }
 
         const companyData = {
             name: companyName,
@@ -490,32 +496,39 @@ export default function AdminPage() {
 
         try {
             if (isEditingCompany && selectedCompanyId) {
+                console.log('Güncelleme işlemi başlatılıyor...', companyData);
                 const result = await updateCompanyAction(selectedCompanyId, companyData);
+                console.log('Güncelleme sonucu:', result);
+
                 if (result.success && result.data) {
                     updateCompany(selectedCompanyId, result.data as any); // Update Local Store
                     toast.success('Firma başarıyla güncellendi.');
+                    setCompanyModalOpen(false);
+                    resetCompanyForm();
                 } else {
+                    console.error('Güncelleme hatası:', result.error);
                     toast.error(result.error || 'Güncelleme başarısız.');
-                    return;
                 }
             } else {
+                console.log('Ekleme işlemi başlatılıyor...', companyData);
                 const result = await createCompany(companyData);
+                console.log('Ekleme sonucu:', result);
+
                 if (result.success && result.data) {
                     addCompany(result.data as any); // Update Local Store
                     toast.success('Firma başarıyla eklendi.');
+                    setCompanyModalOpen(false);
+                    resetCompanyForm();
                 } else {
+                    console.error('Ekleme hatası:', result.error);
                     toast.error('Ekleme başarısız.');
-                    return;
                 }
             }
-            router.refresh(); // Soft refresh to sync server components if any
+            // router.refresh(); // [FIX] Removed to prevent race condition with Store state.
         } catch (err) {
-            console.error(err);
-            toast.error('İşlem başarısız.');
+            console.error('Beklenmeyen hata:', err);
+            toast.error('İşlem sırasında bir hata oluştu.');
         }
-
-        setCompanyModalOpen(false);
-        resetCompanyForm();
     };
 
     const resetCompanyForm = () => {
@@ -550,14 +563,16 @@ export default function AdminPage() {
         setCompanyPhone(company.phone || '');
         setCompanyStamp(company.stamp || null);
         setCompanyLetterhead(company.letterhead || null);
-        if (company.smtpConfig) {
-            setCompanySmtpHost(company.smtpConfig.host);
-            setCompanySmtpPort(company.smtpConfig.port.toString());
-            setCompanySmtpUser(company.smtpConfig.auth.user);
-            setCompanySmtpPass(company.smtpConfig.auth.pass);
-            setCompanySmtpFromEmail(company.smtpConfig.fromEmail);
-            setCompanySmtpFromName(company.smtpConfig.fromName);
-            setCompanySmtpSecure(company.smtpConfig.secure);
+
+        // [FIX] Check for flat fields first (Prisma default), then fallback to nested config
+        if (company.smtpHost || company.smtpConfig) {
+            setCompanySmtpHost(company.smtpHost || company.smtpConfig?.host || '');
+            setCompanySmtpPort(company.smtpPort?.toString() || company.smtpConfig?.port?.toString() || '');
+            setCompanySmtpUser(company.smtpUser || company.smtpConfig?.auth?.user || '');
+            setCompanySmtpPass(company.smtpPass || company.smtpConfig?.auth?.pass || '');
+            setCompanySmtpFromEmail(company.smtpFromEmail || company.smtpConfig?.fromEmail || '');
+            setCompanySmtpFromName(company.smtpFromName || company.smtpConfig?.fromName || '');
+            setCompanySmtpSecure(company.smtpSecure !== undefined ? company.smtpSecure : (company.smtpConfig?.secure || false));
         } else {
             setCompanySmtpHost('');
             setCompanySmtpPort('');
