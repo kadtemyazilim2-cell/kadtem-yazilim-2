@@ -449,4 +449,5 @@ model Institution {
   phone       String?
   mobile      String?
   contactPerson String?
+  shortName     String? // [NEW]
 }

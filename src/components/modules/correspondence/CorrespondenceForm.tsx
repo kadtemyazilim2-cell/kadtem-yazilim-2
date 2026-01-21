@@ -87,6 +87,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     }, [sites, formData.siteId, initialData, hasAutoSelectedSite]);
 
     const [newInstName, setNewInstName] = useState('');
+    const [newInstShortName, setNewInstShortName] = useState(''); // [NEW]
 
     const [newInstAlign, setNewInstAlign] = useState<'left' | 'center' | 'right'>('center');
     const [newInstCategory, setNewInstCategory] = useState<'BANK' | 'INSTITUTION'>('INSTITUTION');
@@ -162,7 +163,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         const result = await createInstitution({
             name: newInstName.trim(),
             category: newInstCategory,
-            alignment: 'center'
+            alignment: 'center',
+            shortName: newInstShortName.trim() // [NEW]
         });
 
         if (result.success && result.data) {
@@ -182,6 +184,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             }));
 
             setNewInstName('');
+            setNewInstShortName('');
             setNewInstAlign('center');
             setIsAddInstOpen(false);
         } else {
@@ -213,6 +216,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         }
 
         const payload = {
+            companyId: formData.companyId,
             siteId: formData.siteId === 'none' ? undefined : formData.siteId, // Handle "No Selection"
             direction: formData.direction as 'INCOMING' | 'OUTGOING',
             type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
@@ -275,6 +279,13 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     const dropdownOptions = institutions.filter((inst: any) => {
         if (initialType === 'BANK') return inst.category === 'BANK' || !inst.category;
+
+        // Exclude Insurance/Kasko agencies for standard correspondence
+        const lowerName = toTurkishLower(inst.name || '');
+        if (lowerName.includes('sigorta') || lowerName.includes('kasko')) {
+            return false;
+        }
+
         // If 'OFFICIAL' or others, show non-banks
         return inst.category !== 'BANK';
     });
@@ -603,7 +614,15 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 value={newInstName}
                                 onChange={(e) => setNewInstName(e.target.value)}
                                 placeholder="Örn: Ankara Büyükşehir Belediyesi&#10;Fen İşleri Daire Başkanlığı"
-                                rows={5}
+                                rows={4}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Kısa Ad (Opsiyonel)</Label>
+                            <Input
+                                value={newInstShortName}
+                                onChange={(e) => setNewInstShortName(e.target.value)}
+                                placeholder="Örn: ABB"
                             />
                         </div>
                     </div>

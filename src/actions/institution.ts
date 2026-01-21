@@ -37,7 +37,8 @@ export async function createInstitution(data: Omit<Institution, 'id'>) {
                 email: data.email,
                 phone: data.phone,
                 mobile: data.mobile,
-                contactPerson: data.contactPerson
+                contactPerson: data.contactPerson,
+                shortName: data.shortName
             }
         });
         // Often institutions are loaded in various forms, so might need to revalidate multiple paths or just rely on new fetch
