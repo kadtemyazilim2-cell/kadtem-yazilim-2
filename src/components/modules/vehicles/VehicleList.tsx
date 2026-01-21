@@ -58,6 +58,7 @@ export function VehicleList() {
     // 3. General Edit (Araç Ekle/Düzenle/Sil)
     const canEdit = hasPermission('vehicles', 'EDIT');
     const canExport = hasPermission('vehicles', 'EXPORT');
+    const canCreateInsurance = hasPermission('vehicles.insurance', 'CREATE');
 
     // 4. Creation Permissions
     const canCreateOwned = hasPermission('vehicles.owned-create', 'CREATE');
@@ -517,12 +518,14 @@ export function VehicleList() {
                     <div className="flex flex-row items-center justify-between">
                         <CardTitle>Araç Listesi</CardTitle>
                         <div className="flex gap-2">
-                            <VehicleForm initialOwnership="RENTAL" customTrigger={
-                                <Button variant="outline" className="h-8 gap-2">
-                                    <Plus className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Kiralık Araç</span>
-                                </Button>
-                            } />
+                            {canCreateRental && (
+                                <VehicleForm initialOwnership="RENTAL" customTrigger={
+                                    <Button variant="outline" className="h-8 gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Kiralık Araç</span>
+                                    </Button>
+                                } />
+                            )}
                             {canCreateOwned && (
                                 <VehicleForm initialOwnership="OWNED" customTrigger={
                                     <Button className="h-8 gap-2">
@@ -782,7 +785,7 @@ export function VehicleList() {
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-2 mb-4">
-                                    {canEditInsurance && (
+                                    {canCreateInsurance && (
                                         <>
                                             <Button variant="outline" onClick={() => setDefinitionDialog({ open: true, type: 'INSURANCE_COMPANY' })}>
                                                 <Settings className="w-4 h-4 mr-2" /> Firma Tanımla
@@ -892,7 +895,7 @@ export function VehicleList() {
                                                     <Badge variant={vehicle.status === 'ACTIVE' ? 'default' : 'secondary'}>{statusMap[vehicle.status] || vehicle.status}</Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {canEditInsurance && (
+                                                    {canCreateInsurance && (
                                                         <div className="flex items-center gap-1">
                                                             <Button
                                                                 variant="outline"
@@ -1015,14 +1018,16 @@ export function VehicleList() {
                     {
                         canViewFinance && (
                             <TabsContent value="rental-costs" className="space-y-4">
-                                <div className="flex justify-end mb-4">
-                                    <Button
-                                        onClick={() => setAssignmentDialog(true)}
-                                        className="bg-purple-600 hover:bg-purple-700 text-white"
-                                    >
-                                        <Plus className="w-4 h-4 mr-2" /> Mevcut Araçlardan Ekle
-                                    </Button>
-                                </div>
+                                {canEdit && (
+                                    <div className="flex justify-end mb-4">
+                                        <Button
+                                            onClick={() => setAssignmentDialog(true)}
+                                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" /> Mevcut Araçlardan Ekle
+                                        </Button>
+                                    </div>
+                                )}
 
                                 {/* Filter Section */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-muted/20 rounded-lg">
@@ -1085,13 +1090,15 @@ export function VehicleList() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => setSelectedVehicleForRentalUpdate(vehicle)}
-                                                    >
-                                                        <FileEdit className="w-3 h-3 mr-2" /> Güncelle
-                                                    </Button>
+                                                    {canEdit && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setSelectedVehicleForRentalUpdate(vehicle)}
+                                                        >
+                                                            <FileEdit className="w-3 h-3 mr-2" /> Güncelle
+                                                        </Button>
+                                                    )}
 
                                                     {canEdit && (
                                                         <Button
