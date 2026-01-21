@@ -1201,9 +1201,11 @@ export function CorrespondenceList() {
                 <CardHeader className="flex flex-col space-y-4">
                     <div className="flex flex-row items-center justify-between">
                         <CardTitle>Yazışma Listesi</CardTitle>
-                        <Button variant="outline" size="sm" onClick={handleExport}>
-                            <Download className="w-4 h-4 mr-2" /> Excel İndir
-                        </Button>
+                        {canExport && (
+                            <Button variant="outline" size="sm" onClick={handleExport}>
+                                <Download className="w-4 h-4 mr-2" /> Excel İndir
+                            </Button>
+                        )}
                     </div>
                     <TabsList className="grid w-full grid-cols-5">
                         {canViewIncoming && <TabsTrigger value="incoming">Gelen Evraklar</TabsTrigger>}
