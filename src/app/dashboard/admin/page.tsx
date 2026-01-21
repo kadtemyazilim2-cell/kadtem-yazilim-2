@@ -1550,10 +1550,9 @@ export default function AdminPage() {
                                     </DialogHeader>
                                     <form onSubmit={handleAddCompany} className="space-y-4">
                                         <Tabs defaultValue="general" className="w-full">
-                                            <TabsList className="w-full grid grid-cols-3">
+                                            <TabsList className="w-full grid grid-cols-2">
                                                 <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
                                                 <TabsTrigger value="smtp">SMTP Ayarları</TabsTrigger>
-                                                <TabsTrigger value="document">Evrak Numarası</TabsTrigger>
                                             </TabsList>
                                             <TabsContent value="general" className="space-y-4 pt-4">
                                                 <div className="space-y-2">
