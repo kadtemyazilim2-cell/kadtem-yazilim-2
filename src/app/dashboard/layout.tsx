@@ -30,7 +30,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getPersonnel(),
             getUsers(),
             getCorrespondenceList(),
-            getCorrespondenceList(),
             getInstitutions(),
             getFuelTanks() // [NEW]
         ]);
