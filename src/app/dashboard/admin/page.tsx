@@ -2124,10 +2124,38 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                             </div>
+                            <div className="flex justify-between items-center mt-4 px-1">
+                                <div className="text-sm font-medium text-slate-800">
+                                    {(() => {
+                                        const sorted = [...yiUfeRates].sort((a, b) => {
+                                            if (a.year !== b.year) return b.year - a.year;
+                                            return b.month - a.month;
+                                        });
+                                        const latest = sorted[0];
+                                        if (latest) {
+                                            return `Son Açıklanan Yi-ÜFE: ${latest.index} (${latest.month}/${latest.year})`;
+                                        }
+                                        return null;
+                                    })()}
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-orange-600 hover:text-orange-700 border-orange-200 hover:bg-orange-50"
+                                    onClick={async () => {
+                                        if (confirm('Geçici kabul tarihi girilmiş ancak durumu Aktif olan tüm işler Pasif (Tamamlandı) durumuna getirilecektir. Onaylıyor musunuz?')) {
+                                            await import('@/actions/site').then(mod => mod.fixSiteStatuses());
+                                            router.refresh();
+                                        }
+                                    }}
+                                >
+                                    Geçici Kabulü Yapılanları Pasife Çek
+                                </Button>
+                            </div>
                         </CardHeader>
-                        <CardContent className="px-0">
-                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-450px)]">
-                                <Table>
+                        <CardContent className="px-0 py-0">
+                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-200px)] w-full">
+                                <Table className="w-full relative">
                                     <TableHeader>
                                         <TableRow className="bg-slate-100">
                                             {siteColumns.map((col, idx) => (
@@ -2226,238 +2254,175 @@ export default function AdminPage() {
                                                     </TableRow>
                                                     {sortedCompanySites.map((site, index) => (
                                                         <TableRow key={site.id} className={cn("hover:bg-slate-50 border-b", site.status === 'INACTIVE' ? 'bg-gray-50 opacity-75' : '')}>
-                                                            <TableCell className="border-r py-2 text-xs text-center">
-                                                                <div className="flex flex-col items-center gap-1">
-                                                                    <Switch
-                                                                        checked={site.status !== 'INACTIVE'}
-                                                                        onCheckedChange={async (checked) => {
-                                                                            try {
-                                                                                const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
-                                                                                // 1. Optimistic / Local Store Update
-                                                                                updateSite(site.id, { status: newStatus });
+                                                            {siteColumns.map((col, colIdx) => {
+                                                                // Special Action Column
+                                                                if (col.label === 'İşlem') {
+                                                                    return (
+                                                                        <TableCell key={colIdx} className="border-r py-2 text-xs text-center" style={{ width: col.width }}>
+                                                                            <div className="flex flex-col items-center gap-1">
+                                                                                <Switch
+                                                                                    checked={site.status !== 'INACTIVE'}
+                                                                                    onCheckedChange={async (checked) => {
+                                                                                        try {
+                                                                                            const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
+                                                                                            updateSite(site.id, { status: newStatus });
+                                                                                            await updateSiteAction(site.id, { status: newStatus });
+                                                                                            router.refresh();
+                                                                                        } catch (error) {
+                                                                                            console.error('Status update failed', error);
+                                                                                            alert('Durum güncellenemedi');
+                                                                                            window.location.reload();
+                                                                                        }
+                                                                                    }}
+                                                                                    className="scale-75"
+                                                                                />
+                                                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditSiteModal(site)}>
+                                                                                    <Pencil className="w-3 h-3 text-slate-500 hover:text-blue-600" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </TableCell>
+                                                                    );
+                                                                }
 
-                                                                                // 2. Server Action
-                                                                                await updateSiteAction(site.id, { status: newStatus });
+                                                                let content: React.ReactNode = '-';
 
-                                                                                // 3. Soft Refresh (Keeps tab state)
-                                                                                router.refresh();
-                                                                            } catch (error) {
-                                                                                console.error('Status update failed', error);
-                                                                                alert('Durum güncellenemedi');
-                                                                                // Revert on error if needed, but strict consistency ensures next refresh fixes it
-                                                                                window.location.reload();
-                                                                            }
-                                                                        }}
-                                                                        className="scale-75"
-                                                                    />
-                                                                    <span className="text-[10px] text-muted-foreground">{site.status === 'INACTIVE' ? 'Pasif' : 'Aktif'}</span>
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs font-semibold">{site.workGroup}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center">{index + 1}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs">{site.projectNo}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs font-medium max-w-[250px] truncate" title={site.name}>{site.name}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs">{site.registrationNo}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : ''}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : ''}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : ''}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : ''}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : ''}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs whitespace-nowrap">{site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : ''}</TableCell>
-
-                                                            <TableCell className="border-r py-2 text-xs text-center">
-                                                                {(() => {
-                                                                    if (!site.tenderDate) return '-';
-                                                                    const date = new Date(site.tenderDate);
-                                                                    date.setMonth(date.getMonth() - 1); // User requested previous month
-                                                                    const year = date.getFullYear();
-                                                                    const month = date.getMonth() + 1;
-                                                                    const rate = yiUfeRates.find((r: any) => r.year === year && r.month === month);
-                                                                    return rate ? rate.index : (site.contractYiUfe || '-');
-                                                                })()}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center">{site.priceDifferenceCoefficient || '-'}</TableCell>
-
-                                                            <TableCell className="border-r py-2 text-xs text-right font-mono">
-                                                                {site.contractPrice ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.contractPrice) + ' ₺' : '-'}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-right font-mono">
-                                                                {(() => {
-                                                                    // Formula: IF(PD<>0; (Base * PD) + Base; ContractPrice)
-                                                                    // Base = ContractPrice - RealizedAmount
-                                                                    // PD = (Latest / Contract) - 1
-                                                                    // Which simplifies to: IF(Ratio != 1; Base * Ratio; ContractPrice)
-
-                                                                    const contractPrice = site.contractPrice || 0;
-
-                                                                    // If Provisional Acceptance is done, return Contract Price
-                                                                    if (site.provisionalAcceptanceDate) {
-                                                                        return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(contractPrice) + ' ₺';
+                                                                // --- Custom Logic per Column Key ---
+                                                                if (col.label === 'S.No') {
+                                                                    content = index + 1;
+                                                                }
+                                                                else if (col.key === 'contractYiUfe') {
+                                                                    if (site.tenderDate) {
+                                                                        const date = new Date(site.tenderDate);
+                                                                        date.setMonth(date.getMonth() - 1);
+                                                                        const year = date.getFullYear();
+                                                                        const month = date.getMonth() + 1;
+                                                                        const rate = yiUfeRates.find((r: any) => r.year === year && r.month === month);
+                                                                        content = rate ? rate.index : (site.contractYiUfe || '-');
+                                                                    } else {
+                                                                        content = site.contractYiUfe || '-';
                                                                     }
+                                                                }
+                                                                else if (col.key === 'realizedAmount') {
+                                                                    const contractPrice = site.contractPrice || 0;
+                                                                    if (site.provisionalAcceptanceDate) {
+                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(contractPrice) + ' ₺';
+                                                                    } else {
+                                                                        const realizedAmount = site.realizedAmount || 0;
+                                                                        const base = contractPrice - realizedAmount;
+                                                                        let baseIndex = site.priceDifferenceCoefficient;
+                                                                        if (!baseIndex || baseIndex === 0) {
+                                                                            baseIndex = site.contractYiUfe;
+                                                                            if (site.tenderDate) {
+                                                                                const tDate = new Date(site.tenderDate);
+                                                                                tDate.setMonth(tDate.getMonth() - 1);
+                                                                                const foundRate = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                                                if (foundRate) baseIndex = foundRate.index;
+                                                                            }
+                                                                        }
+                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                        const latestUfe = sortedRates[0]?.index;
 
-                                                                    const realizedAmount = site.realizedAmount || 0;
-                                                                    const base = contractPrice - realizedAmount;
-
-                                                                    // 1. Get Base Index (Coeff OR Contract UFE)
-                                                                    let baseIndex = site.priceDifferenceCoefficient;
-
-                                                                    // Fallback to Contract UFE if Coeff is missing
-                                                                    if (!baseIndex || baseIndex === 0) {
-                                                                        baseIndex = site.contractYiUfe;
+                                                                        if (baseIndex && baseIndex > 0 && latestUfe) {
+                                                                            const ratio = latestUfe / baseIndex;
+                                                                            const priceDifference = ratio - 1;
+                                                                            let result = (base * priceDifference) + base;
+                                                                            if (result < 0) result = contractPrice || 0;
+                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + ' ₺';
+                                                                        } else {
+                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(base > 0 ? base : 0) + ' ₺';
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else if (col.key === 'priceDifference') {
+                                                                    if (site.provisionalAcceptanceDate) {
+                                                                        content = '0%';
+                                                                    } else {
+                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                        const latestUfe = sortedRates[0]?.index;
+                                                                        const priceDiffCoef = site.priceDifferenceCoefficient;
+                                                                        if (latestUfe && priceDiffCoef && priceDiffCoef > 0) {
+                                                                            const result = ((latestUfe / priceDiffCoef) - 1) * 100;
+                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + '%';
+                                                                        } else {
+                                                                            content = site.priceDifference ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.priceDifference) + ' ₺' : '-';
+                                                                        }
+                                                                    }
+                                                                }
+                                                                else if (col.key === 'currentWorkExperienceAmount') {
+                                                                    const stored = site.currentWorkExperienceAmount;
+                                                                    if (stored) {
+                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stored) + ' ₺';
+                                                                    } else {
+                                                                        let contractUfe = site.contractYiUfe;
                                                                         if (site.tenderDate) {
                                                                             const tDate = new Date(site.tenderDate);
                                                                             tDate.setMonth(tDate.getMonth() - 1);
-                                                                            const tYear = tDate.getFullYear();
-                                                                            const tMonth = tDate.getMonth() + 1;
-                                                                            const foundRate = yiUfeRates.find((r: any) => r.year === tYear && r.month === tMonth);
-                                                                            if (foundRate) baseIndex = foundRate.index;
+                                                                            const found = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                                            if (found) contractUfe = found.index;
+                                                                        }
+                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                        const latestUfe = sortedRates[0]?.index;
+
+                                                                        if (contractUfe && latestUfe && site.realizedAmount) {
+                                                                            const ratio = latestUfe / contractUfe;
+                                                                            const partnership = site.partnershipPercentage ? (site.partnershipPercentage / 100) : 1;
+                                                                            const amount = ratio * site.realizedAmount * partnership;
+                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + ' ₺';
+                                                                        } else {
+                                                                            content = '-';
                                                                         }
                                                                     }
-
-                                                                    // 2. Get Latest UFE
-                                                                    const sortedRates = [...yiUfeRates].sort((a, b) => {
-                                                                        if (a.year !== b.year) return b.year - a.year;
-                                                                        return b.month - a.month;
-                                                                    });
-                                                                    const latestUfe = sortedRates[0]?.index;
-
-                                                                    if (baseIndex && baseIndex > 0 && latestUfe) {
-                                                                        // Formula: ((Latest / BaseIndex) - 1) * 1 * (Remaining Base) + Remaining Base
-                                                                        // simplified: Remaining Base * (Latest / BaseIndex)
-                                                                        // But user explicit formula was: ((Contract - Realized) * PriceDiff) + (Contract - Realized)
-                                                                        // where PriceDiff = (Latest / BaseIndex) - 1
-
-                                                                        const ratio = latestUfe / baseIndex;
-                                                                        const priceDifference = ratio - 1;
-
-                                                                        const term1 = base * priceDifference;
-                                                                        const term2 = base;
-                                                                        let result = term1 + term2;
-
-                                                                        // User Rule: If result is negative, return Contract Price
-                                                                        if (result < 0) {
-                                                                            result = contractPrice || 0;
-                                                                        }
-
-                                                                        return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + ' ₺';
-                                                                    }
-
-                                                                    // Fallback if UFE data missing: Return Base (Contract - Realized)
-                                                                    const fallback = base > 0 ? base : 0;
-                                                                    return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(fallback) + ' ₺';
-                                                                })()}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-right font-mono">
-                                                                {site.realizedAmount ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.realizedAmount) + ' ₺' : '-'}
-                                                            </TableCell>
-
-                                                            <TableCell className="border-r py-2 text-xs text-center whitespace-nowrap">{site.provisionalAcceptanceDate ? format(new Date(site.provisionalAcceptanceDate), 'dd.MM.yyyy') : '-'}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center whitespace-nowrap">{site.finalAcceptanceDate ? format(new Date(site.finalAcceptanceDate), 'dd.MM.yyyy') : '-'}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center">{site.workExperienceCertificate || '-'}</TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center bg-green-50 text-green-700 font-medium">
-                                                                {site.statusDetail || (site.status === 'ACTIVE' ? 'Devam Ediyor' : 'Tamamlandı')}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center font-bold">
-                                                                {site.partnershipPercentage !== undefined && site.partnershipPercentage !== null ? `%${site.partnershipPercentage}` : '%100'}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-center">
-                                                                {(() => {
-                                                                    // 1. Get Contract UFE (Tender Date - 1 Month)
+                                                                }
+                                                                else if (col.key === 'contractToCurrentUfeRatio') { // Sözleşme Ufe / Güncel Ufe
                                                                     let contractUfe = site.contractYiUfe;
                                                                     if (site.tenderDate) {
                                                                         const tDate = new Date(site.tenderDate);
                                                                         tDate.setMonth(tDate.getMonth() - 1);
-                                                                        const tYear = tDate.getFullYear();
-                                                                        const tMonth = tDate.getMonth() + 1;
-                                                                        const foundRate = yiUfeRates.find((r: any) => r.year === tYear && r.month === tMonth);
-                                                                        if (foundRate) contractUfe = foundRate.index;
+                                                                        const found = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                                        if (found) contractUfe = found.index;
                                                                     }
-
-                                                                    // 2. Get Latest UFE
-                                                                    const sortedRates = [...yiUfeRates].sort((a, b) => {
-                                                                        if (a.year !== b.year) return b.year - a.year;
-                                                                        return b.month - a.month;
-                                                                    });
+                                                                    const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
                                                                     const latestUfe = sortedRates[0]?.index;
 
-                                                                    // 3. Calculate Ratio
                                                                     if (contractUfe && latestUfe) {
                                                                         const ratio = latestUfe / contractUfe;
-                                                                        return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(ratio);
+                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(ratio);
+                                                                    } else {
+                                                                        content = site.contractToCurrentUfeRatio || '-';
                                                                     }
-                                                                    return site.contractToCurrentUfeRatio || '-';
-                                                                })()}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-right font-mono">
-                                                                {(() => {
-                                                                    // 1. Get Contract UFE (Tender Date - 1 Month)
-                                                                    let contractUfe = site.contractYiUfe;
-                                                                    if (site.tenderDate) {
-                                                                        const tDate = new Date(site.tenderDate);
-                                                                        tDate.setMonth(tDate.getMonth() - 1);
-                                                                        const tYear = tDate.getFullYear();
-                                                                        const tMonth = tDate.getMonth() + 1;
-                                                                        const foundRate = yiUfeRates.find((r: any) => r.year === tYear && r.month === tMonth);
-                                                                        if (foundRate) contractUfe = foundRate.index;
+                                                                }
+                                                                else if (col.key === 'partnershipPercentage') {
+                                                                    content = site.partnershipPercentage !== undefined && site.partnershipPercentage !== null ? `%${site.partnershipPercentage}` : '%100';
+                                                                }
+                                                                else if (col.key === 'statusDetail') {
+                                                                    content = (
+                                                                        <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                                                                            site.status === 'ACTIVE' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                                                                        )}>
+                                                                            {site.statusDetail || (site.status === 'ACTIVE' ? 'Devam Ediyor' : 'Tamamlandı')}
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                else if (col.key) {
+                                                                    const val = site[col.key];
+                                                                    if (val !== undefined && val !== null && val !== '') {
+                                                                        if (col.isDate) content = format(new Date(val as string), 'dd.MM.yyyy');
+                                                                        else if (col.isCurrency) content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(val)) + ' ₺';
+                                                                        else content = String(val);
                                                                     }
+                                                                }
 
-                                                                    // 2. Get Latest UFE
-                                                                    const sortedRates = [...yiUfeRates].sort((a, b) => {
-                                                                        if (a.year !== b.year) return b.year - a.year;
-                                                                        return b.month - a.month;
-                                                                    });
-                                                                    const latestUfe = sortedRates[0]?.index;
-
-                                                                    // 3. Calculate Amount
-                                                                    // Formula: (Latest / Contract) * RealizedAmount * (Partnership / 100)
-                                                                    if (contractUfe && latestUfe && site.realizedAmount) {
-                                                                        const ratio = latestUfe / contractUfe;
-                                                                        const partnership = site.partnershipPercentage ? (site.partnershipPercentage / 100) : 1;
-                                                                        const amount = ratio * site.realizedAmount * partnership;
-                                                                        return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + ' ₺';
-                                                                    }
-
-                                                                    return site.currentWorkExperienceAmount ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.currentWorkExperienceAmount) + ' ₺' : '-';
-                                                                })()}
-                                                            </TableCell>
-                                                            <TableCell className="border-r py-2 text-xs text-right font-mono">
-                                                                {(() => {
-                                                                    // Formula: ((( en son ayın yi-üfe rakamı / güncel fiyat farkı katsayısı)-1)*1) 
-
-                                                                    // If Provisional Acceptance is done, Price Diff is 0
-                                                                    if (site.provisionalAcceptanceDate) {
-                                                                        return '0%';
-                                                                    }
-
-                                                                    // 1. Get Latest UFE
-                                                                    const sortedRates = [...yiUfeRates].sort((a, b) => {
-                                                                        if (a.year !== b.year) return b.year - a.year;
-                                                                        return b.month - a.month;
-                                                                    });
-                                                                    const latestUfe = sortedRates[0]?.index;
-
-                                                                    // 2. Get Price Difference Coefficient from Site (Base Index)
-                                                                    const priceDiffCoef = site.priceDifferenceCoefficient;
-
-                                                                    if (latestUfe && priceDiffCoef && priceDiffCoef > 0) {
-                                                                        const result = ((latestUfe / priceDiffCoef) - 1) * 100;
-                                                                        // Display as Percentage
-                                                                        return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + '%';
-                                                                    }
-
-                                                                    return site.priceDifference ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.priceDifference) + ' ₺' : '-';
-                                                                })()}
-                                                            </TableCell>
-                                                            <TableCell className="py-2 text-center">
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-6 w-6"
-                                                                    onClick={() => openEditSiteModal(site)}
-                                                                >
-                                                                    <Pencil className="w-3 h-3 text-slate-500 hover:text-blue-600" />
-                                                                </Button>
-                                                            </TableCell>
+                                                                return (
+                                                                    <TableCell
+                                                                        key={colIdx}
+                                                                        className={`border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`}
+                                                                        style={{ width: col.width, maxWidth: col.width }}
+                                                                        title={typeof content === 'string' ? content : undefined}
+                                                                    >
+                                                                        {content}
+                                                                    </TableCell>
+                                                                );
+                                                            })}
                                                         </TableRow>
                                                     ))}
                                                 </Fragment>

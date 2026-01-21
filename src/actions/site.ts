@@ -97,6 +97,11 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
 
 export async function updateSite(id: string, data: Partial<Site>) {
     try {
+        // [AUTOMATION] If Provisional Acceptance Date is set, force status to INACTIVE
+        if (data.provisionalAcceptanceDate) {
+            data.status = 'INACTIVE';
+        }
+
         const site = await prisma.site.update({
             where: { id },
             data: {
@@ -110,7 +115,30 @@ export async function updateSite(id: string, data: Partial<Site>) {
         console.error('updateSite Error:', error);
         return { success: false, error: 'Şantiye güncellenemedi.' };
     }
+}
 
+export async function fixSiteStatuses() {
+    try {
+        const session = await auth();
+        if (session?.user?.role !== 'ADMIN') return { success: false, error: 'Yetkisiz işlem.' };
+
+        const result = await prisma.site.updateMany({
+            where: {
+                provisionalAcceptanceDate: { not: null },
+                status: 'ACTIVE'
+            },
+            data: {
+                status: 'INACTIVE'
+            }
+        });
+
+        revalidatePath('/dashboard/admin');
+        revalidatePath('/dashboard/sites');
+        return { success: true, count: result.count };
+    } catch (error) {
+        console.error('fixSiteStatuses Error:', error);
+        return { success: false, error: 'Toplu güncelleme hatası.' };
+    }
 }
 
 export async function deleteSite(id: string) {

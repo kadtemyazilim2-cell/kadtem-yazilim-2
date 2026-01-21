@@ -151,12 +151,31 @@ export default function DashboardPage() {
                 if (days <= 15) {
                     alerts.push({
                         id: v.id + '-kas',
-                        vehicleId: v.id, // [NEW] for lookup
+                        vehicleId: v.id,
                         plate: v.plate,
                         type: 'Kasko',
                         days,
                         date: v.kaskoExpiry,
                         agencyName: v.kaskoAgency,
+                        vehicleBrand: v.brand,
+                        vehicleModel: v.model
+                    });
+                }
+            }
+
+            // [NEW] Inspection (Muayene)
+            if (v.inspectionExpiry) {
+                const date = parseISO(v.inspectionExpiry);
+                const days = differenceInDays(date, today);
+                if (days <= 15) {
+                    alerts.push({
+                        id: v.id + '-insp',
+                        vehicleId: v.id,
+                        plate: v.plate,
+                        type: 'Muayene',
+                        days,
+                        date: v.inspectionExpiry,
+                        agencyName: 'TÜVTÜRK', // Default or N/A
                         vehicleBrand: v.brand,
                         vehicleModel: v.model
                     });
@@ -344,7 +363,7 @@ export default function DashboardPage() {
                 <Card className="bg-red-50 border-red-100 border shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-600">
-                            Yaklaşan Ödemeler (Sigorta/Kasko)
+                            Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
                         </CardTitle>
                         <AlertTriangle className="h-4 w-4 text-red-600" />
                     </CardHeader>
