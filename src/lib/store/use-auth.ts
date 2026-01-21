@@ -72,13 +72,13 @@ export const useAuth = create<AuthState>()(
             getAccessibleSites: (allSites) => {
                 const { user } = get();
                 if (!user) return [];
-                if (user.role === 'ADMIN') return allSites;
+                if (user.role === 'ADMIN') return allSites.filter(s => s.status === 'ACTIVE');
 
                 // If no sites assigned, might want to return empty or all? 
                 // Usually restrict to none if not admin and no assignment.
                 if (!user.assignedSiteIds || user.assignedSiteIds.length === 0) return [];
 
-                return allSites.filter(site => user.assignedSiteIds.includes(site.id));
+                return allSites.filter(site => user.assignedSiteIds.includes(site.id) && site.status === 'ACTIVE');
             },
         }),
         {

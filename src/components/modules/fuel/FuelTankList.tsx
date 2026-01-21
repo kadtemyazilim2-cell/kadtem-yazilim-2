@@ -73,7 +73,7 @@ export function FuelTankList() {
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>

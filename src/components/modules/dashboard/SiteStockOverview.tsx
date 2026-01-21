@@ -36,7 +36,7 @@ export function SiteStockOverview({ tanks, sites }: SiteStockOverviewProps) {
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {Object.entries(tanksBySite).map(([siteId, siteTanks]) => {
                             const site = sites.find(s => s.id === siteId);
-                            if (!site) return null;
+                            if (!site || site.status !== 'ACTIVE') return null;
 
                             return (
                                 <div key={siteId} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
