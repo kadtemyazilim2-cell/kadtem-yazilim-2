@@ -108,6 +108,11 @@ export function VehicleList() {
         return companies.find((c: any) => c.id === vehicle.companyId)?.name || '-';
     };
 
+    const getVehicleSiteName = (vehicle: any) => {
+        if (!vehicle.assignedSiteId) return '-';
+        return sites.find((s: any) => s.id === vehicle.assignedSiteId)?.name || '-';
+    };
+
     const getExpiryStatus = (dateStr?: string) => {
         if (!dateStr) return null;
         const date = parseISO(dateStr);
@@ -243,6 +248,9 @@ export function VehicleList() {
                     const statusA = statusMap[a.status] || a.status;
                     const statusB = statusMap[b.status] || b.status;
                     comparison = statusA.localeCompare(statusB, (window as any).trLocale || 'tr');
+                    break;
+                case 'site':
+                    comparison = getVehicleSiteName(a).localeCompare(getVehicleSiteName(b), (window as any).trLocale || 'tr');
                     break;
             }
 
@@ -753,6 +761,9 @@ export function VehicleList() {
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('status', e)}>
                                         Durum {getSortIcon('status')}
                                     </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('site', e)}>
+                                        Kayıtlı Şantiye {getSortIcon('site')}
+                                    </TableHead>
                                     <TableHead className="w-[50px]"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -784,6 +795,11 @@ export function VehicleList() {
                                             }>
                                                 {statusMap[vehicle.status] || vehicle.status}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-medium text-slate-700">
+                                                {getVehicleSiteName(vehicle)}
+                                            </span>
                                         </TableCell>
                                         <TableCell>
                                             {canEdit && (

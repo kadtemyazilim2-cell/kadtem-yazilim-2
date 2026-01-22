@@ -34,6 +34,9 @@ export function CashBookForm() {
         responsibleUserId: '',
     });
 
+    // [CHANGED] Separate display state for Amount to support formatting (e.g. 10.000,50)
+    const [displayAmount, setDisplayAmount] = useState('0');
+
     // Default responsible user to current user when opening/resetting
     const resetForm = () => {
         setFormData({
@@ -46,6 +49,7 @@ export function CashBookForm() {
             documentNo: '',
             responsibleUserId: user?.id || '',
         });
+        setDisplayAmount('0');
     };
 
     const generateDescription = (date: string, category: string) => {
@@ -259,11 +263,12 @@ export function CashBookForm() {
                         <div className="space-y-2">
                             <Label>Tutar (TL)</Label>
                             <Input
-                                type="number"
-                                step="0.01"
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="0,00"
                                 required
-                                value={formData.amount}
-                                onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+                                value={displayAmount}
+                                onChange={handleAmountChange}
                             />
                         </div>
                     </div>

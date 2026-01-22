@@ -113,15 +113,82 @@ export default function FuelMovementPage() {
         return isNaN(combined.getTime()) ? date : combined.toISOString();
     };
 
+    // [NEW] Helper to format number string (10000 -> 10.000)
+    const formatNumberString = (val: string) => {
+        if (!val) return '';
+        // Remove existing format
+        let raw = val.replace(/\./g, '').replace(',', '.');
+        // Allow digits and one dot (for standard JS float)
+        raw = raw.replace(/[^0-9.]/g, '');
+
+        // Split integer and decimal
+        const parts = raw.split('.');
+        let integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? ',' + parts[1].slice(0, 2) : ''; // Limit decimal to 2 chars
+
+        // Add thousands separator
+        integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+        return integerPart + decimalPart;
+    };
+
+    // [NEW] Helper to parse formatted string to number (10.000,50 -> 10000.50)
+    const parseFormattedNumber = (val: string) => {
+        if (!val) return 0;
+        const normalized = val.replace(/\./g, '').replace(',', '.');
+        const num = parseFloat(normalized);
+        return isNaN(num) ? 0 : num;
+    };
+
+    // Wrapper for setting amount/price with formatting
+    const handleAmountChange = (val: string, setter: any, field: string) => {
+        // Allow user to type comma or dot
+        // If user types dot, treated as thousands separator OR decimal if they mean it? 
+        // TR standard: Dot = Thousands, Comma = Decimal.
+        // If user types '10.5', assuming they might mean 10,5. 
+        // But let's enforce comma for decimal to be consistent.
+        // Actually, simple regex input masking is better:
+
+        // 1. Clean input: only digits and ONE comma
+        let clean = val.replace(/[^0-9,]/g, '');
+
+        // Prevent multiple commas
+        const parts = clean.split(',');
+        if (parts.length > 2) {
+            clean = parts[0] + ',' + parts.slice(1).join('');
+        }
+
+        // 2. Format Integer part
+        let integerPart = parts[0].replace(/^0+(?!$)/, ''); // Remove leading zeros
+        if (integerPart === '') integerPart = '0'; // But keep single zero if empty? No, better empty if empty.
+
+        // If strictly empty
+        if (clean === '') {
+            setter(prev => ({ ...prev, [field]: '' }));
+            return;
+        }
+
+        const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        let final = formattedInt;
+
+        if (val.includes(',')) {
+            final += ',' + (parts[1] || '');
+        }
+
+        setter(prev => ({ ...prev, [field]: final }));
+    };
+
     const handleTransfer = (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
-        const amount = Number(transferData.amount);
+        const amount = parseFormattedNumber(transferData.amount);
         if (amount <= 0) {
             toast.error('Lütfen geçerli bir miktar giriniz.');
             return;
         }
+
+        // Note: fromId/toId validation check...
 
         const sourceTank = fuelTanks.find((t: any) => t.id === transferData.fromId);
         if (!sourceTank) {
@@ -140,7 +207,7 @@ export default function FuelMovementPage() {
             fromId: transferData.fromId,
             toType: transferData.toType as any,
             toId: transferData.toId,
-            date: getDateTime(), // [FIX] Use combined DateTime
+            date: getDateTime(),
             amount: amount,
             createdByUserId: user.id
         });
@@ -152,8 +219,8 @@ export default function FuelMovementPage() {
         e.preventDefault();
         if (!user) return;
 
-        const amount = Number(purchaseData.amount);
-        const price = Number(purchaseData.unitPrice);
+        const amount = parseFormattedNumber(purchaseData.amount);
+        const price = parseFormattedNumber(purchaseData.unitPrice);
 
         if (amount <= 0) {
             toast.error('Lütfen geçerli bir miktar giriniz.');
@@ -182,7 +249,11 @@ export default function FuelMovementPage() {
         e.preventDefault();
         if (!user) return;
 
-        const amount = Number(dispenseData.amount);
+        const amount = parseFormattedNumber(dispenseData.amount);
+        // Middleware logic handled by store usually, but let's parse raw mileage too if formatted
+        // but mileage usually doesn't have decimals. Let's support it anyway.
+        const mileage = parseFormattedNumber(dispenseData.mileage);
+
         if (amount <= 0) {
             toast.error('Lütfen geçerli bir miktar giriniz.');
             return;
@@ -202,7 +273,7 @@ export default function FuelMovementPage() {
             date: getDateTime(), // [FIX] Use combined DateTime
             liters: amount,
             cost: 0,
-            mileage: Number(dispenseData.mileage),
+            mileage: mileage,
             fullTank: dispenseData.fullTank,
             filledByUserId: user.id,
             description: dispenseData.description
@@ -315,14 +386,27 @@ export default function FuelMovementPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Güncel KM/Saat</Label>
-                                        <Input type="number" value={dispenseData.mileage} onChange={e => setDispenseData({ ...dispenseData, mileage: e.target.value })} required />
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={dispenseData.mileage}
+                                            onChange={e => handleAmountChange(e.target.value, setDispenseData, 'mileage')}
+                                            required
+                                        />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label>Verilen Miktar (Lt)</Label>
                                     <div className="flex items-center gap-2">
-                                        <Input type="number" value={dispenseData.amount} onChange={e => setDispenseData({ ...dispenseData, amount: e.target.value })} required className="flex-1" />
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={dispenseData.amount}
+                                            onChange={e => handleAmountChange(e.target.value, setDispenseData, 'amount')}
+                                            required
+                                            className="flex-1"
+                                        />
                                         <div className="flex items-center gap-2 whitespace-nowrap bg-muted/30 px-3 py-2 rounded-md border text-sm h-10">
                                             <input
                                                 type="checkbox" className="w-4 h-4"
@@ -444,7 +528,13 @@ export default function FuelMovementPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Miktar (Lt)</Label>
-                                        <Input type="number" value={transferData.amount} onChange={e => setTransferData({ ...transferData, amount: e.target.value })} required />
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={transferData.amount}
+                                            onChange={e => handleAmountChange(e.target.value, setTransferData, 'amount')}
+                                            required
+                                        />
                                     </div>
                                 </div>
 
@@ -521,11 +611,23 @@ export default function FuelMovementPage() {
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">
                                         <Label>Miktar (Lt)</Label>
-                                        <Input type="number" value={purchaseData.amount} onChange={e => setPurchaseData({ ...purchaseData, amount: e.target.value })} required />
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={purchaseData.amount}
+                                            onChange={e => handleAmountChange(e.target.value, setPurchaseData, 'amount')}
+                                            required
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Birim Fiyat (TL)</Label>
-                                        <Input type="number" value={purchaseData.unitPrice} onChange={e => setPurchaseData({ ...purchaseData, unitPrice: e.target.value })} placeholder="TL" />
+                                        <Input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={purchaseData.unitPrice}
+                                            onChange={e => handleAmountChange(e.target.value, setPurchaseData, 'unitPrice')}
+                                            placeholder="TL"
+                                        />
                                     </div>
                                 </div>
 
