@@ -30,6 +30,7 @@ import { fontBase64 } from '@/lib/pdf-font';
 import { normalizeSearchText } from '@/lib/utils';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Vehicle } from '@/lib/types';
+import { deleteVehicle as deleteVehicleAction } from '@/actions/vehicle'; // [NEW] Import Server Action
 
 export function VehicleList() {
     const { vehicles, sites, companies, updateVehicle, vehicleAttendance, fuelLogs, deleteVehicle } = useAppStore();
@@ -355,7 +356,9 @@ export function VehicleList() {
                 vehicle.plate, vehicle.brand, vehicle.model, getCompanyName(vehicle),
                 vehicle.year.toString(), typeMap[vehicle.type] || vehicle.type,
                 statusMap[vehicle.status] || vehicle.status,
-                vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal'
+                statusMap[vehicle.status] || vehicle.status,
+                vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
+                vehicle.monthlyRentalFee ? vehicle.monthlyRentalFee.toString() : '' // [NEW] Search by Rental Fee
             ];
             if (!searchFields.some(field => normalizeSearchText(field).includes(lowerSearch))) return false;
         }
@@ -509,7 +512,7 @@ export function VehicleList() {
         doc.save(`acente-takip-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
-    const handleDeleteVehicle = (vehicle: Vehicle) => {
+    const handleDeleteVehicle = async (vehicle: Vehicle) => { // Async for Server Action
         // 1. Check for usage in Vehicle Attendance
         const attendanceCount = vehicleAttendance.filter((a: any) => a.vehicleId === vehicle.id).length;
 
@@ -547,12 +550,34 @@ export function VehicleList() {
             }
 
             // Proceed
-            deleteVehicle(vehicle.id);
+            try {
+                const result = await deleteVehicleAction(vehicle.id);
+                if (result.success) {
+                    deleteVehicle(vehicle.id); // Update Client Store
+                    toast.success('Araç silindi.');
+                } else {
+                    alert(result.error || 'Araç silinemedi.');
+                }
+            } catch (error) {
+                console.error('Delete error', error);
+                alert('Bir hata oluştu.');
+            }
         }
         // 3b. RULES FOR RENTAL VEHICLES (Existing Logic)
         else {
             if (confirm(`${vehicle.plate} plakalı kiralık aracı silmek istediğinize emin misiniz?`)) {
-                deleteVehicle(vehicle.id);
+                try {
+                    const result = await deleteVehicleAction(vehicle.id);
+                    if (result.success) {
+                        deleteVehicle(vehicle.id); // Update Client Store
+                        toast.success('Araç silindi.');
+                    } else {
+                        alert(result.error || 'Araç silinemedi.');
+                    }
+                } catch (error) {
+                    console.error('Delete error', error);
+                    alert('Bir hata oluştu.');
+                }
             }
         }
     };
@@ -798,7 +823,7 @@ export function VehicleList() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm font-medium text-slate-700">
+                                            <span className="text-sm font-medium text-slate-700 block max-w-[150px] truncate" title={getVehicleSiteName(vehicle)}>
                                                 {getVehicleSiteName(vehicle)}
                                             </span>
                                         </TableCell>

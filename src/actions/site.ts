@@ -67,8 +67,8 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
             currentWorkExperienceAmount,
             priceDifference,
             completionPercentage,
-            personnelCount,
-            note,
+            // personnelCount, // [KEPT] Now in schema
+            // note, // [KEPT] Now in schema
             ...rest
         } = data as any;
 
@@ -166,8 +166,8 @@ export async function updateSite(id: string, data: Partial<Site>) {
             currentWorkExperienceAmount,
             priceDifference,
             completionPercentage,
-            personnelCount,
-            note,
+            // personnelCount,
+            // note,
 
             ...rest
         } = data as any;

@@ -136,6 +136,12 @@ model Site {
   statusDetail          String?
   
   partnershipPercentage Float?
+  provisionalAcceptanceDoc String?
+  finalAcceptanceDoc       String?
+  workExperienceDoc        String?
+  note                     String?
+  personnelCount           Int?     @default(0)
+
   // Join Venture Partners (Multiple)
   partners        SitePartner[]
 
