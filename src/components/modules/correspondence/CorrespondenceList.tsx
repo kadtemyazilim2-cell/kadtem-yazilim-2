@@ -760,19 +760,23 @@ export function CorrespondenceList() {
     const exportExcel = () => {
         let prefix = 'yazismalar';
         let title = 'Yazışmalar';
+        let itemsToExport: any[] = [];
 
         if (activeTab === 'outgoing') {
             prefix = 'giden-evraklar';
             title = 'Giden Evrak Listesi';
+            itemsToExport = outgoingItems;
         } else if (activeTab === 'incoming') {
             prefix = 'gelen-evraklar';
             title = 'Gelen Evrak Listesi';
+            itemsToExport = incomingItems;
         } else if (activeTab === 'bank') {
             prefix = 'banka-yazismalari';
             title = 'Banka Yazışmaları Listesi';
+            itemsToExport = bankItems;
         }
 
-        const data = activeCorrespondences.map(c => ({
+        const data = itemsToExport.map(c => ({
             'Tarih': format(new Date(c.date), 'dd.MM.yyyy', { locale: tr }),
             'Yön': c.direction === 'INCOMING' ? 'Gelen' : 'Giden',
             'Tip': c.type,
@@ -797,20 +801,24 @@ export function CorrespondenceList() {
 
         let prefix = 'yazisma-listesi';
         let title = 'Yazışma Listesi';
+        let itemsToExport: any[] = [];
 
         if (activeTab === 'outgoing') {
             prefix = 'giden-evraklar';
             title = 'Giden Evrak Listesi';
+            itemsToExport = outgoingItems;
         } else if (activeTab === 'incoming') {
             prefix = 'gelen-evraklar';
             title = 'Gelen Evrak Listesi';
+            itemsToExport = incomingItems;
         } else if (activeTab === 'bank') {
             prefix = 'banka-yazismalari';
             title = 'Banka Yazışmaları Listesi';
+            itemsToExport = bankItems;
         }
 
         const tableColumn = ["Tarih", "Yön", "Tip", "Firma", "Konu", "Sayı", "Muhatap"];
-        const tableRows = activeCorrespondences.map(c => [
+        const tableRows = itemsToExport.map(c => [
             format(new Date(c.date), 'dd.MM.yyyy', { locale: tr }),
             c.direction === 'INCOMING' ? 'Gelen' : 'Giden',
             c.type,
