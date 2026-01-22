@@ -47,8 +47,19 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
         // Exclude fields that are not in Site model or need special handling
         const {
             id,
-            company,
             partners, // [NEW] Extract partners
+            // Exclude relations prevents "NestedInput" errors if dirty object passed
+            company,
+            users,
+            personnel,
+            vehicles,
+            activeVehicles,
+            fuelTanks,
+            fuelLogs,
+            transactions,
+            logs,
+            correspondences,
+
             // Exclude fields not in Prisma schema
             currentUfeDate,
             remainingAmount,
@@ -135,7 +146,31 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
 
 export async function updateSite(id: string, data: Partial<Site>) {
     try {
-        const { partners, ...rest } = data as any;
+        const {
+            partners,
+            // Exclude relations to prevent nested write errors
+            company,
+            users,
+            personnel,
+            vehicles,
+            activeVehicles,
+            fuelTanks,
+            fuelLogs,
+            transactions,
+            logs,
+            correspondences,
+
+            // Exclude computed/extra fields
+            currentUfeDate,
+            contractToCurrentUfeRatio,
+            currentWorkExperienceAmount,
+            priceDifference,
+            completionPercentage,
+            personnelCount,
+            note,
+
+            ...rest
+        } = data as any;
 
         // Date processing helper
         const dateFields = [

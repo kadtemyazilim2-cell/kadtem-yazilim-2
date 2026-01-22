@@ -2172,7 +2172,7 @@ export default function AdminPage() {
                                                                     <div key={partner.id || index} className="flex gap-4 items-end bg-muted/20 p-2 rounded-md border border-dashed mt-2">
                                                                         <div className="w-6 flex items-center justify-center font-bold text-muted-foreground text-sm">{index + 1}.</div>
                                                                         <div className="space-y-2 flex-1">
-                                                                            <Label>Ortak Firma (Partner)</Label>
+                                                                            <Label>Özel Ortak</Label>
                                                                             <select
                                                                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                                                                                 value={partner.companyId}
@@ -2236,6 +2236,7 @@ export default function AdminPage() {
                                                                         <SelectItem value="TAŞKIN KORUMA">TAŞKIN KORUMA</SelectItem>
                                                                         <SelectItem value="TOPLULAŞTIRMA">TOPLULAŞTIRMA</SelectItem>
                                                                         <SelectItem value="ÜSTYAPI">ÜSTYAPI</SelectItem>
+                                                                        <SelectItem value="DİĞER">DİĞER</SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
                                                             </div>
