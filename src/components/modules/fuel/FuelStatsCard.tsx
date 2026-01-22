@@ -40,7 +40,19 @@ export function FuelStatsCard({
         // If siteId is empty, we return zeros or aggregates. Let's return aggregates if "All" but usually specific site logic is requested.
 
         // 2. Identify Tanks for this Site
-        const siteTanks = fuelTanks.filter(t => !siteId || t.siteId === siteId);
+        const siteTanks = fuelTanks.filter(t => {
+            const siteMatches = !siteId || t.siteId === siteId;
+            // Also check if site is active if we are in "All Sites" mode? 
+            // But usually this card is shown ONLY when a site is selected per code in Page.tsx
+            // If selectedSiteId is set, user specifically selected it.
+            // If user selects a "Passive" site from dropdown (if we allow listing passive sites there?), then stats should probably show?
+            // But user said "ekranda gözükmesin".
+            // The Site Select in page.tsx ALREADY filters `s.status === 'ACTIVE'`.
+            // So `FuelStatsCard` will only receive an Active Site ID.
+            // However, for robustness, if we ever allow "All", we should filter.
+            // Since currently `siteId` is required for the card to render (in page.tsx), this logic is safe.
+            return siteMatches;
+        });
         const siteTankIds = siteTanks.map(t => t.id);
 
         // Capacity & Remaining (Snapshot - not affected by Date Range usually, but User wants "History"? 

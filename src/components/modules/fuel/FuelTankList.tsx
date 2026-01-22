@@ -131,46 +131,51 @@ export function FuelTankList() {
             </CardHeader>
             <CardContent>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {fuelTanks.map((tank: any) => {
-                        const percent = Math.round((tank.currentLevel / tank.capacity) * 100);
-                        return (
-                            <div key={tank.id} className="border rounded-lg p-4 bg-white shadow-sm relative group">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h4 className="font-semibold text-slate-800">{tank.name}</h4>
-                                        <p className="text-xs text-slate-500">{getSiteName(tank.siteId)}</p>
+                    {fuelTanks
+                        .filter((tank: any) => {
+                            const site = sites.find((s: any) => s.id === tank.siteId);
+                            return site && site.status === 'ACTIVE';
+                        })
+                        .map((tank: any) => {
+                            const percent = Math.round((tank.currentLevel / tank.capacity) * 100);
+                            return (
+                                <div key={tank.id} className="border rounded-lg p-4 bg-white shadow-sm relative group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 className="font-semibold text-slate-800">{tank.name}</h4>
+                                            <p className="text-xs text-slate-500">{getSiteName(tank.siteId)}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Fuel className="w-5 h-5 text-blue-500" />
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => handleDelete(tank.id)}
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Fuel className="w-5 h-5 text-blue-500" />
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => handleDelete(tank.id)}
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </Button>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-slate-500">Doluluk</span>
+                                            <span className="font-bold">{percent}%</span>
+                                        </div>
+                                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                            <div
+                                                className={`h-full rounded-full ${percent < 20 ? 'bg-red-500' : 'bg-green-500'}`}
+                                                style={{ width: `${percent}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-400 pt-1">
+                                            <span>{tank.currentLevel.toLocaleString()} Lt</span>
+                                            <span>{tank.capacity.toLocaleString()} Lt</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Doluluk</span>
-                                        <span className="font-bold">{percent}%</span>
-                                    </div>
-                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div
-                                            className={`h-full rounded-full ${percent < 20 ? 'bg-red-500' : 'bg-green-500'}`}
-                                            style={{ width: `${percent}%` }}
-                                        />
-                                    </div>
-                                    <div className="flex justify-between text-xs text-slate-400 pt-1">
-                                        <span>{tank.currentLevel.toLocaleString()} Lt</span>
-                                        <span>{tank.capacity.toLocaleString()} Lt</span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
                 </div>
             </CardContent>
         </Card>
