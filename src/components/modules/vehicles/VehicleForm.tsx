@@ -22,6 +22,7 @@ interface VehicleFormProps {
 }
 
 import { useAuth } from '@/lib/store/use-auth';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 
 import { createVehicle, updateVehicle, deleteVehicle } from '@/actions/vehicle';
 
@@ -84,7 +85,9 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
     };
 
     // Store is now ONLY used for reading lists (companies, sites)
-    const { companies, sites } = useAppStore();
+    const { companies } = useAppStore(); // Removed sites from here, using useUserSites
+    const rawUserSites = useUserSites();
+    const availableSites = rawUserSites.filter((s: any) => s.status === 'ACTIVE');
 
     // Helper to format Date to YYYY-MM-DD
     const formatDate = (date?: Date | string | null) => {
@@ -126,6 +129,13 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         licenseFile: vehicleToEdit?.licenseFile || '',
     });
 
+    // Auto-select site if user has only one and none is selected
+    useEffect(() => {
+        if (open && availableSites.length === 1 && !formData.assignedSiteId) {
+            setFormData(prev => ({ ...prev, assignedSiteId: availableSites[0].id }));
+        }
+    }, [open, availableSites, formData.assignedSiteId]);
+
     // Reset form when modal opens
     useEffect(() => {
         if (open) {
@@ -154,7 +164,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 companyId: vehicleToEdit?.companyId || '',
                 rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
                 rentalContact: vehicleToEdit?.rentalContact || '',
-                assignedSiteId: vehicleToEdit?.assignedSiteId || '',
+                assignedSiteId: vehicleToEdit?.assignedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''), // Auto-select on reset too
 
                 engineNumber: vehicleToEdit?.engineNumber || '',
                 chassisNumber: vehicleToEdit?.chassisNumber || '',
@@ -162,7 +172,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 licenseFile: vehicleToEdit?.licenseFile || '',
             });
         }
-    }, [open, vehicleToEdit, initialOwnership]);
+    }, [open, vehicleToEdit, initialOwnership]); // Removed availableSites from dep here to avoid loop, but handled above logic
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -496,7 +506,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                         <SelectValue placeholder="Şantiye Seçiniz (Opsiyonel)" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                        {availableSites.map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
