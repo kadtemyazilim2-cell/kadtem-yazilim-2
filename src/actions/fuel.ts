@@ -72,11 +72,15 @@ export async function getFuelTanks() {
 
 export async function createFuelTank(data: Partial<FuelTank>) {
     try {
+        if (!data.siteId || !data.name || !data.capacity) {
+            throw new Error('Eksik bilgi: Şantiye, Ad ve Kapasite zorunludur.');
+        }
+
         const tank = await prisma.fuelTank.create({
             data: {
-                siteId: data.siteId!,
-                name: data.name!,
-                capacity: data.capacity!,
+                siteId: data.siteId,
+                name: data.name,
+                capacity: data.capacity,
                 currentLevel: data.currentLevel || 0
             }
         });

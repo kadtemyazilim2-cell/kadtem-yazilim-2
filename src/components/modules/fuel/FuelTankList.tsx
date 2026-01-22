@@ -30,6 +30,21 @@ export function FuelTankList() {
             return;
         }
 
+        if (!siteId) {
+            alert('Lütfen bir şantiye seçiniz.');
+            return;
+        }
+
+        if (!name.trim()) {
+            alert('Lütfen depo adı giriniz.');
+            return;
+        }
+
+        if (capacity <= 0) {
+            alert('Kapasite 0\'dan büyük olmalıdır.');
+            return;
+        }
+
         const tankData = {
             siteId,
             name,
