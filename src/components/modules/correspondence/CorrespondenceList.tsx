@@ -878,6 +878,18 @@ export function CorrespondenceList() {
                 />
             </div>
 
+            {/* Sender/Receiver (Muhatap) Filter */}
+            <div>
+                <Label className="text-xs">Muhatap</Label>
+                <MultiSelect
+                    options={uniqueSenderReceivers.map((sr: any) => ({ label: sr as string, value: sr as string }))}
+                    selected={filterSenderReceiver}
+                    onChange={setFilterSenderReceiver}
+                    placeholder="Tümü"
+                    searchPlaceholder="Muhatap Ara..."
+                />
+            </div>
+
             <div className="md:col-span-5 flex justify-end gap-2 mt-2">
                 {canExport && (
                     <>
@@ -891,19 +903,6 @@ export function CorrespondenceList() {
                         </Button>
                     </>
                 )}
-            </div>
-
-
-            {/* Sender/Receiver (Muhatap) Filter */}
-            <div>
-                <Label className="text-xs">Muhatap</Label>
-                <MultiSelect
-                    options={uniqueSenderReceivers.map((sr: any) => ({ label: sr as string, value: sr as string }))}
-                    selected={filterSenderReceiver}
-                    onChange={setFilterSenderReceiver}
-                    placeholder="Tümü"
-                    searchPlaceholder="Muhatap Ara..."
-                />
             </div>
 
             {/* Search Input - Full Width below */}
@@ -1240,11 +1239,6 @@ export function CorrespondenceList() {
                 <CardHeader className="flex flex-col space-y-4">
                     <div className="flex flex-row items-center justify-between">
                         <CardTitle>Yazışma Listesi</CardTitle>
-                        {canExport && (
-                            <Button variant="outline" size="sm" onClick={handleExport}>
-                                <Download className="w-4 h-4 mr-2" /> Excel İndir
-                            </Button>
-                        )}
                     </div>
                     <TabsList className="grid w-full grid-cols-5">
                         {canViewIncoming && <TabsTrigger value="incoming">Gelen Evraklar</TabsTrigger>}
