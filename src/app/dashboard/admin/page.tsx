@@ -731,16 +731,18 @@ export default function AdminPage() {
 
             if (result && result.success) {
                 toast.success('İşlem başarıyla tamamlandı.');
-                window.location.reload();
+                router.refresh();
+                setSiteModalOpen(false);
+                resetSiteForm();
             } else {
                 throw new Error(result?.error || 'Bilinmeyen bir hata oluştu');
             }
         } catch (err: any) {
             console.error(err);
             toast.error(`İşlem başarısız: ${err.message || err}`);
-            setIsSubmitting(false); // Only reset on error, because reload happens on success
+        } finally {
+            setIsSubmitting(false);
         }
-        // No finally block because we want to keep it loading during reload
     };
 
     const resetSiteForm = () => {
