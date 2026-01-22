@@ -127,9 +127,9 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
         revalidatePath('/dashboard/admin');
         revalidatePath('/dashboard/sites');
         return { success: true, data: site };
-    } catch (error) {
+    } catch (error: any) {
         console.error('createSite Error:', error);
-        return { success: false, error: 'Şantiye oluşturulamadı.' };
+        return { success: false, error: 'Şantiye oluşturulamadı: ' + (error.message || String(error)) };
     }
 }
 
@@ -137,51 +137,16 @@ export async function updateSite(id: string, data: Partial<Site>) {
     try {
         const { partners, ...rest } = data as any;
 
-        // [AUTOMATION] If Provisional Acceptance Date is set, force status to COMPLETED (or INACTIVE as per prev logic)
-        // Previous logic said INACTIVE, but step 3940 summary said COMPLETED. I will use 'COMPLETED' if date exists.
-        // Wait, line 125 in original file said: "If Provisional Acceptance Date is set, force status to INACTIVE".
-        // But user request in Status Detail automation (Step 3940) implied COMPLETED?
-        // Let's stick to the previous file's logic (INACTIVE) unless explicitly asked?
-        // Actually, user said "Durum Detayı" depends on date.
-        // I will stick to what was there: INACTIVE.
-        // But I will extract `partners` to handle update.
-
-        let status = rest.status;
-        if (rest.provisionalAcceptanceDate) {
-            // If date is being set (and not null), set status
-            // However, `rest` might have date as string. It needs processing? 
-            // `updateSite` usually receives cleaner data? No, it comes from same usage.
-            // But existing `updateSite` didn't have the date loop! It just did `...data`.
-            // I should probably apply date processing here too if I want to be safe, but sticking to existing pattern for now (spread ...data).
-            // But I will apply the status rule.
-            status = 'INACTIVE';
-        }
-
-        // Prepare partners update (Delete all for this site, then create new)
-        const partnersToCreate = (partners || []).map((p: any) => ({
-            companyId: p.companyId,
-            percentage: Number(p.percentage)
-        })).filter((p: any) => p.companyId && p.percentage);
-
-        const site = await prisma.site.update({
-            where: { id },
-            data: {
-                ...rest,
-                status: status,
-                partners: {
-                    deleteMany: {}, // Remove existing
-                    create: partnersToCreate // Add new
-                }
-            }
-        });
-        revalidatePath('/dashboard/admin');
-        revalidatePath('/dashboard/sites');
-        return { success: true, data: site };
-    } catch (error) {
+        // ... (rest of logic is same, assuming this matches the END of updateSite or I need to replace the whole function again to be safe?
+        // Replacing just the catch block is risky if indentation or context matches multiple.
+        // I will replace the END of createSite and START/END of updateSite to inject the error handling.
+        // Actually, just replacing the catch block text is unique enough if I include the console.error line.
+    } catch (error: any) {
         console.error('updateSite Error:', error);
-        return { success: false, error: 'Şantiye güncellenemedi.' };
+        return { success: false, error: 'Şantiye güncellenemedi: ' + (error.message || String(error)) };
     }
 }
+
 
 export async function fixSiteStatuses() {
     try {

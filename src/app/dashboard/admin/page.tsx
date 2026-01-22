@@ -10,7 +10,7 @@ import { createUser, updateUser as updateUserAction, deleteUser as deleteUserAct
 import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company';
 import { createSite, updateSite as updateSiteAction, deleteSite as deleteSiteAction } from '@/actions/site';
 import { resetDatabase } from '@/actions/system';
-import { useRouter } from 'next/navigation'; // Ensure router is imported
+import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -112,6 +112,14 @@ export default function AdminPage() {
     } = useAppStore();
     const { user } = useAuth();
     const router = useRouter(); // [NEW] Router for soft refresh
+    const searchParams = useSearchParams();
+    const currentTab = searchParams.get('tab') || 'users';
+
+    const handleTabChange = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', value);
+        router.push(`?${params.toString()}`, { scroll: false });
+    };
 
     // User Form State
     const [userModalOpen, setUserModalOpen] = useState(false);
@@ -1060,7 +1068,7 @@ export default function AdminPage() {
                 <h1 className="text-3xl font-bold tracking-tight">Yönetim Paneli</h1>
             </div>
 
-            <Tabs defaultValue="users" className="space-y-4">
+            <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="users">
                         <Users className="w-4 h-4 mr-2" />
