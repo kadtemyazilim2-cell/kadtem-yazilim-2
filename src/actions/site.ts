@@ -86,6 +86,20 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
 
         console.log('Creating Site with processed data:', processedData);
 
+        // [FIX] Duplicate Prevention: Check if site already exists
+        const existingSite = await prisma.site.findFirst({
+            where: {
+                name: data.name!,
+                companyId: data.companyId
+            }
+        });
+
+        if (existingSite) {
+            console.log('Duplicate Site creation attempted. Returning existing site:', existingSite.id);
+            // Return success but with existing site. This handles double-clicks gracefully.
+            return { success: true, data: existingSite };
+        }
+
         const site = await prisma.site.create({
             data: {
                 ...processedData,
