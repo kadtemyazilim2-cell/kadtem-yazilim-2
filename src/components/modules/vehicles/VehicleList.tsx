@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VehicleForm } from './VehicleForm';
-import { format, parseISO, isAfter, addMonths } from 'date-fns';
+import { format, parseISO, isAfter, addMonths, addYears } from 'date-fns'; // Added addYears
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -510,9 +510,33 @@ export function VehicleList() {
             return;
         }
 
-        // 3. Confirm Deletion
-        if (confirm(`${vehicle.plate} plakalı aracı silmek istediğinize emin misiniz?\nBu işlem geri alınamaz.`)) {
+        // 3. Permission & Confirmation Logic
+        const isOwned = vehicle.ownership === 'OWNED';
+        const isAdmin = user?.role === 'ADMIN';
+
+        // 3a. RULES FOR OWNED VEHICLES
+        if (isOwned) {
+            if (!isAdmin) {
+                alert('Öz mal araçları SADECE YÖNETİCİLER silebilir!\nLütfen aracı "Pasif" duruma alınız.');
+                return;
+            }
+
+            // Admin Double Confirmation
+            if (!confirm(`${vehicle.plate} plakalı aracı silmek istediğinize emin misiniz?`)) {
+                return;
+            }
+            if (!confirm(`KESİN EMİN MİSİNİZ?\n\nBu işlem geri alınamaz ve araca ait tüm veriler silinecektir!`)) {
+                return;
+            }
+
+            // Proceed
             deleteVehicle(vehicle.id);
+        }
+        // 3b. RULES FOR RENTAL VEHICLES (Existing Logic)
+        else {
+            if (confirm(`${vehicle.plate} plakalı kiralık aracı silmek istediğinize emin misiniz?`)) {
+                deleteVehicle(vehicle.id);
+            }
         }
     };
 
@@ -897,7 +921,20 @@ export function VehicleList() {
                                                                         <Input
                                                                             name="date"
                                                                             type="date"
-                                                                            defaultValue={vehicle.inspectionExpiry ? vehicle.inspectionExpiry.split('T')[0] : ''}
+                                                                            defaultValue={(() => {
+                                                                                if (!vehicle.inspectionExpiry) return format(new Date(), 'yyyy-MM-dd');
+                                                                                const current = parseISO(vehicle.inspectionExpiry);
+                                                                                let nextDate = current;
+
+                                                                                // Smart Default Logic
+                                                                                if (['CAR', 'TRACTOR', 'MOTORCYCLE'].includes(vehicle.type)) {
+                                                                                    nextDate = addYears(current, 2);
+                                                                                } else if (['TRUCK', 'PICKUP', 'LORRY'].includes(vehicle.type)) {
+                                                                                    nextDate = addYears(current, 1);
+                                                                                }
+
+                                                                                return format(nextDate, 'yyyy-MM-dd');
+                                                                            })()}
                                                                             className="w-full"
                                                                         />
                                                                         <Button size="sm" type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">
