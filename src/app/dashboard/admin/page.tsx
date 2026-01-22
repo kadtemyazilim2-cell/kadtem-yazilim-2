@@ -2083,7 +2083,7 @@ export default function AdminPage() {
                                                             <div className="space-y-4 col-span-2 border p-4 rounded-md">
                                                                 <div className="flex gap-4 items-end">
                                                                     <div className="space-y-2 flex-1">
-                                                                        <Label>Yüklenici Firma <span className="text-red-500">*</span></Label>
+                                                                        <Label>Yüklenici Firma (Pilot) <span className="text-red-500">*</span></Label>
                                                                         <select
                                                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                                                                             value={newSiteData.companyId || ''}
@@ -2097,7 +2097,7 @@ export default function AdminPage() {
                                                                         </select>
                                                                     </div>
                                                                     <div className="space-y-2 w-32">
-                                                                        <Label>Ortaklık %</Label>
+                                                                        <Label>Pilot Oran %</Label>
                                                                         <Input
                                                                             type="number"
                                                                             value={newSiteData.partnershipPercentage || ''}
@@ -2107,31 +2107,32 @@ export default function AdminPage() {
                                                                     </div>
                                                                     <Button
                                                                         type="button"
-                                                                        variant="secondary"
+                                                                        variant="outline"
                                                                         className="mb-0.5"
                                                                         onClick={() => {
-                                                                            // Toggle partner row
-                                                                            if (newSiteData.partnerCompanyId !== undefined) {
-                                                                                setNewSiteData({ ...newSiteData, partnerCompanyId: undefined, partnershipPercentage2: undefined });
-                                                                            } else {
-                                                                                setNewSiteData({ ...newSiteData, partnerCompanyId: '' });
-                                                                            }
+                                                                            const currentPartners = newSiteData.partners || [];
+                                                                            setNewSiteData({ ...newSiteData, partners: [...currentPartners, { id: crypto.randomUUID(), siteId: '', companyId: '', percentage: 0 }] });
                                                                         }}
-                                                                        title={newSiteData.partnerCompanyId !== undefined ? "Ortak Firmayı Kaldır" : "Ortak Firma Ekle"}
+                                                                        title="Ortak Ekle"
                                                                     >
-                                                                        {newSiteData.partnerCompanyId !== undefined ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                                                        <Plus className="w-4 h-4 mr-1" /> Ortak Ekle
                                                                     </Button>
                                                                 </div>
 
-                                                                {/* Partner Company Row */}
-                                                                {(newSiteData.partnerCompanyId !== undefined) && (
-                                                                    <div className="flex gap-4 items-end bg-muted/20 p-2 rounded-md border border-dashed">
+                                                                {/* Partners List */}
+                                                                {newSiteData.partners?.map((partner, index) => (
+                                                                    <div key={partner.id || index} className="flex gap-4 items-end bg-muted/20 p-2 rounded-md border border-dashed mt-2">
+                                                                        <div className="w-6 flex items-center justify-center font-bold text-muted-foreground text-sm">{index + 1}.</div>
                                                                         <div className="space-y-2 flex-1">
-                                                                            <Label>Ortak Firma (Joint Venture)</Label>
+                                                                            <Label>Ortak Firma (Partner)</Label>
                                                                             <select
                                                                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                                                                                value={newSiteData.partnerCompanyId || ''}
-                                                                                onChange={e => setNewSiteData({ ...newSiteData, partnerCompanyId: e.target.value })}
+                                                                                value={partner.companyId}
+                                                                                onChange={e => {
+                                                                                    const newPartners = [...(newSiteData.partners || [])];
+                                                                                    newPartners[index] = { ...newPartners[index], companyId: e.target.value };
+                                                                                    setNewSiteData({ ...newSiteData, partners: newPartners });
+                                                                                }}
                                                                             >
                                                                                 <option value="" disabled>Seçiniz</option>
                                                                                 {companies.map((c: any) => (
@@ -2140,17 +2141,30 @@ export default function AdminPage() {
                                                                             </select>
                                                                         </div>
                                                                         <div className="space-y-2 w-32">
-                                                                            <Label>Ortaklık %</Label>
+                                                                            <Label>Oran %</Label>
                                                                             <Input
                                                                                 type="number"
-                                                                                value={newSiteData.partnershipPercentage2 || ''}
-                                                                                onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage2: e.target.value ? Number(e.target.value) : undefined })}
-                                                                                placeholder="0"
+                                                                                value={partner.percentage || ''}
+                                                                                onChange={e => {
+                                                                                    const newPartners = [...(newSiteData.partners || [])];
+                                                                                    newPartners[index] = { ...newPartners[index], percentage: Number(e.target.value) };
+                                                                                    setNewSiteData({ ...newSiteData, partners: newPartners });
+                                                                                }}
                                                                             />
                                                                         </div>
-                                                                        <div className="w-10"></div> {/* Spacer for alignment */}
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="destructive"
+                                                                            size="icon"
+                                                                            onClick={() => {
+                                                                                const newPartners = newSiteData.partners?.filter((_, i) => i !== index);
+                                                                                setNewSiteData({ ...newSiteData, partners: newPartners });
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
                                                                     </div>
-                                                                )}
+                                                                ))}
                                                             </div>
 
                                                             <div className="space-y-2">

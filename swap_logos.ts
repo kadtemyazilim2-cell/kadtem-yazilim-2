@@ -6,7 +6,12 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('Swapping logos...');
 
-    const c1 = await prisma.company.findFirst({ where: { name: { contains: 'İKİKAT', mode: 'insensitive', not: { name: { contains: 'KENAN' } } } } }); // Real Ikikat
+    const c1 = await prisma.company.findFirst({
+        where: {
+            name: { contains: 'İKİKAT', mode: 'insensitive' },
+            NOT: { name: { contains: 'KENAN', mode: 'insensitive' } }
+        }
+    });
     const c2 = await prisma.company.findFirst({ where: { name: { contains: 'KENAN', mode: 'insensitive' } } }); // Kenan
 
     if (!c1 || !c2) {
