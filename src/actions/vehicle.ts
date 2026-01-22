@@ -112,6 +112,16 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
 
 export async function deleteVehicle(id: string) {
     try {
+        const fuelLogCount = await prisma.fuelLog.count({ where: { vehicleId: id } });
+        if (fuelLogCount > 0) return { success: false, error: `Bu araca ait ${fuelLogCount} adet yakıt kaydı bulunmaktadır. Silinemez.` };
+
+        const attendanceCount = await prisma.vehicleAttendance.count({ where: { vehicleId: id } });
+        if (attendanceCount > 0) return { success: false, error: `Bu araca ait ${attendanceCount} adet puantaj kaydı bulunmaktadır. Silinemez.` };
+
+        const transferInCount = await prisma.fuelTransfer.count({ where: { toVehicleId: id } });
+        const transferOutCount = await prisma.fuelTransfer.count({ where: { fromVehicleId: id } });
+        if (transferInCount > 0 || transferOutCount > 0) return { success: false, error: `Bu araca ait yakıt transfer işlemi bulunmaktadır. Silinemez.` };
+
         await prisma.vehicle.delete({
             where: { id }
         });

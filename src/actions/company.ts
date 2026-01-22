@@ -79,6 +79,25 @@ export async function updateCompany(id: string, data: Partial<Company>) {
 
 export async function deleteCompany(id: string) {
     try {
+        // Strict Dependency Check
+        const siteCount = await prisma.site.count({ where: { companyId: id } });
+        if (siteCount > 0) return { success: false, error: `Bu firmaya bağlı ${siteCount} adet şantiye/iş bulunmaktadır. Önce bunları siliniz veya başka firmaya aktarınız.` };
+
+        const userCount = await prisma.user.count({ where: { assignedCompanies: { some: { id } } } });
+        // NOTE: assignedCompanies is a many-to-many. But usually users are linked via other means? 
+        // Let's check schema: User has assignedCompanies.
+        if (userCount > 0) return { success: false, error: `Bu firmaya atanmış ${userCount} adet kullanıcı bulunmaktadır.` };
+
+        const vehicleCount = await prisma.vehicle.count({ where: { companyId: id } });
+        if (vehicleCount > 0) return { success: false, error: `Bu firmaya kayıtlı ${vehicleCount} adet araç bulunmaktadır.` };
+
+        const correspondenceCount = await prisma.correspondence.count({ where: { companyId: id } });
+        if (correspondenceCount > 0) return { success: false, error: `Bu firmaya ait ${correspondenceCount} adet evrak/yazışma kaydı bulunmaktadır.` };
+
+        // Also check if Partner in other sites
+        const partnerCount = await prisma.sitePartner.count({ where: { companyId: id } });
+        if (partnerCount > 0) return { success: false, error: `Bu firma ${partnerCount} adet iş ortaklığına sahiptir.` };
+
         await prisma.company.delete({ where: { id } });
         revalidatePath('/dashboard/admin');
         return { success: true };

@@ -7,7 +7,11 @@ import { Input } from '@/components/ui/input'; // ... existing imports
 
 // [NEW] Server Actions
 import { createUser, updateUser as updateUserAction, deleteUser as deleteUserAction } from '@/actions/user';
-import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company';
+import {
+    getYiUfeRates,
+    addYiUfeRate,
+    syncYiUfeRates
+} from '@/actions/yiufe';
 import { createSite, updateSite as updateSiteAction, deleteSite as deleteSiteAction } from '@/actions/site';
 import { resetDatabase } from '@/actions/system';
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
@@ -114,6 +118,17 @@ export default function AdminPage() {
     const router = useRouter(); // [NEW] Router for soft refresh
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('tab') || 'users';
+
+    // [NEW] Fetch Yi-UFE Rates on Mount
+    useEffect(() => {
+        const fetchRates = async () => {
+            const res = await getYiUfeRates();
+            if (res.success && res.data) {
+                setYiUfeRates(res.data);
+            }
+        };
+        fetchRates();
+    }, [setYiUfeRates]);
 
     const handleTabChange = (value: string) => {
         const params = new URLSearchParams(searchParams.toString());
@@ -878,60 +893,52 @@ export default function AdminPage() {
     const fetchYiUfeFromApi = async () => {
         setUpdatingYiUfe(true);
         try {
-            const res = await fetch('/api/yi-ufe');
-            const data = await res.json();
-            if (data.rates) {
-                const ratesWithId = data.rates.map((r: any) => ({
-                    id: `${r.year}-${r.month}`,
-                    year: r.year,
-                    month: r.month,
-                    index: r.index
-                }));
-                // Merge with existing rates (prefer API)
-                // Actually, just set rates.
-                // But we want to keep manual entries if API doesn't have them?
-                // For now, easy way: API overwrites match keys.
-                // But setYiUfeRates replaces ALL. 
-                // We should probably merge.
-                // Let's implement merge logic in store? 
-                // Current store implementation of setYiUfeRates replaces all.
-                // Let's keep it simple: API replaces all.
-
-                // Merge with existing rates
-                addYiUfeRates(ratesWithId);
-                // setYiUfeModalOpen(false); // No longer needed as button is separate
+            // Using server action instead of API route
+            const res = await syncYiUfeRates();
+            if (res.success) {
+                // Refresh data
+                const ratesRes = await getYiUfeRates();
+                if (ratesRes.success && ratesRes.data) {
+                    setYiUfeRates(ratesRes.data);
+                    toast.success(res.message || 'Veriler güncellendi.');
+                }
+            } else {
+                toast.error(res.error || 'Güncelleme başarısız.');
             }
         } catch (e) {
             console.error(e);
-            alert('Otomatik güncelleme başarısız oldu. Lütfen manuel giriş yapınız.');
+            toast.error('Otomatik güncelleme işleminde hata.');
         } finally {
             setUpdatingYiUfe(false);
         }
     };
 
-    const handleSaveManualYiUfe = (e: React.FormEvent) => {
+    const handleSaveManualYiUfe = async (e: React.FormEvent) => {
         e.preventDefault();
         const rate = parseFloat(manualRate);
         if (isNaN(rate)) {
-            alert('Geçerli bir oran giriniz.');
+            toast.error('Geçerli bir oran giriniz.');
             return;
         }
 
-        // Create new rate object
-        const newRate = {
-            id: `${manualYear}-${manualMonth + 1}`,
-            year: manualYear,
-            month: manualMonth + 1, // Store as 1-12
-            index: rate
-        };
-
-        // Merge with existing
-        // We filter out any existing rate for this year/month
-        const existing = yiUfeRates.filter((r: any) => !(r.year === manualYear && r.month === manualMonth + 1));
-        setYiUfeRates([...existing, newRate]);
-
-        setYiUfeModalOpen(false);
-        setManualRate('');
+        try {
+            const res = await addYiUfeRate(manualYear, manualMonth + 1, rate);
+            if (res.success && res.data) {
+                // Helper to merge manually or just re-fetch
+                const ratesRes = await getYiUfeRates();
+                if (ratesRes.success && ratesRes.data) {
+                    setYiUfeRates(ratesRes.data);
+                    toast.success('Kayıt başarılı.');
+                    setYiUfeModalOpen(false);
+                    setManualRate('');
+                }
+            } else {
+                toast.error(res.error || 'Kayıt başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('İşlem hatası.');
+        }
     };
 
     // Auto-update logic is now handled globally in useYiUfeAutoUpdate hook.

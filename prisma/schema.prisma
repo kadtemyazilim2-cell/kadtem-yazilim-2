@@ -293,6 +293,7 @@ model FuelTank {
   name        String
   capacity    Float
   currentLevel Float
+  status      Status   @default(ACTIVE)
   
   // Relations
   transfersIn  FuelTransfer[] @relation("TankTo")

@@ -137,10 +137,64 @@ export async function updateSite(id: string, data: Partial<Site>) {
     try {
         const { partners, ...rest } = data as any;
 
-        // ... (rest of logic is same, assuming this matches the END of updateSite or I need to replace the whole function again to be safe?
-        // Replacing just the catch block is risky if indentation or context matches multiple.
-        // I will replace the END of createSite and START/END of updateSite to inject the error handling.
-        // Actually, just replacing the catch block text is unique enough if I include the console.error line.
+        // Date processing helper
+        const dateFields = [
+            'announcementDate', 'tenderDate', 'contractDate', 'siteDeliveryDate',
+            'completionDate', 'extendedDate', 'provisionalAcceptanceDate',
+            'finalAcceptanceDate'
+        ];
+
+        const processedData = { ...rest };
+
+        for (const field of dateFields) {
+            if (field in processedData) {
+                const val = processedData[field];
+                if (val === '' || val === null || val === undefined) {
+                    processedData[field] = null;
+                } else if (typeof val === 'string') {
+                    const d = new Date(val);
+                    processedData[field] = !isNaN(d.getTime()) ? d : null;
+                }
+            }
+        }
+
+        // Automated Status Logic based on Dates
+        if (processedData.provisionalAcceptanceDate) {
+            processedData.status = 'COMPLETED';
+        }
+
+        // Handle Partners: Delete all and re-create for simplicity
+        // Note: In production, might want 'upsert' to preserve IDs, but here simpler.
+        const partnerOperations = partners ? {
+            partners: {
+                deleteMany: {},
+                create: partners.map((p: any) => ({
+                    companyId: p.companyId,
+                    percentage: Number(p.percentage)
+                })).filter((p: any) => p.companyId && p.percentage)
+            }
+        } : {};
+
+        // MAIN UPDATE
+        const site = await prisma.site.update({
+            where: { id },
+            data: {
+                ...processedData,
+                ...partnerOperations
+            }
+        });
+
+        // [NEW] Cascade Status to Fuel Tanks
+        if (data.status) {
+            await prisma.fuelTank.updateMany({
+                where: { siteId: id },
+                data: { status: data.status }
+            });
+        }
+
+        revalidatePath('/dashboard/admin');
+        revalidatePath('/dashboard/sites');
+        return { success: true, data: site };
     } catch (error: any) {
         console.error('updateSite Error:', error);
         return { success: false, error: 'Şantiye güncellenemedi: ' + (error.message || String(error)) };
@@ -174,6 +228,24 @@ export async function fixSiteStatuses() {
 
 export async function deleteSite(id: string) {
     try {
+        const fuelLogCount = await prisma.fuelLog.count({ where: { siteId: id } });
+        if (fuelLogCount > 0) return { success: false, error: `Bu şantiyeye ait ${fuelLogCount} adet yakıt kaydı bulunmaktadır.` };
+
+        const transactionCount = await prisma.cashTransaction.count({ where: { siteId: id } });
+        if (transactionCount > 0) return { success: false, error: `Bu şantiyeye ait ${transactionCount} adet kasa hareketi bulunmaktadır.` };
+
+        const correspondenceCount = await prisma.correspondence.count({ where: { siteId: id } });
+        if (correspondenceCount > 0) return { success: false, error: `Bu şantiyeye ait ${correspondenceCount} adet yazışma bulunmaktadır.` };
+
+        const fuelTankCount = await prisma.fuelTank.count({ where: { siteId: id } });
+        if (fuelTankCount > 0) return { success: false, error: `Bu şantiyede tanımlı ${fuelTankCount} adet yakıt deposu bulunmaktadır.` };
+
+        const vehicleCount = await prisma.vehicle.count({ where: { assignedSiteId: id } });
+        if (vehicleCount > 0) return { success: false, error: `Bu şantiyeye atanmış ${vehicleCount} adet araç bulunmaktadır.` };
+
+        const personnelCount = await prisma.personnel.count({ where: { siteId: id } });
+        if (personnelCount > 0) return { success: false, error: `Bu şantiyede çalışan ${personnelCount} adet personel bulunmaktadır.` };
+
         await prisma.site.delete({ where: { id } });
         revalidatePath('/dashboard/admin');
         revalidatePath('/dashboard/sites');
