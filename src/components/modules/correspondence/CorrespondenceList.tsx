@@ -758,6 +758,20 @@ export function CorrespondenceList() {
     const outgoingItems = activeCorrespondences.filter((c: any) => c.type !== 'BANK' && c.direction === 'OUTGOING');
 
     const exportExcel = () => {
+        let prefix = 'yazismalar';
+        let title = 'Yazışmalar';
+
+        if (activeTab === 'outgoing') {
+            prefix = 'giden-evraklar';
+            title = 'Giden Evrak Listesi';
+        } else if (activeTab === 'incoming') {
+            prefix = 'gelen-evraklar';
+            title = 'Gelen Evrak Listesi';
+        } else if (activeTab === 'bank') {
+            prefix = 'banka-yazismalari';
+            title = 'Banka Yazışmaları Listesi';
+        }
+
         const data = activeCorrespondences.map(c => ({
             'Tarih': format(new Date(c.date), 'dd.MM.yyyy', { locale: tr }),
             'Yön': c.direction === 'INCOMING' ? 'Gelen' : 'Giden',
@@ -771,8 +785,8 @@ export function CorrespondenceList() {
 
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Yazışmalar");
-        XLSX.writeFile(wb, `yazismalar-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31)); // Sheet name max 31 chars
+        XLSX.writeFile(wb, `${prefix}-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     };
 
     const exportListPDF = () => {
@@ -780,6 +794,20 @@ export function CorrespondenceList() {
         doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
         doc.setFont('Roboto');
+
+        let prefix = 'yazisma-listesi';
+        let title = 'Yazışma Listesi';
+
+        if (activeTab === 'outgoing') {
+            prefix = 'giden-evraklar';
+            title = 'Giden Evrak Listesi';
+        } else if (activeTab === 'incoming') {
+            prefix = 'gelen-evraklar';
+            title = 'Gelen Evrak Listesi';
+        } else if (activeTab === 'bank') {
+            prefix = 'banka-yazismalari';
+            title = 'Banka Yazışmaları Listesi';
+        }
 
         const tableColumn = ["Tarih", "Yön", "Tip", "Firma", "Konu", "Sayı", "Muhatap"];
         const tableRows = activeCorrespondences.map(c => [
@@ -800,8 +828,8 @@ export function CorrespondenceList() {
             startY: 20,
         });
 
-        doc.text("Yazışma Listesi", 14, 15);
-        doc.save(`yazisma-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        doc.text(title, 14, 15);
+        doc.save(`${prefix}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
     const renderFilters = () => (
@@ -942,9 +970,11 @@ export function CorrespondenceList() {
                         <TableBody>
                             {institutions
                                 .filter((inst: any) => {
+                                    // [FIX] Strict Type Filter
+                                    if (inst.category === 'INSURANCE_AGENCY' || inst.category === 'INSURANCE_COMPANY') return false;
+
                                     const lowerName = normalizeSearchText(inst.name || '');
                                     // Filter out Insurance companies as they are for Mailing only
-                                    // [UPDATED] Added 'acente' to filter
                                     if (lowerName.includes('sigorta') || lowerName.includes('kasko') || lowerName.includes('acente')) return false;
                                     return true;
                                 })
@@ -1194,9 +1224,11 @@ export function CorrespondenceList() {
         );
     };
 
+    const [activeTab, setActiveTab] = useState(getDefaultTab());
+
     return (
         <Card>
-            <Tabs defaultValue={getDefaultTab()} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <CardHeader className="flex flex-col space-y-4">
                     <div className="flex flex-row items-center justify-between">
                         <CardTitle>Yazışma Listesi</CardTitle>

@@ -715,18 +715,25 @@ export default function AdminPage() {
         };
 
         try {
+            let result;
             if (isEditingSite && selectedSiteId) {
-                await updateSiteAction(selectedSiteId, sitePayload);
+                result = await updateSiteAction(selectedSiteId, sitePayload);
             } else {
                 if (newSiteData.provisionalAcceptanceDate) {
                     sitePayload.status = 'INACTIVE';
                 }
-                await createSite(sitePayload);
+                result = await createSite(sitePayload);
             }
-            location.reload();
-        } catch (err) {
+
+            if (result && result.success) {
+                alert('İşlem başarıyla tamamlandı.');
+                window.location.reload();
+            } else {
+                throw new Error(result?.error || 'Bilinmeyen bir hata oluştu');
+            }
+        } catch (err: any) {
             console.error(err);
-            alert('İşlem başarısız.');
+            alert(`İşlem başarısız: ${err.message || err}`);
         }
 
         setSiteModalOpen(false);

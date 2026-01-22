@@ -245,6 +245,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         }
     };
 
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -254,49 +256,47 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             return;
         }
 
-        // Date Restriction Check
-        if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const target = new Date(formData.date);
-            target.setHours(0, 0, 0, 0);
-            const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
-
-            if (diff > user.editLookbackDays) {
-                toast.error(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
-                return;
-            }
-        }
-
-        // [FIX] Correct Date Time Construction
-        const now = new Date();
-        const [y, m, d] = formData.date.split('-').map(Number);
-        const dateObj = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
-        // Use ISO String to preserve timezone (Browser Local -> UTC)
-        // Previous method led to server treating Local Time as UTC, resulting in +3 Hours when viewed back in TR.
-        const dateStr = dateObj.toISOString();
-
-        const payload = {
-            companyId: formData.companyId,
-            siteId: formData.siteId === 'none' ? undefined : formData.siteId, // Handle "No Selection"
-            direction: formData.direction as 'INCOMING' | 'OUTGOING',
-            type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
-            senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
-            date: dateStr,
-            // Ensure description is not empty if hidden (Incoming)
-            description: formData.description || '-',
-            // [FIX] Added missing fields
-            subject: formData.subject,
-            referenceNumber: formData.referenceNumber,
-            senderReceiver: formData.senderReceiver,
-            interest: formData.interest,
-            appendices: formData.appendices,
-            registrationNumber: formData.registrationNumber,
-            attachmentUrls: formData.attachmentUrls,
-            includeStamp: formData.includeStamp
-        };
+        setIsSubmitting(true);
 
         try {
+            // Date Restriction Check
+            if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const target = new Date(formData.date);
+                target.setHours(0, 0, 0, 0);
+                const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
+
+                if (diff > user.editLookbackDays) {
+                    toast.error(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
+                    return;
+                }
+            }
+
+            // [FIX] Correct Date Time Construction
+            const now = new Date();
+            const [y, m, d] = formData.date.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+            const dateStr = dateObj.toISOString();
+
+            const payload = {
+                companyId: formData.companyId,
+                siteId: formData.siteId === 'none' ? undefined : formData.siteId,
+                direction: formData.direction as 'INCOMING' | 'OUTGOING',
+                type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
+                senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
+                date: dateStr,
+                description: formData.description || '-',
+                subject: formData.subject,
+                referenceNumber: formData.referenceNumber,
+                senderReceiver: formData.senderReceiver,
+                interest: formData.interest,
+                appendices: formData.appendices,
+                registrationNumber: formData.registrationNumber,
+                attachmentUrls: formData.attachmentUrls,
+                includeStamp: formData.includeStamp
+            };
+
             if (initialData && !isCopy) {
                 const result = await updateCorrespondence(initialData.id, payload);
                 if (result.success) {
@@ -314,8 +314,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                 if (result.success) {
                     toast.success(isCopy ? "Yazışma kopyalandı." : "Yazışma eklendi.");
                     setIsOpen(false);
-                    // Reset ...
-                    if (!isCopy) { // Only reset if not copy (copy usually closes modal anyway)
+                    if (!isCopy) {
                         setFormData({
                             companyId: '',
                             siteId: '',
@@ -341,6 +340,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         } catch (error) {
             console.error(error);
             toast.error("Bir hata oluştu.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -351,11 +352,16 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     // execCmd moved to SimpleRichTextEditor
 
     const dropdownOptions = institutions.filter((inst: any) => {
+        // [FIX] Strict filtering for Insurance entities
+        if (inst.category === 'INSURANCE_AGENCY' || inst.category === 'INSURANCE_COMPANY') return false;
+
         if (initialType === 'BANK') return inst.category === 'BANK' || !inst.category;
 
-        // Exclude Insurance/Kasko agencies for standard correspondence
+        // Exclude Insurance/Kasko agencies for standard correspondence (double check via name just in case)
         const lowerName = toTurkishLower(inst.name || '');
         if (lowerName.includes('sigorta') || lowerName.includes('kasko')) {
+            // Optional: If category is strictly set, name check might be redundant but safe.
+            // keeping name check as fallback if category is missing
             return false;
         }
 
@@ -458,8 +464,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         placeholder="Ref-123"
                                         value={formData.referenceNumber}
                                         onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                                        readOnly={!initialData && formData.direction === 'OUTGOING'}
-                                        className={(!initialData && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
+                                        readOnly={((!initialData || isCopy) && formData.direction === 'OUTGOING')}
+                                        className={((!initialData || isCopy) && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
                                     />
                                 </div>
                             )}
@@ -659,7 +665,9 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                         <Button type="button" variant="outline" onClick={handlePreview} className="gap-2">
                             <Printer className="w-4 h-4" /> Ön İzleme
                         </Button>
-                        <Button type="submit" form="correspondence-form" disabled={user?.role !== 'ADMIN' && !getCurrentPermission()}>Kaydet</Button>
+                        <Button type="submit" form="correspondence-form" disabled={(user?.role !== 'ADMIN' && !getCurrentPermission()) || isSubmitting}>
+                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent >
             </Dialog >
