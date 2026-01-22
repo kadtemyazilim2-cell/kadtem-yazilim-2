@@ -411,6 +411,11 @@ export function VehicleList() {
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
         doc.setFont('Roboto');
 
+        // [FIX] Title at the top of the first page
+        doc.setFontSize(16);
+        doc.text("Araç Listesi", 14, 15);
+        doc.setFontSize(10); // Reset for table
+
         const tableColumn = ["Plaka", "Firma", "Mülkiyet", "Marka", "Model", "Yıl", "Tip", "Durum"];
         const tableRows = filteredVehicles.map(v => [
             v.plate,
@@ -428,10 +433,10 @@ export function VehicleList() {
             body: tableRows,
             styles: { font: 'Roboto', fontSize: 8 },
             headStyles: { fillColor: [41, 128, 185] },
-            startY: 20,
+            startY: 20, // Start table below title
+            margin: { top: 20 }
         });
 
-        doc.text("Araç Listesi", 14, 15);
         doc.save(`arac-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 

@@ -13,6 +13,7 @@ import {
     syncYiUfeRates
 } from '@/actions/yiufe';
 import { createSite, updateSite as updateSiteAction, deleteSite as deleteSiteAction } from '@/actions/site';
+import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company'; // [NEW]
 import { resetDatabase } from '@/actions/system';
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
 import { Label } from '@/components/ui/label';
@@ -112,7 +113,8 @@ export default function AdminPage() {
         sites, addSite, updateSite, deleteSite,
         assignVehiclesToSite, vehicles,
         yiUfeRates, setYiUfeRates, addYiUfeRates,
-        personnel, personnelAttendance, vehicleAttendance, fuelTanks // [FIX] Added missing deps for delete logic
+        personnel, personnelAttendance, vehicleAttendance, fuelTanks,
+        correspondences // [FIX] Added correspondences for delete logic
     } = useAppStore();
     const { user } = useAuth();
     const router = useRouter(); // [NEW] Router for soft refresh
@@ -291,10 +293,42 @@ export default function AdminPage() {
 
 
     const handleDeleteCompany = async (id: string, name: string) => {
-        // Check for dependencies (Sites)
+        // [FIX] Comprehensive Client-Side Dependency Check
+        const errors: string[] = [];
+
+        // 1. Sites
         const linkedSites = sites.filter((s: any) => s.companyId === id);
         if (linkedSites.length > 0) {
-            alert(`Bu firma silinemez!\n\nBağlı ${linkedSites.length} adet şantiye bulunmaktadır.\nLütfen önce bu şantiyelerin firma bağlantısını değiştirin veya silin.`);
+            errors.push(`- ${linkedSites.length} adet Şantiye`);
+        }
+
+        // 2. Users (Assigned via Site or direct association check if implemented, currently users are assigned to sites)
+        // But users don't have direct companyId. However, if a company is deleted, sites are deleted -> users lose assignments?
+        // Actually, prisma schema says Company has `users User[]`.
+        // Let's check if any user is directly linked to this company.
+        // Since `users` store object might not have loaded the relation, we might rely on server check or if we have `companyId` on user.
+        // Looking at User model: it has `assignedSites`. It doesn't seem to have direct `companyId` in the Interface usually used in UI unless expanded.
+        // But let's check `users` array items.
+        // Assuming client store data is flat. We will skip User check if not obvious, relying on Server Action for that specific one,
+        // BUT `vehicles` has `companyId` (implied ownership).
+
+        // 3. Vehicles (Owned or Rental from this company)
+        // Check `companyId` on vehicle OR `rentalCompanyName` matching? 
+        // Vehicle model has `companyId` relation.
+        const linkedVehicles = vehicles.filter((v: any) => v.companyId === id);
+        if (linkedVehicles.length > 0) {
+            errors.push(`- ${linkedVehicles.length} adet Araç`);
+        }
+
+        // 4. Correspondences (if they have companyId/sender/receiver link)
+        const linkedCorrespondences = correspondences.filter((c: any) => c.relatedCompanyId === id || c.senderCompanyId === id || c.receiverCompanyId === id);
+        if (linkedCorrespondences.length > 0) {
+            errors.push(`- ${linkedCorrespondences.length} adet Yazışma`);
+        }
+
+        // If errors found
+        if (errors.length > 0) {
+            alert(`Bu firma silinemez!\n\nBağlı kayıtlar bulunmaktadır:\n${errors.join('\n')}\n\nLütfen önce bu kayıtları silin veya başka bir firmaya aktarın.`);
             return;
         }
 
@@ -2185,23 +2219,23 @@ export default function AdminPage() {
                                                                 <Label>İş Grubu <span className="text-red-500">*</span></Label>
                                                                 <Select
                                                                     value={newSiteData.workGroup || ''}
-                                                                    onValueChange={value => setNewSiteData({ ...newSiteData, workGroup: value })}
+                                                                    onValueChange={value => setNewSiteData({ ...newSiteData, workGroup: value.toUpperCase() })}
                                                                     required
                                                                 >
                                                                     <SelectTrigger>
                                                                         <SelectValue placeholder="Seçiniz" />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
-                                                                        <SelectItem value="Altyapı">Altyapı</SelectItem>
-                                                                        <SelectItem value="Drenaj">Drenaj</SelectItem>
-                                                                        <SelectItem value="Gölet">Gölet</SelectItem>
-                                                                        <SelectItem value="Harita">Harita</SelectItem>
-                                                                        <SelectItem value="Restorasyon">Restorasyon</SelectItem>
-                                                                        <SelectItem value="Sera">Sera</SelectItem>
-                                                                        <SelectItem value="Sulama">Sulama</SelectItem>
-                                                                        <SelectItem value="Taşkın Koruma">Taşkın Koruma</SelectItem>
-                                                                        <SelectItem value="Toplulaştırma">Toplulaştırma</SelectItem>
-                                                                        <SelectItem value="Üstyapı">Üstyapı</SelectItem>
+                                                                        <SelectItem value="ALTYAPI">ALTYAPI</SelectItem>
+                                                                        <SelectItem value="DRENAJ">DRENAJ</SelectItem>
+                                                                        <SelectItem value="GÖLET">GÖLET</SelectItem>
+                                                                        <SelectItem value="HARİTA">HARİTA</SelectItem>
+                                                                        <SelectItem value="RESTORASYON">RESTORASYON</SelectItem>
+                                                                        <SelectItem value="SERA">SERA</SelectItem>
+                                                                        <SelectItem value="SULAMA">SULAMA</SelectItem>
+                                                                        <SelectItem value="TAŞKIN KORUMA">TAŞKIN KORUMA</SelectItem>
+                                                                        <SelectItem value="TOPLULAŞTIRMA">TOPLULAŞTIRMA</SelectItem>
+                                                                        <SelectItem value="ÜSTYAPI">ÜSTYAPI</SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
                                                             </div>

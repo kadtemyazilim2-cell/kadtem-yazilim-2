@@ -22,9 +22,18 @@ export async function getVehicles() {
 
 export async function createVehicle(data: Partial<Vehicle>) {
     try {
+        // [FIX] For RENTAL, if companyId is missing, try to derive from assignedSiteId
+        if (data.ownership === 'RENTAL' && !data.companyId && data.assignedSiteId) {
+            const site = await prisma.site.findUnique({ where: { id: data.assignedSiteId } });
+            if (site) {
+                data.companyId = site.companyId;
+            }
+        }
+
         // Ensure constraints
         if (!data.plate || !data.brand || !data.model || !data.companyId) {
-            return { success: false, error: 'Eksik bilgi (Plaka, Marka, Model veya Firma).' };
+            // If still missing after backup check
+            return { success: false, error: 'Eksik bilgi (Plaka, Marka, Model veya Firma). Kiralık araçlar için Şantiye seçimi zorunludur (Firma tespiti için).' };
         }
 
         const vehicle = await prisma.vehicle.create({
@@ -44,7 +53,7 @@ export async function createVehicle(data: Partial<Vehicle>) {
                 insuranceExpiry: data.insuranceExpiry,
                 kaskoExpiry: data.kaskoExpiry,
                 assignedSiteId: data.assignedSiteId || null,
-                companyId: data.companyId!, // Checked above or enforced by types now
+                companyId: data.companyId!, // Checked above
 
                 // Other fields just in case
                 rentalCompanyName: data.rentalCompanyName,
@@ -58,9 +67,9 @@ export async function createVehicle(data: Partial<Vehicle>) {
         });
         revalidatePath('/dashboard/vehicles');
         return { success: true, data: vehicle };
-    } catch (error) {
+    } catch (error: any) {
         console.error('createVehicle Error:', error);
-        return { success: false, error: 'Araç eklenemedi.' };
+        return { success: false, error: 'Araç eklenemedi: ' + (error.message || error) };
     }
 }
 

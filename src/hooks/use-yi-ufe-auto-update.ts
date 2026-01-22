@@ -8,18 +8,25 @@ export function useYiUfeAutoUpdate() {
     const fetchYiUfeFromApi = async () => {
         setUpdating(true);
         try {
-            const res = await fetch('/api/yi-ufe');
-            const data = await res.json();
-            if (data.rates) {
-                const ratesWithId = data.rates.map((r: any) => ({
-                    id: `${r.year}-${r.month}`,
+            // Use Server Action for reliable scraping
+            const { syncYiUfeRates, getYiUfeRates } = await import('@/actions/yiufe');
+
+            // 1. Run Sync
+            await syncYiUfeRates();
+
+            // 2. Fetch fresh data
+            const res = await getYiUfeRates();
+            if (res.success && res.data) {
+                // Determine format
+                const ratesWithId = res.data.map((r: any) => ({
+                    id: r.id || `${r.year}-${r.month}`,
                     year: r.year,
                     month: r.month,
                     index: r.index
                 }));
                 addYiUfeRates(ratesWithId);
-                console.log('YI-UFE Auto-Update Successful');
-                return true; // Success
+                console.log('YI-UFE Auto-Update Successful via Server Action');
+                return true;
             }
             return false;
         } catch (e) {
@@ -39,12 +46,7 @@ export function useYiUfeAutoUpdate() {
 
             // Condition: 3rd of month, Time >= 10:05.
             if (day === 3 && (hour > 10 || (hour === 10 && minute >= 5))) {
-                // Determine expected data: Usually previous month.
-                // Example: On May 3rd, we expect April Data (Month 4).
-                // But let's check if we *already* have data for the PREVIOUS month.
-                // If yes, we assume success and don't fetch.
-
-                // Note: The previous month logic:
+                // Check if we already have data for the *previous* month
                 const prevDate = new Date();
                 prevDate.setMonth(prevDate.getMonth() - 1);
                 const targetYear = prevDate.getFullYear();
@@ -59,7 +61,10 @@ export function useYiUfeAutoUpdate() {
 
                 if (updating) return;
 
-                console.log('YI-UFE: Auto-fetch triggered.');
+                console.log('YI-UFE: Auto-fetch triggered (Client Side Condition Met).');
+                // We use the new Server Action which does the real scraping
+                // We can reuse the same function `fetchYiUfeFromApi` if we update it, or call here directly.
+                // Let's rely on the updated fetchYiUfeFromApi below which we should update to use Server Action.
                 await fetchYiUfeFromApi();
             }
         };

@@ -82,9 +82,9 @@ export async function createFuelTank(data: Partial<FuelTank>) {
         });
         revalidatePath('/dashboard/fuel');
         return { success: true, data: tank };
-    } catch (error) {
+    } catch (error: any) {
         console.error('createFuelTank Error:', error);
-        return { success: false, error: 'Depo oluşturulamadı.' };
+        return { success: false, error: 'Depo oluşturulamadı: ' + (error.message || error) };
     }
 }
 
