@@ -30,30 +30,9 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
     let logoToUse: string | null | undefined = company?.letterhead || company?.logoUrl;
 
-    // [FIX] Priority: Specific hardcoded logos (Text Headers) for known companies
-    // User reported dynamic logos (Red/Blue IKIKAT) are "wrong", prefers the Text Header style (Preview).
-    // Preview likely used fallback because dynamic logo failed to load.
-    // We enforce the fallback for these specific companies.
-
-    // [FIX] Priority: Specific hardcoded logos (Text Headers) for known companies
-    // User reported dynamic logos (Red/Blue IKIKAT) are "wrong", prefers the Text Header style (Preview).
-    // Preview likely used fallback because dynamic logo failed to load.
-    // We enforce the fallback for these specific companies.
-
-    if (!logoToUse) {
-        // [CRITICAL] Explicitly prevent "Kenan Tugay" from getting the hardcoded Ikikat logo
-        // This company should use its DB letterhead (if any) or text header
-        if (normalizedName.includes('kenan')) {
-            // Do NOTHING. Leave logoToUse as null/undefined.
-            // This ensures we fall through to the "No Logo" / Text Header logic.
-        }
-        else if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
-            logoToUse = IKIKAT_LOGO_BASE64;
-        }
-        else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
-            logoToUse = KADTEM_LOGO_BASE64;
-        }
-    }
+    // [FIX] Priority: Database only.
+    // If a company has a logo/letterhead in DB, use it. Otherwise text header.
+    // Removed hardcoded fallbacks to prevent confusion.
 
     if (logoToUse) {
         try {
