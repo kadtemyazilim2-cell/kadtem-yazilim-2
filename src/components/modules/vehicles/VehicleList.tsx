@@ -719,8 +719,9 @@ export function VehicleList() {
                     )}
 
 
-                    <TabsList className="grid w-full grid-cols-4 lg:w-[550px]">
+                    <TabsList className="grid w-full grid-cols-5 lg:w-[680px]">
                         <TabsTrigger value="list">Araç Listesi</TabsTrigger>
+                        <TabsTrigger value="vehicle-sites">Araç Şantiye</TabsTrigger>
                         {canViewFinance && <TabsTrigger value="rental-costs">Araç Kira Bedeli</TabsTrigger>}
                         {canViewInsurance && <TabsTrigger value="insurance">Sigorta/Muayene</TabsTrigger>}
                         {canViewInsurance && <TabsTrigger value="agency-tracking">Acente Takip</TabsTrigger>}
@@ -830,6 +831,131 @@ export function VehicleList() {
                                 ))}
                             </TableBody>
                         </Table>
+                    </TabsContent>
+
+                    <TabsContent value="vehicle-sites" className="space-y-6">
+                        {/* Group vehicles by Site */}
+                        {(() => {
+                            // 1. Get filtered vehicles first (respects existing filters)
+                            // Or should we show ALL Active vehicles? Usually filters are good.
+                            // Let's use filteredVehicles to be consistent with search/filter bar.
+
+                            // 2. Group by Site
+                            const grouped: Record<string, typeof vehicles> = {};
+                            const noSite: typeof vehicles = [];
+
+                            filteredVehicles.forEach(v => {
+                                if (v.status !== 'ACTIVE') return; // Only show Active for location tracking usually?
+                                // User said "kayıtlı şantiye ile birlikte".
+                                if (v.assignedSiteId) {
+                                    if (!grouped[v.assignedSiteId]) grouped[v.assignedSiteId] = [];
+                                    grouped[v.assignedSiteId].push(v);
+                                } else {
+                                    noSite.push(v);
+                                }
+                            });
+
+                            // 3. Render
+                            return (
+                                <div className="space-y-8">
+                                    {/* Sites */}
+                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any) => {
+                                        const siteVehicles = grouped[site.id] || [];
+                                        if (siteVehicles.length === 0) return null;
+
+                                        return (
+                                            <Card key={site.id}>
+                                                <CardHeader className="py-3 bg-muted/20">
+                                                    <div className="flex justify-between items-center">
+                                                        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                                                            {site.name}
+                                                            <Badge variant="secondary" className="bg-white">{siteVehicles.length} Araç</Badge>
+                                                        </CardTitle>
+                                                    </div>
+                                                </CardHeader>
+                                                <CardContent className="p-0">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead className="w-[50px]">#</TableHead>
+                                                                <TableHead>Plaka</TableHead>
+                                                                <TableHead>Marka / Model</TableHead>
+                                                                <TableHead>Tip</TableHead>
+                                                                <TableHead>Mülkiyet</TableHead>
+                                                                <TableHead>Firma</TableHead>
+                                                                <TableHead>Sürücü / Zimmet</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {siteVehicles.map((v, idx) => (
+                                                                <TableRow key={v.id}>
+                                                                    <TableCell>{idx + 1}</TableCell>
+                                                                    <TableCell className="font-bold font-mono">{v.plate}</TableCell>
+                                                                    <TableCell>{v.brand} {v.model}</TableCell>
+                                                                    <TableCell>{typeMap[v.type] || v.type}</TableCell>
+                                                                    <TableCell>
+                                                                        <Badge variant="outline" className={v.ownership === 'RENTAL' ? "text-orange-600 bg-orange-50 border-orange-200" : "text-blue-600 bg-blue-50 border-blue-200"}>
+                                                                            {v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal'}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-sm text-muted-foreground">{getCompanyName(v)}</TableCell>
+                                                                    <TableCell>
+                                                                        {/* Driver info if we had it, for now placeholder or generic */}
+                                                                        -
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+
+                                    {/* No Site / Unassigned */}
+                                    {noSite.length > 0 && (
+                                        <Card className="border-dashed border-slate-300">
+                                            <CardHeader className="py-3 bg-slate-50">
+                                                <div className="flex justify-between items-center">
+                                                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-500">
+                                                        Şantiyesi Belirlenmemiş / Merkez
+                                                        <Badge variant="secondary" className="bg-white">{noSite.length} Araç</Badge>
+                                                    </CardTitle>
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="p-0">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead className="w-[50px]">#</TableHead>
+                                                            <TableHead>Plaka</TableHead>
+                                                            <TableHead>Marka / Model</TableHead>
+                                                            <TableHead>Tip</TableHead>
+                                                            <TableHead>Mülkiyet</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {noSite.map((v, idx) => (
+                                                            <TableRow key={v.id}>
+                                                                <TableCell>{idx + 1}</TableCell>
+                                                                <TableCell className="font-bold font-mono">{v.plate}</TableCell>
+                                                                <TableCell>{v.brand} {v.model}</TableCell>
+                                                                <TableCell>{typeMap[v.type] || v.type}</TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="outline" className={v.ownership === 'RENTAL' ? "text-orange-600 bg-orange-50 border-orange-200" : "text-blue-600 bg-blue-50 border-blue-200"}>
+                                                                        {v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal'}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </TabsContent>
 
                     {/* --- TAB: INSURANCE --- */}
