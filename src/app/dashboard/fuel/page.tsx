@@ -2,7 +2,13 @@
 
 import { FuelTankList } from '@/components/modules/fuel/FuelTankList';
 import { FuelConsumptionReport } from '@/components/modules/fuel/FuelConsumptionReport';
+import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard'; // [NEW]
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input'; // [NEW]
+import { Label } from '@/components/ui/label'; // [NEW]
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // [NEW]
+import { useAppStore } from '@/lib/store/use-store'; // [NEW]
+import { useState } from 'react'; // [NEW]
 import { ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store/use-auth';
@@ -15,6 +21,12 @@ export default function FuelPage() {
     const canViewTanks = isAdmin || hasPermission('fuel.tanks', 'VIEW') || hasPermission('fuel.tanks', 'EDIT');
     const canViewConsumption = isAdmin || hasPermission('fuel.consumption', 'VIEW') || hasPermission('fuel.consumption', 'EDIT');
 
+    const { fuelTransfers, fuelLogs, fuelTanks, sites } = useAppStore(); // [NEW] Get data
+
+    // [NEW] Filter States
+    const [selectedSiteId, setSelectedSiteId] = useState('');
+    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -24,6 +36,50 @@ export default function FuelPage() {
                         Depo stok durumları ve detaylı tüketim raporları.
                     </p>
                 </div>
+            </div>
+
+            {/* [NEW] Dashboard Filters & Stats */}
+            <div className="space-y-4">
+                <div className="flex flex-wrap gap-4 items-end bg-slate-50 p-4 rounded-lg border">
+                    <div className="w-full md:w-64 space-y-2">
+                        <Label>Şantiye Seçimi</Label>
+                        <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                            <SelectTrigger className="bg-white">
+                                <SelectValue placeholder="Şantiye Seçiniz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Başlangıç</Label>
+                        <Input type="date" className="bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Bitiş</Label>
+                        <Input type="date" className="bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                    </div>
+                    {selectedSiteId && (
+                        <Button variant="ghost" className="text-red-500" onClick={() => { setSelectedSiteId(''); setDateRange({ start: '', end: '' }); }}>
+                            Filtreleri Temizle
+                        </Button>
+                    )}
+                </div>
+
+                {selectedSiteId && (
+                    <FuelStatsCard
+                        siteId={selectedSiteId}
+                        startDate={dateRange.start}
+                        endDate={dateRange.end}
+                        fuelTransfers={fuelTransfers}
+                        fuelLogs={fuelLogs}
+                        fuelTanks={fuelTanks}
+                        sites={sites}
+                    />
+                )}
             </div>
 
             {canViewTanks && <FuelTankList />}
