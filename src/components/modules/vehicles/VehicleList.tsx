@@ -880,10 +880,7 @@ export function VehicleList() {
                                                                 <TableHead className="w-[50px]">#</TableHead>
                                                                 <TableHead>Plaka</TableHead>
                                                                 <TableHead>Marka / Model</TableHead>
-                                                                <TableHead>Tip</TableHead>
-                                                                <TableHead>Mülkiyet</TableHead>
-                                                                <TableHead>Firma</TableHead>
-                                                                <TableHead>Sürücü / Zimmet</TableHead>
+                                                                <TableHead>Şantiye</TableHead>
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
@@ -892,17 +889,7 @@ export function VehicleList() {
                                                                     <TableCell>{idx + 1}</TableCell>
                                                                     <TableCell className="font-bold font-mono">{v.plate}</TableCell>
                                                                     <TableCell>{v.brand} {v.model}</TableCell>
-                                                                    <TableCell>{typeMap[v.type] || v.type}</TableCell>
-                                                                    <TableCell>
-                                                                        <Badge variant="outline" className={v.ownership === 'RENTAL' ? "text-orange-600 bg-orange-50 border-orange-200" : "text-blue-600 bg-blue-50 border-blue-200"}>
-                                                                            {v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal'}
-                                                                        </Badge>
-                                                                    </TableCell>
-                                                                    <TableCell className="text-sm text-muted-foreground">{getCompanyName(v)}</TableCell>
-                                                                    <TableCell>
-                                                                        {/* Driver info if we had it, for now placeholder or generic */}
-                                                                        -
-                                                                    </TableCell>
+                                                                    <TableCell className="text-sm font-medium text-slate-700">{site.name}</TableCell>
                                                                 </TableRow>
                                                             ))}
                                                         </TableBody>
@@ -930,8 +917,7 @@ export function VehicleList() {
                                                             <TableHead className="w-[50px]">#</TableHead>
                                                             <TableHead>Plaka</TableHead>
                                                             <TableHead>Marka / Model</TableHead>
-                                                            <TableHead>Tip</TableHead>
-                                                            <TableHead>Mülkiyet</TableHead>
+                                                            <TableHead>Şantiye</TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
@@ -940,12 +926,7 @@ export function VehicleList() {
                                                                 <TableCell>{idx + 1}</TableCell>
                                                                 <TableCell className="font-bold font-mono">{v.plate}</TableCell>
                                                                 <TableCell>{v.brand} {v.model}</TableCell>
-                                                                <TableCell>{typeMap[v.type] || v.type}</TableCell>
-                                                                <TableCell>
-                                                                    <Badge variant="outline" className={v.ownership === 'RENTAL' ? "text-orange-600 bg-orange-50 border-orange-200" : "text-blue-600 bg-blue-50 border-blue-200"}>
-                                                                        {v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal'}
-                                                                    </Badge>
-                                                                </TableCell>
+                                                                <TableCell className="text-sm text-muted-foreground">-</TableCell>
                                                             </TableRow>
                                                         ))}
                                                     </TableBody>

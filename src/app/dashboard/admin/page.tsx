@@ -706,7 +706,11 @@ export default function AdminPage() {
         currentWorkExperienceAmount: 0,
         priceDifference: 0,
         personnelCount: 0,
-        note: ''
+        personnelCount: 0,
+        note: '',
+        provisionalAcceptanceDoc: '', // [NEW]
+        finalAcceptanceDoc: '', // [NEW]
+        workExperienceDoc: '' // [NEW]
     });
 
     const handleDeleteSite = () => {
@@ -758,6 +762,20 @@ export default function AdminPage() {
         deleteSite(selectedSiteId);
         setSiteModalOpen(false);
         resetSiteForm();
+    };
+
+    const handleSiteFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'provisional' | 'final' | 'experience') => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const result = reader.result as string;
+                if (field === 'provisional') setNewSiteData(prev => ({ ...prev, provisionalAcceptanceDoc: result }));
+                if (field === 'final') setNewSiteData(prev => ({ ...prev, finalAcceptanceDoc: result }));
+                if (field === 'experience') setNewSiteData(prev => ({ ...prev, workExperienceDoc: result }));
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleAddSite = async (e: React.FormEvent) => {
@@ -813,7 +831,8 @@ export default function AdminPage() {
             kdv: undefined, provisionalAcceptanceDate: '', finalAcceptanceDate: '', workExperienceCertificate: '',
             completionDate: '', extendedDate: '', statusDetail: '', completionPercentage: 0, partnershipPercentage: 0,
             contractToCurrentUfeRatio: undefined, currentUfeDate: '', currentWorkExperienceAmount: undefined, priceDifference: undefined,
-            personnelCount: 0, note: ''
+            personnelCount: 0, note: '',
+            provisionalAcceptanceDoc: '', finalAcceptanceDoc: '', workExperienceDoc: ''
         });
     };
 
@@ -2114,7 +2133,7 @@ export default function AdminPage() {
                                                     <TabsList className="w-full grid grid-cols-3">
                                                         <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
                                                         <TabsTrigger value="financial">Sözleşme ve Mali</TabsTrigger>
-                                                        <TabsTrigger value="dates">Tarihler</TabsTrigger>
+                                                        <TabsTrigger value="acceptance">Kabul</TabsTrigger>
                                                     </TabsList>
 
                                                     {/* General Info Tab */}
@@ -2274,6 +2293,10 @@ export default function AdminPage() {
                                                                 <Label>Sözleşme Tarihi</Label>
                                                                 <Input type="date" value={newSiteData.contractDate || ''} onChange={e => setNewSiteData({ ...newSiteData, contractDate: e.target.value })} />
                                                             </div>
+                                                            <div className="space-y-2">
+                                                                <Label>İşyeri Teslim Tarihi</Label>
+                                                                <Input type="date" value={newSiteData.siteDeliveryDate || ''} onChange={e => setNewSiteData({ ...newSiteData, siteDeliveryDate: e.target.value })} />
+                                                            </div>
 
                                                             <div className="space-y-2 col-span-2">
                                                                 <Label>Notlar / Açıklama</Label>
@@ -2285,29 +2308,43 @@ export default function AdminPage() {
                                                         </div>
                                                     </TabsContent>
 
-                                                    {/* Dates Tab */}
-                                                    <TabsContent value="dates" className="space-y-4 pt-4">
+                                                    {/* Acceptance Tab */}
+                                                    <TabsContent value="acceptance" className="space-y-4 pt-4">
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="space-y-2">
-                                                                <Label>İşyeri Teslim Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.siteDeliveryDate || ''} onChange={e => setNewSiteData({ ...newSiteData, siteDeliveryDate: e.target.value })} />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Geçici Kabul Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.provisionalAcceptanceDate || ''} onChange={e => setNewSiteData({ ...newSiteData, provisionalAcceptanceDate: e.target.value })} />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Kesin Kabul Tarihi</Label>
-                                                                <Input type="date" value={newSiteData.finalAcceptanceDate || ''} onChange={e => setNewSiteData({ ...newSiteData, finalAcceptanceDate: e.target.value })} />
+                                                                <Label>Geçici Kabul Tutanağı (PDF)</Label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Input
+                                                                        type="file"
+                                                                        accept=".pdf,image/*"
+                                                                        onChange={(e) => handleSiteFileUpload(e, 'provisional')}
+                                                                    />
+                                                                    {newSiteData.provisionalAcceptanceDoc && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                                                </div>
                                                             </div>
 
                                                             <div className="space-y-2">
-                                                                <Label>İş Deneyim Belgesi</Label>
-                                                                <Input
-                                                                    value={newSiteData.workExperienceCertificate || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, workExperienceCertificate: e.target.value })}
-                                                                    placeholder="Belge No / Tutar"
-                                                                />
+                                                                <Label>Kesin Kabul Tutanağı (PDF)</Label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Input
+                                                                        type="file"
+                                                                        accept=".pdf,image/*"
+                                                                        onChange={(e) => handleSiteFileUpload(e, 'final')}
+                                                                    />
+                                                                    {newSiteData.finalAcceptanceDoc && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label>İş Deneyim Belgesi (PDF)</Label>
+                                                                <div className="flex items-center gap-2">
+                                                                    <Input
+                                                                        type="file"
+                                                                        accept=".pdf,image/*"
+                                                                        onChange={(e) => handleSiteFileUpload(e, 'experience')}
+                                                                    />
+                                                                    {newSiteData.workExperienceDoc && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                                                </div>
                                                             </div>
                                                             <div className="space-y-2">
                                                                 <Label>EKAP Belge No</Label>
@@ -2618,10 +2655,25 @@ export default function AdminPage() {
                                                                     }
                                                                 }
 
+                                                                // [MOD] Green Indicator Logic
+                                                                let cellStyle = "";
+                                                                if (col.key === 'provisionalAcceptanceDate' && site.provisionalAcceptanceDoc) {
+                                                                    cellStyle = "bg-green-100 text-green-800 font-semibold";
+                                                                }
+                                                                if (col.key === 'finalAcceptanceDate' && site.finalAcceptanceDoc) {
+                                                                    cellStyle = "bg-green-100 text-green-800 font-semibold";
+                                                                }
+                                                                // For Work Experience, User said "İşin Tarihi kutusu yeşil olsun" in that column.
+                                                                // We'll color the whole cell if doc exists
+                                                                if (col.key === 'workExperienceCertificate' && site.workExperienceDoc) {
+                                                                    cellStyle = "bg-green-100 text-green-800 font-semibold";
+                                                                    content = content === '-' || content === '' ? 'Belge Var' : content;
+                                                                }
+
                                                                 return (
                                                                     <TableCell
                                                                         key={colIdx}
-                                                                        className={`border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`}
+                                                                        className={cn(`border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`, cellStyle)}
                                                                         style={{ width: col.width, maxWidth: col.width }}
                                                                         title={typeof content === 'string' ? content : undefined}
                                                                     >

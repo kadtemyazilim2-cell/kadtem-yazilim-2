@@ -70,6 +70,9 @@ export interface Site {
   completionDate?: string; // İş Bitim Tarihi (Normal)
   extendedDate?: string; // Süre Uzatımlı İş Bitim Tarihi
   statusDetail?: string; // Durum Detayı (Table text)
+  provisionalAcceptanceDoc?: string; // [NEW] Geçici Kabul Tutanağı (URL/Base64)
+  finalAcceptanceDoc?: string; // [NEW] Kesin Kabul Tutanağı (URL/Base64)
+  workExperienceDoc?: string; // [NEW] İş Deneyim Belgesi (URL/Base64)
   completionPercentage?: number; // Fiziki Gerçekleşme Oranı (%) (KEPT for safety, but UI might use partnership)
   contractToCurrentUfeRatio?: number; // [NEW] Sözleşme Ufe / Güncel Ufe
   currentUfeDate?: string; // [NEW] Güncel Ufe Tarihi

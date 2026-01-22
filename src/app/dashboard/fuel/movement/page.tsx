@@ -80,9 +80,9 @@ export default function FuelMovementPage() {
     //   {canDispense && <TabsContent value="dispense">...</TabsContent>}
     //   ...
 
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    // [NEW] Time State - Default to current time formatted HH:mm
-    const [time, setTime] = useState(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+    // [MOD] Persist Date and Time
+    const [date, setDate] = useLocalStorage('fuel_form_date', new Date().toISOString().split('T')[0]);
+    const [time, setTime] = useLocalStorage('fuel_form_time', new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
 
     // 1. TRANSFER (Virman) State
     const [transferData, setTransferData] = useLocalStorage('fuel_transfer_form', {
