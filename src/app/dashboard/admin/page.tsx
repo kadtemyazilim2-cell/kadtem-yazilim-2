@@ -154,6 +154,8 @@ export default function AdminPage() {
 
     // Yi-Ufe State
     const [updatingYiUfe, setUpdatingYiUfe] = useState(false);
+    const [previewDoc, setPreviewDoc] = useState<string | null>(null); // [NEW] Preview State
+
     // const { yiUfeRates, setYiUfeRates } = useAppStore(); // Removed duplicate
     const [yiUfeModalOpen, setYiUfeModalOpen] = useState(false);
     const [manualYear, setManualYear] = useState(new Date().getFullYear());
@@ -2053,8 +2055,7 @@ export default function AdminPage() {
                                                             kdv: parseNumber(getVal(row, ['KDV Oranı'])) || 20,
                                                             // remainingAmount: parseNumber(getVal(row, ['F.F. Dahil Kalan Tutar (Kdv Hariç)'])),
                                                             realizedAmount: parseNumber(getVal(row, ['Sözleşme Fiyatıyla Gerçekleşen tutar Kdv ve F.F. Hariç'])),
-                                                            // contractToCurrentUfeRatio: parseNumber(getVal(row, ['Sözleşme Ufe / Güncel Ufe'])),
-                                                            currentWorkExperienceAmount: parseNumber(getVal(row, ['Güncel İş Deneyim tutarı'])),
+                                                            // currentWorkExperienceAmount: parseNumber(getVal(row, ['Güncel İş Deneyim tutarı'])),
                                                             priceDifference: parseNumber(getVal(row, ['Fiyat Farkı'])),
 
                                                             // Details
@@ -2342,9 +2343,52 @@ export default function AdminPage() {
                                                                     <Input
                                                                         type="file"
                                                                         accept=".pdf,image/*"
+                                                                        className={newSiteData.provisionalAcceptanceDoc ? "text-transparent w-24" : ""}
                                                                         onChange={(e) => handleSiteFileUpload(e, 'provisional')}
                                                                     />
-                                                                    {newSiteData.provisionalAcceptanceDoc && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                                                    {newSiteData.provisionalAcceptanceDoc && (
+                                                                        <div className="flex items-center gap-2 flex-1">
+                                                                            <span className="text-xs truncate max-w-[150px] font-medium text-green-700">Dosya Yüklü</span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => {
+                                                                                    const link = document.createElement('a');
+                                                                                    link.href = newSiteData.provisionalAcceptanceDoc!;
+                                                                                    link.download = 'gecici_kabul_belgesi';
+                                                                                    link.click();
+                                                                                }}
+                                                                                title="İndir"
+                                                                            >
+                                                                                <FileDown className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => {
+                                                                                    const win = window.open();
+                                                                                    win?.document.write('<iframe src="' + newSiteData.provisionalAcceptanceDoc + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+                                                                                }}
+                                                                                title="Görüntüle"
+                                                                            >
+                                                                                <Search className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="destructive"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => setNewSiteData({ ...newSiteData, provisionalAcceptanceDoc: '' })}
+                                                                                title="Kaldır"
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2361,9 +2405,52 @@ export default function AdminPage() {
                                                                     <Input
                                                                         type="file"
                                                                         accept=".pdf,image/*"
+                                                                        className={newSiteData.finalAcceptanceDoc ? "text-transparent w-24" : ""}
                                                                         onChange={(e) => handleSiteFileUpload(e, 'final')}
                                                                     />
-                                                                    {newSiteData.finalAcceptanceDoc && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                                                    {newSiteData.finalAcceptanceDoc && (
+                                                                        <div className="flex items-center gap-2 flex-1">
+                                                                            <span className="text-xs truncate max-w-[150px] font-medium text-green-700">Dosya Yüklü</span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => {
+                                                                                    const link = document.createElement('a');
+                                                                                    link.href = newSiteData.finalAcceptanceDoc!;
+                                                                                    link.download = 'kesin_kabul_belgesi';
+                                                                                    link.click();
+                                                                                }}
+                                                                                title="İndir"
+                                                                            >
+                                                                                <FileDown className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => {
+                                                                                    const win = window.open();
+                                                                                    win?.document.write('<iframe src="' + newSiteData.finalAcceptanceDoc + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+                                                                                }}
+                                                                                title="Görüntüle"
+                                                                            >
+                                                                                <Search className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="destructive"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => setNewSiteData({ ...newSiteData, finalAcceptanceDoc: '' })}
+                                                                                title="Kaldır"
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2384,9 +2471,52 @@ export default function AdminPage() {
                                                                     <Input
                                                                         type="file"
                                                                         accept=".pdf,image/*"
+                                                                        className={newSiteData.workExperienceDoc ? "text-transparent w-24" : ""}
                                                                         onChange={(e) => handleSiteFileUpload(e, 'experience')}
                                                                     />
-                                                                    {newSiteData.workExperienceDoc && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                                                    {newSiteData.workExperienceDoc && (
+                                                                        <div className="flex items-center gap-2 flex-1">
+                                                                            <span className="text-xs truncate max-w-[150px] font-medium text-green-700">Dosya Yüklü</span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => {
+                                                                                    const link = document.createElement('a');
+                                                                                    link.href = newSiteData.workExperienceDoc!;
+                                                                                    link.download = 'is_deneyim_belgesi';
+                                                                                    link.click();
+                                                                                }}
+                                                                                title="İndir"
+                                                                            >
+                                                                                <FileDown className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="outline"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => {
+                                                                                    const win = window.open();
+                                                                                    win?.document.write('<iframe src="' + newSiteData.workExperienceDoc + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
+                                                                                }}
+                                                                                title="Görüntüle"
+                                                                            >
+                                                                                <Search className="h-4 w-4" />
+                                                                            </Button>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="destructive"
+                                                                                size="sm"
+                                                                                className="h-8 w-8 p-0"
+                                                                                onClick={() => setNewSiteData({ ...newSiteData, workExperienceDoc: '' })}
+                                                                                title="Kaldır"
+                                                                            >
+                                                                                <Trash2 className="h-4 w-4" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -2690,25 +2820,43 @@ export default function AdminPage() {
                                                                     }
                                                                 }
 
-                                                                // [MOD] Green Indicator Logic
-                                                                let cellStyle = "";
+                                                                // [MOD] Green Indicator Logic - Badge Style
+                                                                let docUrl = "";
+                                                                let hasDoc = false;
+
                                                                 if (col.key === 'provisionalAcceptanceDate' && site.provisionalAcceptanceDoc) {
-                                                                    cellStyle = "bg-green-100 text-green-800 font-semibold";
+                                                                    hasDoc = true;
+                                                                    docUrl = site.provisionalAcceptanceDoc;
                                                                 }
                                                                 if (col.key === 'finalAcceptanceDate' && site.finalAcceptanceDoc) {
-                                                                    cellStyle = "bg-green-100 text-green-800 font-semibold";
+                                                                    hasDoc = true;
+                                                                    docUrl = site.finalAcceptanceDoc;
                                                                 }
-                                                                // For Work Experience, User said "İşin Tarihi kutusu yeşil olsun" in that column.
-                                                                // We'll color the whole cell if doc exists
                                                                 if (col.key === 'workExperienceCertificate' && site.workExperienceDoc) {
-                                                                    cellStyle = "bg-green-100 text-green-800 font-semibold";
+                                                                    hasDoc = true;
+                                                                    docUrl = site.workExperienceDoc;
                                                                     content = content === '-' || content === '' ? 'Belge Var' : content;
+                                                                }
+
+                                                                if (hasDoc) {
+                                                                    content = (
+                                                                        <div
+                                                                            className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 font-semibold cursor-pointer hover:bg-green-200"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setPreviewDoc(docUrl);
+                                                                            }}
+                                                                            title="Belgeyi İncele"
+                                                                        >
+                                                                            {content}
+                                                                        </div>
+                                                                    );
                                                                 }
 
                                                                 return (
                                                                     <TableCell
                                                                         key={colIdx}
-                                                                        className={cn(`border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`, cellStyle)}
+                                                                        className={cn(`border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`)}
                                                                         style={{ width: col.width, maxWidth: col.width }}
                                                                         title={typeof content === 'string' ? content : undefined}
                                                                     >
@@ -2748,55 +2896,106 @@ export default function AdminPage() {
                                 Bu alandaki işlemler geri alınamaz ve veri kaybına neden olabilir.
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-6">
-                            <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
-                                <div className="space-y-1">
-                                    <div className="font-semibold text-slate-900">Sistemi Sıfırla (Fabrika Ayarları)</div>
-                                    <div className="text-sm text-slate-500 max-w-xl">
-                                        Bu işlem, <strong>Admin kullanıcısı dışındaki</strong> tüm verileri (şantiyeler, firmalar, araçlar, personeller, loglar vb.) kalıcı olarak siler.
-                                        <br />
-                                        <span className="text-red-600 font-medium">Bu işlem sadece örnek verileri temizlemek ve temiz bir başlangıç yapmak için kullanılmalıdır.</span>
-                                    </div>
-                                </div>
-                                <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button variant="destructive" className="gap-2">
-                                            <Trash2 className="w-4 h-4" />
-                                            Sistemi Sıfırla
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent className="border-red-200 sm:max-w-[425px]">
-                                        <DialogHeader>
-                                            <DialogTitle className="text-red-700 flex items-center gap-2">
-                                                <ShieldAlert className="w-5 h-5" />
-                                                Tüm Veriler Silinecek!
-                                            </DialogTitle>
-                                            <DialogDescription className="pt-2 space-y-2">
-                                                <p>Bu işlem geri alınamaz. Onaylıyor musunuz?</p>
-                                                <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 bg-slate-50 p-2 rounded">
-                                                    <li>Tüm Şantiyeler ve Firmalar silinecek.</li>
-                                                    <li>Tüm Araçlar ve Personeller silinecek.</li>
-                                                    <li>Tüm mali kayıtlar ve loglar silinecek.</li>
-                                                    <li><strong>Mevcut Admin hesabınız korunacaktır.</strong></li>
-                                                </ul>
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <DialogFooter className="gap-2 sm:justify-between">
-                                            <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
-                                                Vazgeç
-                                            </Button>
-                                            <Button variant="destructive" onClick={handleResetSystem} disabled={resetting}>
-                                                {resetting ? 'Siliniyor...' : 'Evet, Tüm Verileri Sil'}
-                                            </Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </div>
-                        </CardContent>
                     </Card>
+
+                    {/* PREVIEW MODAL */}
+                    <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+                        <DialogContent className="max-w-4xl h-[90vh]">
+                            <DialogHeader>
+                                <DialogTitle>Belge Önizleme</DialogTitle>
+                            </DialogHeader>
+                            {previewDoc && (
+                                <div className="flex-1 w-full h-full min-h-[500px] border rounded bg-slate-50">
+                                    <iframe
+                                        src={previewDoc}
+                                        className="w-full h-full"
+                                        title="Preview"
+                                    />
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </TabsContent>
-            </Tabs>
-        </div >
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
+                        <div className="space-y-1">
+                            <div className="font-semibold text-slate-900">Sistemi Sıfırla (Fabrika Ayarları)</div>
+                            <div className="text-sm text-slate-500 max-w-xl">
+                                Bu işlem, <strong>Admin kullanıcısı dışındaki</strong> tüm verileri (şantiyeler, firmalar, araçlar, personeller, loglar vb.) kalıcı olarak siler.
+                                <br />
+                                <span className="text-red-600 font-medium">Bu işlem sadece örnek verileri temizlemek ve temiz bir başlangıç yapmak için kullanılmalıdır.</span>
+                            </div>
+                        </div>
+                        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="destructive" className="gap-2">
+                                    <Trash2 className="w-4 h-4" />
+                                    Sistemi Sıfırla
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="border-red-200 sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle className="text-red-700 flex items-center gap-2">
+                                        <ShieldAlert className="w-5 h-5" />
+                                        Tüm Veriler Silinecek!
+                                    </DialogTitle>
+                                    <DialogDescription className="pt-2 space-y-2">
+                                        <p>Bu işlem geri alınamaz. Onaylıyor musunuz?</p>
+                                        <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 bg-slate-50 p-2 rounded">
+                                            <li>Tüm Şantiyeler ve Firmalar silinecek.</li>
+                                            <li>Tüm Araçlar ve Personeller silinecek.</li>
+                                            <li>Tüm mali kayıtlar ve loglar silinecek.</li>
+                                            <li><strong>Mevcut Admin hesabınız korunacaktır.</strong></li>
+                                        </ul>
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter className="gap-2 sm:justify-between">
+                                    <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
+                                        Vazgeç
+                                    </Button>
+                                    <Button variant="destructive" onClick={handleResetSystem} disabled={resetting}>
+                                        {resetting ? 'Siliniyor...' : 'Evet, Tüm Verileri Sil'}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </CardHeader>
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
+                        <div className="space-y-1">
+                            <h4 className="text-sm font-medium text-red-900">Veritabanını Sıfırla</h4>
+                            <p className="text-sm text-red-700">
+                                Tüm verileri siler ve başlangıç durumuna döndürür. Bu işlem geri alınamaz.
+                            </p>
+                        </div>
+                        <Button variant="destructive" onClick={handleResetSystem}>
+                            Sıfırla
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+        </TabsContent>
+
+            {/* PREVIEW MODAL */ }
+    <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+        <DialogContent className="max-w-4xl h-[90vh]">
+            <DialogHeader>
+                <DialogTitle>Belge Önizleme</DialogTitle>
+            </DialogHeader>
+            {previewDoc && (
+                <div className="flex-1 w-full h-full min-h-[500px] border rounded bg-slate-50">
+                    <iframe
+                        src={previewDoc || undefined}
+                        className="w-full h-full"
+                        title="Preview"
+                    />
+                </div>
+            )}
+        </DialogContent>
+    </Dialog>
+        </Tabs >
+    </div >
     );
 }
 
