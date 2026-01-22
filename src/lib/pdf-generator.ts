@@ -36,7 +36,8 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // We enforce the fallback for these specific companies.
 
     if (!logoToUse) {
-        if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
+        // [FIX] Exclude "Kenan Tugay" from standard "Ikikat" fallback to prevent wrong logo
+        if ((normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) && !normalizedName.includes('kenan')) {
             logoToUse = IKIKAT_LOGO_BASE64;
         } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
             logoToUse = KADTEM_LOGO_BASE64;
