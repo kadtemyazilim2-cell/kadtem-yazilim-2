@@ -21,22 +21,22 @@ export default function FuelMovementPage() {
     const { hasPermission, user } = useAuth();
 
     const rawAvailableSites = useUserSites();
-    const availableSites = useMemo(() => rawAvailableSites.filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]); // [MOD] Filter Passive Sites
+    const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]); // [MOD] Filter Passive Sites
 
     // Filter Tanks based on available sites
-    const accessibleTanks = useMemo(() => fuelTanks.filter((t: any) => availableSites.some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
+    const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
 
     const [selectedDispenseSiteId, setSelectedDispenseSiteId] = useState('');
 
     // Auto-select site if only one available
     useEffect(() => {
-        if (availableSites.length === 1 && !selectedDispenseSiteId) {
+        if (availableSites?.length === 1 && !selectedDispenseSiteId) {
             setSelectedDispenseSiteId(availableSites[0].id);
         }
     }, [availableSites, selectedDispenseSiteId]);
 
     // Filter Tanks based on selected site for Dispense (Yakıt Verme)
-    const dispenseTanks = useMemo(() => fuelTanks.filter((t: any) => t.siteId === selectedDispenseSiteId), [fuelTanks, selectedDispenseSiteId]);
+    const dispenseTanks = useMemo(() => (fuelTanks || []).filter((t: any) => t.siteId === selectedDispenseSiteId), [fuelTanks, selectedDispenseSiteId]);
 
     // Auto-select tank if only one in selected site
     useEffect(() => {
