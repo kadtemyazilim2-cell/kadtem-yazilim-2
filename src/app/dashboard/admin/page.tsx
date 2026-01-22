@@ -1871,26 +1871,25 @@ export default function AdminPage() {
                                                 let failCount = 0;
                                                 let errors: string[] = [];
 
-                                                // Helper to parse dates strictly as ISO strings
-                                                const parseDate = (val: any): string | undefined => {
+                                                // Helper to parse dates strictly as Date objects
+                                                const parseDate = (val: any): Date | undefined => {
                                                     if (!val) return undefined;
                                                     // Excel serial date? 
                                                     if (typeof val === 'number') {
                                                         // XLSX handles basic serials often if passed correctly, but raw JSON might be serial
                                                         // (val - 25569) * 86400 * 1000
-                                                        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-                                                        return date.toISOString();
+                                                        return new Date(Math.round((val - 25569) * 86400 * 1000));
                                                     }
                                                     // String DD.MM.YYYY
                                                     if (typeof val === 'string' && val.includes('.')) {
                                                         const parts = val.split('.');
                                                         if (parts.length === 3) {
-                                                            return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toISOString();
+                                                            return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
                                                         }
                                                     }
                                                     // Standard date string
                                                     const d = new Date(val);
-                                                    return !isNaN(d.getTime()) ? d.toISOString() : undefined;
+                                                    return !isNaN(d.getTime()) ? d : undefined;
                                                 };
 
                                                 // Helper to get value case-insensitive/trimmed from row
@@ -2417,6 +2416,9 @@ export default function AdminPage() {
                                                     {sortedCompanySites.map((site, index) => (
                                                         <TableRow key={site.id} className={cn("hover:bg-slate-50 border-b", site.status === 'INACTIVE' ? 'bg-gray-50 opacity-75' : '')}>
                                                             {siteColumns.map((col, colIdx) => {
+                                                                const partnerParams = site.partners?.find((p: any) => p.companyId === company.id);
+                                                                const effectivePartnership = partnerParams ? partnerParams.percentage : (site.partnershipPercentage || 100);
+
                                                                 // Special Action Column
                                                                 if (col.label === 'İşlem') {
                                                                     return (
@@ -2527,7 +2529,7 @@ export default function AdminPage() {
 
                                                                         if (contractUfe && latestUfe && site.realizedAmount) {
                                                                             const ratio = latestUfe / contractUfe;
-                                                                            const partnership = site.partnershipPercentage ? (site.partnershipPercentage / 100) : 1;
+                                                                            const partnership = effectivePartnership / 100;
                                                                             const amount = ratio * site.realizedAmount * partnership;
                                                                             content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + ' ₺';
                                                                         } else {
@@ -2554,7 +2556,7 @@ export default function AdminPage() {
                                                                     }
                                                                 }
                                                                 else if (col.key === 'partnershipPercentage') {
-                                                                    content = site.partnershipPercentage !== undefined && site.partnershipPercentage !== null ? `%${site.partnershipPercentage}` : '%100';
+                                                                    content = `%${effectivePartnership}`;
                                                                 }
                                                                 else if (col.key === 'statusDetail') {
                                                                     content = (
