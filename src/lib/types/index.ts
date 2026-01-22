@@ -30,6 +30,13 @@ export interface Company {
   shortName?: string; // [NEW]
 }
 
+export interface SitePartner {
+  id: string;
+  siteId: string;
+  companyId: string;
+  percentage: number;
+}
+
 export interface Site {
   id: string;
   companyId: string;
@@ -50,9 +57,8 @@ export interface Site {
   priceDifferenceCoefficient?: number; // Fiyat Farkı Katsayısı
 
   // Joint Venture
-  partnerCompanyId?: string; // [NEW] Link to Partner Company
   partnershipPercentage?: number; // Ratio for Main Company
-  partnershipPercentage2?: number; // Ratio for Partner Company
+  partners?: SitePartner[]; // [NEW] Multiple Partners
 
   contractPrice?: number; // Sözleşme Bedeli (KDV ve F.F. Hariç)
   remainingAmount?: number; // F.F. Dahil Kalan Tutar (KDV Hariç)

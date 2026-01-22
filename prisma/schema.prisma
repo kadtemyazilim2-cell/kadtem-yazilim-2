@@ -96,7 +96,7 @@ model Company {
   
   // Relations
   sites           Site[]    @relation("SiteCompany")
-  partnerSites    Site[]    @relation("SitePartnerCompany")
+  sitePartners    SitePartner[]
   users           User[]
   vehicles        Vehicle[]
   correspondences Correspondence[]
@@ -136,11 +136,8 @@ model Site {
   statusDetail          String?
   
   partnershipPercentage Float?
-  partnershipPercentage2 Float? // [NEW] For Joint Venture Partner
-  
-  // Relations
-  partnerCompanyId String?
-  partnerCompany   Company? @relation("SitePartnerCompany", fields: [partnerCompanyId], references: [id])
+  // Join Venture Partners (Multiple)
+  partners        SitePartner[]
 
   users           User[]
   personnel       Personnel[]
@@ -458,4 +455,16 @@ model Institution {
   mobile      String?
   contactPerson String?
   shortName     String? // [NEW]
+}
+
+model SitePartner {
+  id        String   @id @default(cuid())
+  siteId    String
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  percentage Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
