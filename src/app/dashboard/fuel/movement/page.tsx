@@ -285,7 +285,7 @@ export default function FuelMovementPage() {
                                         <Select value={dispenseData.vehicleId} onValueChange={v => setDispenseData({ ...dispenseData, vehicleId: v || '' })} required>
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {vehicles
+                                                {(vehicles || [])
                                                     .filter((v: any) =>
                                                         v.status === 'ACTIVE' &&
                                                         // Optional: Filter vehicle by site too? 
