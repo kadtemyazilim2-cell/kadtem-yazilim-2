@@ -28,20 +28,19 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     const companyName = company?.name || '-';
     const normalizedName = companyName.toLocaleLowerCase('tr');
 
-    let logoToUse = null;
+    let logoToUse: string | null | undefined = company?.letterhead || company?.logoUrl;
 
     // [FIX] Priority: Specific hardcoded logos (Text Headers) for known companies
     // User reported dynamic logos (Red/Blue IKIKAT) are "wrong", prefers the Text Header style (Preview).
     // Preview likely used fallback because dynamic logo failed to load.
     // We enforce the fallback for these specific companies.
 
-    if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
-        logoToUse = IKIKAT_LOGO_BASE64;
-    } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
-        logoToUse = KADTEM_LOGO_BASE64;
-    } else {
-        // Fallback to dynamic logo for others
-        logoToUse = company?.letterhead || company?.logoUrl;
+    if (!logoToUse) {
+        if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
+            logoToUse = IKIKAT_LOGO_BASE64;
+        } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
+            logoToUse = KADTEM_LOGO_BASE64;
+        }
     }
 
     if (logoToUse) {
@@ -93,6 +92,24 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
     // 6. Footer (Signature)
     const ySignature = 240;
+
+    // Add Signature Label
+    // ...
+
+    // [FIX] Stamp Logic
+    if (item.includeStamp && company?.stamp) {
+        try {
+            // Place stamp near signature area, slightly offset
+            const stampWidth = 35;
+            const stampHeight = 35; // Assume square-ish or adjust
+
+            // Layout: Bottom Right for Stamp usually overlaps signature or is next to it.
+            // Let's place it at: x=140, y=230 (Overlapping signature area slightly)
+            doc.addImage(company.stamp, 'PNG', 140, 230, stampWidth, stampHeight);
+        } catch (e) {
+            console.error("Error adding stamp", e);
+        }
+    }
 
 
 
