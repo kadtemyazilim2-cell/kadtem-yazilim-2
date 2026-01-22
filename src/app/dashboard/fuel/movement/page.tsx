@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Button } from '@/components/ui/button';
@@ -20,10 +20,10 @@ export default function FuelMovementPage() {
     const { hasPermission, user } = useAuth();
 
     const rawAvailableSites = useUserSites();
-    const availableSites = rawAvailableSites.filter((s: any) => s.status !== 'INACTIVE'); // [MOD] Filter Passive Sites
+    const availableSites = useMemo(() => rawAvailableSites.filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]); // [MOD] Filter Passive Sites
 
     // Filter Tanks based on available sites
-    const accessibleTanks = fuelTanks.filter((t: any) => availableSites.some((s: any) => s.id === t.siteId));
+    const accessibleTanks = useMemo(() => fuelTanks.filter((t: any) => availableSites.some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
 
     const [selectedDispenseSiteId, setSelectedDispenseSiteId] = useState('');
 
@@ -35,13 +35,14 @@ export default function FuelMovementPage() {
     }, [availableSites, selectedDispenseSiteId]);
 
     // Filter Tanks based on selected site for Dispense (Yakıt Verme)
-    const dispenseTanks = fuelTanks.filter((t: any) => t.siteId === selectedDispenseSiteId);
+    const dispenseTanks = useMemo(() => fuelTanks.filter((t: any) => t.siteId === selectedDispenseSiteId), [fuelTanks, selectedDispenseSiteId]);
 
     // Auto-select tank if only one in selected site
     useEffect(() => {
         if (dispenseTanks.length === 1 && selectedDispenseSiteId) {
-            setDispenseData(prev => ({ ...prev, tankId: dispenseTanks[0].id }));
-            setTransferData(prev => ({ ...prev, fromId: dispenseTanks[0].id }));
+            // Avoid setting if already set to prevent loop (even with memo, good practice)
+            setDispenseData(prev => prev.tankId === dispenseTanks[0].id ? prev : ({ ...prev, tankId: dispenseTanks[0].id }));
+            setTransferData(prev => prev.fromId === dispenseTanks[0].id ? prev : ({ ...prev, fromId: dispenseTanks[0].id }));
         }
     }, [dispenseTanks, selectedDispenseSiteId]);
 
