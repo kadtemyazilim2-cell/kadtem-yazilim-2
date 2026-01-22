@@ -32,7 +32,7 @@ export async function getSites() {
 
         const sites = await prisma.site.findMany({
             orderBy: { name: 'asc' },
-            include: { company: true },
+            include: { company: true, partners: true },
             where: whereClause
         });
         return { success: true, data: sites };

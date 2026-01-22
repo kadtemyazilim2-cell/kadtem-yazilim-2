@@ -2350,7 +2350,10 @@ export default function AdminPage() {
                                         {companies.map((company: any) => {
                                             // 1. Filter Sites
                                             const filteredCompanySites = sites.filter((s: any) => {
-                                                if (s.companyId !== company.id) return false;
+                                                const isPilot = s.companyId === company.id;
+                                                const isPartner = s.partners?.some((p: any) => p.companyId === company.id);
+
+                                                if (!isPilot && !isPartner) return false;
                                                 return Object.entries(siteFilters).every(([key, values]) => {
                                                     if (!values || values.length === 0) return true; // No filter selected
 
