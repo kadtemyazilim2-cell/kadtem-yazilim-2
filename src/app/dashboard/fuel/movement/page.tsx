@@ -420,14 +420,14 @@ export default function FuelMovementPage() {
                                             <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {accessibleTanks.filter((t: any) => t.id !== transferData.fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                                    {(accessibleTanks || []).filter((t: any) => t.id !== transferData.fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         ) : (
                                             <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Araç Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                                                    {(vehicles || []).filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         )}
@@ -502,7 +502,7 @@ export default function FuelMovementPage() {
                                             <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '' })} required>
                                                 <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
+                                                    {(vehicles || []).filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         )}
