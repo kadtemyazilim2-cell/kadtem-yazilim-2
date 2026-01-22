@@ -64,6 +64,12 @@ export function VehicleList() {
     const canCreateOwned = hasPermission('vehicles.owned-create', 'CREATE');
     const canCreateRental = hasPermission('vehicles.rental-create', 'CREATE');
 
+    // 5. [NEW] View Permissions
+    // By default, restricting 'vehicles.owned' module. 
+    // If user is ADMIN, hasPermission returns true automatically.
+    // If user is Restricted (USER), they need explicit 'vehicles.owned' -> 'VIEW' permission to see Owned vehicles.
+    const canViewOwned = hasPermission('vehicles.owned', 'VIEW');
+
     // Filter State (All Dropdowns)
     const [filters, setFilters] = useState({
         company: [] as string[],
@@ -332,6 +338,9 @@ export function VehicleList() {
     // --- FILTER LOGIC ---
     // 1. Vehicle List Filter (Existing)
     const filteredVehicles = sortedVehicles.filter(vehicle => {
+        // [NEW] Permission Check: HIDE Owned vehicles if no permission
+        if (!canViewOwned && vehicle.ownership === 'OWNED') return false;
+
         if (searchTerm) {
             const lowerSearch = normalizeSearchText(searchTerm);
             const searchFields = [
@@ -623,7 +632,11 @@ export function VehicleList() {
                             <div className="space-y-2">
                                 <Label>Mülkiyet</Label>
                                 <MultiSelect
-                                    options={[{ label: 'Öz Mal', value: 'OWNED' }, { label: 'Kiralık', value: 'RENTAL' }]}
+                                    options={[
+                                        // Only show 'Öz Mal' option if user has permission to see them
+                                        ...(canViewOwned ? [{ label: 'Öz Mal', value: 'OWNED' }] : []),
+                                        { label: 'Kiralık', value: 'RENTAL' }
+                                    ]}
                                     selected={filters.ownership}
                                     onChange={(val: string[]) => setFilters({ ...filters, ownership: val })}
                                     placeholder="Tümü"

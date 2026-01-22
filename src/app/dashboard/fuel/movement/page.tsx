@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
+import { useLocalStorage } from '@/hooks/use-local-storage'; // [NEW]
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -80,21 +81,37 @@ export default function FuelMovementPage() {
     //   ...
 
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    // [NEW] Time State - Default to current time formatted HH:mm
+    const [time, setTime] = useState(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
 
     // 1. TRANSFER (Virman) State
-    const [transferData, setTransferData] = useState({
+    const [transferData, setTransferData] = useLocalStorage('fuel_transfer_form', {
         fromType: 'TANK', fromId: '', toType: 'TANK', toId: '', amount: ''
     });
 
     // 2. PURCHASE (Yakıt Alımı) State
-    const [purchaseData, setPurchaseData] = useState({
+    const [purchaseData, setPurchaseData] = useLocalStorage('fuel_purchase_form', {
         firmName: '', toType: 'TANK', toId: '', amount: '', unitPrice: ''
     });
 
     // 3. DISPENSE (Yakıt Verme) State
-    const [dispenseData, setDispenseData] = useState({
+    const [dispenseData, setDispenseData] = useLocalStorage('fuel_dispense_form', {
         tankId: '', vehicleId: '', amount: '', mileage: '', fullTank: true, description: ''
     });
+
+    // Manual Clear Functions
+    const clearTransfer = () => setTransferData({ fromType: 'TANK', fromId: '', toType: 'TANK', toId: '', amount: '' });
+    const clearPurchase = () => setPurchaseData({ firmName: '', toType: 'TANK', toId: '', amount: '', unitPrice: '' });
+    const clearDispense = () => setDispenseData({ tankId: '', vehicleId: '', amount: '', mileage: '', fullTank: true, description: '' });
+
+    // Helper to combine Date + Time
+    const getDateTime = () => {
+        // Create date object from inputs
+        const combined = new Date(`${date}T${time}`);
+        // If invalid, fallback to date only (which implies 00:00 UTC)
+        // But better is to just send the ISO string of the combined
+        return isNaN(combined.getTime()) ? date : combined.toISOString();
+    };
 
     const handleTransfer = (e: React.FormEvent) => {
         e.preventDefault();
@@ -123,12 +140,12 @@ export default function FuelMovementPage() {
             fromId: transferData.fromId,
             toType: transferData.toType as any,
             toId: transferData.toId,
-            date,
+            date: getDateTime(), // [FIX] Use combined DateTime
             amount: amount,
             createdByUserId: user.id
         });
         toast.success('Transfer (Virman) işlemi başarıyla kaydedildi.');
-        setTransferData({ ...transferData, amount: '' });
+        // setTransferData({ ...transferData, amount: '' });
     };
 
     const handlePurchase = (e: React.FormEvent) => {
@@ -150,7 +167,7 @@ export default function FuelMovementPage() {
             fromId: purchaseData.firmName,
             toType: purchaseData.toType as any, // 'TANK' or 'VEHICLE'
             toId: purchaseData.toId,
-            date,
+            date: getDateTime(), // [FIX] Use combined DateTime
             amount: amount,
             unitPrice: price,
             totalCost: amount * price,
@@ -158,7 +175,7 @@ export default function FuelMovementPage() {
             description: `Birim Fiyat: ${price} TL`
         });
         toast.success('Yakıt Alımı başarıyla kaydedildi.');
-        setPurchaseData({ ...purchaseData, amount: '', unitPrice: '' });
+        // setPurchaseData({ ...purchaseData, amount: '', unitPrice: '' });
     };
 
     const handleDispense = (e: React.FormEvent) => {
@@ -182,7 +199,7 @@ export default function FuelMovementPage() {
             vehicleId: dispenseData.vehicleId,
             siteId: sourceTank.siteId || '',
             tankId: dispenseData.tankId,
-            date: date, // User selected date
+            date: getDateTime(), // [FIX] Use combined DateTime
             liters: amount,
             cost: 0,
             mileage: Number(dispenseData.mileage),
@@ -191,7 +208,8 @@ export default function FuelMovementPage() {
             description: dispenseData.description
         });
         toast.success('Yakıt Verme (Tüketim) işlemi başarıyla kaydedildi.');
-        setDispenseData({ ...dispenseData, amount: '', mileage: '', description: '' });
+        // Do NOT clear form automatically as per user request
+        // setDispenseData({ ...dispenseData, amount: '', mileage: '', description: '' }); 
     };
 
     return (
@@ -290,7 +308,10 @@ export default function FuelMovementPage() {
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">
                                         <Label>Tarih</Label>
-                                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                        <div className="flex gap-2">
+                                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
+                                            <Input type="time" value={time} onChange={e => setTime(e.target.value)} required className="w-24" />
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Güncel KM/Saat</Label>
@@ -325,7 +346,10 @@ export default function FuelMovementPage() {
                                 </div>
 
                                 {canDispenseCreate ? (
-                                    <Button className="w-full" size="lg">KAYDET</Button>
+                                    <div className="flex gap-2">
+                                        <Button className="flex-1" size="lg" type="submit">KAYDET</Button>
+                                        <Button className="flex-none" size="lg" variant="secondary" type="button" onClick={clearDispense}>Temizle</Button>
+                                    </div>
                                 ) : (
                                     <div className="p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
                                         Yetkiniz yok.
@@ -413,7 +437,10 @@ export default function FuelMovementPage() {
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">
                                         <Label>Tarih</Label>
-                                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                        <div className="flex gap-2">
+                                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
+                                            <Input type="time" value={time} onChange={e => setTime(e.target.value)} required className="w-24" />
+                                        </div>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Miktar (Lt)</Label>
@@ -422,7 +449,10 @@ export default function FuelMovementPage() {
                                 </div>
 
                                 {canTransferCreate ? (
-                                    <Button className="w-full" size="lg" variant="secondary">TRANSFER YAP</Button>
+                                    <div className="flex gap-2">
+                                        <Button className="flex-1" size="lg" variant="secondary" type="submit">TRANSFER YAP</Button>
+                                        <Button className="flex-none" size="lg" variant="outline" type="button" onClick={clearTransfer}>Temizle</Button>
+                                    </div>
                                 ) : (
                                     <div className="p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
                                         Yetkiniz yok.
@@ -479,6 +509,15 @@ export default function FuelMovementPage() {
                                     </div>
                                 </div>
 
+                                {/* [NEW] Date/Time for Purchase */}
+                                <div className="space-y-2">
+                                    <Label>İşlem Tarihi</Label>
+                                    <div className="flex gap-2">
+                                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
+                                        <Input type="time" value={time} onChange={e => setTime(e.target.value)} required className="w-24" />
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="space-y-2">
                                         <Label>Miktar (Lt)</Label>
@@ -491,7 +530,10 @@ export default function FuelMovementPage() {
                                 </div>
 
                                 {canPurchaseCreate ? (
-                                    <Button className="w-full mt-4" size="lg" variant="outline">STOK GİRİŞİ YAP</Button>
+                                    <div className="flex gap-2 mt-4">
+                                        <Button className="flex-1" size="lg" variant="outline" type="submit">STOK GİRİŞİ YAP</Button>
+                                        <Button className="flex-none" size="lg" variant="ghost" type="button" onClick={clearPurchase}>Temizle</Button>
+                                    </div>
                                 ) : (
                                     <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
                                         Yetkiniz yok.
