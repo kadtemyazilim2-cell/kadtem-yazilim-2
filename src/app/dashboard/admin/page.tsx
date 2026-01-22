@@ -2066,8 +2066,8 @@ export default function AdminPage() {
                                                 <Tabs defaultValue="general" className="w-full">
                                                     <TabsList className="w-full grid grid-cols-3">
                                                         <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
-                                                        <TabsTrigger value="financial">Sözleşme & Mali</TabsTrigger>
-                                                        <TabsTrigger value="dates">Tarihler & Durum</TabsTrigger>
+                                                        <TabsTrigger value="financial">Sözleşme ve Mali</TabsTrigger>
+                                                        <TabsTrigger value="dates">Tarihler</TabsTrigger>
                                                     </TabsList>
 
                                                     {/* General Info Tab */}
@@ -2097,6 +2097,15 @@ export default function AdminPage() {
                                                             </div>
 
                                                             <div className="space-y-2">
+                                                                <Label>Ortaklık Oranı (%)</Label>
+                                                                <Input
+                                                                    type="number"
+                                                                    value={newSiteData.partnershipPercentage || ''}
+                                                                    onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage: e.target.value ? Number(e.target.value) : 0 })}
+                                                                />
+                                                            </div>
+
+                                                            <div className="space-y-2">
                                                                 <Label>İş Grubu <span className="text-red-500">*</span></Label>
                                                                 <Select
                                                                     value={newSiteData.workGroup || ''}
@@ -2120,19 +2129,21 @@ export default function AdminPage() {
                                                                     </SelectContent>
                                                                 </Select>
                                                             </div>
+
                                                             <div className="space-y-2">
-                                                                <Label>EKAP Belge No</Label>
-                                                                <Input
-                                                                    value={newSiteData.projectNo || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, projectNo: e.target.value })}
-                                                                />
+                                                                <Label>İlan Tarihi</Label>
+                                                                <Input type="date" value={newSiteData.announcementDate || ''} onChange={e => setNewSiteData({ ...newSiteData, announcementDate: e.target.value })} />
                                                             </div>
                                                             <div className="space-y-2">
-                                                                <Label>İhale Kayıt No <span className="text-red-500">*</span></Label>
+                                                                <Label>İhale Tarihi</Label>
+                                                                <Input type="date" value={newSiteData.tenderDate || ''} onChange={e => setNewSiteData({ ...newSiteData, tenderDate: e.target.value })} />
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <Label>İhale Kayıt No</Label>
                                                                 <Input
                                                                     value={newSiteData.registrationNo || ''}
                                                                     onChange={e => setNewSiteData({ ...newSiteData, registrationNo: e.target.value })}
-                                                                    required
                                                                 />
                                                             </div>
                                                         </div>
@@ -2140,7 +2151,7 @@ export default function AdminPage() {
 
                                                     <TabsContent value="financial" className="space-y-4 pt-4">
                                                         <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-2 col-span-2">
+                                                            <div className="space-y-2">
                                                                 <Label>Sözleşme Bedeli (KDV ve F.F. Hariç)</Label>
                                                                 <Input
                                                                     type="number"
@@ -2148,21 +2159,10 @@ export default function AdminPage() {
                                                                     onChange={e => setNewSiteData({ ...newSiteData, contractPrice: e.target.value ? Number(e.target.value) : undefined })}
                                                                 />
                                                             </div>
-
-
-
                                                             <div className="space-y-2">
-                                                                <Label>Ortaklık Oranı (%)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.partnershipPercentage || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage: e.target.value ? Number(e.target.value) : 0 })}
-                                                                />
+                                                                <Label>Sözleşme Tarihi</Label>
+                                                                <Input type="date" value={newSiteData.contractDate || ''} onChange={e => setNewSiteData({ ...newSiteData, contractDate: e.target.value })} />
                                                             </div>
-
-
-
-
 
                                                             <div className="space-y-2 col-span-2">
                                                                 <Label>Notlar / Açıklama</Label>
@@ -2178,18 +2178,6 @@ export default function AdminPage() {
                                                     <TabsContent value="dates" className="space-y-4 pt-4">
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="space-y-2">
-                                                                <Label>İlan Tarihi <span className="text-red-500">*</span></Label>
-                                                                <Input type="date" value={newSiteData.announcementDate || ''} onChange={e => setNewSiteData({ ...newSiteData, announcementDate: e.target.value })} required />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>İhale Tarihi <span className="text-red-500">*</span></Label>
-                                                                <Input type="date" value={newSiteData.tenderDate || ''} onChange={e => setNewSiteData({ ...newSiteData, tenderDate: e.target.value })} required />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Sözleşme Tarihi <span className="text-red-500">*</span></Label>
-                                                                <Input type="date" value={newSiteData.contractDate || ''} onChange={e => setNewSiteData({ ...newSiteData, contractDate: e.target.value })} required />
-                                                            </div>
-                                                            <div className="space-y-2">
                                                                 <Label>İşyeri Teslim Tarihi</Label>
                                                                 <Input type="date" value={newSiteData.siteDeliveryDate || ''} onChange={e => setNewSiteData({ ...newSiteData, siteDeliveryDate: e.target.value })} />
                                                             </div>
@@ -2201,12 +2189,20 @@ export default function AdminPage() {
                                                                 <Label>Kesin Kabul Tarihi</Label>
                                                                 <Input type="date" value={newSiteData.finalAcceptanceDate || ''} onChange={e => setNewSiteData({ ...newSiteData, finalAcceptanceDate: e.target.value })} />
                                                             </div>
-                                                            <div className="space-y-2 col-span-2">
+
+                                                            <div className="space-y-2">
                                                                 <Label>İş Deneyim Belgesi</Label>
                                                                 <Input
                                                                     value={newSiteData.workExperienceCertificate || ''}
                                                                     onChange={e => setNewSiteData({ ...newSiteData, workExperienceCertificate: e.target.value })}
-                                                                    placeholder="Belge No / Tutar vs."
+                                                                    placeholder="Belge No / Tutar"
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Label>EKAP Belge No</Label>
+                                                                <Input
+                                                                    value={newSiteData.projectNo || ''}
+                                                                    onChange={e => setNewSiteData({ ...newSiteData, projectNo: e.target.value })}
                                                                 />
                                                             </div>
 
@@ -2215,7 +2211,7 @@ export default function AdminPage() {
                                                                 <Input
                                                                     value={newSiteData.statusDetail || ''}
                                                                     onChange={e => setNewSiteData({ ...newSiteData, statusDetail: e.target.value })}
-                                                                    placeholder="Örn: Devam Ediyor / Kesin Kabul Yapıldı"
+                                                                    placeholder="Örn: Devam Ediyor"
                                                                 />
                                                             </div>
                                                         </div>

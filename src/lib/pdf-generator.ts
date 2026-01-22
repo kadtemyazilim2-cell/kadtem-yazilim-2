@@ -50,24 +50,31 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
         }
     } else {
         // [NEW] Text Header Fallback
-        // If no logo, print Company Name and Details as a text header
-        doc.setFont(fontName, 'bold');
-        doc.setFontSize(22);
-        doc.setTextColor(192, 0, 0); // Active Dark Red, similar to common letterheads. Or just Black? Let's use red for distinction.
-        // Actually, user company "Kenan Tugay" might want specific color. Let's use standard Black for safety or dark gray.
-        doc.setTextColor(0, 0, 0);
+        if (company) {
+            // If no logo, print Company Name and Details as a text header
+            doc.setFont(fontName, 'bold');
+            doc.setFontSize(22);
+            doc.setTextColor(0, 0, 0); // Standard Black
 
-        doc.text(companyName.toUpperCase(), 105, 30, { align: 'center' });
+            doc.text(companyName.toUpperCase(), 105, 30, { align: 'center' });
 
-        yPos = 45; // Set starting Y for content
+            yPos = 45; // Set starting Y for content
 
-        // Optional: Address/Phone below header?
-        doc.setFont(fontName, 'normal');
-        doc.setFontSize(8);
-        const contactInfo = [company.address, company.phone, company.taxNumber ? `Vergi No: ${company.taxNumber}` : ''].filter(Boolean).join(' - ');
-        if (contactInfo) {
-            doc.text(contactInfo, 105, 37, { align: 'center' });
-            yPos = 50;
+            // Optional: Address/Phone below header
+            doc.setFont(fontName, 'normal');
+            doc.setFontSize(8);
+            const contactInfo = [
+                company.address,
+                company.phone,
+                company.taxNumber ? `Vergi No: ${company.taxNumber}` : ''
+            ].filter(Boolean).join(' - ');
+
+            if (contactInfo) {
+                doc.text(contactInfo, 105, 37, { align: 'center' });
+                yPos = 50;
+            }
+        } else {
+            yPos = 30; // Fallback if no company data
         }
     }
 
