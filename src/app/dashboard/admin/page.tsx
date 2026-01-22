@@ -18,14 +18,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Minus, Search, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Building2, Users, ShieldCheck, ShieldAlert, TrendingUp, RefreshCw, MapPin, Mail, Pencil, FileDown, FileSpreadsheet, ArrowUp, ArrowDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch'; // [NEW]
 import { MultiSelect } from '@/components/ui/multi-select'; // [NEW]
-import { Plus, Building2, Users, ShieldCheck, ShieldAlert, TrendingUp, RefreshCw, MapPin, Mail, Pencil, FileDown, FileSpreadsheet, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/store/use-auth';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
