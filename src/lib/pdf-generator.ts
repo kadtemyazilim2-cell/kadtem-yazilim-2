@@ -35,11 +35,22 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // Preview likely used fallback because dynamic logo failed to load.
     // We enforce the fallback for these specific companies.
 
+    // [FIX] Priority: Specific hardcoded logos (Text Headers) for known companies
+    // User reported dynamic logos (Red/Blue IKIKAT) are "wrong", prefers the Text Header style (Preview).
+    // Preview likely used fallback because dynamic logo failed to load.
+    // We enforce the fallback for these specific companies.
+
     if (!logoToUse) {
-        // [FIX] Exclude "Kenan Tugay" from standard "Ikikat" fallback to prevent wrong logo
-        if ((normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) && !normalizedName.includes('kenan')) {
+        // [CRITICAL] Explicitly prevent "Kenan Tugay" from getting the hardcoded Ikikat logo
+        // This company should use its DB letterhead (if any) or text header
+        if (normalizedName.includes('kenan')) {
+            // Do NOTHING. Leave logoToUse as null/undefined.
+            // This ensures we fall through to the "No Logo" / Text Header logic.
+        }
+        else if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
             logoToUse = IKIKAT_LOGO_BASE64;
-        } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
+        }
+        else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
             logoToUse = KADTEM_LOGO_BASE64;
         }
     }

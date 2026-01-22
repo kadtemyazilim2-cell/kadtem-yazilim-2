@@ -165,7 +165,7 @@ export default function AdminPage() {
     };
 
     // Site Filters
-    const [siteFilters, setSiteFilters] = useState<Record<string, string[]>>({}); // Changed to string[]
+    const [siteFilters, setSiteFilters] = useState<Record<string, string[]>>({});
 
     // --- SITE SORTING STATE ---
     type SiteSortConfigItem = { key: string; direction: 'asc' | 'desc' };
@@ -618,6 +618,7 @@ export default function AdminPage() {
     const [siteModalOpen, setSiteModalOpen] = useState(false);
     const [isEditingSite, setIsEditingSite] = useState(false); // [NEW]
     const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null); // [NEW]
+    const [isSubmitting, setIsSubmitting] = useState(false); // [NEW] Loading state
     const [newSiteData, setNewSiteData] = useState<Partial<Site>>({
         name: '',
         companyId: '',
@@ -705,6 +706,9 @@ export default function AdminPage() {
 
     const handleAddSite = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
 
         const sitePayload: any = {
             name: newSiteData.name!,
@@ -726,18 +730,17 @@ export default function AdminPage() {
             }
 
             if (result && result.success) {
-                alert('İşlem başarıyla tamamlandı.');
+                toast.success('İşlem başarıyla tamamlandı.');
                 window.location.reload();
             } else {
                 throw new Error(result?.error || 'Bilinmeyen bir hata oluştu');
             }
         } catch (err: any) {
             console.error(err);
-            alert(`İşlem başarısız: ${err.message || err}`);
+            toast.error(`İşlem başarısız: ${err.message || err}`);
+            setIsSubmitting(false); // Only reset on error, because reload happens on success
         }
-
-        setSiteModalOpen(false);
-        resetSiteForm();
+        // No finally block because we want to keep it loading during reload
     };
 
     const resetSiteForm = () => {
@@ -2224,7 +2227,9 @@ export default function AdminPage() {
                                                         </Button>
                                                     )}
                                                     <div className="flex gap-2 ml-auto">
-                                                        <Button type="submit">Kaydet</Button>
+                                                        <Button type="submit" disabled={isSubmitting}>
+                                                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                                                        </Button>
                                                     </div>
                                                 </DialogFooter>
                                             </form>
