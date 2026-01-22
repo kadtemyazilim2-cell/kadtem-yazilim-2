@@ -2081,28 +2081,77 @@ export default function AdminPage() {
                                                                     required
                                                                 />
                                                             </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Yüklenici Firma <span className="text-red-500">*</span></Label>
-                                                                <select
-                                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                                                                    value={newSiteData.companyId || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, companyId: e.target.value })}
-                                                                    required
-                                                                >
-                                                                    <option value="" disabled>Seçiniz</option>
-                                                                    {companies.map((c: any) => (
-                                                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                                                    ))}
-                                                                </select>
-                                                            </div>
+                                                            <div className="space-y-4 col-span-2 border p-4 rounded-md">
+                                                                <div className="flex gap-4 items-end">
+                                                                    <div className="space-y-2 flex-1">
+                                                                        <Label>Yüklenici Firma <span className="text-red-500">*</span></Label>
+                                                                        <select
+                                                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                                                            value={newSiteData.companyId || ''}
+                                                                            onChange={e => setNewSiteData({ ...newSiteData, companyId: e.target.value })}
+                                                                            required
+                                                                        >
+                                                                            <option value="" disabled>Seçiniz</option>
+                                                                            {companies.map((c: any) => (
+                                                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    </div>
+                                                                    <div className="space-y-2 w-32">
+                                                                        <Label>Ortaklık %</Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            value={newSiteData.partnershipPercentage || ''}
+                                                                            onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage: e.target.value ? Number(e.target.value) : undefined })}
+                                                                            placeholder="100"
+                                                                        />
+                                                                    </div>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="secondary"
+                                                                        className="mb-0.5"
+                                                                        onClick={() => {
+                                                                            // Toggle partner row
+                                                                            if (newSiteData.partnerCompanyId !== undefined) {
+                                                                                setNewSiteData({ ...newSiteData, partnerCompanyId: undefined, partnershipPercentage2: undefined });
+                                                                            } else {
+                                                                                setNewSiteData({ ...newSiteData, partnerCompanyId: '' });
+                                                                            }
+                                                                        }}
+                                                                        title={newSiteData.partnerCompanyId !== undefined ? "Ortak Firmayı Kaldır" : "Ortak Firma Ekle"}
+                                                                    >
+                                                                        {newSiteData.partnerCompanyId !== undefined ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                                                                    </Button>
+                                                                </div>
 
-                                                            <div className="space-y-2">
-                                                                <Label>Ortaklık Oranı (%)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    value={newSiteData.partnershipPercentage || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage: e.target.value ? Number(e.target.value) : 0 })}
-                                                                />
+                                                                {/* Partner Company Row */}
+                                                                {(newSiteData.partnerCompanyId !== undefined) && (
+                                                                    <div className="flex gap-4 items-end bg-muted/20 p-2 rounded-md border border-dashed">
+                                                                        <div className="space-y-2 flex-1">
+                                                                            <Label>Ortak Firma (Joint Venture)</Label>
+                                                                            <select
+                                                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                                                                                value={newSiteData.partnerCompanyId || ''}
+                                                                                onChange={e => setNewSiteData({ ...newSiteData, partnerCompanyId: e.target.value })}
+                                                                            >
+                                                                                <option value="" disabled>Seçiniz</option>
+                                                                                {companies.map((c: any) => (
+                                                                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                        <div className="space-y-2 w-32">
+                                                                            <Label>Ortaklık %</Label>
+                                                                            <Input
+                                                                                type="number"
+                                                                                value={newSiteData.partnershipPercentage2 || ''}
+                                                                                onChange={e => setNewSiteData({ ...newSiteData, partnershipPercentage2: e.target.value ? Number(e.target.value) : undefined })}
+                                                                                placeholder="0"
+                                                                            />
+                                                                        </div>
+                                                                        <div className="w-10"></div> {/* Spacer for alignment */}
+                                                                    </div>
+                                                                )}
                                                             </div>
 
                                                             <div className="space-y-2">
@@ -2206,14 +2255,7 @@ export default function AdminPage() {
                                                                 />
                                                             </div>
 
-                                                            <div className="space-y-2 col-span-2">
-                                                                <Label>Durum Detayı</Label>
-                                                                <Input
-                                                                    value={newSiteData.statusDetail || ''}
-                                                                    onChange={e => setNewSiteData({ ...newSiteData, statusDetail: e.target.value })}
-                                                                    placeholder="Örn: Devam Ediyor"
-                                                                />
-                                                            </div>
+
                                                         </div>
                                                     </TabsContent>
                                                 </Tabs>

@@ -46,20 +46,25 @@ export interface Site {
   tenderDate?: string; // İhale Tarihi
   contractDate?: string; // Sözleşme Tarihi
   siteDeliveryDate?: string; // İşyeri Teslim Tarihi
-  contractYiUfe?: number; // [NEW] Sözleşme Ayı Yi-Üfe Oranı
-  priceDifferenceCoefficient?: number; // [NEW] Fiyat Farkı Katsayısı
+  contractYiUfe?: number; // Sözleşme Ayı Yi-Üfe Oranı
+  priceDifferenceCoefficient?: number; // Fiyat Farkı Katsayısı
+
+  // Joint Venture
+  partnerCompanyId?: string; // [NEW] Link to Partner Company
+  partnershipPercentage?: number; // Ratio for Main Company
+  partnershipPercentage2?: number; // Ratio for Partner Company
+
   contractPrice?: number; // Sözleşme Bedeli (KDV ve F.F. Hariç)
-  remainingAmount?: number; // [NEW] F.F. Dahil Kalan Tutar (KDV Hariç)
-  realizedAmount?: number; // [NEW] Sözleşme Fiyatlarıyla Gerçekleşen Tutar (KDV ve F.F. Hariç)
+  remainingAmount?: number; // F.F. Dahil Kalan Tutar (KDV Hariç)
+  realizedAmount?: number; // Sözleşme Fiyatlarıyla Gerçekleşen Tutar (KDV ve F.F. Hariç)
   kdv?: number; // KDV Oranı (%)
   provisionalAcceptanceDate?: string; // Geçici Kabul Tarihi
   finalAcceptanceDate?: string; // Kesin Kabul Tarihi
-  workExperienceCertificate?: string; // [NEW] İş Deneyim Belgesi
+  workExperienceCertificate?: string; // İş Deneyim Belgesi
   completionDate?: string; // İş Bitim Tarihi (Normal)
   extendedDate?: string; // Süre Uzatımlı İş Bitim Tarihi
   statusDetail?: string; // Durum Detayı (Table text)
   completionPercentage?: number; // Fiziki Gerçekleşme Oranı (%) (KEPT for safety, but UI might use partnership)
-  partnershipPercentage?: number; // [NEW] Ortaklık Oranı (%)
   contractToCurrentUfeRatio?: number; // [NEW] Sözleşme Ufe / Güncel Ufe
   currentUfeDate?: string; // [NEW] Güncel Ufe Tarihi
   currentWorkExperienceAmount?: number; // [NEW] Güncel İş Deneyim Tutarı

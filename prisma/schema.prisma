@@ -95,7 +95,8 @@ model Company {
   shortName             String? // [NEW]
   
   // Relations
-  sites           Site[]
+  sites           Site[]    @relation("SiteCompany")
+  partnerSites    Site[]    @relation("SitePartnerCompany")
   users           User[]
   vehicles        Vehicle[]
   correspondences Correspondence[]
@@ -104,7 +105,7 @@ model Company {
 model Site {
   id          String   @id @default(cuid())
   companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
+  company     Company  @relation("SiteCompany", fields: [companyId], references: [id])
   
   name        String
   location    String?
@@ -135,8 +136,12 @@ model Site {
   statusDetail          String?
   
   partnershipPercentage Float?
+  partnershipPercentage2 Float? // [NEW] For Joint Venture Partner
   
   // Relations
+  partnerCompanyId String?
+  partnerCompany   Company? @relation("SitePartnerCompany", fields: [partnerCompanyId], references: [id])
+
   users           User[]
   personnel       Personnel[]
   vehicles        Vehicle[]   @relation("PrimarySite")

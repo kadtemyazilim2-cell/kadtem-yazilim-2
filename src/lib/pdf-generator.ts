@@ -30,6 +30,11 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
     let logoToUse: string | null | undefined = company?.letterhead || company?.logoUrl;
 
+    // [SAFETY] Force Text Header for Kenan Tugay to prevent incorrect logo usage
+    if (normalizedName.includes('kenan') || normalizedName.includes('tugay')) {
+        logoToUse = null;
+    }
+
     // [FIX] Priority: Database only.
     // If a company has a logo/letterhead in DB, use it. Otherwise text header.
     // Removed hardcoded fallbacks to prevent confusion.
