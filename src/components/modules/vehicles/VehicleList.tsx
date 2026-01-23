@@ -421,25 +421,117 @@ export function VehicleList() {
     };
 
     const exportExcel = () => {
-        const data = filteredVehicles.map(v => ({
-            'Plaka': v.plate,
-            'Firma': getCompanyName(v),
-            'Mülkiyet': v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
-            'Marka': v.brand,
-            'Model': v.model,
-            'Yıl': v.year,
-            'Tip': typeMap[v.type] || v.type,
-            'KM/Saat': v.currentKm,
-            'Durum': statusMap[v.status] || v.status,
-            'Sigorta Bitiş': formatDateSafe(v.insuranceExpiry),
-            'Kasko Bitiş': formatDateSafe(v.kaskoExpiry),
-            'Muayene Bitiş': formatDateSafe(v.inspectionExpiry)
-        }));
+        // 1. Group Data by Site
+        const grouped: Record<string, typeof vehicles> = {};
+        const noSite: typeof vehicles = [];
 
-        const ws = XLSX.utils.json_to_sheet(data);
+        filteredVehicles.forEach(v => {
+            // Check assigned sites
+            if (v.assignedSiteIds && v.assignedSiteIds.length > 0) {
+                v.assignedSiteIds.forEach((sid: string) => {
+                    if (!grouped[sid]) grouped[sid] = [];
+                    grouped[sid].push(v);
+                });
+            }
+            // Fallback to single site assignment
+            else if (v.assignedSiteId) {
+                if (!grouped[v.assignedSiteId]) grouped[v.assignedSiteId] = [];
+                grouped[v.assignedSiteId].push(v);
+            }
+            // If Owned, put in Center/NoSite even if not assigned? 
+            // Wait, logic in UI was: if owned, show in Center AND in Sites if assigned.
+            // For Excel, usually we want a clear list. 
+            // Creating a "Merkez / Atanmamış" group for unassigned vehicles.
+            else {
+                noSite.push(v);
+            }
+        });
+
+        // Prepare "Merkez" group explicitly if needed, or just handle noSite
+        // Let's treat noSite as a group named "Merkez / Atanmamış"
+
+        const dataRows: any[] = [];
+        const merges: any[] = [];
+        let currentRow = 1; // Start after header (0-indexed header is row 0, data starts row 1)
+
+        // Headers
+        const headers = ['Şantiye', 'Araç Sayısı', 'Sıra', 'Plaka', 'Firma', 'Mülkiyet', 'Marka', 'Model', 'Yıl', 'Tip', 'KM/Saat', 'Durum', 'Sigorta Bitiş', 'Kasko Bitiş', 'Muayene Bitiş'];
+        dataRows.push(headers);
+
+        // Function to process a group
+        const processGroup = (groupName: string, groupVehicles: typeof vehicles) => {
+            if (groupVehicles.length === 0) return;
+
+            const startRow = currentRow;
+            groupVehicles.forEach((v, idx) => {
+                dataRows.push([
+                    groupName,                      // Col 0: Site Name (will be merged)
+                    groupVehicles.length,           // Col 1: Count (will be merged)
+                    idx + 1,                        // Col 2: Index
+                    v.plate,                        // Col 3: Plate
+                    getCompanyName(v),              // Col 4: Company
+                    v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal', // Col 5: Ownership
+                    v.brand,                        // Col 6
+                    v.model,                        // Col 7
+                    v.year,                         // Col 8
+                    typeMap[v.type] || v.type,      // Col 9
+                    v.currentKm,                    // Col 10
+                    statusMap[v.status] || v.status, // Col 11
+                    formatDateSafe(v.insuranceExpiry), // Col 12
+                    formatDateSafe(v.kaskoExpiry),     // Col 13
+                    formatDateSafe(v.inspectionExpiry) // Col 14
+                ]);
+                currentRow++;
+            });
+
+            // Add merges if more than 1 row (or even 1 row to be consistent)
+            // Merge Site Name (Col 0)
+            merges.push({ s: { r: startRow, c: 0 }, e: { r: currentRow - 1, c: 0 } });
+            // Merge Count (Col 1)
+            merges.push({ s: { r: startRow, c: 1 }, e: { r: currentRow - 1, c: 1 } });
+        };
+
+        // 2. Process Sites
+        sites.forEach((site: any) => {
+            if (grouped[site.id]) {
+                processGroup(site.name, grouped[site.id]);
+            }
+        });
+
+        // 3. Process No Site / Center
+        if (noSite.length > 0) {
+            processGroup('Merkez / Atanmamış', noSite);
+        }
+
+        // 4. Create Sheet
+        const ws = XLSX.utils.aoa_to_sheet(dataRows);
+
+        // Apply Merges
+        ws['!merges'] = merges;
+
+        // Apply rough column widths
+        ws['!cols'] = [
+            { wch: 20 }, // Site
+            { wch: 10 }, // Count
+            { wch: 5 },  // Index
+            { wch: 15 }, // Plate
+            { wch: 20 }, // Company
+            { wch: 10 }, // Ownership
+            { wch: 15 }, // Brand
+            { wch: 15 }, // Model
+            { wch: 6 },  // Year
+            { wch: 15 }, // Type
+            { wch: 10 }, // KM
+            { wch: 10 }, // Status
+            { wch: 12 }, // Ins
+            { wch: 12 }, // Kasko
+            { wch: 12 }  // Insp
+        ];
+
+        // 5. Save
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Araç Listesi");
-        XLSX.writeFile(wb, `arac-listesi-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        XLSX.writeFile(wb, `arac-listesi-gruplu-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     };
 
     const exportPDF = () => {
