@@ -368,21 +368,31 @@ export default function AdminPage() {
             const companySites = sites.filter((s: any) => s.companyId === company.id);
             // Apply sorting if needed, or just dump
             companySites.forEach((site: any, index: number) => {
-                flatSites.push({
-                    'Yüklenici Firma': company.name,
-                    'İş Grubu': site.workGroup,
-                    'S.No': index + 1,
-                    'EKAP Belge No': site.projectNo,
-                    'İşin Adı': site.name,
-                    'İhale Kayıt No': site.registrationNo,
-                    'İlan Tarihi': site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '',
-                    'İhale Tarihi': site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',
-                    'Sözleşme Tarihi': site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',
-                    'İşyeri Teslim Tarihi': site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '',
-                    'İş Bitim Tarihi': site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',
-                    'Süre Uzatımlı Tarih': site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',
-                    'Sözleşme Bedeli': site.contractPrice,
-                    'Durum': site.status === 'INACTIVE' ? 'Pasif' : 'Aktif'
+                const workGroups = site.similarWorks && site.similarWorks.length > 0
+                    ? site.similarWorks
+                    : [{ group: site.workGroup, code: '', amount: 0 }]; // Fallback to main group if no similar works
+
+                workGroups.forEach((work: any, wIndex: number) => {
+                    const isFirst = wIndex === 0;
+                    flatSites.push({
+                        'Yüklenici Firma': isFirst ? company.name : '',
+                        'İş Grubu': work.group,
+                        'S.No': isFirst ? index + 1 : '',
+                        'EKAP Belge No': isFirst ? site.projectNo : '',
+                        'İşin Adı': isFirst ? site.name : '',
+                        'İhale Kayıt No': isFirst ? site.registrationNo : '',
+                        'İlan Tarihi': isFirst && site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '',
+                        'İhale Tarihi': isFirst && site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',
+                        'Sözleşme Tarihi': isFirst && site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',
+                        'İşyeri Teslim Tarihi': isFirst && site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '',
+                        'İş Bitim Tarihi': isFirst && site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',
+                        'Süre Uzatımlı Tarih': isFirst && site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',
+                        'Sözleşme Bedeli': isFirst ? site.contractPrice : '',
+                        'F.F. Dahil Kalan Tutar (KDV Hariç)': isFirst ? site.remainingAmount : '',
+                        'Sözleşme Fiyatlarıyla Gerçekleşen Tutar': isFirst ? site.realizedAmount : '',
+                        'Güncel İş Deneyim Tutarı': work.amount || 0, // This is specific to the group
+                        'Durum': isFirst ? (site.status === 'INACTIVE' ? 'Pasif' : 'Aktif') : ''
+                    });
                 });
             });
         });
@@ -2569,19 +2579,7 @@ export default function AdminPage() {
                                                                             </SelectContent>
                                                                         </Select>
                                                                     </div>
-                                                                    <div className="col-span-3 space-y-1">
-                                                                        <Label className="text-xs">Grup Kodu</Label>
-                                                                        <Input
-                                                                            className="h-8 text-xs"
-                                                                            value={work.code || ''}
-                                                                            placeholder="Örn: III"
-                                                                            onChange={e => {
-                                                                                const updated = [...(newSiteData.similarWorks || [])];
-                                                                                updated[idx].code = e.target.value;
-                                                                                setNewSiteData({ ...newSiteData, similarWorks: updated });
-                                                                            }}
-                                                                        />
-                                                                    </div>
+
                                                                     <div className="col-span-3 space-y-1">
                                                                         <Label className="text-xs">Tutar</Label>
                                                                         <Input
