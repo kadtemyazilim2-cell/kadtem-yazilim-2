@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useAppStore } from '@/lib/store/use-store';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { VehicleForm } from './VehicleForm';
 import { format, parseISO, isAfter, addMonths, addYears } from 'date-fns'; // Added addYears
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // [NEW]
-import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X, Calendar as CalendarIcon } from 'lucide-react'; // Added CalendarIcon
+import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X, Calendar as CalendarIcon, Building2 } from 'lucide-react'; // Added CalendarIcon
 import { InsurancePolicyDialog } from './InsurancePolicyDialog';
 import { InsuranceRenewalDialog } from './InsuranceRenewalDialog';
 import { useAuth } from '@/lib/store/use-auth';
@@ -874,31 +874,29 @@ export function VehicleList() {
                     </TabsContent>
 
                     <TabsContent value="vehicle-sites" className="space-y-6">
-                        {/* Group vehicles by Site */}
                         {(() => {
-                            // 1. Get filtered vehicles first (respects existing filters)
-                            // Or should we show ALL Active vehicles? Usually filters are good.
-                            // Let's use filteredVehicles to be consistent with search/filter bar.
-
-                            // 2. Group by Site
+                            // 1. Prepare Data
                             const grouped: Record<string, typeof vehicles> = {};
-                            const noSite: typeof vehicles = [];
+                            const centerVehicles = filteredVehicles.filter(v => v.ownership === 'OWNED');
+                            const unassignedRentals = filteredVehicles.filter(v => v.ownership === 'RENTAL' && !v.assignedSiteId && (!v.assignedSiteIds || v.assignedSiteIds.length === 0));
 
                             filteredVehicles.forEach(v => {
-                                if (v.status !== 'ACTIVE' && false) return; // [MODIFIED] Show all statuses as per request "silinmemeli"
-                                // User said "kayıtlı şantiye ile birlikte".
-                                if (v.assignedSiteId) {
+                                if (v.status !== 'ACTIVE' && false) return;
+
+                                if (v.assignedSiteIds && v.assignedSiteIds.length > 0) {
+                                    v.assignedSiteIds.forEach((sid: string) => {
+                                        if (!grouped[sid]) grouped[sid] = [];
+                                        grouped[sid].push(v);
+                                    });
+                                } else if (v.assignedSiteId) {
                                     if (!grouped[v.assignedSiteId]) grouped[v.assignedSiteId] = [];
                                     grouped[v.assignedSiteId].push(v);
-                                } else {
-                                    noSite.push(v);
                                 }
                             });
 
-                            // 3. Render
                             return (
                                 <div className="space-y-8">
-                                    {/* Sites */}
+                                    {/* A. Sites (Şantiyeler) */}
                                     {sites.filter((s: any) => s.status === 'ACTIVE' || (grouped[s.id] && grouped[s.id].length > 0)).map((site: any) => {
                                         const siteVehicles = grouped[site.id] || [];
                                         if (siteVehicles.length === 0) return null;
@@ -920,7 +918,7 @@ export function VehicleList() {
                                                                 <TableHead className="w-[50px]">#</TableHead>
                                                                 <TableHead>Plaka</TableHead>
                                                                 <TableHead>Marka / Model</TableHead>
-                                                                <TableHead>Şantiye</TableHead>
+                                                                <TableHead>Mülkiyet</TableHead>
                                                             </TableRow>
                                                         </TableHeader>
                                                         <TableBody>
@@ -929,7 +927,13 @@ export function VehicleList() {
                                                                     <TableCell>{idx + 1}</TableCell>
                                                                     <TableCell className="font-bold font-mono">{v.plate}</TableCell>
                                                                     <TableCell>{v.brand} {v.model}</TableCell>
-                                                                    <TableCell className="text-sm font-medium text-slate-700">{site.name}</TableCell>
+                                                                    <TableCell>
+                                                                        {v.ownership === 'OWNED' ? (
+                                                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Öz Mal</Badge>
+                                                                        ) : (
+                                                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Kiralık</Badge>
+                                                                        )}
+                                                                    </TableCell>
                                                                 </TableRow>
                                                             ))}
                                                         </TableBody>
@@ -939,14 +943,75 @@ export function VehicleList() {
                                         );
                                     })}
 
-                                    {/* No Site / Unassigned */}
-                                    {noSite.length > 0 && (
-                                        <Card className="border-dashed border-slate-300">
-                                            <CardHeader className="py-3 bg-slate-50">
+                                    {/* B. Center List (All Owned Vehicles) */}
+                                    <Card className="border-l-4 border-l-blue-500 shadow-sm">
+                                        <CardHeader className="py-3 bg-slate-50">
+                                            <div className="flex justify-between items-center">
+                                                <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800">
+                                                    <Building2 className="w-5 h-5 text-blue-600" />
+                                                    Merkez / Tüm Öz Mal Araçlar
+                                                    <Badge variant="secondary" className="bg-white border-blue-200 text-blue-700 ml-2">
+                                                        {centerVehicles.length} Araç
+                                                    </Badge>
+                                                </CardTitle>
+                                                <CardDescription>Tüm şirket araçları (şantiyeye atanmış olanlar dahil)</CardDescription>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-0">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-[50px]">#</TableHead>
+                                                        <TableHead>Plaka</TableHead>
+                                                        <TableHead>Marka / Model</TableHead>
+                                                        <TableHead>Bulunduğu Şantiye</TableHead>
+                                                        <TableHead>Durum</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {centerVehicles.length === 0 ? (
+                                                        <TableRow>
+                                                            <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                                                Öz mal araç bulunamadı.
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ) : (
+                                                        centerVehicles.map((v, idx) => (
+                                                            <TableRow key={v.id}>
+                                                                <TableCell>{idx + 1}</TableCell>
+                                                                <TableCell className="font-bold font-mono">{v.plate}</TableCell>
+                                                                <TableCell>{v.brand} {v.model}</TableCell>
+                                                                <TableCell>
+                                                                    <span className="text-sm font-medium text-slate-700 block max-w-[200px] truncate" title={getVehicleSiteName(v)}>
+                                                                        {getVehicleSiteName(v) === '-' ? (
+                                                                            <span className="text-muted-foreground italic">Merkez</span>
+                                                                        ) : getVehicleSiteName(v)}
+                                                                    </span>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="outline" className="text-xs">
+                                                                        {statusMap[v.status] || v.status}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        </CardContent>
+                                    </Card>
+
+                                    {/* C. Unassigned Rental Vehicles */}
+                                    {unassignedRentals.length > 0 && (
+                                        <Card className="border-dashed border-orange-300 bg-orange-50/30">
+                                            <CardHeader className="py-3 bg-orange-50/50">
                                                 <div className="flex justify-between items-center">
-                                                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-500">
-                                                        Şantiyesi Belirlenmemiş / Merkez
-                                                        <Badge variant="secondary" className="bg-white">{noSite.length} Araç</Badge>
+                                                    <CardTitle className="text-lg font-semibold flex items-center gap-2 text-orange-800">
+                                                        <AlertCircle className="w-5 h-5 text-orange-600" />
+                                                        Atanmamış Kiralık Araçlar
+                                                        <Badge variant="secondary" className="bg-white border-orange-200 text-orange-700 ml-2">
+                                                            {unassignedRentals.length} Araç
+                                                        </Badge>
                                                     </CardTitle>
                                                 </div>
                                             </CardHeader>
@@ -956,17 +1021,19 @@ export function VehicleList() {
                                                         <TableRow>
                                                             <TableHead className="w-[50px]">#</TableHead>
                                                             <TableHead>Plaka</TableHead>
+                                                            <TableHead>Kiralama Şirketi</TableHead>
                                                             <TableHead>Marka / Model</TableHead>
                                                             <TableHead>Şantiye</TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {noSite.map((v, idx) => (
+                                                        {unassignedRentals.map((v, idx) => (
                                                             <TableRow key={v.id}>
                                                                 <TableCell>{idx + 1}</TableCell>
                                                                 <TableCell className="font-bold font-mono">{v.plate}</TableCell>
+                                                                <TableCell>{v.rentalCompanyName || '-'}</TableCell>
                                                                 <TableCell>{v.brand} {v.model}</TableCell>
-                                                                <TableCell className="text-sm text-muted-foreground">-</TableCell>
+                                                                <TableCell className="text-sm text-muted-foreground italic">Atanmamış</TableCell>
                                                             </TableRow>
                                                         ))}
                                                     </TableBody>
