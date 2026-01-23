@@ -852,7 +852,8 @@ export default function AdminPage() {
             completionDate: '', extendedDate: '', statusDetail: '', completionPercentage: 0, partnershipPercentage: 0,
             contractToCurrentUfeRatio: undefined, currentUfeDate: '', currentWorkExperienceAmount: undefined, priceDifference: undefined,
             personnelCount: 0, note: '',
-            provisionalAcceptanceDoc: '', finalAcceptanceDoc: '', workExperienceDoc: ''
+            provisionalAcceptanceDoc: '', finalAcceptanceDoc: '', workExperienceDoc: '',
+            similarWorkGroup: '', similarWorkCode: ''
         });
     };
 
@@ -2331,6 +2332,37 @@ export default function AdminPage() {
                                                     {/* Acceptance Tab */}
                                                     <TabsContent value="acceptance" className="space-y-4 pt-4">
 
+                                                        {/* Benzer İş Grupları (Tebliğ) */}
+                                                        <div className="space-y-2 border p-4 rounded-md bg-slate-50 mb-4">
+                                                            <h4 className="font-medium text-sm text-slate-700">Benzer İş Grupları (Tebliğ)</h4>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <Label>Grup (A, B, C...)</Label>
+                                                                    <Select
+                                                                        value={newSiteData.similarWorkGroup || ''}
+                                                                        onValueChange={value => setNewSiteData({ ...newSiteData, similarWorkGroup: value })}
+                                                                    >
+                                                                        <SelectTrigger>
+                                                                            <SelectValue placeholder="Seçiniz" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {['A', 'B', 'B1', 'B2', 'B3', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(g => (
+                                                                                <SelectItem key={g} value={g}>Grup {g}</SelectItem>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label>Grup Kodu (I, II, III...)</Label>
+                                                                    <Input
+                                                                        value={newSiteData.similarWorkCode || ''}
+                                                                        onChange={e => setNewSiteData({ ...newSiteData, similarWorkCode: e.target.value })}
+                                                                        placeholder="Örn: III veya XVIII"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
                                                         {/* Row 1: Provisional Acceptance */}
                                                         <div className="grid grid-cols-2 gap-4 items-end">
                                                             <div className="space-y-2">
@@ -2896,106 +2928,73 @@ export default function AdminPage() {
                                 Bu alandaki işlemler geri alınamaz ve veri kaybına neden olabilir.
                             </CardDescription>
                         </CardHeader>
-                    </Card>
-
-                    {/* PREVIEW MODAL */}
-                    <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-                        <DialogContent className="max-w-4xl h-[90vh]">
-                            <DialogHeader>
-                                <DialogTitle>Belge Önizleme</DialogTitle>
-                            </DialogHeader>
-                            {previewDoc && (
-                                <div className="flex-1 w-full h-full min-h-[500px] border rounded bg-slate-50">
-                                    <iframe
-                                        src={previewDoc}
-                                        className="w-full h-full"
-                                        title="Preview"
-                                    />
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-slate-900">Sistemi Sıfırla (Fabrika Ayarları)</div>
+                                    <div className="text-sm text-slate-500 max-w-xl">
+                                        Bu işlem, <strong>Admin kullanıcısı dışındaki</strong> tüm verileri (şantiyeler, firmalar, araçlar, personeller, loglar vb.) kalıcı olarak siler.
+                                        <br />
+                                        <span className="text-red-600 font-medium">Bu işlem sadece örnek verileri temizlemek ve temiz bir başlangıç yapmak için kullanılmalıdır.</span>
+                                    </div>
                                 </div>
-                            )}
-                        </DialogContent>
-                    </Dialog>
-                </TabsContent>
-                <CardContent className="pt-6">
-                    <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
-                        <div className="space-y-1">
-                            <div className="font-semibold text-slate-900">Sistemi Sıfırla (Fabrika Ayarları)</div>
-                            <div className="text-sm text-slate-500 max-w-xl">
-                                Bu işlem, <strong>Admin kullanıcısı dışındaki</strong> tüm verileri (şantiyeler, firmalar, araçlar, personeller, loglar vb.) kalıcı olarak siler.
-                                <br />
-                                <span className="text-red-600 font-medium">Bu işlem sadece örnek verileri temizlemek ve temiz bir başlangıç yapmak için kullanılmalıdır.</span>
+                                <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="destructive" className="gap-2">
+                                            <Trash2 className="w-4 h-4" />
+                                            Sistemi Sıfırla
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="border-red-200 sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-red-700 flex items-center gap-2">
+                                                <ShieldAlert className="w-5 h-5" />
+                                                Tüm Veriler Silinecek!
+                                            </DialogTitle>
+                                            <DialogDescription className="pt-2 space-y-2">
+                                                <p>Bu işlem geri alınamaz. Onaylıyor musunuz?</p>
+                                                <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 bg-slate-50 p-2 rounded">
+                                                    <li>Tüm Şantiyeler ve Firmalar silinecek.</li>
+                                                    <li>Tüm Araçlar ve Personeller silinecek.</li>
+                                                    <li>Tüm mali kayıtlar ve loglar silinecek.</li>
+                                                    <li><strong>Mevcut Admin hesabınız korunacaktır.</strong></li>
+                                                </ul>
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter className="gap-2 sm:justify-between">
+                                            <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
+                                                Vazgeç
+                                            </Button>
+                                            <Button variant="destructive" onClick={handleResetSystem} disabled={resetting}>
+                                                {resetting ? 'Siliniyor...' : 'Evet, Tüm Verileri Sil'}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
-                        </div>
-                        <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="destructive" className="gap-2">
-                                    <Trash2 className="w-4 h-4" />
-                                    Sistemi Sıfırla
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="border-red-200 sm:max-w-[425px]">
-                                <DialogHeader>
-                                    <DialogTitle className="text-red-700 flex items-center gap-2">
-                                        <ShieldAlert className="w-5 h-5" />
-                                        Tüm Veriler Silinecek!
-                                    </DialogTitle>
-                                    <DialogDescription className="pt-2 space-y-2">
-                                        <p>Bu işlem geri alınamaz. Onaylıyor musunuz?</p>
-                                        <ul className="list-disc list-inside text-xs text-slate-500 space-y-1 bg-slate-50 p-2 rounded">
-                                            <li>Tüm Şantiyeler ve Firmalar silinecek.</li>
-                                            <li>Tüm Araçlar ve Personeller silinecek.</li>
-                                            <li>Tüm mali kayıtlar ve loglar silinecek.</li>
-                                            <li><strong>Mevcut Admin hesabınız korunacaktır.</strong></li>
-                                        </ul>
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter className="gap-2 sm:justify-between">
-                                    <Button variant="outline" onClick={() => setResetDialogOpen(false)} disabled={resetting}>
-                                        Vazgeç
-                                    </Button>
-                                    <Button variant="destructive" onClick={handleResetSystem} disabled={resetting}>
-                                        {resetting ? 'Siliniyor...' : 'Evet, Tüm Verileri Sil'}
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                    <div className="flex items-center justify-between p-4 border border-red-100 rounded-lg bg-white shadow-sm">
-                        <div className="space-y-1">
-                            <h4 className="text-sm font-medium text-red-900">Veritabanını Sıfırla</h4>
-                            <p className="text-sm text-red-700">
-                                Tüm verileri siler ve başlangıç durumuna döndürür. Bu işlem geri alınamaz.
-                            </p>
-                        </div>
-                        <Button variant="destructive" onClick={handleResetSystem}>
-                            Sıfırla
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-            {/* PREVIEW MODAL */ }
-    <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-        <DialogContent className="max-w-4xl h-[90vh]">
-            <DialogHeader>
-                <DialogTitle>Belge Önizleme</DialogTitle>
-            </DialogHeader>
-            {previewDoc && (
-                <div className="flex-1 w-full h-full min-h-[500px] border rounded bg-slate-50">
-                    <iframe
-                        src={previewDoc || undefined}
-                        className="w-full h-full"
-                        title="Preview"
-                    />
-                </div>
-            )}
-        </DialogContent>
-    </Dialog>
-        </Tabs >
-    </div >
+                {/* PREVIEW MODAL */}
+                <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
+                    <DialogContent className="max-w-4xl h-[90vh]">
+                        <DialogHeader>
+                            <DialogTitle>Belge Önizleme</DialogTitle>
+                        </DialogHeader>
+                        {previewDoc && (
+                            <div className="flex-1 w-full h-full min-h-[500px] border rounded bg-slate-50">
+                                <iframe
+                                    src={previewDoc || undefined}
+                                    className="w-full h-full"
+                                    title="Preview"
+                                />
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+            </Tabs >
+        </div >
     );
 }
 

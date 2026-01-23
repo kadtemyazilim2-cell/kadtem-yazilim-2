@@ -113,6 +113,9 @@ model Site {
   
   // Construction Details
   workGroup             String?
+
+  similarWorkGroup      String?
+  similarWorkCode       String?
   orderNo               String?
   projectNo             String?
   registrationNo        String?
@@ -126,7 +129,13 @@ model Site {
   contractPrice         Float?
   realizedAmount        Float?
   kdv                   Float?
-  
+
+  priceDifference             Float?
+  contractToCurrentUfeRatio   Float?
+  currentUfeDate              DateTime?
+  currentWorkExperienceAmount Float?
+
+
   provisionalAcceptanceDate DateTime?
   finalAcceptanceDate       DateTime?
   workExperienceCertificate String?
