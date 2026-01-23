@@ -106,6 +106,8 @@ const MODULE_HIERARCHY = [
 
 import { User, Site } from '@/lib/types'; // [FIX] Import User and Site types
 
+import { SIMILAR_WORK_GROUPS } from '@/lib/constants/work-groups'; // [NEW]
+
 export default function AdminPage() {
     const {
         users, addUser, updateUser, deleteUser,
@@ -677,6 +679,8 @@ export default function AdminPage() {
     const [isEditingSite, setIsEditingSite] = useState(false); // [NEW]
     const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null); // [NEW]
     const [isSubmitting, setIsSubmitting] = useState(false); // [NEW] Loading state
+
+
     const [newSiteData, setNewSiteData] = useState<Partial<Site>>({
         name: '',
         companyId: '',
@@ -710,9 +714,11 @@ export default function AdminPage() {
         personnelCount: 0,
 
         note: '',
-        provisionalAcceptanceDoc: '', // [NEW]
-        finalAcceptanceDoc: '', // [NEW]
-        workExperienceDoc: '' // [NEW]
+        provisionalAcceptanceDoc: '',
+        finalAcceptanceDoc: '',
+        workExperienceDoc: '',
+        similarWorkGroup: '', // [NEW]
+        similarWorkExperienceAmount: undefined // [NEW]
     });
 
     const handleDeleteSite = async () => {
@@ -2320,36 +2326,7 @@ export default function AdminPage() {
                                                     {/* Acceptance Tab */}
                                                     <TabsContent value="acceptance" className="space-y-4 pt-4">
 
-                                                        {/* Benzer İş Grupları (Tebliğ) */}
-                                                        <div className="space-y-2 border p-4 rounded-md bg-slate-50 mb-4">
-                                                            <h4 className="font-medium text-sm text-slate-700">Benzer İş Grupları (Tebliğ)</h4>
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div className="space-y-2">
-                                                                    <Label>Grup (A, B, C...)</Label>
-                                                                    <Select
-                                                                        value={newSiteData.similarWorkGroup || ''}
-                                                                        onValueChange={value => setNewSiteData({ ...newSiteData, similarWorkGroup: value })}
-                                                                    >
-                                                                        <SelectTrigger>
-                                                                            <SelectValue placeholder="Seçiniz" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {['A', 'B', 'B1', 'B2', 'B3', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(g => (
-                                                                                <SelectItem key={g} value={g}>Grup {g}</SelectItem>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <Label>Grup Kodu (I, II, III...)</Label>
-                                                                    <Input
-                                                                        value={newSiteData.similarWorkCode || ''}
-                                                                        onChange={e => setNewSiteData({ ...newSiteData, similarWorkCode: e.target.value })}
-                                                                        placeholder="Örn: III veya XVIII"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </div>
+
 
                                                         {/* Row 1: Provisional Acceptance */}
                                                         <div className="grid grid-cols-2 gap-4 items-end">
@@ -2537,6 +2514,46 @@ export default function AdminPage() {
                                                                             </Button>
                                                                         </div>
                                                                     )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Benzer İş Grupları (Tebliğ) */}
+                                                        <div className="space-y-2 border p-4 rounded-md bg-slate-50 mt-4">
+                                                            <h4 className="font-medium text-sm text-slate-700">Benzer İş Grupları (Tebliğ)</h4>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <Label>Grup (A, B, C...)</Label>
+                                                                    <Select
+                                                                        value={newSiteData.similarWorkGroup || ''}
+                                                                        onValueChange={value => setNewSiteData({ ...newSiteData, similarWorkGroup: value })}
+                                                                    >
+                                                                        <SelectTrigger>
+                                                                            <SelectValue placeholder="Seçiniz" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            {SIMILAR_WORK_GROUPS.map((group) => (
+                                                                                <SelectGroup key={group.label}>
+                                                                                    <SelectLabel>{group.label}</SelectLabel>
+                                                                                    {group.options.map((opt) => (
+                                                                                        <SelectItem key={opt.value} value={opt.value}>
+                                                                                            {opt.value} - {opt.label.replace(opt.value + ': ', '')}
+                                                                                        </SelectItem>
+                                                                                    ))}
+                                                                                </SelectGroup>
+                                                                            ))}
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label>Benzer İş Deneyim Tutarı</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        step="0.01"
+                                                                        value={newSiteData.similarWorkExperienceAmount || ''}
+                                                                        onChange={e => setNewSiteData({ ...newSiteData, similarWorkExperienceAmount: e.target.value ? Number(e.target.value) : undefined })}
+                                                                        placeholder="0.00"
+                                                                    />
                                                                 </div>
                                                             </div>
                                                         </div>

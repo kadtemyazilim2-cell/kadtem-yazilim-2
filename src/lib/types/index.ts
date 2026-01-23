@@ -49,6 +49,7 @@ export interface Site {
   workGroup?: string; // İş Grubu (e.g. Üstyapı, Altyapı)
   similarWorkGroup?: string; // [NEW] Benzer İş Grubu (A, B, C...)
   similarWorkCode?: string; // [NEW] Benzer İş Kodu (I, II, III...)
+  similarWorkExperienceAmount?: number; // [NEW] Benzer İş Deneyim Tutarı
   orderNo?: string; // S.No
   projectNo?: string; // Etap Proje No
   registrationNo?: string; // İhale Kayıt Numarası

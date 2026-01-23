@@ -114,8 +114,7 @@ model Site {
   // Construction Details
   workGroup             String?
 
-  similarWorkGroup      String?
-  similarWorkCode       String?
+
   orderNo               String?
   projectNo             String?
   registrationNo        String?
@@ -148,6 +147,8 @@ model Site {
   provisionalAcceptanceDoc String?
   finalAcceptanceDoc       String?
   workExperienceDoc        String?
+  similarWorkGroup         String?
+  similarWorkExperienceAmount Float?
   note                     String?
   personnelCount           Int?     @default(0)
 
