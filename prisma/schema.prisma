@@ -147,8 +147,10 @@ model Site {
   provisionalAcceptanceDoc String?
   finalAcceptanceDoc       String?
   workExperienceDoc        String?
-  similarWorkGroup         String?
-  similarWorkExperienceAmount Float?
+  // similarWorkGroup         String?  // [REMOVED] in favor of Relation
+  // similarWorkExperienceAmount Float? // [REMOVED] in favor of Relation
+  similarWorks             SimilarWorkItem[] // [NEW] Relation
+
   note                     String?
   personnelCount           Int?     @default(0)
 
