@@ -373,10 +373,10 @@ export default function AdminPage() {
             if (companySites.length === 0) return;
 
             const sheetData: any[] = [];
-            const merges: any[] = [];
-            let currentRow = 1; // Row 0 is header
+            // No merges needed for rows anymore as we are doing 1 row per site
+            let currentRow = 1;
 
-            // Header based on User's Screenshot / Request
+            // Header based on User's Request
             const headers = [
                 'İş Grubu',
                 'S.No',
@@ -388,11 +388,11 @@ export default function AdminPage() {
                 'Sözleşme Fiyatlarıyla Gerçekleşen Tutar',
                 'Geçici Kabul Tarihi',
                 'Kesin Kabul Tarihi',
-                'İş Deneyim Belgesi Numarası', // SPLIT
+                'İş Deneyim Belgesi Numarası', // Multi-line
                 'Durum',
                 'Ortaklık Oranı',
-                'Güncel İş Deneyim Tutarı (TL)', // SPLIT
-                'Fiyat Farkı (Reference Only)', // Adding as placeholder if needed, matching wide screenshot
+                'Güncel İş Deneyim Tutarı (TL)', // Multi-line
+                'Fiyat Farkı (Reference Only)',
             ];
             sheetData.push(headers);
 
@@ -400,54 +400,42 @@ export default function AdminPage() {
                 const workGroups = site.similarWorks && site.similarWorks.length > 0
                     ? site.similarWorks
                     : [{ group: '', code: '-', amount: site.currentWorkExperienceAmount || 0 }];
-                // If no sub-groups, use main amount, dash for code. 
-                // Note: 'group' in similarWorks is the Name/Code (e.g. B-III), 'code' is extraneous? 
-                // Actually checking type: similarWorks: { group: string; code?: string; amount?: number; }[]
-                // 'group' is likely the name like "B III".
 
-                const rowCount = workGroups.length;
-                const startRow = currentRow;
+                // Join with newline for single cell
+                const workGroupNames = workGroups.map((w: any) => w.group || '').join('\n');
+                const workGroupAmounts = workGroups.map((w: any) =>
+                    // Format number nicely 
+                    new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(w.amount || 0)
+                ).join('\n');
 
-                workGroups.forEach((work: any) => {
-                    const row = [
-                        site.workGroup || '',                                   // A: İş Grubu
-                        index + 1,                                              // B: S.No
-                        site.projectNo || '',                                   // C: EKAP No
-                        site.name || '',                                        // D: İşin Adı
-                        site.registrationNo || '',                              // E: İhale Kayıt No
-                        site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '', // F: Sözleşme Tarihi
-                        site.remainingAmount || 0,                              // G: Kalan Tutar
-                        site.realizedAmount || 0,                               // H: Gerçekleşen Tutar
-                        site.provisionalAcceptanceDate ? format(new Date(site.provisionalAcceptanceDate), 'dd.MM.yyyy') : '', // I: Geçici Kabul
-                        site.finalAcceptanceDate ? format(new Date(site.finalAcceptanceDate), 'dd.MM.yyyy') : '',             // J: Kesin Kabul
-                        work.group || '',                                       // K: İş Deneyim Belgesi (SPLIT) - Using 'group' as the Name/Number
-                        site.status === 'INACTIVE' ? 'Pasif' : 'Aktif',         // L: Durum
-                        site.partnershipPercentage ? `%${site.partnershipPercentage}` : '', // M: Ortaklık Oranı
-                        work.amount || 0,                                       // N: Güncel Tutar (SPLIT)
-                        site.priceDifference || ''                              // O: Fiyat Farkı
-                    ];
-                    sheetData.push(row);
-                });
-
-                // Merge Logic: Merge everything EXCEPT K (10) and N (13)
-                if (rowCount > 1) {
-                    const colsToMerge = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14];
-                    colsToMerge.forEach(colIndex => {
-                        merges.push({ s: { r: startRow, c: colIndex }, e: { r: startRow + rowCount - 1, c: colIndex } });
-                    });
-                }
-
-                currentRow += rowCount;
+                const row = [
+                    site.workGroup || '',                                   // A: İş Grubu
+                    index + 1,                                              // B: S.No
+                    site.projectNo || '',                                   // C: EKAP No
+                    site.name || '',                                        // D: İşin Adı
+                    site.registrationNo || '',                              // E: İhale Kayıt No
+                    site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '', // F
+                    site.remainingAmount || 0,                              // G
+                    site.realizedAmount || 0,                               // H
+                    site.provisionalAcceptanceDate ? format(new Date(site.provisionalAcceptanceDate), 'dd.MM.yyyy') : '', // I
+                    site.finalAcceptanceDate ? format(new Date(site.finalAcceptanceDate), 'dd.MM.yyyy') : '',             // J
+                    workGroupNames,                                         // K: Multi-line
+                    site.status === 'INACTIVE' ? 'Pasif' : 'Aktif',         // L
+                    site.partnershipPercentage ? `%${site.partnershipPercentage}` : '', // M
+                    workGroupAmounts,                                       // N: Multi-line
+                    site.priceDifference || ''                              // O
+                ];
+                sheetData.push(row);
+                currentRow++;
             });
 
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
-            if (merges.length > 0) {
-                ws['!merges'] = merges;
-            }
 
             // Widths
             const wscols = headers.map(() => ({ wch: 15 }));
             wscols[3] = { wch: 50 }; // İşin Adı
+            wscols[10] = { wch: 30 }; // İş Deneyim No width
+            wscols[13] = { wch: 25 }; // Amount width
             ws['!cols'] = wscols;
 
             XLSX.utils.book_append_sheet(wb, ws, company.name.substring(0, 31));
