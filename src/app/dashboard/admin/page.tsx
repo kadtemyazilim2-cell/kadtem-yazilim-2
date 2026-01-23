@@ -2805,215 +2805,267 @@ export default function AdminPage() {
                                                             {company.name} {company.taxNumber ? `/ V.No: ${company.taxNumber}` : ''}
                                                         </TableCell>
                                                     </TableRow>
-                                                    {sortedCompanySites.map((site, index) => (
-                                                        <TableRow key={site.id} className={cn("hover:bg-slate-50 border-b", site.status === 'INACTIVE' ? 'bg-gray-50 opacity-75' : '')}>
-                                                            {siteColumns.map((col, colIdx) => {
-                                                                const partnerParams = site.partners?.find((p: any) => p.companyId === company.id);
-                                                                const effectivePartnership = partnerParams ? partnerParams.percentage : (site.partnershipPercentage || 100);
+                                                    {sortedCompanySites.map((site, index) => {
+                                                        const similarWorks = site.similarWorks && site.similarWorks.length > 0 ? site.similarWorks : [];
+                                                        const rowCount = Math.max(similarWorks.length, 1);
 
-                                                                // Special Action Column
-                                                                if (col.label === 'İşlem') {
+                                                        return (
+                                                            <Fragment key={site.id}>
+                                                                {Array.from({ length: rowCount }).map((_, subIndex) => {
+                                                                    const work = similarWorks[subIndex];
+                                                                    const isFirstRow = subIndex === 0;
+
                                                                     return (
-                                                                        <TableCell key={colIdx} className="border-r py-2 text-xs text-center" style={{ width: col.width }}>
-                                                                            <div className="flex flex-col items-center gap-1">
-                                                                                <Switch
-                                                                                    checked={site.status !== 'INACTIVE'}
-                                                                                    onCheckedChange={async (checked) => {
-                                                                                        try {
-                                                                                            const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
-                                                                                            updateSite(site.id, { status: newStatus });
-                                                                                            await updateSiteAction(site.id, { status: newStatus });
-                                                                                            router.refresh();
-                                                                                        } catch (error) {
-                                                                                            console.error('Status update failed', error);
-                                                                                            alert('Durum güncellenemedi');
-                                                                                            window.location.reload();
-                                                                                        }
-                                                                                    }}
-                                                                                    className="scale-75"
-                                                                                />
-                                                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditSiteModal(site)}>
-                                                                                    <Pencil className="w-3 h-3 text-slate-500 hover:text-blue-600" />
-                                                                                </Button>
-                                                                            </div>
-                                                                        </TableCell>
-                                                                    );
-                                                                }
-
-                                                                let content: React.ReactNode = '-';
-
-                                                                // --- Custom Logic per Column Key ---
-                                                                if (col.label === 'S.No') {
-                                                                    content = index + 1;
-                                                                }
-                                                                else if (col.key === 'contractYiUfe') {
-                                                                    if (site.tenderDate) {
-                                                                        const date = new Date(site.tenderDate);
-                                                                        date.setMonth(date.getMonth() - 1);
-                                                                        const year = date.getFullYear();
-                                                                        const month = date.getMonth() + 1;
-                                                                        const rate = yiUfeRates.find((r: any) => r.year === year && r.month === month);
-                                                                        content = rate ? rate.index : (site.contractYiUfe || '-');
-                                                                    } else {
-                                                                        content = site.contractYiUfe || '-';
-                                                                    }
-                                                                }
-                                                                else if (col.key === 'realizedAmount') {
-                                                                    const contractPrice = site.contractPrice || 0;
-                                                                    if (site.provisionalAcceptanceDate) {
-                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(contractPrice) + ' ₺';
-                                                                    } else {
-                                                                        const realizedAmount = site.realizedAmount || 0;
-                                                                        const base = contractPrice - realizedAmount;
-                                                                        let baseIndex = site.priceDifferenceCoefficient;
-                                                                        if (!baseIndex || baseIndex === 0) {
-                                                                            baseIndex = site.contractYiUfe;
-                                                                            if (site.tenderDate) {
-                                                                                const tDate = new Date(site.tenderDate);
-                                                                                tDate.setMonth(tDate.getMonth() - 1);
-                                                                                const foundRate = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
-                                                                                if (foundRate) baseIndex = foundRate.index;
-                                                                            }
-                                                                        }
-                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-                                                                        const latestUfe = sortedRates[0]?.index;
-
-                                                                        if (baseIndex && baseIndex > 0 && latestUfe) {
-                                                                            const ratio = latestUfe / baseIndex;
-                                                                            const priceDifference = ratio - 1;
-                                                                            let result = (base * priceDifference) + base;
-                                                                            if (result < 0) result = contractPrice || 0;
-                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + ' ₺';
-                                                                        } else {
-                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(base > 0 ? base : 0) + ' ₺';
-                                                                        }
-                                                                    }
-                                                                }
-                                                                else if (col.key === 'priceDifference') {
-                                                                    if (site.provisionalAcceptanceDate) {
-                                                                        content = '0%';
-                                                                    } else {
-                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-                                                                        const latestUfe = sortedRates[0]?.index;
-                                                                        const priceDiffCoef = site.priceDifferenceCoefficient;
-                                                                        if (latestUfe && priceDiffCoef && priceDiffCoef > 0) {
-                                                                            const result = ((latestUfe / priceDiffCoef) - 1) * 100;
-                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + '%';
-                                                                        } else {
-                                                                            content = site.priceDifference ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.priceDifference) + ' ₺' : '-';
-                                                                        }
-                                                                    }
-                                                                }
-                                                                else if (col.key === 'currentWorkExperienceAmount') {
-                                                                    const stored = site.currentWorkExperienceAmount;
-                                                                    if (stored) {
-                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stored) + ' ₺';
-                                                                    } else {
-                                                                        let contractUfe = site.contractYiUfe;
-                                                                        if (site.tenderDate) {
-                                                                            const tDate = new Date(site.tenderDate);
-                                                                            tDate.setMonth(tDate.getMonth() - 1);
-                                                                            const found = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
-                                                                            if (found) contractUfe = found.index;
-                                                                        }
-                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-                                                                        const latestUfe = sortedRates[0]?.index;
-
-                                                                        if (contractUfe && latestUfe && site.realizedAmount) {
-                                                                            const ratio = latestUfe / contractUfe;
-                                                                            const partnership = effectivePartnership / 100;
-                                                                            const amount = ratio * site.realizedAmount * partnership;
-                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + ' ₺';
-                                                                        } else {
-                                                                            content = '-';
-                                                                        }
-                                                                    }
-                                                                }
-                                                                else if (col.key === 'contractToCurrentUfeRatio') { // Sözleşme Ufe / Güncel Ufe
-                                                                    let contractUfe = site.contractYiUfe;
-                                                                    if (site.tenderDate) {
-                                                                        const tDate = new Date(site.tenderDate);
-                                                                        tDate.setMonth(tDate.getMonth() - 1);
-                                                                        const found = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
-                                                                        if (found) contractUfe = found.index;
-                                                                    }
-                                                                    const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
-                                                                    const latestUfe = sortedRates[0]?.index;
-
-                                                                    if (contractUfe && latestUfe) {
-                                                                        const ratio = latestUfe / contractUfe;
-                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(ratio);
-                                                                    } else {
-                                                                        content = site.contractToCurrentUfeRatio || '-';
-                                                                    }
-                                                                }
-                                                                else if (col.key === 'partnershipPercentage') {
-                                                                    content = `%${effectivePartnership}`;
-                                                                }
-                                                                else if (col.key === 'statusDetail') {
-                                                                    content = (
-                                                                        <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
-                                                                            site.status === 'ACTIVE' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                                                                        )}>
-                                                                            {site.statusDetail || (site.status === 'ACTIVE' ? 'Devam Ediyor' : 'Tamamlandı')}
-                                                                        </span>
-                                                                    );
-                                                                }
-                                                                else if (col.key) {
-                                                                    const val = site[col.key];
-                                                                    if (val !== undefined && val !== null && val !== '') {
-                                                                        if (col.isDate) content = format(new Date(val as string), 'dd.MM.yyyy');
-                                                                        else if (col.isCurrency) content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(val)) + ' ₺';
-                                                                        else content = String(val);
-                                                                    }
-                                                                }
-
-                                                                // [MOD] Green Indicator Logic - Badge Style
-                                                                let docUrl = "";
-                                                                let hasDoc = false;
-
-                                                                if (col.key === 'provisionalAcceptanceDate' && site.provisionalAcceptanceDoc) {
-                                                                    hasDoc = true;
-                                                                    docUrl = site.provisionalAcceptanceDoc;
-                                                                }
-                                                                if (col.key === 'finalAcceptanceDate' && site.finalAcceptanceDoc) {
-                                                                    hasDoc = true;
-                                                                    docUrl = site.finalAcceptanceDoc;
-                                                                }
-                                                                if (col.key === 'workExperienceCertificate' && site.workExperienceDoc) {
-                                                                    hasDoc = true;
-                                                                    docUrl = site.workExperienceDoc;
-                                                                    content = content === '-' || content === '' ? 'Belge Var' : content;
-                                                                }
-
-                                                                if (hasDoc) {
-                                                                    content = (
-                                                                        <div
-                                                                            className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 font-semibold cursor-pointer hover:bg-green-200"
-                                                                            onClick={(e) => {
-                                                                                e.stopPropagation();
-                                                                                setPreviewDoc(docUrl);
-                                                                            }}
-                                                                            title="Belgeyi İncele"
+                                                                        <TableRow
+                                                                            key={`${site.id}-${subIndex}`}
+                                                                            className={cn(
+                                                                                "hover:bg-slate-50 border-b",
+                                                                                site.status === 'INACTIVE' ? 'bg-gray-50 opacity-75' : ''
+                                                                            )}
                                                                         >
-                                                                            {content}
-                                                                        </div>
-                                                                    );
-                                                                }
+                                                                            {siteColumns.map((col, colIdx) => {
+                                                                                // Determine if this column is "Detail" (Variable) or "Master" (Merged)
+                                                                                // We repurpose 'workExperienceCertificate' and 'currentWorkExperienceAmount' for Similar Works if they exist
+                                                                                let isDetailColumn = false;
+                                                                                if (similarWorks.length > 0) {
+                                                                                    if (col.key === 'workExperienceCertificate') isDetailColumn = true;
+                                                                                    if (col.key === 'currentWorkExperienceAmount') isDetailColumn = true;
+                                                                                }
 
-                                                                return (
-                                                                    <TableCell
-                                                                        key={colIdx}
-                                                                        className={cn(`border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`)}
-                                                                        style={{ width: col.width, maxWidth: col.width }}
-                                                                        title={typeof content === 'string' ? content : undefined}
-                                                                    >
-                                                                        {content}
-                                                                    </TableCell>
-                                                                );
-                                                            })}
-                                                        </TableRow>
-                                                    ))}
+                                                                                // If it's a Master column, only render on first row with rowSpan
+                                                                                if (!isDetailColumn && !isFirstRow) return null;
+
+                                                                                const partnerParams = site.partners?.find((p: any) => p.companyId === company.id);
+                                                                                const effectivePartnership = partnerParams ? partnerParams.percentage : (site.partnershipPercentage || 100);
+
+                                                                                // --- RENDER CONTENT ---
+                                                                                let content: React.ReactNode = '-';
+
+                                                                                // Special Action Column (Master)
+                                                                                if (col.label === 'İşlem') {
+                                                                                    content = (
+                                                                                        <div className="flex flex-col items-center gap-1">
+                                                                                            <Switch
+                                                                                                checked={site.status !== 'INACTIVE'}
+                                                                                                onCheckedChange={async (checked) => {
+                                                                                                    try {
+                                                                                                        const newStatus = checked ? 'ACTIVE' : 'INACTIVE';
+                                                                                                        updateSite(site.id, { status: newStatus });
+                                                                                                        await updateSiteAction(site.id, { status: newStatus });
+                                                                                                        router.refresh();
+                                                                                                    } catch (error) {
+                                                                                                        console.error('Status update failed', error);
+                                                                                                        alert('Durum güncellenemedi');
+                                                                                                        window.location.reload();
+                                                                                                    }
+                                                                                                }}
+                                                                                                className="scale-75"
+                                                                                            />
+                                                                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditSiteModal(site)}>
+                                                                                                <Pencil className="w-3 h-3 text-slate-500 hover:text-blue-600" />
+                                                                                            </Button>
+                                                                                        </div>
+                                                                                    );
+                                                                                }
+                                                                                // Variable Columns (Similar Works)
+                                                                                else if (isDetailColumn && work) {
+                                                                                    if (col.key === 'workExperienceCertificate') {
+                                                                                        // Show Group Name / Code
+                                                                                        content = (
+                                                                                            <div className="flex flex-col text-xs">
+                                                                                                <span className="font-semibold">{work.group}</span>
+                                                                                            </div>
+                                                                                        );
+                                                                                    } else if (col.key === 'currentWorkExperienceAmount') {
+                                                                                        // Show Amount
+                                                                                        content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(work.amount || 0) + ' ₺';
+                                                                                    }
+                                                                                }
+                                                                                // Master Columns (Site Data)
+                                                                                else {
+                                                                                    if (col.label === 'S.No') {
+                                                                                        content = index + 1;
+                                                                                    }
+                                                                                    else if (col.key === 'contractYiUfe') {
+                                                                                        if (site.tenderDate) {
+                                                                                            const date = new Date(site.tenderDate);
+                                                                                            date.setMonth(date.getMonth() - 1);
+                                                                                            const year = date.getFullYear();
+                                                                                            const month = date.getMonth() + 1;
+                                                                                            const rate = yiUfeRates.find((r: any) => r.year === year && r.month === month);
+                                                                                            content = rate ? rate.index : (site.contractYiUfe || '-');
+                                                                                        } else {
+                                                                                            content = site.contractYiUfe || '-';
+                                                                                        }
+                                                                                    }
+                                                                                    else if (col.key === 'realizedAmount') {
+                                                                                        const contractPrice = site.contractPrice || 0;
+                                                                                        if (site.provisionalAcceptanceDate) {
+                                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(contractPrice) + ' ₺';
+                                                                                        } else {
+                                                                                            const realizedAmount = site.realizedAmount || 0;
+                                                                                            const base = contractPrice - realizedAmount;
+                                                                                            let baseIndex = site.priceDifferenceCoefficient;
+                                                                                            if (!baseIndex || baseIndex === 0) {
+                                                                                                baseIndex = site.contractYiUfe;
+                                                                                                if (site.tenderDate) {
+                                                                                                    const tDate = new Date(site.tenderDate);
+                                                                                                    tDate.setMonth(tDate.getMonth() - 1);
+                                                                                                    const foundRate = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                                                                    if (foundRate) baseIndex = foundRate.index;
+                                                                                                }
+                                                                                            }
+                                                                                            const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                                            const latestUfe = sortedRates[0]?.index;
+
+                                                                                            if (baseIndex && baseIndex > 0 && latestUfe) {
+                                                                                                const ratio = latestUfe / baseIndex;
+                                                                                                const priceDifference = ratio - 1;
+                                                                                                let result = (base * priceDifference) + base;
+                                                                                                if (result < 0) result = contractPrice || 0;
+                                                                                                content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + ' ₺';
+                                                                                            } else {
+                                                                                                content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(base > 0 ? base : 0) + ' ₺';
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    else if (col.key === 'priceDifference') {
+                                                                                        if (site.provisionalAcceptanceDate) {
+                                                                                            content = '0%';
+                                                                                        } else {
+                                                                                            const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                                            const latestUfe = sortedRates[0]?.index;
+                                                                                            const priceDiffCoef = site.priceDifferenceCoefficient;
+                                                                                            if (latestUfe && priceDiffCoef && priceDiffCoef > 0) {
+                                                                                                const result = ((latestUfe / priceDiffCoef) - 1) * 100;
+                                                                                                content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(result) + '%';
+                                                                                            } else {
+                                                                                                content = site.priceDifference ? new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(site.priceDifference) + ' ₺' : '-';
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    else if (col.key === 'currentWorkExperienceAmount') {
+                                                                                        // Default Logic if no similar works or fallback
+                                                                                        const stored = site.currentWorkExperienceAmount;
+                                                                                        if (stored) {
+                                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(stored) + ' ₺';
+                                                                                        } else {
+                                                                                            // ... existing calc logic ...
+                                                                                            let contractUfe = site.contractYiUfe;
+                                                                                            if (site.tenderDate) {
+                                                                                                const tDate = new Date(site.tenderDate);
+                                                                                                tDate.setMonth(tDate.getMonth() - 1);
+                                                                                                const found = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                                                                if (found) contractUfe = found.index;
+                                                                                            }
+                                                                                            const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                                            const latestUfe = sortedRates[0]?.index;
+                                                                                            if (contractUfe && latestUfe && site.realizedAmount) {
+                                                                                                const ratio = latestUfe / contractUfe;
+                                                                                                const partnership = effectivePartnership / 100;
+                                                                                                const amount = ratio * site.realizedAmount * partnership;
+                                                                                                content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + ' ₺';
+                                                                                            } else {
+                                                                                                content = '-';
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                    else if (col.key === 'contractToCurrentUfeRatio') {
+                                                                                        let contractUfe = site.contractYiUfe;
+                                                                                        if (site.tenderDate) {
+                                                                                            const tDate = new Date(site.tenderDate);
+                                                                                            tDate.setMonth(tDate.getMonth() - 1);
+                                                                                            const found = yiUfeRates.find((r: any) => r.year === tDate.getFullYear() && r.month === tDate.getMonth() + 1);
+                                                                                            if (found) contractUfe = found.index;
+                                                                                        }
+                                                                                        const sortedRates = [...yiUfeRates].sort((a, b) => (a.year !== b.year ? b.year - a.year : b.month - a.month));
+                                                                                        const latestUfe = sortedRates[0]?.index;
+
+                                                                                        if (contractUfe && latestUfe) {
+                                                                                            const ratio = latestUfe / contractUfe;
+                                                                                            content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(ratio);
+                                                                                        } else {
+                                                                                            content = site.contractToCurrentUfeRatio || '-';
+                                                                                        }
+                                                                                    }
+                                                                                    else if (col.key === 'partnershipPercentage') {
+                                                                                        content = `%${effectivePartnership}`;
+                                                                                    }
+                                                                                    else if (col.key === 'statusDetail') {
+                                                                                        content = (
+                                                                                            <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs font-medium",
+                                                                                                site.status === 'ACTIVE' ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                                                                                            )}>
+                                                                                                {site.statusDetail || (site.status === 'ACTIVE' ? 'Devam Ediyor' : 'Tamamlandı')}
+                                                                                            </span>
+                                                                                        );
+                                                                                    }
+                                                                                    else if (col.key) {
+                                                                                        const val = site[col.key];
+                                                                                        if (val !== undefined && val !== null && val !== '') {
+                                                                                            if (col.isDate) content = format(new Date(val as string), 'dd.MM.yyyy');
+                                                                                            else if (col.isCurrency) content = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(val)) + ' ₺';
+                                                                                            else content = String(val);
+                                                                                        }
+                                                                                    }
+
+                                                                                    // Green Indicators
+                                                                                    let docUrl = "";
+                                                                                    let hasDoc = false;
+                                                                                    if (col.key === 'provisionalAcceptanceDate' && site.provisionalAcceptanceDoc) {
+                                                                                        hasDoc = true; docUrl = site.provisionalAcceptanceDoc;
+                                                                                    }
+                                                                                    if (col.key === 'finalAcceptanceDate' && site.finalAcceptanceDoc) {
+                                                                                        hasDoc = true; docUrl = site.finalAcceptanceDoc;
+                                                                                    }
+                                                                                    if (col.key === 'workExperienceCertificate' && site.workExperienceDoc) {
+                                                                                        // Only show Master Doc if we are not showing Similar Works, OR show it if it's the first row but slightly differentiated?
+                                                                                        // The requirement is to show Similar Works INSTEAD or WITH.
+                                                                                        // If similarWorks exist, we used this column for them. 
+                                                                                        // But wait, the doc itself (PDF) is site level. 
+                                                                                        // Let's attach the Doc View capability to the FIRST row's value if possible, or just ignore for similar works mode?
+                                                                                        // Current logic: If similarWorks exists, isDetailColumn=true, so we entered the other block. Use ELSE here.
+                                                                                        hasDoc = true; docUrl = site.workExperienceDoc;
+                                                                                        content = content === '-' || content === '' ? 'Belge Var' : content;
+                                                                                    }
+
+                                                                                    if (hasDoc && !isDetailColumn) {
+                                                                                        content = (
+                                                                                            <div
+                                                                                                className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 font-semibold cursor-pointer hover:bg-green-200"
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    setPreviewDoc(docUrl);
+                                                                                                }}
+                                                                                                title="Belgeyi İncele"
+                                                                                            >
+                                                                                                {content}
+                                                                                            </div>
+                                                                                        );
+                                                                                    }
+                                                                                } // End Master Columns
+
+                                                                                return (
+                                                                                    <TableCell
+                                                                                        key={colIdx}
+                                                                                        rowSpan={!isDetailColumn && isFirstRow ? rowCount : undefined}
+                                                                                        className={cn(
+                                                                                            `border-r py-2 text-xs ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'} truncate`,
+                                                                                            !isDetailColumn ? 'align-top bg-white' : '' // align top for merged cells
+                                                                                        )}
+                                                                                        style={{ width: col.width, maxWidth: col.width }}
+                                                                                        title={typeof content === 'string' ? content : undefined}
+                                                                                    >
+                                                                                        {content}
+                                                                                    </TableCell>
+                                                                                );
+                                                                            })}
+                                                                        </TableRow>
+                                                                    );
+                                                                })}
+                                                            </Fragment>
+                                                        );
+                                                    })}
                                                 </Fragment>
                                             );
                                         })}
