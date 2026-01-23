@@ -8,7 +8,7 @@ import { CashBookForm } from './CashBookForm';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '@/lib/store/use-auth';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -67,14 +67,14 @@ export function CashBookList() {
         setQuickYear(year);
     };
 
-    const getSiteName = (id: string) => sites.find((s: any) => s.id === id)?.name || '-';
-    const getUserName = (id?: string) => users.find((u: any) => u.id === id)?.name || '-';
+    const getSiteName = (id: string) => sites?.find((s: any) => s.id === id)?.name || '-';
+    const getUserName = (id?: string) => users?.find((u: any) => u.id === id)?.name || '-';
 
     // Permission check for Reports & Date Filtering
     const canExport = hasPermission('cash-book', 'EXPORT');
 
     const filteredTransactions = useMemo(() => {
-        let result = [...cashTransactions];
+        let result = [...(cashTransactions || [])];
 
         // [NEW] Isolation Logic: If not ADMIN, only see own transactions
         if (user && user.role !== 'ADMIN') {
@@ -111,8 +111,8 @@ export function CashBookList() {
         if (searchTerm) {
             const search = toTurkishLower(searchTerm);
             result = result.filter(t => {
-                const desc = toTurkishLower(t.description);
-                const cat = toTurkishLower(t.category);
+                const desc = toTurkishLower(t.description || '');
+                const cat = toTurkishLower(t.category || '');
                 const site = toTurkishLower(getSiteName(t.siteId));
                 const person = toTurkishLower(getUserName(t.responsibleUserId || t.createdByUserId));
 
@@ -131,7 +131,7 @@ export function CashBookList() {
             }
 
             // Fallback to ID if no createdAt (legacy data)
-            return a.id.localeCompare(b.id);
+            return (a.id || '').localeCompare(b.id || '');
         });
 
         return result;
@@ -145,7 +145,7 @@ export function CashBookList() {
 
         // Filter transactions strictly BEFORE the start date calculate total balance until then
         // Apply SAME user/site filters as the main list
-        let preTransactions = cashTransactions.filter((t: any) => new Date(t.date) < start);
+        let preTransactions = (cashTransactions || []).filter((t: any) => new Date(t.date) < start);
 
         if (user && user.role !== 'ADMIN') {
             preTransactions = preTransactions.filter((t: any) => t.responsibleUserId === user.id);
@@ -158,8 +158,8 @@ export function CashBookList() {
             preTransactions = preTransactions.filter((t: any) => t.siteId === selectedSiteId);
         }
 
-        const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + t.amount, 0);
-        const expense = preTransactions.filter((t: any) => t.type === 'EXPENSE').reduce((sum: number, t: any) => sum + t.amount, 0);
+        const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+        const expense = preTransactions.filter((t: any) => t.type === 'EXPENSE').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
         return income - expense;
     }, [cashTransactions, selectedUserId, selectedSiteId, startDate, user]);
@@ -171,8 +171,9 @@ export function CashBookList() {
 
         // Since filteredTransactions is ALREADY sorted by Date Ascending, we can just map
         const calculated = result.map((t: any) => {
-            if (t.type === 'INCOME') runningBalance += t.amount;
-            else runningBalance -= t.amount;
+            const amt = t.amount || 0;
+            if (t.type === 'INCOME') runningBalance += amt;
+            else runningBalance -= amt;
 
             return { ...t, balance: runningBalance };
         });
@@ -205,7 +206,7 @@ export function CashBookList() {
         const balances: Record<string, { name: string; income: number; expense: number; previousBalance: number }> = {};
 
         // Initialize with active sites
-        sites.forEach((s: any) => {
+        sites?.forEach((s: any) => {
             balances[s.id] = { name: s.name, income: 0, expense: 0, previousBalance: 0 };
         });
 
@@ -529,6 +530,17 @@ export function CashBookList() {
         }
     };
 
+    const [mounted, setMounted] = useState(false);
+
+    // Fix hydration mismatch by only rendering after mount
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // ... existing helpers ...
+
+    if (!mounted) return null; // Prevent hydration error
+
     return (
         <Card>
             <CardHeader className="space-y-4 p-6">
@@ -574,7 +586,7 @@ export function CashBookList() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Tüm Şantiyeler</SelectItem>
-                                    {sites.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
+                                    {sites?.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -590,7 +602,7 @@ export function CashBookList() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tüm Personel</SelectItem>
-                                        {users.map((u: any) => (
+                                        {users?.map((u: any) => (
                                             <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -665,7 +677,7 @@ export function CashBookList() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredTransactionsWithBalance.length === 0 ? (
+                        {filteredTransactionsWithBalance?.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={9} className="text-center text-slate-500 py-8">
                                     {selectedUserId === 'all' ? 'Henüz kayıtlı işlem yok.' : 'Seçili personel için işlem bulunamadı.'}
@@ -674,29 +686,29 @@ export function CashBookList() {
                         ) : (
                             filteredTransactionsWithBalance.map((item) => (
                                 <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
-                                    <TableCell>{format(new Date(item.date), 'dd MMM yyyy', { locale: tr })}</TableCell>
+                                    <TableCell>{item.date ? format(new Date(item.date), 'dd MMM yyyy', { locale: tr }) : '-'}</TableCell>
                                     <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>
                                     <TableCell>{item.category}</TableCell>
                                     <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
 
                                     {/* Borç (Income) */}
                                     <TableCell className="text-right font-mono text-green-600 font-bold">
-                                        {(item.type === 'INCOME' || item.type === 'BALANCE_START') ? `${item.amount.toLocaleString('tr-TR')} TL` : '-'}
+                                        {(item.type === 'INCOME' || item.type === 'BALANCE_START') ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
                                     </TableCell>
 
                                     {/* Alacak (Expense) */}
                                     <TableCell className="text-right font-mono text-red-600 font-bold">
-                                        {item.type === 'EXPENSE' ? `${item.amount.toLocaleString('tr-TR')} TL` : '-'}
+                                        {item.type === 'EXPENSE' ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
                                     </TableCell>
 
                                     {/* Tutar (Signed) */}
                                     <TableCell className="text-right font-mono font-bold text-slate-900">
                                         {item.type === 'BALANCE_START' ? (item.amount > 0 ? '' : '-') : (item.type === 'EXPENSE' ? '-' : '')}
-                                        {item.amount.toLocaleString('tr-TR')} TL
+                                        {Number(item.amount || 0).toLocaleString('tr-TR')} TL
                                     </TableCell>
 
                                     <TableCell className="font-mono font-medium">
-                                        {item.balance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                        {Number(item.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
                                     </TableCell>
                                     <TableCell>
                                         {item.type !== 'BALANCE_START' && (
