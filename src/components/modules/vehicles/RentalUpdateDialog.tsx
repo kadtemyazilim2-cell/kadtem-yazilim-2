@@ -12,13 +12,17 @@ interface RentalUpdateDialogProps {
     onOpenChange: (open: boolean) => void;
 }
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdateDialogProps) {
-    const { updateVehicle } = useAppStore();
+    const { updateVehicle, sites } = useAppStore();
     const [monthlyFee, setMonthlyFee] = useState<string>('');
+    const [assignedSiteId, setAssignedSiteId] = useState<string>('');
 
     useEffect(() => {
         if (open && vehicle) {
             setMonthlyFee(vehicle.monthlyRentalFee?.toString() || '');
+            setAssignedSiteId(vehicle.assignedSiteId || '');
         }
     }, [open, vehicle]);
 
@@ -28,7 +32,8 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
 
         updateVehicle(vehicle.id, {
             monthlyRentalFee: isNaN(fee) ? 0 : fee,
-            rentalLastUpdate: new Date().toISOString() // [NEW] Track update time
+            assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
+            rentalLastUpdate: new Date().toISOString()
         });
         onOpenChange(false);
     };
@@ -57,6 +62,23 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
                             onChange={(e) => setMonthlyFee(e.target.value)}
                             required
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Giderin Yansıtılacağı Şantiye</Label>
+                        <Select
+                            value={assignedSiteId}
+                            onValueChange={setAssignedSiteId}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Şantiye Seçiniz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <DialogFooter>

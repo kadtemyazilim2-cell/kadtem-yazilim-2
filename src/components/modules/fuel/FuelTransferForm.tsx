@@ -16,9 +16,9 @@ export function FuelTransferForm() {
     const [open, setOpen] = useState(false);
 
     // Form State
-    const [fromType, setFromType] = useState<'TANK' | 'VEHICLE' | 'EXTERNAL'>('TANK');
+    const [fromType, setFromType] = useState<'TANK' | 'EXTERNAL'>('TANK');
     const [fromId, setFromId] = useState('');
-    const [toType, setToType] = useState<'TANK' | 'VEHICLE'>('VEHICLE');
+    const [toType, setToType] = useState<'TANK'>('TANK');
     const [toId, setToId] = useState('');
     const [amount, setAmount] = useState(0);
     const [unitPrice, setUnitPrice] = useState(0); // [NEW]
@@ -100,10 +100,9 @@ export function FuelTransferForm() {
                         </div>
                         <div className="space-y-2">
                             <Label>Giriş Yeri (Hedef)</Label>
-                            <Select value={toType} onValueChange={(v: any) => setToType(v)}>
+                            <Select value={toType} onValueChange={(v: any) => setToType(v)} disabled>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="VEHICLE">Araç</SelectItem>
                                     <SelectItem value="TANK">Depo (Tank)</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -112,14 +111,6 @@ export function FuelTransferForm() {
                                     <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                     <SelectContent>
                                         {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                            {toType === 'VEHICLE' && (
-                                <Select value={toId} onValueChange={setToId} required>
-                                    <SelectTrigger><SelectValue placeholder="Araç Seçiniz" /></SelectTrigger>
-                                    <SelectContent>
-                                        {vehicles.filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.model}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             )}

@@ -10,16 +10,14 @@ export function FuelTransferList() {
     const { fuelTransfers, fuelTanks, sites, vehicles } = useAppStore();
 
     // Helper to resolve Site Name from Entity ID
-    const getSiteName = (type: string, id: string) => {
+    const getEntityName = (type: string, id: string) => { // Changed function name to reflect it returns Entity Name (Tank/Company)
         if (type === 'TANK') {
             const tank = fuelTanks.find((t: any) => t.id === id);
-            const site = sites.find((s: any) => s.id === tank?.siteId);
-            return site?.name || '-';
+            return tank?.name || '-';
         }
-        if (type === 'VEHICLE') {
-            const vehicle = vehicles.find((v: any) => v.id === id);
-            const site = sites.find((s: any) => s.id === vehicle?.assignedSiteId);
-            return site?.name || vehicle?.plate || '-'; // Fallback to Plate if no site
+        if (type === 'EXTERNAL') {
+            // For External, id is the company name string
+            return id || 'Dış Kaynak';
         }
         return '-';
     };
@@ -39,9 +37,9 @@ export function FuelTransferList() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Tarih</TableHead>
-                            <TableHead>Kaynak Şantiye</TableHead>
+                            <TableHead>Kaynak (Depo/Firma)</TableHead>
                             <TableHead></TableHead>
-                            <TableHead>Varış Şantiye</TableHead>
+                            <TableHead>Varış (Depo)</TableHead>
                             <TableHead className="text-right">Miktar</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -57,13 +55,13 @@ export function FuelTransferList() {
                                 <TableRow key={t.id}>
                                     <TableCell>{format(new Date(t.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                     <TableCell className="font-medium text-slate-700">
-                                        {getSiteName(t.fromType, t.fromId)}
+                                        {getEntityName(t.fromType, t.fromId)}
                                     </TableCell>
                                     <TableCell>
                                         <ArrowRight className="w-4 h-4 text-slate-400" />
                                     </TableCell>
                                     <TableCell className="font-medium text-slate-700">
-                                        {getSiteName(t.toType, t.toId)}
+                                        {getEntityName(t.toType, t.toId)}
                                     </TableCell>
                                     <TableCell className="text-right font-bold text-slate-900">
                                         {t.amount.toLocaleString('tr-TR')} Lt

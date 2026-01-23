@@ -744,7 +744,7 @@ export function VehicleList() {
                     )}
 
 
-                    <TabsList className="grid w-full grid-cols-5 lg:w-[680px]">
+                    <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="list">Araç Listesi</TabsTrigger>
                         <TabsTrigger value="vehicle-sites">Araç Şantiye</TabsTrigger>
                         {canViewFinance && <TabsTrigger value="rental-costs">Araç Kira Bedeli</TabsTrigger>}
@@ -763,9 +763,7 @@ export function VehicleList() {
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('company', e)}>
                                         Firma {getSortIcon('company')}
                                     </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('ownership', e)}>
-                                        Mülkiyet {getSortIcon('ownership')}
-                                    </TableHead>
+
                                     <TableHead className="w-[120px] cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('plate', e)}>
                                         Plaka {getSortIcon('plate')}
                                     </TableHead>
@@ -798,18 +796,18 @@ export function VehicleList() {
                                     <TableRow key={vehicle.id}>
                                         <TableCell className="font-mono text-xs text-muted-foreground">{index + 1}</TableCell>
                                         <TableCell className="font-medium text-slate-900">
-                                            <div className="max-w-[150px] truncate" title={getCompanyName(vehicle)}>
-                                                {getCompanyName(vehicle)}
+                                            <div title={getCompanyName(vehicle)}>
+                                                {getCompanyName(vehicle).length > 10 ? getCompanyName(vehicle).substring(0, 10) + '...' : getCompanyName(vehicle)}
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={vehicle.ownership === 'RENTAL' ? "bg-orange-50 text-orange-700 border-orange-200" : "bg-blue-50 text-blue-700 border-blue-200"}>
-                                                {vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal'}
-                                            </Badge>
-                                        </TableCell>
+
                                         <TableCell className="font-bold font-mono">{vehicle.plate}</TableCell>
                                         <TableCell>{vehicle.brand}</TableCell>
-                                        <TableCell>{vehicle.model}</TableCell>
+                                        <TableCell>
+                                            <div title={vehicle.model}>
+                                                {vehicle.model.length > 20 ? vehicle.model.substring(0, 20) + '...' : vehicle.model}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{vehicle.year}</TableCell>
                                         <TableCell className="text-xs">{typeMap[vehicle.type] || vehicle.type}</TableCell>
                                         <TableCell>{vehicle.currentKm.toLocaleString()}</TableCell>
