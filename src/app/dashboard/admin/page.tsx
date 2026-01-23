@@ -362,45 +362,93 @@ export default function AdminPage() {
 
 
     const handleExportExcel = () => {
-        const flatSites: any[] = [];
+        const companiesToExport = selectedCompanyId === 'all'
+            ? companies
+            : companies.filter(c => c.id === selectedCompanyId);
 
-        companies.forEach((company: any) => {
+        const wb = XLSX.utils.book_new();
+
+        companiesToExport.forEach(company => {
             const companySites = sites.filter((s: any) => s.companyId === company.id);
-            // Apply sorting if needed, or just dump
+            if (companySites.length === 0) return;
+
+            const sheetData: any[] = [];
+            const merges: any[] = [];
+            let currentRow = 1; // Row 0 is header
+
+            // Header Row
+            const headers = [
+                'Yüklenici Firma', 'İş Grubu', 'S.No', 'EKAP Belge No', 'İşin Adı',
+                'İhale Kayıt No', 'İlan Tarihi', 'İhale Tarihi', 'Sözleşme Tarihi',
+                'İşyeri Teslim Tarihi', 'İş Bitim Tarihi', 'Süre Uzatımlı Tarih',
+                'Sözleşme Bedeli', 'F.F. Dahil Kalan Tutar (KDV Hariç)',
+                'Sözleşme Fiyatlarıyla Gerçekleşen Tutar', 'Güncel İş Deneyim Tutarı', 'Durum'
+            ];
+            sheetData.push(headers);
+
             companySites.forEach((site: any, index: number) => {
                 const workGroups = site.similarWorks && site.similarWorks.length > 0
                     ? site.similarWorks
-                    : [{ group: site.workGroup, code: '', amount: 0 }]; // Fallback to main group if no similar works
+                    : [{ group: site.workGroup, code: '', amount: 0 }];
+
+                const rowCount = workGroups.length;
+                const startRow = currentRow; // 1-based index for logic, but sheet uses 0-based for specific calls if needed, but 's' and 'e' in merges are 0-based.
+                // Wait, !merges expects 0-based indices.
+                // sheetData array index 0 is valid row 0.
 
                 workGroups.forEach((work: any, wIndex: number) => {
-                    const isFirst = wIndex === 0;
-                    flatSites.push({
-                        'Yüklenici Firma': isFirst ? company.name : '',
-                        'İş Grubu': work.group,
-                        'S.No': isFirst ? index + 1 : '',
-                        'EKAP Belge No': isFirst ? site.projectNo : '',
-                        'İşin Adı': isFirst ? site.name : '',
-                        'İhale Kayıt No': isFirst ? site.registrationNo : '',
-                        'İlan Tarihi': isFirst && site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '',
-                        'İhale Tarihi': isFirst && site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',
-                        'Sözleşme Tarihi': isFirst && site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',
-                        'İşyeri Teslim Tarihi': isFirst && site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '',
-                        'İş Bitim Tarihi': isFirst && site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',
-                        'Süre Uzatımlı Tarih': isFirst && site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',
-                        'Sözleşme Bedeli': isFirst ? site.contractPrice : '',
-                        'F.F. Dahil Kalan Tutar (KDV Hariç)': isFirst ? site.remainingAmount : '',
-                        'Sözleşme Fiyatlarıyla Gerçekleşen Tutar': isFirst ? site.realizedAmount : '',
-                        'Güncel İş Deneyim Tutarı': work.amount || 0, // This is specific to the group
-                        'Durum': isFirst ? (site.status === 'INACTIVE' ? 'Pasif' : 'Aktif') : ''
-                    });
+                    const row = [
+                        company.name,                           // A: Yüklenici Firma
+                        work.group,                             // B: İş Grubu (Specific)
+                        index + 1,                              // C: S.No
+                        site.projectNo,                         // D: EKAP Belge No
+                        site.name,                              // E: İşin Adı
+                        site.registrationNo || '',              // F: İhale Kayıt No
+                        site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '', // G
+                        site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',             // H
+                        site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',         // I
+                        site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '', // J
+                        site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',     // K
+                        site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',         // L
+                        site.contractPrice,                     // M: Sözleşme Bedeli
+                        site.remainingAmount,                   // N: Kalan Tutar
+                        site.realizedAmount,                    // O: Gerçekleşen
+                        work.amount || 0,                       // P: Güncel (Specific)
+                        site.status === 'INACTIVE' ? 'Pasif' : 'Aktif' // Q
+                    ];
+                    sheetData.push(row);
                 });
+
+                // Add Merges for Common Columns if rowCount > 1
+                if (rowCount > 1) {
+                    // Columns to merge (0-based indices): 
+                    // 0(Firma), 2(SNo), 3(EKAP), 4(Ad), 5(IhaleNo), 6(IlanTar), 7(IhaleTar), 8(SozTar), 
+                    // 9(TeslimTar), 10(BitimTar), 11(SureUzat), 12(Bedel), 13(Kalan), 14(Gerceklesan), 16(Durum)
+                    // Skip 1 (Is Grubu) and 15 (Guncel Tutar)
+                    const colsToMerge = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16];
+                    colsToMerge.forEach(colIndex => {
+                        merges.push({ s: { r: startRow, c: colIndex }, e: { r: startRow + rowCount - 1, c: colIndex } });
+                    });
+                }
+
+                currentRow += rowCount;
             });
+
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            if (merges.length > 0) {
+                ws['!merges'] = merges;
+            }
+
+            // Optional: Auto-width (basic)
+            const wscols = headers.map(() => ({ wch: 20 }));
+            // Specific widths
+            wscols[4] = { wch: 40 }; // İşin Adı wider
+            ws['!cols'] = wscols;
+
+            XLSX.utils.book_append_sheet(wb, ws, company.name.substring(0, 31));
         });
 
-        const ws = XLSX.utils.json_to_sheet(flatSites);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Şantiyeler");
-        XLSX.writeFile(wb, "Santiye_Listesi.xlsx");
+        XLSX.writeFile(wb, 'is_deneyim_listesi.xlsx');
     };
 
     const handleExportPDF = () => {
