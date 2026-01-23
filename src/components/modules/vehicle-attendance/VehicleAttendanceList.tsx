@@ -21,12 +21,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { addTurkishFont } from '@/lib/pdf-font';
 import { useUserSites } from '@/hooks/use-user-access';
-import { useAuth } from '@/lib/store/use-auth'; // [CORRECTED]
+import { useAuth } from '@/lib/store/use-auth';
 import { useEffect } from 'react';
+import { addVehicleAttendance, deleteVehicleAttendance } from '@/actions/vehicle-attendance';
 
 
 export function VehicleAttendanceList() {
-    const { vehicles, vehicleAttendance, addVehicleAttendance, deleteVehicleAttendance, fuelLogs } = useAppStore();
+    const { vehicles, vehicleAttendance, addVehicleAttendance: addLocal, deleteVehicleAttendance: deleteLocal, fuelLogs } = useAppStore();
     const rawSites = useUserSites();
     const sites = rawSites.filter((s: any) => s.status !== 'INACTIVE');
     const { hasPermission, user } = useAuth(); // [NEW]
@@ -123,7 +124,7 @@ export function VehicleAttendanceList() {
         setIsDialogOpen(true);
     };
 
-    const handleQuickSave = (newStatus: 'WORK' | 'HALF_DAY' | 'IDLE' | 'REPAIR' | 'NO_OPERATOR' | 'HOLIDAY') => {
+    const handleQuickSave = async (newStatus: 'WORK' | 'HALF_DAY' | 'IDLE' | 'REPAIR' | 'NO_OPERATOR' | 'HOLIDAY') => {
         if (!editingCell || !selectedSiteId || isReadOnly) return; // Block save if ReadOnly
 
         // Check for cross-site conflict
@@ -139,22 +140,34 @@ export function VehicleAttendanceList() {
             return;
         }
 
-        addVehicleAttendance({
-            id: existingRecord && existingRecord.siteId === selectedSiteId ? existingRecord.id : crypto.randomUUID(), // Update if same site, else new
+        const payload = {
             vehicleId: editingCell.vehicleId,
             siteId: selectedSiteId,
-            date: targetDateStr,
+            date: new Date(targetDateStr), // [FIX] Pass Date object
             status: newStatus,
             hours: 8, // default
             createdByUserId: user?.id
-        });
+        };
+
+        const res = await addVehicleAttendance(payload);
+        if (res.success && res.data) {
+            addLocal(res.data as any);
+        } else {
+            alert(res.error || 'Kaydedilemedi');
+        }
         setIsDialogOpen(false);
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!editingCell || isReadOnly) return;
         if (confirm('Bu puantaj kaydını silmek istediğinize emin misiniz?')) {
-            deleteVehicleAttendance(editingCell.vehicleId, format(editingCell.date, 'yyyy-MM-dd'));
+            const dateStr = format(editingCell.date, 'yyyy-MM-dd');
+            const res = await deleteVehicleAttendance(editingCell.vehicleId, dateStr);
+            if (res.success) {
+                deleteLocal(editingCell.vehicleId, dateStr);
+            } else {
+                alert(res.error || 'Silinemedi');
+            }
             setIsDialogOpen(false);
         }
     };

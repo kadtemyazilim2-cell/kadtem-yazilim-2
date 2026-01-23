@@ -15,10 +15,13 @@ interface RentalAssignmentDialogProps {
     onOpenChange: (open: boolean) => void;
 }
 
+import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
+
 export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentDialogProps) {
-    const { vehicles, updateVehicle, companies } = useAppStore();
+    const { vehicles, updateVehicle: updateLocal, companies, sites } = useAppStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [targetCompanyId, setTargetCompanyId] = useState('');
+    const [targetSiteId, setTargetSiteId] = useState(''); // [NEW]
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Filter for OWNED vehicles only
@@ -48,21 +51,36 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (selectedIds.length === 0) return;
-        if (!targetCompanyId) { // [NEW] Validation
+        if (!targetCompanyId) {
             toast.error('Lütfen bir kiralama firması seçiniz.');
             return;
         }
+        if (!targetSiteId) { // [NEW] Validation
+            toast.error('Lütfen bir şantiye seçiniz.');
+            return;
+        }
 
-        selectedIds.forEach((id: any) => {
-            updateVehicle(id, {
-                companyId: targetCompanyId, // [NEW] Update owner to the rental company
-                ownership: 'RENTAL',
-                monthlyRentalFee: 0, // Default to 0, user can update later
+        // Process sequentially to ensure order or parallel? Parallel is fine.
+        const promises = selectedIds.map(async (id) => {
+            const payload = {
+                companyId: targetCompanyId,
+                assignedSiteId: targetSiteId, // [NEW]
+                ownership: 'RENTAL' as const, // Force type
+                monthlyRentalFee: 0,
                 rentalLastUpdate: new Date().toISOString()
-            });
+            };
+
+            const res = await updateVehicleAction(id, payload);
+            if (res.success) {
+                updateLocal(id, payload);
+            }
+            return res;
         });
+
+        await Promise.all(promises);
+        toast.success('Araçlar kiralık listesine aktarıldı.');
         onOpenChange(false);
     };
 
@@ -97,6 +115,21 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                             <option value="">Firma Seçiniz...</option>
                             {companies.map((c: any) => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* [NEW] Site Selection */}
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium">Şantiye Seçiniz (Zorunlu)</label>
+                        <select
+                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            value={targetSiteId}
+                            onChange={(e) => setTargetSiteId(e.target.value)}
+                        >
+                            <option value="">Şantiye Seçiniz...</option>
+                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                         </select>
                     </div>

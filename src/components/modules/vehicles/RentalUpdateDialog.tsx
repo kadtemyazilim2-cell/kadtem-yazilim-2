@@ -14,8 +14,10 @@ interface RentalUpdateDialogProps {
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+import { updateVehicle as updateVehicleAction } from "@/actions/vehicle"; // [New Import]
+
 export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdateDialogProps) {
-    const { updateVehicle, sites } = useAppStore();
+    const { updateVehicle: updateLocal, sites } = useAppStore(); // [Renamed]
     const [monthlyFee, setMonthlyFee] = useState<string>('');
     const [assignedSiteId, setAssignedSiteId] = useState<string>('');
 
@@ -26,7 +28,7 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
         }
     }, [open, vehicle]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         let fee = 0;
@@ -36,12 +38,25 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
             fee = parseFloat(monthlyFee);
         }
 
-        updateVehicle(vehicle.id, {
+        const payload = {
             monthlyRentalFee: isNaN(fee) ? 0 : fee,
             assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
             rentalLastUpdate: new Date().toISOString()
-        });
-        onOpenChange(false);
+        };
+
+        // 1. Server Update
+        const res = await updateVehicleAction(vehicle.id, payload);
+
+        if (res.success) {
+            // 2. Local Update
+            updateLocal(vehicle.id, payload);
+            if (payload.assignedSiteId) {
+                // We might need to handle assignment helper if needed, but updateVehicle action handles it.
+            }
+            onOpenChange(false);
+        } else {
+            alert(res.error || 'Güncellenemedi.');
+        }
     };
 
     return (
