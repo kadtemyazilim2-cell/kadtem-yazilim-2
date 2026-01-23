@@ -115,11 +115,11 @@ export function FuelTankList() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Kapasite (Lt)</Label>
-                                    <Input type="number" value={capacity} onChange={e => setCapacity(Number(e.target.value))} required />
+                                    <Input type="number" step="0.01" value={capacity} onChange={e => setCapacity(Number(e.target.value))} required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Mevcut Seviye (Lt)</Label>
-                                    <Input type="number" value={currentLevel} onChange={e => setCurrentLevel(Number(e.target.value))} required />
+                                    <Input type="number" step="0.01" value={currentLevel} onChange={e => setCurrentLevel(Number(e.target.value))} required />
                                 </div>
                             </div>
                             <DialogFooter>

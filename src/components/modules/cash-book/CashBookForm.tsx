@@ -96,6 +96,29 @@ export function CashBookForm() {
         });
     };
 
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        // Allow only numbers and comma/dot
+        if (!/^[0-9.,]*$/.test(val)) return;
+
+        setDisplayAmount(val);
+
+        // Convert key-in format (1.000,50) to standard float for storage
+        // If user uses comma as decimal separator
+        let numVal = 0;
+        if (val.includes(',')) {
+            // Remove dots (thousands) and replace comma with dot
+            numVal = parseFloat(val.replace(/\./g, '').replace(',', '.'));
+        } else {
+            // Standard dot decimal or plain number
+            numVal = parseFloat(val);
+        }
+
+        if (!isNaN(numVal)) {
+            setFormData(prev => ({ ...prev, amount: numVal }));
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;

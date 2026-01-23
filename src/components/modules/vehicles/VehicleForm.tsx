@@ -227,7 +227,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         payload.inspectionExpiry = payload.inspectionExpiry ? new Date(payload.inspectionExpiry) : null;
         payload.lastInspectionDate = payload.lastInspectionDate ? new Date(payload.lastInspectionDate) : null;
 
-        // Number Conversions
+
         if (payload.year) payload.year = parseInt(payload.year as any);
         if (payload.currentKm) payload.currentKm = parseInt(payload.currentKm as any);
         if (payload.insuranceCost) payload.insuranceCost = parseFloat(payload.insuranceCost as any);
