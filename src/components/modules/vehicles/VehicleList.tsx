@@ -385,11 +385,22 @@ export function VehicleList() {
         return true;
     });
 
-    // 3. Rental List Filter
+    // 3. Cost/Rental List Filter (Now includes OWNED)
     const filteredRentalVehicles = sortedVehicles.filter(vehicle => {
-        if (vehicle.ownership !== 'RENTAL') return false;
+        // [MODIFIED] User requested to see BOTH Owned and Rental in "Rental Cost" tab
+        // if (vehicle.ownership !== 'RENTAL') return false; 
+
         if (rentalFilters.plate.length > 0 && !rentalFilters.plate.includes(vehicle.plate)) return false;
-        if (rentalFilters.rentalCompany.length > 0 && !rentalFilters.rentalCompany.includes(vehicle.rentalCompanyName || getCompanyName(vehicle))) return false;
+
+        // For 'rentalCompany' filter, if vehicle is OWNED, we might treat it as '-' or skip this filter if not applicable?
+        // Logic: If filter is active, and vehicle is OWNED (no rental company), it should probably be hidden unless we map 'Öz Mal' as a company option.
+        // Current 'rentalCompany' filter options come from RENTAL vehicles only. 
+        // If user filters by a rental company, owned vehicles (which have none) should be hidden.
+        if (rentalFilters.rentalCompany.length > 0) {
+            const company = vehicle.rentalCompanyName || getCompanyName(vehicle);
+            if (!rentalFilters.rentalCompany.includes(company)) return false;
+        }
+
         if (rentalFilters.status.length > 0 && !rentalFilters.status.includes(vehicle.status)) return false;
         return true;
     });
@@ -868,7 +879,7 @@ export function VehicleList() {
                             const noSite: typeof vehicles = [];
 
                             filteredVehicles.forEach(v => {
-                                if (v.status !== 'ACTIVE') return; // Only show Active for location tracking usually?
+                                if (v.status !== 'ACTIVE' && false) return; // [MODIFIED] Show all statuses as per request "silinmemeli"
                                 // User said "kayıtlı şantiye ile birlikte".
                                 if (v.assignedSiteId) {
                                     if (!grouped[v.assignedSiteId]) grouped[v.assignedSiteId] = [];
@@ -882,7 +893,7 @@ export function VehicleList() {
                             return (
                                 <div className="space-y-8">
                                     {/* Sites */}
-                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any) => {
+                                    {sites.filter((s: any) => s.status === 'ACTIVE' || (grouped[s.id] && grouped[s.id].length > 0)).map((site: any) => {
                                         const siteVehicles = grouped[site.id] || [];
                                         if (siteVehicles.length === 0) return null;
 
@@ -1285,7 +1296,8 @@ export function VehicleList() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Plaka</TableHead>
-                                            <TableHead>Kiralama Şirketi</TableHead>
+                                            <TableHead>Şantiye</TableHead> {/* [NEW] */}
+                                            <TableHead>Kiralama Şirketi / Firma</TableHead>
                                             <TableHead>Aylık Kira Bedeli</TableHead>
                                             <TableHead>Son Güncelleme</TableHead>
                                             <TableHead>Durum</TableHead>
@@ -1296,6 +1308,7 @@ export function VehicleList() {
                                         {filteredRentalVehicles.map(vehicle => (
                                             <TableRow key={vehicle.id}>
                                                 <TableCell className="font-mono font-bold">{vehicle.plate}</TableCell>
+                                                <TableCell className="text-sm text-slate-700">{getVehicleSiteName(vehicle)}</TableCell> {/* [NEW] */}
                                                 <TableCell>{vehicle.rentalCompanyName || getCompanyName(vehicle)}</TableCell>
                                                 <TableCell>{vehicle.monthlyRentalFee ? `${vehicle.monthlyRentalFee.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}</TableCell>
                                                 <TableCell>{formatDateSafe(vehicle.rentalLastUpdate)}</TableCell>
