@@ -3094,7 +3094,7 @@ export default function AdminPage() {
 
                 {/* PREVIEW MODAL */}
                 <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-                    <DialogContent className="max-w-4xl h-[90vh]">
+                    <DialogContent className="max-w-[95vw] h-[90vh]">
                         <DialogHeader>
                             <DialogTitle>Belge Önizleme</DialogTitle>
                         </DialogHeader>
