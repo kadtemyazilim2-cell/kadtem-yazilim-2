@@ -376,54 +376,62 @@ export default function AdminPage() {
             const merges: any[] = [];
             let currentRow = 1; // Row 0 is header
 
-            // Header Row
+            // Header based on User's Screenshot / Request
             const headers = [
-                'Yüklenici Firma', 'İş Grubu', 'İş Deneyim Belgesi Numarası', 'S.No', 'EKAP Belge No', 'İşin Adı',
-                'İhale Kayıt No', 'İlan Tarihi', 'İhale Tarihi', 'Sözleşme Tarihi',
-                'İşyeri Teslim Tarihi', 'İş Bitim Tarihi', 'Süre Uzatımlı Tarih',
-                'Sözleşme Bedeli', 'F.F. Dahil Kalan Tutar (KDV Hariç)',
-                'Sözleşme Fiyatlarıyla Gerçekleşen Tutar', 'Güncel İş Deneyim Tutarı', 'Durum'
+                'İş Grubu',
+                'S.No',
+                'EKAP Belge No',
+                'İşin Adı',
+                'İhale Kayıt No',
+                'Sözleşme Tarihi',
+                'F.F. Dahil Kalan Tutar (KDV Hariç)',
+                'Sözleşme Fiyatlarıyla Gerçekleşen Tutar',
+                'Geçici Kabul Tarihi',
+                'Kesin Kabul Tarihi',
+                'İş Deneyim Belgesi Numarası', // SPLIT
+                'Durum',
+                'Ortaklık Oranı',
+                'Güncel İş Deneyim Tutarı (TL)', // SPLIT
+                'Fiyat Farkı (Reference Only)', // Adding as placeholder if needed, matching wide screenshot
             ];
             sheetData.push(headers);
 
             companySites.forEach((site: any, index: number) => {
-                // Ensure we handle sites with no similar works gracefully
                 const workGroups = site.similarWorks && site.similarWorks.length > 0
                     ? site.similarWorks
-                    : [{ group: site.workGroup, code: '', amount: 0 }];
+                    : [{ group: '', code: '-', amount: site.currentWorkExperienceAmount || 0 }];
+                // If no sub-groups, use main amount, dash for code. 
+                // Note: 'group' in similarWorks is the Name/Code (e.g. B-III), 'code' is extraneous? 
+                // Actually checking type: similarWorks: { group: string; code?: string; amount?: number; }[]
+                // 'group' is likely the name like "B III".
 
                 const rowCount = workGroups.length;
                 const startRow = currentRow;
 
-                workGroups.forEach((work: any, wIndex: number) => {
+                workGroups.forEach((work: any) => {
                     const row = [
-                        company.name,                           // A: Yüklenici Firma
-                        site.workGroup,                         // B: İş Grubu (Main Site Group - MERGED)
-                        work.group,                             // C: İş Deneyim Belge Numarası (Sub Group - SPLIT)
-                        index + 1,                              // D: S.No
-                        site.projectNo,                         // E: EKAP Belge No
-                        site.name,                              // F: İşin Adı
-                        site.registrationNo || '',              // G: İhale Kayıt No
-                        site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '', // H
-                        site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',             // I
-                        site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',         // J
-                        site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '', // K
-                        site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',     // L
-                        site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',         // M
-                        site.contractPrice,                     // N: Sözleşme Bedeli
-                        site.remainingAmount,                   // O: Kalan Tutar
-                        site.realizedAmount,                    // P: Gerçekleşen
-                        work.amount || 0,                       // Q: Güncel İş Deneyim Tutarı (SPLIT)
-                        site.status === 'INACTIVE' ? 'Pasif' : 'Aktif' // R
+                        site.workGroup || '',                                   // A: İş Grubu
+                        index + 1,                                              // B: S.No
+                        site.projectNo || '',                                   // C: EKAP No
+                        site.name || '',                                        // D: İşin Adı
+                        site.registrationNo || '',                              // E: İhale Kayıt No
+                        site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '', // F: Sözleşme Tarihi
+                        site.remainingAmount || 0,                              // G: Kalan Tutar
+                        site.realizedAmount || 0,                               // H: Gerçekleşen Tutar
+                        site.provisionalAcceptanceDate ? format(new Date(site.provisionalAcceptanceDate), 'dd.MM.yyyy') : '', // I: Geçici Kabul
+                        site.finalAcceptanceDate ? format(new Date(site.finalAcceptanceDate), 'dd.MM.yyyy') : '',             // J: Kesin Kabul
+                        work.group || '',                                       // K: İş Deneyim Belgesi (SPLIT) - Using 'group' as the Name/Number
+                        site.status === 'INACTIVE' ? 'Pasif' : 'Aktif',         // L: Durum
+                        site.partnershipPercentage ? `%${site.partnershipPercentage}` : '', // M: Ortaklık Oranı
+                        work.amount || 0,                                       // N: Güncel Tutar (SPLIT)
+                        site.priceDifference || ''                              // O: Fiyat Farkı
                     ];
                     sheetData.push(row);
                 });
 
-                // Add Merges for Common Columns if rowCount > 1
+                // Merge Logic: Merge everything EXCEPT K (10) and N (13)
                 if (rowCount > 1) {
-                    // Columns to merge (0-based indices)
-                    // We merge everything EXCEPT 2 (C: SubGroup) and 16 (Q: Amount)
-                    const colsToMerge = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17];
+                    const colsToMerge = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 14];
                     colsToMerge.forEach(colIndex => {
                         merges.push({ s: { r: startRow, c: colIndex }, e: { r: startRow + rowCount - 1, c: colIndex } });
                     });
@@ -437,15 +445,15 @@ export default function AdminPage() {
                 ws['!merges'] = merges;
             }
 
-            // Specific widths
-            const wscols = headers.map(() => ({ wch: 20 }));
-            wscols[5] = { wch: 40 }; // İşin Adı wider
+            // Widths
+            const wscols = headers.map(() => ({ wch: 15 }));
+            wscols[3] = { wch: 50 }; // İşin Adı
             ws['!cols'] = wscols;
 
             XLSX.utils.book_append_sheet(wb, ws, company.name.substring(0, 31));
         });
 
-        XLSX.writeFile(wb, 'is_deneyim_listesi.xlsx');
+        XLSX.writeFile(wb, 'is_deneyim_cetvel_listesi.xlsx');
     };
 
     const handleExportPDF = () => {
