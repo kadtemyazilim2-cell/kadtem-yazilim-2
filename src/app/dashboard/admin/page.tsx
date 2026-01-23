@@ -3051,8 +3051,8 @@ export default function AdminPage() {
                                                                                         content = content === '-' || content === '' ? 'Belge Var' : content;
                                                                                     }
 
-                                                                                    if (hasDoc && !isDetailColumn) {
-                                                                                        content = (
+                                                                                    if (hasDoc && (!isDetailColumn || (col.key === 'workExperienceCertificate' && index === 0))) {
+                                                                                        const docBtn = (
                                                                                             <div
                                                                                                 className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 font-semibold cursor-pointer hover:bg-green-200"
                                                                                                 onClick={(e) => {
@@ -3061,9 +3061,20 @@ export default function AdminPage() {
                                                                                                 }}
                                                                                                 title="Belgeyi İncele"
                                                                                             >
-                                                                                                {content}
+                                                                                                {(!isDetailColumn && content !== '-' && content !== '') ? content : 'Belge Var'}
                                                                                             </div>
                                                                                         );
+
+                                                                                        if (isDetailColumn && col.key === 'workExperienceCertificate') {
+                                                                                            content = (
+                                                                                                <div className="flex flex-col gap-1 items-start">
+                                                                                                    {content}
+                                                                                                    {docBtn}
+                                                                                                </div>
+                                                                                            );
+                                                                                        } else {
+                                                                                            content = docBtn;
+                                                                                        }
                                                                                     }
                                                                                 } // End Master Columns
 

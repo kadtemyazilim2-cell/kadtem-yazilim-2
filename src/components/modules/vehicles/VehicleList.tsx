@@ -396,6 +396,9 @@ export function VehicleList() {
         // [MODIFIED] Only show RENTAL vehicles in this tab as per user request
         if (vehicle.ownership !== 'RENTAL') return false;
 
+        // [NEW] Workaround for deletion issue: If both company and fee are missing, hide it (deleted from UI perspective)
+        if (!vehicle.rentalCompanyName && !vehicle.monthlyRentalFee) return false;
+
         if (rentalFilters.plate.length > 0 && !rentalFilters.plate.includes(vehicle.plate)) return false;
 
         // For 'rentalCompany' filter, if vehicle is OWNED, we might treat it as '-' or skip this filter if not applicable?
@@ -1009,6 +1012,8 @@ export function VehicleList() {
                                                             <TableRow>
                                                                 <TableHead className="w-[50px]">#</TableHead>
                                                                 <TableHead>Plaka</TableHead>
+                                                                <TableHead>Şantiye</TableHead> {/* [NEW] */}
+                                                                <TableHead>Kiralama Şirketi</TableHead> {/* [NEW] */}
                                                                 <TableHead>Marka / Model</TableHead>
                                                                 <TableHead>Mülkiyet</TableHead>
                                                             </TableRow>
@@ -1018,6 +1023,8 @@ export function VehicleList() {
                                                                 <TableRow key={v.id}>
                                                                     <TableCell>{idx + 1}</TableCell>
                                                                     <TableCell className="font-bold font-mono">{v.plate}</TableCell>
+                                                                    <TableCell className="text-sm font-medium text-slate-700">{site.name}</TableCell> {/* [NEW] */}
+                                                                    <TableCell className="text-sm text-slate-600">{v.rentalCompanyName || '-'}</TableCell> {/* [NEW] */}
                                                                     <TableCell>{v.brand} {v.model}</TableCell>
                                                                     <TableCell>
                                                                         {v.ownership === 'OWNED' ? (
