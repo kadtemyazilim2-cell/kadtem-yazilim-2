@@ -378,7 +378,7 @@ export default function AdminPage() {
 
             // Header Row
             const headers = [
-                'Yüklenici Firma', 'İş Grubu', 'S.No', 'EKAP Belge No', 'İşin Adı',
+                'Yüklenici Firma', 'İş Grubu', 'İş Deneyim Belgesi Numarası', 'S.No', 'EKAP Belge No', 'İşin Adı',
                 'İhale Kayıt No', 'İlan Tarihi', 'İhale Tarihi', 'Sözleşme Tarihi',
                 'İşyeri Teslim Tarihi', 'İş Bitim Tarihi', 'Süre Uzatımlı Tarih',
                 'Sözleşme Bedeli', 'F.F. Dahil Kalan Tutar (KDV Hariç)',
@@ -387,45 +387,43 @@ export default function AdminPage() {
             sheetData.push(headers);
 
             companySites.forEach((site: any, index: number) => {
+                // Ensure we handle sites with no similar works gracefully
                 const workGroups = site.similarWorks && site.similarWorks.length > 0
                     ? site.similarWorks
                     : [{ group: site.workGroup, code: '', amount: 0 }];
 
                 const rowCount = workGroups.length;
-                const startRow = currentRow; // 1-based index for logic, but sheet uses 0-based for specific calls if needed, but 's' and 'e' in merges are 0-based.
-                // Wait, !merges expects 0-based indices.
-                // sheetData array index 0 is valid row 0.
+                const startRow = currentRow;
 
                 workGroups.forEach((work: any, wIndex: number) => {
                     const row = [
                         company.name,                           // A: Yüklenici Firma
-                        work.group,                             // B: İş Grubu (Specific)
-                        index + 1,                              // C: S.No
-                        site.projectNo,                         // D: EKAP Belge No
-                        site.name,                              // E: İşin Adı
-                        site.registrationNo || '',              // F: İhale Kayıt No
-                        site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '', // G
-                        site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',             // H
-                        site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',         // I
-                        site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '', // J
-                        site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',     // K
-                        site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',         // L
-                        site.contractPrice,                     // M: Sözleşme Bedeli
-                        site.remainingAmount,                   // N: Kalan Tutar
-                        site.realizedAmount,                    // O: Gerçekleşen
-                        work.amount || 0,                       // P: Güncel (Specific)
-                        site.status === 'INACTIVE' ? 'Pasif' : 'Aktif' // Q
+                        site.workGroup,                         // B: İş Grubu (Main Site Group - MERGED)
+                        work.group,                             // C: İş Deneyim Belge Numarası (Sub Group - SPLIT)
+                        index + 1,                              // D: S.No
+                        site.projectNo,                         // E: EKAP Belge No
+                        site.name,                              // F: İşin Adı
+                        site.registrationNo || '',              // G: İhale Kayıt No
+                        site.announcementDate ? format(new Date(site.announcementDate), 'dd.MM.yyyy') : '', // H
+                        site.tenderDate ? format(new Date(site.tenderDate), 'dd.MM.yyyy') : '',             // I
+                        site.contractDate ? format(new Date(site.contractDate), 'dd.MM.yyyy') : '',         // J
+                        site.siteDeliveryDate ? format(new Date(site.siteDeliveryDate), 'dd.MM.yyyy') : '', // K
+                        site.completionDate ? format(new Date(site.completionDate), 'dd.MM.yyyy') : '',     // L
+                        site.extendedDate ? format(new Date(site.extendedDate), 'dd.MM.yyyy') : '',         // M
+                        site.contractPrice,                     // N: Sözleşme Bedeli
+                        site.remainingAmount,                   // O: Kalan Tutar
+                        site.realizedAmount,                    // P: Gerçekleşen
+                        work.amount || 0,                       // Q: Güncel İş Deneyim Tutarı (SPLIT)
+                        site.status === 'INACTIVE' ? 'Pasif' : 'Aktif' // R
                     ];
                     sheetData.push(row);
                 });
 
                 // Add Merges for Common Columns if rowCount > 1
                 if (rowCount > 1) {
-                    // Columns to merge (0-based indices): 
-                    // 0(Firma), 2(SNo), 3(EKAP), 4(Ad), 5(IhaleNo), 6(IlanTar), 7(IhaleTar), 8(SozTar), 
-                    // 9(TeslimTar), 10(BitimTar), 11(SureUzat), 12(Bedel), 13(Kalan), 14(Gerceklesan), 16(Durum)
-                    // Skip 1 (Is Grubu) and 15 (Guncel Tutar)
-                    const colsToMerge = [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16];
+                    // Columns to merge (0-based indices)
+                    // We merge everything EXCEPT 2 (C: SubGroup) and 16 (Q: Amount)
+                    const colsToMerge = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17];
                     colsToMerge.forEach(colIndex => {
                         merges.push({ s: { r: startRow, c: colIndex }, e: { r: startRow + rowCount - 1, c: colIndex } });
                     });
@@ -439,10 +437,9 @@ export default function AdminPage() {
                 ws['!merges'] = merges;
             }
 
-            // Optional: Auto-width (basic)
-            const wscols = headers.map(() => ({ wch: 20 }));
             // Specific widths
-            wscols[4] = { wch: 40 }; // İşin Adı wider
+            const wscols = headers.map(() => ({ wch: 20 }));
+            wscols[5] = { wch: 40 }; // İşin Adı wider
             ws['!cols'] = wscols;
 
             XLSX.utils.book_append_sheet(wb, ws, company.name.substring(0, 31));
