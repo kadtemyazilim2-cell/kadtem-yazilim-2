@@ -362,7 +362,7 @@ export default function AdminPage() {
 
 
     const handleExportExcel = () => {
-        const companiesToExport = selectedCompanyId === 'all'
+        const companiesToExport = (!selectedCompanyId || selectedCompanyId === 'all')
             ? companies
             : companies.filter(c => c.id === selectedCompanyId);
 
