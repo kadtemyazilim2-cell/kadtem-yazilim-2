@@ -2876,10 +2876,26 @@ export default function AdminPage() {
                                                                                 // Variable Columns (Similar Works)
                                                                                 else if (isDetailColumn && work) {
                                                                                     if (col.key === 'workExperienceCertificate') {
-                                                                                        // Show Group Name / Code
+                                                                                        // Show Group Name / Code with detailed label if possible
+                                                                                        let displayLabel = '';
+                                                                                        if (work.group) {
+                                                                                            if (work.group.includes(' - ')) {
+                                                                                                const [gVal, oVal] = work.group.split(' - ');
+                                                                                                const foundGroup = SIMILAR_WORK_GROUPS.find((g: any) => g.value === gVal);
+                                                                                                const foundOpt = foundGroup?.options.find((o: any) => o.value === oVal);
+                                                                                                if (foundOpt) {
+                                                                                                    displayLabel = foundOpt.label.replace(`${oVal}. GRUP: `, '').replace(`${oVal}: `, '');
+                                                                                                }
+                                                                                            }
+                                                                                        }
                                                                                         content = (
                                                                                             <div className="flex flex-col text-xs">
                                                                                                 <span className="font-semibold">{work.group}</span>
+                                                                                                {displayLabel && (
+                                                                                                    <span className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={displayLabel}>
+                                                                                                        {displayLabel}
+                                                                                                    </span>
+                                                                                                )}
                                                                                             </div>
                                                                                         );
                                                                                     } else if (col.key === 'currentWorkExperienceAmount') {
@@ -3152,7 +3168,7 @@ export default function AdminPage() {
 
                 {/* PREVIEW MODAL */}
                 <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-                    <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0">
+                    <DialogContent className="max-w-[95vw] w-[95vw] sm:max-w-[95vw] h-[90vh] p-0">
                         <DialogHeader>
                             <DialogTitle>Belge Önizleme</DialogTitle>
                         </DialogHeader>
