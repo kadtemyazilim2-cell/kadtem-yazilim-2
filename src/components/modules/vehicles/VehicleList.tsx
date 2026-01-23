@@ -109,7 +109,13 @@ export function VehicleList() {
         return companies.find((c: any) => c.id === vehicle.companyId)?.name || '-';
     };
 
-    const getVehicleSiteName = (vehicle: any) => {
+    const getVehicleSiteName = (vehicle: any) => { // [MODIFIED] Access all assigned sites
+        if (vehicle.assignedSiteIds && vehicle.assignedSiteIds.length > 0) {
+            return vehicle.assignedSiteIds
+                .map((sid: any) => sites.find((s: any) => s.id === sid)?.name)
+                .filter(Boolean)
+                .join(', ');
+        }
         if (!vehicle.assignedSiteId) return '-';
         return sites.find((s: any) => s.id === vehicle.assignedSiteId)?.name || '-';
     };
