@@ -681,7 +681,7 @@ export default function AdminPage() {
     const [isSubmitting, setIsSubmitting] = useState(false); // [NEW] Loading state
 
 
-    const [newSiteData, setNewSiteData] = useState<Partial<Site>>({
+    const [newSiteData, setNewSiteData] = useState<any>({
         name: '',
         companyId: '',
         location: '',
@@ -717,8 +717,8 @@ export default function AdminPage() {
         provisionalAcceptanceDoc: '',
         finalAcceptanceDoc: '',
         workExperienceDoc: '',
-        similarWorkGroup: '', // [NEW]
-        similarWorkExperienceAmount: undefined // [NEW]
+
+        similarWorks: [] // [NEW] Multiple Similar Work Groups
     });
 
     const handleDeleteSite = async () => {
@@ -847,7 +847,7 @@ export default function AdminPage() {
             contractToCurrentUfeRatio: undefined, currentUfeDate: '', currentWorkExperienceAmount: undefined, priceDifference: undefined,
             personnelCount: 0, note: '',
             provisionalAcceptanceDoc: '', finalAcceptanceDoc: '', workExperienceDoc: '',
-            similarWorkGroup: '', similarWorkCode: ''
+            similarWorks: []
         });
     };
 
@@ -2519,43 +2519,101 @@ export default function AdminPage() {
                                                         </div>
 
                                                         {/* Benzer İş Grupları (Tebliğ) */}
-                                                        <div className="space-y-2 border p-4 rounded-md bg-slate-50 mt-4">
-                                                            <h4 className="font-medium text-sm text-slate-700">Benzer İş Grupları (Tebliğ)</h4>
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div className="space-y-2">
-                                                                    <Label>Grup (A, B, C...)</Label>
-                                                                    <Select
-                                                                        value={newSiteData.similarWorkGroup || ''}
-                                                                        onValueChange={value => setNewSiteData({ ...newSiteData, similarWorkGroup: value })}
-                                                                    >
-                                                                        <SelectTrigger>
-                                                                            <SelectValue placeholder="Seçiniz" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            {SIMILAR_WORK_GROUPS.map((group) => (
-                                                                                <SelectGroup key={group.label}>
-                                                                                    <SelectLabel>{group.label}</SelectLabel>
-                                                                                    {group.options.map((opt) => (
-                                                                                        <SelectItem key={opt.value} value={opt.value}>
-                                                                                            {opt.value} - {opt.label.replace(opt.value + ': ', '')}
-                                                                                        </SelectItem>
-                                                                                    ))}
-                                                                                </SelectGroup>
-                                                                            ))}
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <Label>Benzer İş Deneyim Tutarı</Label>
-                                                                    <Input
-                                                                        type="number"
-                                                                        step="0.01"
-                                                                        value={newSiteData.similarWorkExperienceAmount || ''}
-                                                                        onChange={e => setNewSiteData({ ...newSiteData, similarWorkExperienceAmount: e.target.value ? Number(e.target.value) : undefined })}
-                                                                        placeholder="0.00"
-                                                                    />
-                                                                </div>
+                                                        <div className="space-y-4 border p-4 rounded-md bg-slate-50 mt-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="font-medium text-sm text-slate-700">Benzer İş Grupları (Tebliğ)</h4>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        const current = newSiteData.similarWorks || [];
+                                                                        setNewSiteData({ ...newSiteData, similarWorks: [...current, { group: '', code: '', amount: 0 }] });
+                                                                    }}
+                                                                    className="h-7 text-xs"
+                                                                >
+                                                                    <Plus className="w-3 h-3 mr-1" /> Ekle
+                                                                </Button>
                                                             </div>
+
+                                                            {(newSiteData.similarWorks || []).length === 0 && (
+                                                                <div className="text-xs text-slate-500 italic text-center py-2">Henüz grup eklenmedi.</div>
+                                                            )}
+
+                                                            {(newSiteData.similarWorks || []).map((work: any, idx: number) => (
+                                                                <div key={idx} className="grid grid-cols-12 gap-2 items-end border-b pb-3 mb-2 last:border-0 last:mb-0 last:pb-0">
+                                                                    <div className="col-span-5 space-y-1">
+                                                                        <Label className="text-xs">Grup</Label>
+                                                                        <Select
+                                                                            value={work.group}
+                                                                            onValueChange={val => {
+                                                                                const updated = [...(newSiteData.similarWorks || [])];
+                                                                                updated[idx].group = val;
+                                                                                setNewSiteData({ ...newSiteData, similarWorks: updated });
+                                                                            }}
+                                                                        >
+                                                                            <SelectTrigger className="h-8 text-xs">
+                                                                                <SelectValue placeholder="Seçiniz" />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                {SIMILAR_WORK_GROUPS.map((group) => (
+                                                                                    <SelectGroup key={group.label}>
+                                                                                        <SelectLabel>{group.label}</SelectLabel>
+                                                                                        {group.options.map((opt) => (
+                                                                                            <SelectItem key={opt.value} value={opt.value}>
+                                                                                                {opt.value} - {opt.label.replace(opt.value + ': ', '')}
+                                                                                            </SelectItem>
+                                                                                        ))}
+                                                                                    </SelectGroup>
+                                                                                ))}
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                    <div className="col-span-3 space-y-1">
+                                                                        <Label className="text-xs">Grup Kodu</Label>
+                                                                        <Input
+                                                                            className="h-8 text-xs"
+                                                                            value={work.code || ''}
+                                                                            placeholder="Örn: III"
+                                                                            onChange={e => {
+                                                                                const updated = [...(newSiteData.similarWorks || [])];
+                                                                                updated[idx].code = e.target.value;
+                                                                                setNewSiteData({ ...newSiteData, similarWorks: updated });
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="col-span-3 space-y-1">
+                                                                        <Label className="text-xs">Tutar</Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            className="h-8 text-xs"
+                                                                            value={work.amount || ''}
+                                                                            placeholder="0.00"
+                                                                            onChange={e => {
+                                                                                const updated = [...(newSiteData.similarWorks || [])];
+                                                                                updated[idx].amount = e.target.value ? Number(e.target.value) : undefined;
+                                                                                setNewSiteData({ ...newSiteData, similarWorks: updated });
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="col-span-1">
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="destructive"
+                                                                            size="icon"
+                                                                            className="h-8 w-8"
+                                                                            onClick={() => {
+                                                                                const updated = [...(newSiteData.similarWorks || [])];
+                                                                                updated.splice(idx, 1);
+                                                                                setNewSiteData({ ...newSiteData, similarWorks: updated });
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
 
                                                     </TabsContent>

@@ -32,7 +32,7 @@ export async function getSites() {
 
         const sites = await prisma.site.findMany({
             orderBy: { name: 'asc' },
-            include: { company: true, partners: true },
+            include: { company: true, partners: true, similarWorks: true },
             where: whereClause
         });
         return { success: true, data: sites };
@@ -130,6 +130,13 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
                 companyId: data.companyId,
                 partners: {
                     create: partnersToCreate
+                },
+                similarWorks: {
+                    create: (data.similarWorks || []).map((w: any) => ({
+                        group: w.group,
+                        code: w.code,
+                        amount: Number(w.amount)
+                    })).filter((w: any) => w.group)
                 }
             }
         });
@@ -210,12 +217,25 @@ export async function updateSite(id: string, data: Partial<Site>) {
             }
         } : {};
 
+        // Similar Works Update Logic
+        const similarWorksOperations = data.similarWorks ? {
+            similarWorks: {
+                deleteMany: {},
+                create: data.similarWorks.map((w: any) => ({
+                    group: w.group,
+                    code: w.code,
+                    amount: Number(w.amount)
+                })).filter((w: any) => w.group)
+            }
+        } : {};
+
         // MAIN UPDATE
         const site = await prisma.site.update({
             where: { id },
             data: {
                 ...processedData,
-                ...partnerOperations
+                ...partnerOperations,
+                ...similarWorksOperations
             }
         });
 
@@ -269,17 +289,34 @@ export async function deleteSite(id: string) {
         const transactionCount = await prisma.cashTransaction.count({ where: { siteId: id } });
         if (transactionCount > 0) return { success: false, error: `Bu şantiyeye ait ${transactionCount} adet kasa hareketi bulunmaktadır.` };
 
-        const correspondenceCount = await prisma.correspondence.count({ where: { siteId: id } });
-        if (correspondenceCount > 0) return { success: false, error: `Bu şantiyeye ait ${correspondenceCount} adet yazışma bulunmaktadır.` };
+        // [FIX] Exclude soft-deleted correspondences
+        const correspondenceCount = await prisma.correspondence.count({
+            where: {
+                siteId: id,
+                status: { not: 'DELETED' }
+            }
+        });
+        if (correspondenceCount > 0) return { success: false, error: `Bu şantiyeye ait ${correspondenceCount} adet aktif yazışma bulunmaktadır.` };
 
         const fuelTankCount = await prisma.fuelTank.count({ where: { siteId: id } });
         if (fuelTankCount > 0) return { success: false, error: `Bu şantiyede tanımlı ${fuelTankCount} adet yakıt deposu bulunmaktadır.` };
 
-        const vehicleCount = await prisma.vehicle.count({ where: { assignedSiteId: id } });
+        const vehicleCount = await prisma.vehicle.count({
+            where: {
+                assignedSiteId: id,
+                status: { not: 'MAINTENANCE' } // Or strict check? Usually just existence.
+                // Vehicles are important, usually require explicit unassignment.
+            }
+        });
         if (vehicleCount > 0) return { success: false, error: `Bu şantiyeye atanmış ${vehicleCount} adet araç bulunmaktadır.` };
 
-        const personnelCount = await prisma.personnel.count({ where: { siteId: id } });
-        if (personnelCount > 0) return { success: false, error: `Bu şantiyede çalışan ${personnelCount} adet personel bulunmaktadır.` };
+        const personnelCount = await prisma.personnel.count({
+            where: {
+                siteId: id,
+                status: 'ACTIVE' // Only active personnel block? Or all? Let's say Active.
+            }
+        });
+        if (personnelCount > 0) return { success: false, error: `Bu şantiyede çalışan ${personnelCount} adet aktif personel bulunmaktadır.` };
 
         await prisma.site.delete({ where: { id } });
         revalidatePath('/dashboard/admin');
