@@ -31,6 +31,22 @@ export async function createPersonnel(data: Partial<Personnel>) {
                 status: 'ACTIVE'
             }
         });
+        // Check if start date is provided to auto-create 'WORK' attendance
+        if (data.startDate && data.siteId) {
+            const startDate = new Date(data.startDate);
+            startDate.setHours(0, 0, 0, 0);
+
+            await prisma.personnelAttendance.create({
+                data: {
+                    personnelId: person.id,
+                    siteId: data.siteId,
+                    date: startDate,
+                    status: 'WORK',
+                    hours: 11, // Standard assumption or 11 based on typical industry
+                }
+            });
+        }
+
         revalidatePath('/dashboard/personnel');
         return { success: true, data: person };
     } catch (error) {

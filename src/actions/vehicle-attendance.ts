@@ -6,58 +6,59 @@ import { revalidatePath } from 'next/cache';
 
 export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
     try {
-        // Check for existing record to avoid duplicates (upsert logic or check-then-create)
-        // Since ID is generated on client as UUID, we might use upsert if we trust the ID,
-        // but robustly we should match by vehicleId + date + siteId?
-        // User logic allows same day different site? No, checking logic in client: `existingRecord && existingRecord.siteId !== selectedSiteId`.
-        // So uniqueness constraint is typically Vehicle + Date.
-
         if (!data.vehicleId || !data.date || !data.siteId) {
-            return { success: false, error: 'Eksik bilgi.' };
+            console.error('addVehicleAttendance Missing Data:', data);
+            return { success: false, error: 'Eksik bilgi (Araç, Tarih veya Şantiye).' };
         }
 
-        // Check if record exists for this vehicle on this date
+        // Ensure date is treated as UTC/Midnight
+        const startOfDay = new Date(data.date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        // Check for existing record
         const existing = await prisma.vehicleAttendance.findFirst({
             where: {
                 vehicleId: data.vehicleId,
-                date: data.date
+                date: startOfDay
             }
         });
 
         let attendance;
+        const payload = {
+            vehicleId: data.vehicleId,
+            siteId: data.siteId,
+            date: startOfDay,
+            status: data.status || 'WORK',
+            hours: data.hours || 8,
+            note: data.note,
+            createdByUserId: data.createdByUserId
+        };
+
         if (existing) {
             // Update
             attendance = await prisma.vehicleAttendance.update({
                 where: { id: existing.id },
                 data: {
-                    status: data.status,
-                    siteId: data.siteId, // Allow moving site
-                    hours: data.hours || 8,
-                    note: data.note,
-                    createdByUserId: data.createdByUserId
+                    status: payload.status,
+                    siteId: payload.siteId,
+                    hours: payload.hours,
+                    note: payload.note,
+                    createdByUserId: payload.createdByUserId
                 }
             });
         } else {
             // Create
             attendance = await prisma.vehicleAttendance.create({
-                data: {
-                    vehicleId: data.vehicleId,
-                    siteId: data.siteId,
-                    date: data.date,
-                    status: data.status || 'WORK',
-                    hours: data.hours || 8,
-                    note: data.note,
-                    createdByUserId: data.createdByUserId
-                }
+                data: payload
             });
         }
 
         revalidatePath('/dashboard/vehicle-attendance');
-        revalidatePath('/dashboard/admin'); // In case it affects reports
+        revalidatePath('/dashboard/admin');
         return { success: true, data: attendance };
     } catch (error: any) {
         console.error('addVehicleAttendance Error:', error);
-        return { success: false, error: 'Puantaj kaydedilemedi: ' + error.message };
+        return { success: false, error: 'Kayıt hatası: ' + (error.message || error) };
     }
 }
 

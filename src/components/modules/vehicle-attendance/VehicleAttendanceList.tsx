@@ -62,7 +62,7 @@ export function VehicleAttendanceList() {
 
         const record = vehicleAttendance.find((a: any) =>
             a.vehicleId === vehicleId &&
-            a.date === format(date, 'yyyy-MM-dd')
+            format(new Date(a.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
         );
 
         // Date Restriction Check
@@ -131,7 +131,7 @@ export function VehicleAttendanceList() {
         const targetDateStr = format(editingCell.date, 'yyyy-MM-dd');
         const existingRecord = vehicleAttendance.find((a: any) =>
             a.vehicleId === editingCell.vehicleId &&
-            a.date === targetDateStr
+            format(new Date(a.date), 'yyyy-MM-dd') === targetDateStr
         );
 
         if (existingRecord && existingRecord.siteId !== selectedSiteId) {
@@ -173,7 +173,11 @@ export function VehicleAttendanceList() {
     };
 
     const getStatusForDate = (vid: string, date: Date) => {
-        return vehicleAttendance.find((a: any) => a.vehicleId === vid && a.date === format(date, 'yyyy-MM-dd'));
+        const targetDate = format(date, 'yyyy-MM-dd');
+        return vehicleAttendance.find((a: any) =>
+            a.vehicleId === vid &&
+            format(new Date(a.date), 'yyyy-MM-dd') === targetDate
+        );
     };
 
     const getStatusBadge = (status: string) => {
