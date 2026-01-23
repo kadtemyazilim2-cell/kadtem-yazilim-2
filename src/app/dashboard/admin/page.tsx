@@ -718,43 +718,17 @@ export default function AdminPage() {
     const handleDeleteSite = async () => {
         if (!selectedSiteId) return;
 
-        // Validation Checks
+        // 1. Calculate Dependencies
         const assignedVehicles = vehicles.filter((v: any) => v.assignedSiteId === selectedSiteId).length;
-        // ... (other checks remain, implemented in server action too but good for instant feedback) ...
-
-        if (confirm('Bu şantiyeyi silmek istediğinize emin misiniz?')) {
-            try {
-                const result = await deleteSiteAction(selectedSiteId);
-                if (result.success) {
-                    deleteSite(selectedSiteId); // Update Client Store
-                    toast.success('Şantiye silindi.');
-                    setSelectedSiteId(null);
-                } else {
-                    toast.error(result.error || 'Şantiye silinemedi.');
-                }
-            } catch (error) {
-                console.error("Delete Site Error", error);
-                toast.error("Bir hata oluştu.");
-            }
-        }
-
-        // Personnel don't have direct 'assignedSiteId' on the object usually, they have assigned sites in list?
-        // Checking definitions: Personnel interface has 'assignedSiteIds' (plural)? 
-        // Let's check 'users'. Users have 'assignedSiteIds'.
-        // Personnel assignments are usually tracked via attendance or if we added a specific field. 
-        // Use-store says: personnel: Personnel[]. Let's assume logic validation is mostly about attendance for personnel. 
-        // But let's check Users assignment too.
         const assignedUsers = users.filter((u: any) => u.assignedSiteIds?.includes(selectedSiteId)).length;
-
-        // Attendance
+        // Check both vehicle and personnel attendance
         const pAttendanceCount = personnelAttendance.filter((a: any) => a.siteId === selectedSiteId).length;
         const vAttendanceCount = vehicleAttendance.filter((a: any) => a.siteId === selectedSiteId).length;
-
-        // Tanks
         const tankCount = fuelTanks.filter((t: any) => t.siteId === selectedSiteId).length;
 
         const totalDependencies = assignedVehicles + assignedUsers + pAttendanceCount + vAttendanceCount + tankCount;
 
+        // 2. Confirmation Logic
         if (totalDependencies > 0) {
             const message = `Bu şantiye silinemez!\n\n` +
                 `Bağlı Kayıtlar:\n` +
@@ -768,20 +742,34 @@ export default function AdminPage() {
                 alert(message + `\nLütfen önce bu kayıtları kaldırınız.`);
                 return;
             } else {
+                // Admin Double Confirmation
                 if (!confirm(message + `\n\n[ADMIN YETKİSİ]\nBu kayıtlara rağmen şantiyeyi silmek istediğinize emin misiniz?`)) {
                     return;
                 }
             }
         } else {
+            // No dependencies, simple confirm
             if (!confirm('Bu şantiyeyi silmek istediğinize emin misiniz?')) {
                 return;
             }
         }
 
-        // Proceed to delete
-        deleteSite(selectedSiteId);
-        setSiteModalOpen(false);
-        resetSiteForm();
+        // 3. Execution
+        try {
+            const result = await deleteSiteAction(selectedSiteId);
+            if (result.success) {
+                deleteSite(selectedSiteId); // Update Client Store
+                setSiteModalOpen(false);
+                resetSiteForm();
+                toast.success('Şantiye başarıyla silindi.');
+                router.refresh();
+            } else {
+                toast.error(result.error || 'Şantiye silinemedi.');
+            }
+        } catch (error) {
+            console.error("Delete Site Error", error);
+            toast.error("Bir hata oluştu.");
+        }
     };
 
     const handleSiteFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'provisional' | 'final' | 'experience') => {
