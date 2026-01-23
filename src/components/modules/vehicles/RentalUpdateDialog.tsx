@@ -27,83 +27,82 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
     }, [open, vehicle]);
 
     const handleSubmit = (e: React.FormEvent) => {
-        const handleSubmit = (e: React.FormEvent) => {
-            e.preventDefault();
+        e.preventDefault();
 
-            let fee = 0;
-            if (monthlyFee.includes(',')) {
-                fee = parseFloat(monthlyFee.replace(/\./g, '').replace(',', '.'));
-            } else {
-                fee = parseFloat(monthlyFee);
-            }
+        let fee = 0;
+        if (monthlyFee.includes(',')) {
+            fee = parseFloat(monthlyFee.replace(/\./g, '').replace(',', '.'));
+        } else {
+            fee = parseFloat(monthlyFee);
+        }
 
-            updateVehicle(vehicle.id, {
-                monthlyRentalFee: isNaN(fee) ? 0 : fee,
-                assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
-                rentalLastUpdate: new Date().toISOString()
-            });
-            onOpenChange(false);
-        };
+        updateVehicle(vehicle.id, {
+            monthlyRentalFee: isNaN(fee) ? 0 : fee,
+            assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
+            rentalLastUpdate: new Date().toISOString()
+        });
+        onOpenChange(false);
+    };
 
-        return (
-            <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>Kira Bedeli Güncelle</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Plaka</Label>
-                            <div className="font-mono font-bold text-slate-700 bg-slate-100 p-2 rounded">
-                                {vehicle.plate}
-                            </div>
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Kira Bedeli Güncelle</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Plaka</Label>
+                        <div className="font-mono font-bold text-slate-700 bg-slate-100 p-2 rounded">
+                            {vehicle.plate}
                         </div>
+                    </div>
 
-                        <div className="space-y-2">
-                            <Label>Aylık Kira Bedeli (TL)</Label>
-                            <Label>Aylık Kira Bedeli (TL)</Label>
-                            <Input
-                                type="text"
-                                inputMode="decimal"
-                                placeholder="0,00"
-                                value={monthlyFee}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (/^[0-9.,]*$/.test(val)) {
-                                        setMonthlyFee(val);
-                                    }
-                                }}
-                                required
-                            />
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Aylık Kira Bedeli (TL)</Label>
+                        <Label>Aylık Kira Bedeli (TL)</Label>
+                        <Input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0,00"
+                            value={monthlyFee}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (/^[0-9.,]*$/.test(val)) {
+                                    setMonthlyFee(val);
+                                }
+                            }}
+                            required
+                        />
+                    </div>
 
-                        <div className="space-y-2">
-                            <Label>Giderin Yansıtılacağı Şantiye</Label>
-                            <Select
-                                value={assignedSiteId}
-                                onValueChange={setAssignedSiteId}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Şantiye Seçiniz" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Giderin Yansıtılacağı Şantiye</Label>
+                        <Select
+                            value={assignedSiteId}
+                            onValueChange={setAssignedSiteId}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Şantiye Seçiniz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                        <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                                İptal
-                            </Button>
-                            <Button type="submit">
-                                Kaydet
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        );
-    }
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            İptal
+                        </Button>
+                        <Button type="submit">
+                            Kaydet
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
