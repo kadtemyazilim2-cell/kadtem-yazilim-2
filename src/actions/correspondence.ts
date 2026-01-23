@@ -101,15 +101,15 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
             }
 
             // Date Restriction Check (Backend Enforcement)
-            if (user.editLookbackDays !== undefined) {
+            if ((user as any).editLookbackDays !== undefined) {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const target = new Date(existing.date);
                 target.setHours(0, 0, 0, 0);
                 const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
 
-                if (diff > user.editLookbackDays) {
-                    return { success: false, error: `Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.` };
+                if (diff > (user as any).editLookbackDays) {
+                    return { success: false, error: `Geriye dönük en fazla ${(user as any).editLookbackDays} gün işlem yapabilirsiniz.` };
                 }
             }
         }
@@ -129,7 +129,7 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
     }
 }
 
-export async function deleteCorrespondence(id: string) {
+export async function deleteCorrespondence(id: string, reason?: string, userId?: string) {
     try {
         const session = await auth();
         if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
@@ -147,11 +147,11 @@ export async function deleteCorrespondence(id: string) {
             else requiredModule = 'correspondence.outgoing';
 
             const perms = user.permissions?.[requiredModule] || [];
-            if (!perms.includes('EDIT')) { // Using EDIT as proxy for Delete per user request
+            if (!perms.includes('EDIT')) {
                 return { success: false, error: 'Bu işlem için silme yetkiniz bulunmamaktadır.' };
             }
 
-            // Date Restriction Check (Backend Enforcement)
+            // Date Restriction
             if (user.editLookbackDays !== undefined) {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -164,20 +164,28 @@ export async function deleteCorrespondence(id: string) {
                 }
             }
 
-            // Outgoing with Reg No - Admin Only
+            // Outgoing with Reg No check
             if (existing.direction === 'OUTGOING' && existing.registrationNumber) {
                 return { success: false, error: 'Evrak kayıt numarası girilmiş giden evrakları silemezsiniz.' };
             }
         }
 
-        await prisma.correspondence.delete({
-            where: { id }
+        // Soft Delete
+        await prisma.correspondence.update({
+            where: { id },
+            data: {
+                status: 'DELETED',
+                deletionReason: reason || 'Kullanıcı tarafından silindi',
+                deletedByUserId: userId || session.user.id,
+                deletionDate: new Date()
+            }
         });
+
         revalidatePath('/dashboard/correspondence');
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('deleteCorrespondence Error:', error);
-        return { success: false, error: 'Yazışma silinemedi.' };
+        return { success: false, error: error.message || 'Yazışma silinemedi.' };
     }
 }
 

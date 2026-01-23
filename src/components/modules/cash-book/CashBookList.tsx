@@ -19,7 +19,7 @@ import autoTable from 'jspdf-autotable';
 import { fontBase64 } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
+import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
 
 export function CashBookList() {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
@@ -65,6 +65,18 @@ export function CashBookList() {
         setEndDate(format(end, 'yyyy-MM-dd'));
         setQuickMonth(month);
         setQuickYear(year);
+    };
+
+    // Helper for safe date formatting
+    const safeFormat = (dateStr: string | Date | null | undefined, fmt: string) => {
+        if (!dateStr) return '-';
+        try {
+            const d = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+            if (!isValid(d)) return '-';
+            return format(d, fmt, { locale: tr });
+        } catch (e) {
+            return '-';
+        }
     };
 
     const getSiteName = (id: string) => sites?.find((s: any) => s.id === id)?.name || '-';
@@ -686,7 +698,7 @@ export function CashBookList() {
                         ) : (
                             filteredTransactionsWithBalance.map((item) => (
                                 <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
-                                    <TableCell>{item.date ? format(new Date(item.date), 'dd MMM yyyy', { locale: tr }) : '-'}</TableCell>
+                                    <TableCell>{safeFormat(item.date, 'dd MMM yyyy')}</TableCell>
                                     <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>
                                     <TableCell>{item.category}</TableCell>
                                     <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { deleteCorrespondence as deleteCorrespondenceAction } from '@/actions/correspondence';
 import { useState, useEffect } from 'react';
 import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
@@ -348,12 +349,26 @@ export function CorrespondenceList() {
         setCopyItem(item);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (!itemToDelete || !deleteReason.trim() || !user) return;
-        deleteCorrespondence(itemToDelete, deleteReason, user.id);
-        setDeleteDialogOpen(false);
-        setItemToDelete(null);
-        setDeleteReason('');
+
+        try {
+            // [FIX] Call Server Action first with Reason and User ID
+            const result = await deleteCorrespondenceAction(itemToDelete, deleteReason, user.id);
+
+            if (result.success) {
+                // Update Local Store (UI)
+                deleteCorrespondence(itemToDelete, deleteReason, user.id);
+                setDeleteDialogOpen(false);
+                setItemToDelete(null);
+                setDeleteReason('');
+            } else {
+                alert(result.error || 'Silme işlemi başarısız oldu.');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Bir hata oluştu.');
+        }
     };
 
     const handleRestore = (id: string) => {
@@ -415,7 +430,7 @@ export function CorrespondenceList() {
         const companyName = getCompanyName(item.companyId);
         const normalizedName = companyName.toLocaleLowerCase('tr');
 
-        let logoToUse = null;
+        let logoToUse: string | null = null;
         if (normalizedName.includes('ikikat') || normalizedName.includes('ıkıkat')) {
             logoToUse = IKIKAT_LOGO_BASE64;
         } else if (normalizedName.includes('kad-tem') || normalizedName.includes('kadtem')) {
