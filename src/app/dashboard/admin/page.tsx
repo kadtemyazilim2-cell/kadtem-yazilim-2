@@ -2614,21 +2614,27 @@ export default function AdminPage() {
                                                                             onValueChange={val => {
                                                                                 const updated = [...(newSiteData.similarWorks || [])];
                                                                                 updated[idx].group = val;
+                                                                                // Optional: We could store friendly name in another field if needed, but val contains the code now.
                                                                                 setNewSiteData({ ...newSiteData, similarWorks: updated });
                                                                             }}
                                                                         >
-                                                                            <SelectTrigger className="h-8 text-xs">
+                                                                            <SelectTrigger className="h-8 text-xs w-full">
                                                                                 <SelectValue placeholder="Seçiniz" />
                                                                             </SelectTrigger>
-                                                                            <SelectContent>
+                                                                            <SelectContent className="max-h-60">
                                                                                 {SIMILAR_WORK_GROUPS.map((group) => (
-                                                                                    <SelectGroup key={group.label}>
-                                                                                        <SelectLabel>{group.label}</SelectLabel>
-                                                                                        {group.options.map((opt) => (
-                                                                                            <SelectItem key={opt.value} value={opt.value}>
-                                                                                                {opt.value} - {opt.label.replace(opt.value + ': ', '')}
-                                                                                            </SelectItem>
-                                                                                        ))}
+                                                                                    <SelectGroup key={group.value}>
+                                                                                        <SelectLabel className="sticky top-0 bg-white z-10 border-b">{group.label}</SelectLabel>
+                                                                                        {group.options.map((opt) => {
+                                                                                            const uniqueVal = `${group.value} - ${opt.value}`; // e.g. "A - II"
+                                                                                            return (
+                                                                                                <SelectItem key={`${group.value}-${opt.value}`} value={uniqueVal}>
+                                                                                                    <span className="font-semibold text-primary">{group.value} - {opt.value}</span>
+                                                                                                    <span className="text-muted-foreground mx-2">|</span>
+                                                                                                    <span className="truncate">{opt.label.replace(opt.value + '. GRUP: ', '').replace(opt.value + ': ', '')}</span>
+                                                                                                </SelectItem>
+                                                                                            );
+                                                                                        })}
                                                                                     </SelectGroup>
                                                                                 ))}
                                                                             </SelectContent>
@@ -3146,7 +3152,7 @@ export default function AdminPage() {
 
                 {/* PREVIEW MODAL */}
                 <Dialog open={!!previewDoc} onOpenChange={(open) => !open && setPreviewDoc(null)}>
-                    <DialogContent className="max-w-[95vw] h-[90vh]">
+                    <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] p-0">
                         <DialogHeader>
                             <DialogTitle>Belge Önizleme</DialogTitle>
                         </DialogHeader>

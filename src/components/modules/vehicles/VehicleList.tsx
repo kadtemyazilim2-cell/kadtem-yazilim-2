@@ -393,8 +393,8 @@ export function VehicleList() {
 
     // 3. Cost/Rental List Filter (Now includes OWNED)
     const filteredRentalVehicles = sortedVehicles.filter(vehicle => {
-        // [MODIFIED] User requested to see BOTH Owned and Rental in "Rental Cost" tab
-        // if (vehicle.ownership !== 'RENTAL') return false; 
+        // [MODIFIED] Only show RENTAL vehicles in this tab as per user request
+        if (vehicle.ownership !== 'RENTAL') return false;
 
         if (rentalFilters.plate.length > 0 && !rentalFilters.plate.includes(vehicle.plate)) return false;
 
@@ -1461,7 +1461,7 @@ export function VehicleList() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Plaka</TableHead>
-                                            <TableHead>Şantiye</TableHead> {/* [NEW] */}
+                                            <TableHead className="w-[200px]">Şantiye</TableHead> {/* [NEW] Width constraint */}
                                             <TableHead>Kiralama Şirketi / Firma</TableHead>
                                             <TableHead>Aylık Kira Bedeli</TableHead>
                                             <TableHead>Son Güncelleme</TableHead>
@@ -1473,7 +1473,9 @@ export function VehicleList() {
                                         {filteredRentalVehicles.map(vehicle => (
                                             <TableRow key={vehicle.id}>
                                                 <TableCell className="font-mono font-bold">{vehicle.plate}</TableCell>
-                                                <TableCell className="text-sm text-slate-700">{getVehicleSiteName(vehicle)}</TableCell> {/* [NEW] */}
+                                                <TableCell className="text-sm text-slate-700 max-w-[200px] truncate" title={getVehicleSiteName(vehicle)}>
+                                                    {getVehicleSiteName(vehicle)}
+                                                </TableCell> {/* [NEW] Truncate */}
                                                 <TableCell>{vehicle.rentalCompanyName || getCompanyName(vehicle)}</TableCell>
                                                 <TableCell>{vehicle.monthlyRentalFee ? `${vehicle.monthlyRentalFee.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}</TableCell>
                                                 <TableCell>{formatDateSafe(vehicle.rentalLastUpdate)}</TableCell>
