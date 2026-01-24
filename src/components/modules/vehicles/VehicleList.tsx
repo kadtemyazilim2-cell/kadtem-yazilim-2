@@ -402,8 +402,11 @@ export function VehicleList() {
     });
 
     const filteredRentalVehicles = sortedVehicles.filter(vehicle => {
-        // [MODIFIED] Only show RENTAL vehicles in this tab as per user request
-        if (vehicle.ownership !== 'RENTAL') return false;
+        // [MODIFIED] Show RENTAL vehicles OR OWNED vehicles that are assigned to a rental company (Rented Out)
+        const isRental = vehicle.ownership === 'RENTAL';
+        const isRentedOwned = vehicle.ownership === 'OWNED' && (vehicle.rentalCompanyName || (vehicle.monthlyRentalFee || 0) > 0);
+
+        if (!isRental && !isRentedOwned) return false;
 
         if (rentalFilters.plate.length > 0 && !rentalFilters.plate.includes(vehicle.plate)) return false;
 

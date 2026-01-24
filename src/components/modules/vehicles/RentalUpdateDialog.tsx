@@ -41,6 +41,7 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
         const payload = {
             monthlyRentalFee: isNaN(fee) ? 0 : fee,
             assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
+            assignedSiteIds: [], // [NEW] Clear multi-site to ensure single rental site
             rentalLastUpdate: new Date().toISOString()
         };
 

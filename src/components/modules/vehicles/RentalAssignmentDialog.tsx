@@ -67,15 +67,12 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
         const promises = selectedIds.map(async (id) => {
             const payload: any = {
                 companyId: targetCompanyId,
-                ownership: 'RENTAL' as const,
+                // ownership: 'RENTAL', // [MODIFIED] Do NOT change ownership. Keep as OWNED.
                 monthlyRentalFee: 0,
-                rentalLastUpdate: new Date().toISOString()
+                rentalLastUpdate: new Date().toISOString(),
+                assignedSiteId: targetSiteId, // Set new single site
+                assignedSiteIds: [] // [MODIFIED] Clear multi-site assignment to ensure "Single Site" rule
             };
-
-            // [RESTORED] Mandatory Site Update
-            if (targetSiteId) {
-                payload.assignedSiteId = targetSiteId;
-            }
 
             const res = await updateVehicleAction(id, payload);
             if (res.success) {
