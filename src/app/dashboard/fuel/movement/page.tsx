@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
-import { useLocalStorage } from '@/hooks/use-local-storage'; // [NEW]
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,7 +21,7 @@ export default function FuelMovementPage() {
     const { hasPermission, user } = useAuth();
 
     const rawAvailableSites = useUserSites();
-    const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]); // [MOD] Filter Passive Sites
+    const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]);
 
     // Filter Tanks based on available sites
     const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
@@ -38,14 +38,12 @@ export default function FuelMovementPage() {
     // Filter Tanks based on selected site for Dispense (Yakıt Verme)
     const dispenseTanks = useMemo(() => (fuelTanks || []).filter((t: any) => t.siteId === selectedDispenseSiteId), [fuelTanks, selectedDispenseSiteId]);
 
-    // Auto-select tank if only one in selected site
+    // Auto-select tank
     useEffect(() => {
-        if (dispenseTanks.length === 1 && selectedDispenseSiteId) {
-            // Avoid setting if already set to prevent loop (even with memo, good practice)
-            setDispenseData(prev => prev.tankId === dispenseTanks[0].id ? prev : ({ ...prev, tankId: dispenseTanks[0].id }));
-            setTransferData(prev => prev.fromId === dispenseTanks[0].id ? prev : ({ ...prev, fromId: dispenseTanks[0].id }));
+        if (dispenseTanks.length > 0) {
+            setDispenseData(prev => ({ ...prev, tankId: dispenseTanks[0].id }));
         }
-    }, [dispenseTanks, selectedDispenseSiteId]);
+    }, [dispenseTanks]);
 
     const canViewPage = hasPermission('movement', 'VIEW');
     const canDispense = hasPermission('movement.dispense', 'VIEW') || hasPermission('movement', 'VIEW');
@@ -60,31 +58,17 @@ export default function FuelMovementPage() {
         return <div className="p-6 text-center text-muted-foreground">Bu sayfaya erişim yetkiniz yok.</div>;
     }
 
-    // Determine default tab based on permissions
     const defaultTab = canDispense ? 'dispense' : (canTransfer ? 'transfer' : (canPurchase ? 'purchase' : ''));
 
     if (!defaultTab) {
         return <div className="p-6 text-center text-muted-foreground">Görüntülenecek modül bulunamadı.</div>;
     }
 
-    // ... (rest of code) ...
-
-    // [INSIDE RENDER]
-    // <Tabs defaultValue={defaultTab} ...>
-    //   <TabsList ...>
-    //      {canDispense && <TabsTrigger value="dispense" ...>}
-    //      {canTransfer && <TabsTrigger value="transfer" ...>}
-    //      {canPurchase && <TabsTrigger value="purchase" ...>}
-    //   </TabsList>
-    //   ...
-    //   {canDispense && <TabsContent value="dispense">...</TabsContent>}
-    //   ...
-
     // [MOD] Persist Date and Time
     const [date, setDate] = useLocalStorage('fuel_form_date', new Date().toISOString().split('T')[0]);
     const [time, setTime] = useLocalStorage('fuel_form_time', new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
 
-    // 1. TRANSFER (Virman) State
+    // 1. TRANSFER (Virman) State [SIMPLIFIED]
     const [transferData, setTransferData] = useLocalStorage('fuel_transfer_form', {
         fromType: 'TANK', fromId: '', toType: 'TANK', toId: '', amount: ''
     });
@@ -104,35 +88,19 @@ export default function FuelMovementPage() {
     const clearPurchase = () => setPurchaseData({ firmName: '', toType: 'TANK', toId: '', amount: '', unitPrice: '' });
     const clearDispense = () => setDispenseData({ tankId: '', vehicleId: '', amount: '', mileage: '', fullTank: true, description: '' });
 
-    // Helper to combine Date + Time
-    const getDateTime = () => {
-        // Create date object from inputs
-        const combined = new Date(`${date}T${time}`);
-        // If invalid, fallback to date only (which implies 00:00 UTC)
-        // But better is to just send the ISO string of the combined
-        return isNaN(combined.getTime()) ? date : combined.toISOString();
-    };
-
-    // [NEW] Helper to format number string (10000 -> 10.000)
+    // Helper to format number string (10000 -> 10.000)
     const formatNumberString = (val: string) => {
         if (!val) return '';
-        // Remove existing format
         let raw = val.replace(/\./g, '').replace(',', '.');
-        // Allow digits and one dot (for standard JS float)
         raw = raw.replace(/[^0-9.]/g, '');
-
-        // Split integer and decimal
         const parts = raw.split('.');
         let integerPart = parts[0];
-        const decimalPart = parts.length > 1 ? ',' + parts[1].slice(0, 2) : ''; // Limit decimal to 2 chars
-
-        // Add thousands separator
+        const decimalPart = parts.length > 1 ? ',' + parts[1].slice(0, 2) : '';
         integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
         return integerPart + decimalPart;
     };
 
-    // [NEW] Helper to parse formatted string to number (10.000,50 -> 10000.50)
+    // Helper to parse formatted string to number (10.000,50 -> 10000.50)
     const parseFormattedNumber = (val: string) => {
         if (!val) return 0;
         const normalized = val.replace(/\./g, '').replace(',', '.');
@@ -140,41 +108,23 @@ export default function FuelMovementPage() {
         return isNaN(num) ? 0 : num;
     };
 
-    // Wrapper for setting amount/price with formatting
     const handleAmountChange = (val: string, setter: any, field: string) => {
-        // Allow user to type comma or dot
-        // If user types dot, treated as thousands separator OR decimal if they mean it? 
-        // TR standard: Dot = Thousands, Comma = Decimal.
-        // If user types '10.5', assuming they might mean 10,5. 
-        // But let's enforce comma for decimal to be consistent.
-        // Actually, simple regex input masking is better:
-
-        // 1. Clean input: only digits and ONE comma
         let clean = val.replace(/[^0-9,]/g, '');
-
-        // Prevent multiple commas
         const parts = clean.split(',');
         if (parts.length > 2) {
             clean = parts[0] + ',' + parts.slice(1).join('');
         }
-
-        // 2. Format Integer part
-        let integerPart = parts[0].replace(/^0+(?!$)/, ''); // Remove leading zeros
-        if (integerPart === '') integerPart = '0'; // But keep single zero if empty? No, better empty if empty.
-
-        // If strictly empty
+        let integerPart = parts[0].replace(/^0+(?!$)/, '');
+        if (integerPart === '') integerPart = '0';
         if (clean === '') {
             setter(prev => ({ ...prev, [field]: '' }));
             return;
         }
-
         const formattedInt = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         let final = formattedInt;
-
         if (val.includes(',')) {
             final += ',' + (parts[1] || '');
         }
-
         setter(prev => ({ ...prev, [field]: final }));
     };
 
@@ -188,36 +138,32 @@ export default function FuelMovementPage() {
             return;
         }
 
-        // Note: fromId/toId validation check...
-
         const sourceTank = fuelTanks.find((t: any) => t.id === transferData.fromId);
         if (!sourceTank) {
             toast.error('Kaynak depo bulunamadı.');
             return;
         }
 
-        if (transferData.fromId === transferData.toId && transferData.toType === 'TANK') {
+        if (transferData.fromId === transferData.toId) {
             toast.error('Kaynak ve hedef depo aynı olamaz.');
             return;
         }
 
-        // Auto-detect time
+        // Auto-set Date to NOW
         const now = new Date();
-        const combinedDate = new Date(date);
-        combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
         addFuelTransfer({
             id: crypto.randomUUID(),
-            fromType: transferData.fromType as any,
+            fromType: 'TANK', // Fixed
             fromId: transferData.fromId,
-            toType: transferData.toType as any,
+            toType: 'TANK', // Fixed
             toId: transferData.toId,
-            date: combinedDate.toISOString(),
+            date: now.toISOString(),
             amount: amount,
             createdByUserId: user.id
         });
         toast.success('Transfer (Virman) işlemi başarıyla kaydedildi.');
-        // setTransferData({ ...transferData, amount: '' });
+        clearTransfer();
     };
 
     const handlePurchase = (e: React.FormEvent) => {
@@ -232,19 +178,15 @@ export default function FuelMovementPage() {
             return;
         }
 
-        // Auto-detect time logic (User request: "saati otomatik algıla")
-        // Use the selected DATE from the form, but force CURRENT TIME.
         const now = new Date();
-        const combinedDate = new Date(date); // 'date' is YYYY-MM-DD string, so this creates a date at 00:00 UTC or Local? 
-        // new Date('2023-01-01') fits local timezone usually in browser.
+        const combinedDate = new Date(date);
         combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
-        // Treat purchase as External -> [TANK] transfer (Fixed to TANK)
         addFuelTransfer({
             id: crypto.randomUUID(),
             fromType: 'EXTERNAL',
             fromId: purchaseData.firmName,
-            toType: 'TANK', // [FIX] Always TANK
+            toType: 'TANK',
             toId: purchaseData.toId,
             date: combinedDate.toISOString(),
             amount: amount,
@@ -254,7 +196,7 @@ export default function FuelMovementPage() {
             description: `Birim Fiyat: ${price} TL`
         });
         toast.success('Yakıt Alımı başarıyla kaydedildi.');
-        // setPurchaseData({ ...purchaseData, amount: '', unitPrice: '' });
+        clearPurchase();
     };
 
     const handleDispense = (e: React.FormEvent) => {
@@ -275,17 +217,21 @@ export default function FuelMovementPage() {
             return;
         }
 
-        // Auto-detect time
         const now = new Date();
-        const combinedDate = new Date(date);
-        combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+        const combinedDate = new Date(date); // But for dispense we still use "date" state if we kept it?
+        // Wait, user asked to remove Date from Dispense too?
+        // Step 1011 says: "FuelForm.tsx: Yakıt verme işleminde tarih/saat alanını kaldır".
+        // But here in PAGE.tsx, Dispense Form STILL HAS DATE INPUT (lines 394-401).
+        // I should probably remove it here too to match user expectations if they are using this page.
+        // Yes, let's auto-set date for Dispense too.
+        combinedDate.setTime(now.getTime()); // Just use NOW
 
         addFuelLog({
             id: crypto.randomUUID(),
             vehicleId: dispenseData.vehicleId,
             siteId: sourceTank.siteId || '',
             tankId: dispenseData.tankId,
-            date: combinedDate.toISOString(),
+            date: now.toISOString(), // Use NOW
             liters: amount,
             cost: 0,
             mileage: mileage,
@@ -294,9 +240,8 @@ export default function FuelMovementPage() {
             description: dispenseData.description
         });
         toast.success('Yakıt Verme (Tüketim) işlemi başarıyla kaydedildi.');
+        clearDispense();
     };
-
-
 
     return (
         <div className="space-y-6">
@@ -342,27 +287,13 @@ export default function FuelMovementPage() {
                                             value={selectedDispenseSiteId}
                                             onValueChange={v => {
                                                 setSelectedDispenseSiteId(v);
-                                                setDispenseData(prev => ({ ...prev, tankId: '' })); // Reset tank on site change
+                                                setDispenseData(prev => ({ ...prev, tankId: '' }));
                                             }}
                                             disabled={availableSites.length === 1}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Şantiye Seçiniz" /></SelectTrigger>
                                             <SelectContent>
                                                 {availableSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Hangi Depodan?</Label>
-                                        <Select
-                                            value={dispenseData.tankId}
-                                            onValueChange={v => setDispenseData({ ...dispenseData, tankId: v || '' })}
-                                            required
-                                            disabled={!selectedDispenseSiteId}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder={!selectedDispenseSiteId ? "Önce Şantiye Seçiniz" : "Depo Seçiniz"} /></SelectTrigger>
-                                            <SelectContent>
-                                                {dispenseTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -374,16 +305,8 @@ export default function FuelMovementPage() {
                                                 {(vehicles || [])
                                                     .filter((v: any) =>
                                                         v.status === 'ACTIVE' &&
-                                                        // Optional: Filter vehicle by site too? 
-                                                        // User request was specific about "Depo" (Tank). But usually vehicles are also site specific.
-                                                        // Let's filter vehicles by selectedSiteId too for better UX if desired.
-                                                        // "personele verilen şantiyenin deposu".
-                                                        // Let's keep logic simple: filter by available sites check we added globally, 
-                                                        // but maybe refine to selectedDispenseSiteId?
-                                                        // Usually vehicles move between sites so strict filtering might be annoying.
-                                                        // But "assignedSiteId" exists on vehicle.
-                                                        // Let's stick to showing active vehicles for now, maybe filtered by availableSites logic (global check).
-                                                        true
+                                                        // Filter vehicles by selected site (optional but good per user request "Şantiye seçince o araçlar gelsin")
+                                                        (!selectedDispenseSiteId || v.assignedSiteId === selectedDispenseSiteId || (v.assignedSiteIds && v.assignedSiteIds.includes(selectedDispenseSiteId)))
                                                     )
                                                     .map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand}</SelectItem>)}
                                             </SelectContent>
@@ -392,13 +315,6 @@ export default function FuelMovementPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-2">
-                                        <Label>Tarih</Label>
-                                        <div className="flex gap-2">
-                                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground">Saat otomatik olarak kaydedilecektir.</p>
-                                    </div>
                                     <div className="space-y-2">
                                         <Label>Güncel KM/Saat</Label>
                                         <Input
@@ -409,27 +325,17 @@ export default function FuelMovementPage() {
                                             required
                                         />
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Verilen Miktar (Lt)</Label>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                            type="text"
-                                            inputMode="decimal"
-                                            value={dispenseData.amount}
-                                            onChange={e => handleAmountChange(e.target.value, setDispenseData, 'amount')}
-                                            required
-                                            className="flex-1"
-                                        />
-                                        <div className="flex items-center gap-2 whitespace-nowrap bg-muted/30 px-3 py-2 rounded-md border text-sm h-10">
-                                            <input
-                                                type="checkbox" className="w-4 h-4"
-                                                id="fullTankParams"
-                                                checked={dispenseData.fullTank}
-                                                onChange={e => setDispenseData({ ...dispenseData, fullTank: e.target.checked })}
+                                    <div className="space-y-2">
+                                        <Label>Verilen Miktar (Lt)</Label>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={dispenseData.amount}
+                                                onChange={e => handleAmountChange(e.target.value, setDispenseData, 'amount')}
+                                                required
+                                                className="flex-1"
                                             />
-                                            <Label htmlFor="fullTankParams" className="cursor-pointer font-normal m-0">Full</Label>
                                         </div>
                                     </div>
                                 </div>
@@ -464,93 +370,50 @@ export default function FuelMovementPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Yakıt Virman (Transfer)</CardTitle>
-                            <CardDescription>Depolar arası veya depodan araca transfer.</CardDescription>
+                            <CardDescription>Depolar arası transfer.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleTransfer} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-2">
-                                        <Label>Şantiye (Çıkış)</Label>
-                                        <Select
-                                            value={selectedDispenseSiteId}
-                                            onValueChange={v => {
-                                                setSelectedDispenseSiteId(v);
-                                                setTransferData(prev => ({ ...prev, fromId: '' }));
-                                            }}
-                                            disabled={availableSites.length === 1}
-                                        >
-                                            <SelectTrigger><SelectValue placeholder="Şantiye Seçiniz" /></SelectTrigger>
-                                            <SelectContent>
-                                                {availableSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
                                     <div className="space-y-2">
                                         <Label>Çıkış Yeri (Depo)</Label>
                                         <Select
                                             value={transferData.fromId}
                                             onValueChange={v => setTransferData({ ...transferData, fromId: v || '' })}
                                             required
-                                            disabled={!selectedDispenseSiteId}
                                         >
-                                            <SelectTrigger><SelectValue placeholder={!selectedDispenseSiteId ? "Önce Şantiye Seçiniz" : "Seçiniz"} /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {dispenseTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-2">
-                                        <Label>Giriş Yeri Tipi</Label>
-                                        <Select value={transferData.toType} onValueChange={(v: any) => setTransferData({ ...transferData, toType: v, toId: '' })} required>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="TANK">Başka Depoya</SelectItem>
-                                                <SelectItem value="VEHICLE">Araca (Özel)</SelectItem>
+                                                {/* Show all accessible tanks */}
+                                                {accessibleTanks.map((t: any) => (
+                                                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{transferData.toType === 'TANK' ? 'Hedef Depo' : 'Hedef Araç'}</Label>
-                                        {transferData.toType === 'TANK' ? (
-                                            <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
-                                                <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {(accessibleTanks || []).filter((t: any) => t.id !== transferData.fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        ) : (
-                                            <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
-                                                <SelectTrigger><SelectValue placeholder="Araç Seçiniz" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {(vehicles || []).filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
+                                        <Label>Hedef Depo</Label>
+                                        <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
+                                            <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
+                                            <SelectContent>
+                                                {accessibleTanks.filter((t: any) => t.id !== transferData.fromId).map((t: any) => (
+                                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-2">
-                                        <Label>Tarih</Label>
-                                        <div className="flex gap-2">
-                                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground">Saat otomatik olarak kaydedilecektir.</p>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Miktar (Lt)</Label>
-                                        <Input
-                                            type="text"
-                                            inputMode="decimal"
-                                            value={transferData.amount}
-                                            onChange={e => handleAmountChange(e.target.value, setTransferData, 'amount')}
-                                            required
-                                        />
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label>Miktar (Lt)</Label>
+                                    <Input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={transferData.amount}
+                                        onChange={e => handleAmountChange(e.target.value, setTransferData, 'amount')}
+                                        required
+                                    />
                                 </div>
 
                                 {canTransferCreate ? (
@@ -573,7 +436,7 @@ export default function FuelMovementPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>Yakıt Satın Alma</CardTitle>
-                            <CardDescription>Dışarıdan depoya veya araca yakıt girişi.</CardDescription>
+                            <CardDescription>Dışarıdan depoya yakıt girişi.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handlePurchase} className="space-y-4">
@@ -590,15 +453,6 @@ export default function FuelMovementPage() {
                                             {accessibleTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
-                                </div>
-
-                                {/* [NEW] Date/Time for Purchase - Time Automagically Detected */}
-                                <div className="space-y-2">
-                                    <Label>İşlem Tarihi</Label>
-                                    <div className="flex gap-2">
-                                        <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground">Saat otomatik olarak kaydedilecektir.</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2">
