@@ -69,8 +69,8 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
             const targetCompanyName = companies.find((c: any) => c.id === targetCompanyId)?.name || '';
 
             const payload: any = {
-                companyId: targetCompanyId,
-                // ownership: 'RENTAL', // [MODIFIED] Do NOT change ownership. Keep as OWNED.
+                // companyId: targetCompanyId, // [FIX] DO NOT change the owner company ID. Keep original owner.
+                // ownership: 'RENTAL', 
                 rentalCompanyName: targetCompanyName, // [NEW] Set this so 'isRentedOwned' filter catches it
                 monthlyRentalFee: 0,
                 rentalLastUpdate: new Date().toISOString(),
