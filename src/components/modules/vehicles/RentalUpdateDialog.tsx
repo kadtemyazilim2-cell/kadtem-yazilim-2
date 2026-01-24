@@ -38,12 +38,22 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
             fee = parseFloat(monthlyFee);
         }
 
-        const payload = {
+        // Check if anything actually changed
+        const currentFee = vehicle.monthlyRentalFee || 0;
+        const currentSite = vehicle.assignedSiteId || '';
+        const hasFeeChanged = Math.abs(currentFee - fee) > 0.01; // Float comparison
+        const hasSiteChanged = currentSite !== assignedSiteId;
+
+        const payload: any = {
             monthlyRentalFee: isNaN(fee) ? 0 : fee,
             assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
             assignedSiteIds: [], // [NEW] Clear multi-site to ensure single rental site
-            rentalLastUpdate: new Date().toISOString()
         };
+
+        // Only update timestamp if something meaningful changed
+        if (hasFeeChanged || hasSiteChanged) {
+            payload.rentalLastUpdate = new Date().toISOString();
+        }
 
         // 1. Server Update
         const res = await updateVehicleAction(vehicle.id, payload);
