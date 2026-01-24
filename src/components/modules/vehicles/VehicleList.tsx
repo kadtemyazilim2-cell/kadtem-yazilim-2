@@ -74,7 +74,7 @@ export function VehicleList() {
     // Filter State (All Dropdowns)
     const [filters, setFilters] = useState({
         company: [] as string[],
-        ownership: ['OWNED'] as string[],
+        ownership: ['OWNED', 'RENTAL'] as string[], // [MODIFIED] Show ALL by default per user request ("All vehicles must be visible")
         site: [] as string[],
         plate: [] as string[],
         brand: [] as string[],
@@ -864,7 +864,7 @@ export function VehicleList() {
                             <div className="flex items-end">
                                 <Button
                                     variant="secondary"
-                                    onClick={() => setFilters({ ...filters, company: [], ownership: ['OWNED'], plate: [], brand: [], model: [], year: [], type: [], status: ['ACTIVE'], site: [], insuranceAgency: [], kaskoAgency: [], insuranceCompany: [], kaskoCompany: [], definition: [], policyType: [], policyProvider: [], policyAgency: [], policyYear: [], policyPlate: [], policyOwner: [] })}
+                                    onClick={() => setFilters({ ...filters, company: [], ownership: ['OWNED', 'RENTAL'], plate: [], brand: [], model: [], year: [], type: [], status: ['ACTIVE'], site: [], insuranceAgency: [], kaskoAgency: [], insuranceCompany: [], kaskoCompany: [], definition: [], policyType: [], policyProvider: [], policyAgency: [], policyYear: [], policyPlate: [], policyOwner: [] })}
                                     className="w-full"
                                 >
                                     Filtreleri Temizle
