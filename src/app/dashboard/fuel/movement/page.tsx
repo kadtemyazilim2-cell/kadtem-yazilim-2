@@ -201,13 +201,18 @@ export default function FuelMovementPage() {
             return;
         }
 
+        // Auto-detect time
+        const now = new Date();
+        const combinedDate = new Date(date);
+        combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
         addFuelTransfer({
             id: crypto.randomUUID(),
             fromType: transferData.fromType as any,
             fromId: transferData.fromId,
             toType: transferData.toType as any,
             toId: transferData.toId,
-            date: getDateTime(),
+            date: combinedDate.toISOString(),
             amount: amount,
             createdByUserId: user.id
         });
@@ -257,8 +262,6 @@ export default function FuelMovementPage() {
         if (!user) return;
 
         const amount = parseFormattedNumber(dispenseData.amount);
-        // Middleware logic handled by store usually, but let's parse raw mileage too if formatted
-        // but mileage usually doesn't have decimals. Let's support it anyway.
         const mileage = parseFormattedNumber(dispenseData.mileage);
 
         if (amount <= 0) {
@@ -272,12 +275,17 @@ export default function FuelMovementPage() {
             return;
         }
 
+        // Auto-detect time
+        const now = new Date();
+        const combinedDate = new Date(date);
+        combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
         addFuelLog({
             id: crypto.randomUUID(),
             vehicleId: dispenseData.vehicleId,
             siteId: sourceTank.siteId || '',
             tankId: dispenseData.tankId,
-            date: getDateTime(), // [FIX] Use combined DateTime
+            date: combinedDate.toISOString(),
             liters: amount,
             cost: 0,
             mileage: mileage,
@@ -286,9 +294,9 @@ export default function FuelMovementPage() {
             description: dispenseData.description
         });
         toast.success('Yakıt Verme (Tüketim) işlemi başarıyla kaydedildi.');
-        // Do NOT clear form automatically as per user request
-        // setDispenseData({ ...dispenseData, amount: '', mileage: '', description: '' }); 
     };
+
+
 
     return (
         <div className="space-y-6">
@@ -388,8 +396,8 @@ export default function FuelMovementPage() {
                                         <Label>Tarih</Label>
                                         <div className="flex gap-2">
                                             <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
-                                            <Input type="time" value={time} onChange={e => setTime(e.target.value)} required className="w-24" />
                                         </div>
+                                        <p className="text-[10px] text-muted-foreground">Saat otomatik olarak kaydedilecektir.</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Güncel KM/Saat</Label>
@@ -530,8 +538,8 @@ export default function FuelMovementPage() {
                                         <Label>Tarih</Label>
                                         <div className="flex gap-2">
                                             <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
-                                            <Input type="time" value={time} onChange={e => setTime(e.target.value)} required className="w-24" />
                                         </div>
+                                        <p className="text-[10px] text-muted-foreground">Saat otomatik olarak kaydedilecektir.</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Miktar (Lt)</Label>
