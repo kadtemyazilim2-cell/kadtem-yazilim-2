@@ -2431,10 +2431,7 @@ export default function AdminPage() {
                                                                                 variant="outline"
                                                                                 size="sm"
                                                                                 className="h-8 w-8 p-0"
-                                                                                onClick={() => {
-                                                                                    const win = window.open();
-                                                                                    win?.document.write('<iframe src="' + newSiteData.provisionalAcceptanceDoc + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
-                                                                                }}
+                                                                                onClick={() => setPreviewDoc(newSiteData.provisionalAcceptanceDoc)}
                                                                                 title="Görüntüle"
                                                                             >
                                                                                 <Search className="h-4 w-4" />
@@ -2493,10 +2490,7 @@ export default function AdminPage() {
                                                                                 variant="outline"
                                                                                 size="sm"
                                                                                 className="h-8 w-8 p-0"
-                                                                                onClick={() => {
-                                                                                    const win = window.open();
-                                                                                    win?.document.write('<iframe src="' + newSiteData.finalAcceptanceDoc + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
-                                                                                }}
+                                                                                onClick={() => setPreviewDoc(newSiteData.finalAcceptanceDoc)}
                                                                                 title="Görüntüle"
                                                                             >
                                                                                 <Search className="h-4 w-4" />
@@ -2559,10 +2553,7 @@ export default function AdminPage() {
                                                                                 variant="outline"
                                                                                 size="sm"
                                                                                 className="h-8 w-8 p-0"
-                                                                                onClick={() => {
-                                                                                    const win = window.open();
-                                                                                    win?.document.write('<iframe src="' + newSiteData.workExperienceDoc + '" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>');
-                                                                                }}
+                                                                                onClick={() => setPreviewDoc(newSiteData.workExperienceDoc)}
                                                                                 title="Görüntüle"
                                                                             >
                                                                                 <Search className="h-4 w-4" />

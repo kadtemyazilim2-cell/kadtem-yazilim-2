@@ -391,13 +391,9 @@ export function VehicleList() {
         return true;
     });
 
-    // 3. Cost/Rental List Filter (Now includes OWNED)
     const filteredRentalVehicles = sortedVehicles.filter(vehicle => {
         // [MODIFIED] Only show RENTAL vehicles in this tab as per user request
         if (vehicle.ownership !== 'RENTAL') return false;
-
-        // [NEW] Workaround for deletion issue: If both company and fee are missing, hide it (deleted from UI perspective)
-        if (!vehicle.rentalCompanyName && !vehicle.monthlyRentalFee) return false;
 
         if (rentalFilters.plate.length > 0 && !rentalFilters.plate.includes(vehicle.plate)) return false;
 
@@ -972,7 +968,8 @@ export function VehicleList() {
                         {(() => {
                             // 1. Prepare Data
                             const grouped: Record<string, typeof vehicles> = {};
-                            const centerVehicles = filteredVehicles.filter(v => v.ownership === 'OWNED');
+                            // [MODIFIED] Show ALL vehicles in "Merkez/Tüm Araçlar" list, not just OWNED. User wants them to stay visible.
+                            const centerVehicles = filteredVehicles;
                             const unassignedRentals = filteredVehicles.filter(v => v.ownership === 'RENTAL' && !v.assignedSiteId && (!v.assignedSiteIds || v.assignedSiteIds.length === 0));
 
                             filteredVehicles.forEach(v => {
@@ -1048,7 +1045,7 @@ export function VehicleList() {
                                             <div className="flex justify-between items-center">
                                                 <CardTitle className="text-lg font-semibold flex items-center gap-2 text-slate-800">
                                                     <Building2 className="w-5 h-5 text-blue-600" />
-                                                    Merkez / Tüm Öz Mal Araçlar
+                                                    Merkez / Tüm Araçlar (Öz Mal + Kiralık)
                                                     <Badge variant="secondary" className="bg-white border-blue-200 text-blue-700 ml-2">
                                                         {centerVehicles.length} Araç
                                                     </Badge>
