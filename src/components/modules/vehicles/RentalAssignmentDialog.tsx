@@ -21,7 +21,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
     const { vehicles, updateVehicle: updateLocal, companies, sites } = useAppStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [targetCompanyId, setTargetCompanyId] = useState('');
-    const [targetSiteId, setTargetSiteId] = useState(''); // [NEW]
+
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
     // Filter for OWNED vehicles only
@@ -57,16 +57,12 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
             toast.error('Lütfen bir kiralama firması seçiniz.');
             return;
         }
-        if (!targetSiteId) { // [NEW] Validation
-            toast.error('Lütfen bir şantiye seçiniz.');
-            return;
-        }
 
         // Process sequentially to ensure order or parallel? Parallel is fine.
         const promises = selectedIds.map(async (id) => {
             const payload = {
                 companyId: targetCompanyId,
-                assignedSiteId: targetSiteId, // [NEW]
+                // assignedSiteId: targetSiteId, // [REMOVED] Preserve existing site
                 ownership: 'RENTAL' as const, // Force type
                 monthlyRentalFee: 0,
                 rentalLastUpdate: new Date().toISOString()
@@ -119,20 +115,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                         </select>
                     </div>
 
-                    {/* [NEW] Site Selection */}
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Şantiye Seçiniz (Zorunlu)</label>
-                        <select
-                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            value={targetSiteId}
-                            onChange={(e) => setTargetSiteId(e.target.value)}
-                        >
-                            <option value="">Şantiye Seçiniz...</option>
-                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                        </select>
-                    </div>
+                    {/* [REMOVED] Site Selection - User wants to preserve existing site */}
                 </div>
 
                 <div className="flex items-center space-x-2 py-2 border-b">
@@ -184,7 +167,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                         Seçilenleri Ekle ({selectedIds.length})
                     </Button>
                 </DialogFooter>
-            </DialogContent>
-        </Dialog>
+            </DialogContent >
+        </Dialog >
     );
 }
