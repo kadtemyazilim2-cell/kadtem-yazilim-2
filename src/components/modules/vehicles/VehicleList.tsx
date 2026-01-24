@@ -30,7 +30,7 @@ import { fontBase64 } from '@/lib/pdf-font';
 import { normalizeSearchText } from '@/lib/utils';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Vehicle } from '@/lib/types';
-import { deleteVehicle as deleteVehicleAction } from '@/actions/vehicle'; // [NEW] Import Server Action
+import { deleteVehicle as deleteVehicleAction, updateVehicle as updateVehicleAction } from '@/actions/vehicle'; // [NEW] Import Server Action
 
 export function VehicleList() {
     const { vehicles, sites, companies, updateVehicle, vehicleAttendance, fuelLogs, deleteVehicle } = useAppStore();
@@ -1516,14 +1516,29 @@ export function VehicleList() {
                                                             variant="ghost"
                                                             size="sm"
                                                             className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                            onClick={() => {
+                                                            onClick={async () => {
                                                                 if (confirm('Bu aracı kiralık listesinden çıkarmak istediğinize emin misiniz? Araç "Öz Mal" olarak işaretlenecektir.')) {
-                                                                    updateVehicle(vehicle.id, {
-                                                                        ownership: 'OWNED',
-                                                                        rentalCompanyName: '',
-                                                                        monthlyRentalFee: 0,
-                                                                        rentalLastUpdate: new Date().toISOString()
-                                                                    });
+                                                                    try {
+                                                                        const res = await updateVehicleAction(vehicle.id, {
+                                                                            ownership: 'OWNED',
+                                                                            rentalCompanyName: '',
+                                                                            monthlyRentalFee: 0,
+                                                                        });
+
+                                                                        if (res.success) {
+                                                                            updateVehicle(vehicle.id, {
+                                                                                ownership: 'OWNED',
+                                                                                rentalCompanyName: '',
+                                                                                monthlyRentalFee: 0,
+                                                                                rentalLastUpdate: new Date().toISOString()
+                                                                            });
+                                                                            toast.success('Araç kiralık listesinden çıkarıldı.');
+                                                                        } else {
+                                                                            toast.error(res.error || 'İşlem başarısız.');
+                                                                        }
+                                                                    } catch (e) {
+                                                                        toast.error('Bir hata oluştu.');
+                                                                    }
                                                                 }
                                                             }}
                                                             title="Listeden Çıkar"
