@@ -65,9 +65,13 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
 
         // Process sequentially to ensure order or parallel? Parallel is fine.
         const promises = selectedIds.map(async (id) => {
+            // [FIX] Ensure we capture the company name for the 'rentalCompanyName' field so it appears in the Rental Tab
+            const targetCompanyName = companies.find((c: any) => c.id === targetCompanyId)?.name || '';
+
             const payload: any = {
                 companyId: targetCompanyId,
                 // ownership: 'RENTAL', // [MODIFIED] Do NOT change ownership. Keep as OWNED.
+                rentalCompanyName: targetCompanyName, // [NEW] Set this so 'isRentedOwned' filter catches it
                 monthlyRentalFee: 0,
                 rentalLastUpdate: new Date().toISOString(),
                 assignedSiteId: targetSiteId, // Set new single site
@@ -82,7 +86,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
         });
 
         await Promise.all(promises);
-        toast.success('Araçlar kiralık listesine aktarıldı.');
+        toast.success('Araçlar kiralık listesine kaydedildi.');
         onOpenChange(false);
     };
 
@@ -184,7 +188,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                 <DialogFooter className="mt-2">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
                     <Button onClick={handleSave} disabled={selectedIds.length === 0}>
-                        Seçilenleri Ekle ({selectedIds.length})
+                        Seçilenleri Kaydet ({selectedIds.length})
                     </Button>
                 </DialogFooter>
             </DialogContent >
