@@ -1079,9 +1079,17 @@ export function VehicleList() {
                                                                 <TableCell>{v.brand} {v.model}</TableCell>
                                                                 <TableCell>
                                                                     <span className="text-sm font-medium text-slate-700 block max-w-[200px] truncate" title={getVehicleSiteName(v)}>
-                                                                        {getVehicleSiteName(v) === '-' ? (
-                                                                            <span className="text-muted-foreground italic">Merkez</span>
-                                                                        ) : getVehicleSiteName(v)}
+                                                                        {(() => {
+                                                                            const name = getVehicleSiteName(v);
+                                                                            if (v.ownership === 'RENTAL') {
+                                                                                // For rentals, show site name directly, or '-' if none. Never 'Merkez'.
+                                                                                return name === '-' ? <span className="text-muted-foreground">-</span> : name;
+                                                                            }
+                                                                            // For owned, show 'Merkez' if no site
+                                                                            return name === '-' ? (
+                                                                                <span className="text-muted-foreground italic">Merkez</span>
+                                                                            ) : name;
+                                                                        })()}
                                                                     </span>
                                                                 </TableCell>
                                                                 <TableCell>
