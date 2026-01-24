@@ -227,14 +227,21 @@ export default function FuelMovementPage() {
             return;
         }
 
-        // Treat purchase as External -> [Target] transfer
+        // Auto-detect time logic (User request: "saati otomatik algıla")
+        // Use the selected DATE from the form, but force CURRENT TIME.
+        const now = new Date();
+        const combinedDate = new Date(date); // 'date' is YYYY-MM-DD string, so this creates a date at 00:00 UTC or Local? 
+        // new Date('2023-01-01') fits local timezone usually in browser.
+        combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+
+        // Treat purchase as External -> [TANK] transfer (Fixed to TANK)
         addFuelTransfer({
             id: crypto.randomUUID(),
             fromType: 'EXTERNAL',
             fromId: purchaseData.firmName,
-            toType: purchaseData.toType as any, // 'TANK' or 'VEHICLE'
+            toType: 'TANK', // [FIX] Always TANK
             toId: purchaseData.toId,
-            date: getDateTime(), // [FIX] Use combined DateTime
+            date: combinedDate.toISOString(),
             amount: amount,
             unitPrice: price,
             totalCost: amount * price,
@@ -567,45 +574,23 @@ export default function FuelMovementPage() {
                                     <Input placeholder="Firma Adı" value={purchaseData.firmName} onChange={e => setPurchaseData({ ...purchaseData, firmName: e.target.value })} required />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-2">
-                                        <Label>Giriş Yeri</Label>
-                                        <Select value={purchaseData.toType} onValueChange={(v: any) => setPurchaseData({ ...purchaseData, toType: v, toId: '' })} required>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="TANK">Sabit Depoya</SelectItem>
-                                                <SelectItem value="VEHICLE">Doğrudan Araca</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>{purchaseData.toType === 'TANK' ? 'Depo Seçimi' : 'Araç Seçimi'}</Label>
-                                        {purchaseData.toType === 'TANK' ? (
-                                            <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '' })} required>
-                                                <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {accessibleTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        ) : (
-                                            <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '' })} required>
-                                                <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {(vehicles || []).filter((v: any) => v.status === 'ACTIVE').map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label>Depo Seçimi</Label>
+                                    <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '', toType: 'TANK' })} required>
+                                        <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
+                                        <SelectContent>
+                                            {accessibleTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
 
-                                {/* [NEW] Date/Time for Purchase */}
+                                {/* [NEW] Date/Time for Purchase - Time Automagically Detected */}
                                 <div className="space-y-2">
                                     <Label>İşlem Tarihi</Label>
                                     <div className="flex gap-2">
                                         <Input type="date" value={date} onChange={e => setDate(e.target.value)} required className="flex-1" />
-                                        <Input type="time" value={time} onChange={e => setTime(e.target.value)} required className="w-24" />
                                     </div>
+                                    <p className="text-[10px] text-muted-foreground">Saat otomatik olarak kaydedilecektir.</p>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-2">
