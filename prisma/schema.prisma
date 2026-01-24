@@ -225,6 +225,7 @@ model Vehicle {
   rentalCompanyName String?
   monthlyRentalFee  Float?
   rentalContact     String?
+  rentalLastUpdate  DateTime? // [NEW] Added for tracking rental updates
   
   // Details
   engineNumber    String?

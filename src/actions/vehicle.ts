@@ -75,13 +75,24 @@ export async function createVehicle(data: Partial<Vehicle>) {
 
 export async function updateVehicle(id: string, data: Partial<Vehicle>) {
     try {
-        // Remove undefined keys so Prisma doesn't try to set them to null/undefined
-        const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+        // Remove undefined keys
+        let cleanData: any = {};
+        for (const [key, value] of Object.entries(data)) {
             if (value !== undefined) {
-                acc[key] = value;
+                cleanData[key] = value;
             }
-            return acc;
-        }, {} as any);
+        }
+
+        // [FIX] Handle assignedSiteIds (Virtual field from client for many-to-many)
+        if ('assignedSiteIds' in cleanData) {
+            const ids = cleanData.assignedSiteIds as string[];
+            delete cleanData.assignedSiteIds; // Remove scalar field that doesn't exist
+
+            // Add relation update logic
+            cleanData.assignedSites = {
+                set: ids.map(id => ({ id }))
+            };
+        }
 
         const vehicle = await prisma.vehicle.update({
             where: { id },
