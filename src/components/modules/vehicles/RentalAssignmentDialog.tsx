@@ -58,6 +58,11 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
             return;
         }
 
+        if (!targetSiteId) {
+            toast.error('Lütfen bir şantiye seçiniz.');
+            return;
+        }
+
         // Process sequentially to ensure order or parallel? Parallel is fine.
         const promises = selectedIds.map(async (id) => {
             const payload: any = {
@@ -67,7 +72,7 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                 rentalLastUpdate: new Date().toISOString()
             };
 
-            // [RESTORED] Only update site if selected
+            // [RESTORED] Mandatory Site Update
             if (targetSiteId) {
                 payload.assignedSiteId = targetSiteId;
             }
@@ -119,20 +124,19 @@ export function RentalAssignmentDialog({ open, onOpenChange }: RentalAssignmentD
                         </select>
                     </div>
 
-                    {/* [RESTORED] Site Selection (Optional) */}
+                    {/* [RESTORED] Site Selection (Mandatory) */}
                     <div className="space-y-1">
-                        <label className="text-sm font-medium">Şantiye Seçiniz (İsteğe Bağlı)</label>
+                        <label className="text-sm font-medium">Şantiye Seçiniz</label>
                         <select
                             className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             value={targetSiteId}
                             onChange={(e) => setTargetSiteId(e.target.value)}
                         >
-                            <option value="">Mevcut Şantiyeyi Koru (Değişiklik Yapma)</option>
+                            <option value="">Şantiye Seçiniz...</option>
                             {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                 <option key={s.id} value={s.id}>{s.name}</option>
                             ))}
                         </select>
-                        <p className="text-[10px] text-muted-foreground">Şantiye seçmezseniz aracın mevcut şantiye kaydı korunur.</p>
                     </div>
 
                 </div>

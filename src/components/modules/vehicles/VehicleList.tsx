@@ -873,7 +873,7 @@ export function VehicleList() {
 
                     <TabsList className="grid w-full grid-cols-5">
                         <TabsTrigger value="list">Araç Listesi</TabsTrigger>
-                        <TabsTrigger value="vehicle-sites">Araç Şantiye</TabsTrigger>
+
                         {canViewFinance && <TabsTrigger value="rental-costs">Araç Kira Bedeli</TabsTrigger>}
                         {canViewInsurance && <TabsTrigger value="insurance">Sigorta/Muayene</TabsTrigger>}
                         {canViewInsurance && <TabsTrigger value="agency-tracking">Acente Takip</TabsTrigger>}
@@ -983,63 +983,7 @@ export function VehicleList() {
                         </Table>
                     </TabsContent>
 
-                    <TabsContent value="vehicle-sites" className="space-y-6">
-                        <Card>
-                            <CardHeader className="py-3 bg-muted/20">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex flex-col">
-                                        <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                                            Araç Şantiye Listesi
-                                            <Badge variant="secondary" className="bg-white">{filteredVehicles.length} Araç</Badge>
-                                        </CardTitle>
-                                        <CardDescription>Araçların güncel şantiye atamalarını buradan takip edebilirsiniz.</CardDescription>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[50px]">#</TableHead>
-                                            <TableHead>Plaka</TableHead>
-                                            <TableHead>Şantiye</TableHead>
-                                            <TableHead>Kiralama Şirketi</TableHead>
-                                            <TableHead>Marka / Model</TableHead>
-                                            <TableHead>Mülkiyet</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredVehicles.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                                    Kayıt bulunamadı.
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            filteredVehicles.map((v, idx) => (
-                                                <TableRow key={v.id}>
-                                                    <TableCell>{idx + 1}</TableCell>
-                                                    <TableCell className="font-bold font-mono">{v.plate}</TableCell>
-                                                    <TableCell className="text-sm font-medium text-slate-700">
-                                                        {getVehicleSiteName(v)}
-                                                    </TableCell>
-                                                    <TableCell className="text-sm text-slate-600">{v.rentalCompanyName || '-'}</TableCell>
-                                                    <TableCell>{v.brand} {v.model}</TableCell>
-                                                    <TableCell>
-                                                        {v.ownership === 'OWNED' ? (
-                                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Öz Mal</Badge>
-                                                        ) : (
-                                                            <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Kiralık</Badge>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+
 
                     {/* --- TAB: INSURANCE --- */}
                     {
