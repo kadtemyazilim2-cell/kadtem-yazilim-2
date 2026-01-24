@@ -6,14 +6,14 @@ import { useAuth } from '@/lib/store/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea'; // [NEW]
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
-import { FuelLog } from '@/lib/types';
 
 export function FuelForm() {
     const [open, setOpen] = useState(false);
-    const { addFuelLog, companies, vehicles, sites, fuelTanks } = useAppStore();
+    const { addFuelLog, vehicles, sites, fuelTanks } = useAppStore();
     const { user } = useAuth();
 
     // Filter vehicles by company if needed, but for now show all active
@@ -23,12 +23,13 @@ export function FuelForm() {
     const [formData, setFormData] = useState({
         vehicleId: '',
         siteId: '',
-        tankId: '', // [NEW] Auto-set
-        date: new Date().toISOString(), // [MODIFIED] Default to NOW
+        tankId: '', // Auto-set
+        date: new Date().toISOString(), // Default to NOW
         liters: 0,
         unitPrice: 0,
         cost: 0,
         mileage: 0,
+        description: '', // [NEW] Notes
     });
 
     // [NEW] Filter vehicles based on selected site
@@ -73,10 +74,10 @@ export function FuelForm() {
             id: crypto.randomUUID(),
             ...formData,
             liters: Number(formData.liters),
-            unitPrice: Number(formData.unitPrice),
-            cost: Number(formData.cost),
+            unitPrice: 0, // [MODIFIED] Hidden, set to 0
+            cost: 0, // [MODIFIED] Hidden, set to 0
             mileage: Number(formData.mileage),
-            fullTank: true, // [FIX] Default to true or add UI if needed
+            fullTank: true, // Default
             filledByUserId: user.id
         });
 
@@ -90,20 +91,8 @@ export function FuelForm() {
             unitPrice: 0,
             cost: 0,
             mileage: 0,
+            description: '',
         });
-    };
-
-    // Auto Calculation Logic
-    const handleLitersChange = (val: number) => {
-        const newLiters = val;
-        const newCost = formData.unitPrice > 0 ? Number((newLiters * formData.unitPrice).toFixed(2)) : formData.cost;
-        setFormData({ ...formData, liters: newLiters, cost: newCost });
-    };
-
-    const handleUnitPriceChange = (val: number) => {
-        const newPrice = val;
-        const newCost = formData.liters > 0 ? Number((formData.liters * newPrice).toFixed(2)) : formData.cost;
-        setFormData({ ...formData, unitPrice: newPrice, cost: newCost });
     };
 
     return (
@@ -165,7 +154,7 @@ export function FuelForm() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>KM</Label>
+                            <Label>Güncel KM</Label>
                             <Input
                                 type="number"
                                 required
@@ -174,44 +163,28 @@ export function FuelForm() {
                                 onChange={(e) => setFormData({ ...formData, mileage: Number(e.target.value) })}
                             />
                         </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-2">
-                            <Label>Litre</Label>
+                            <Label>Verilen Litre</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 required
                                 placeholder="Örn: 50.5"
                                 value={formData.liters}
-                                onChange={(e) => handleLitersChange(Number(e.target.value))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Birim Fiyat</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="TL/Lt"
-                                value={formData.unitPrice || ''}
-                                onChange={(e) => handleUnitPriceChange(Number(e.target.value))}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Tutar (TL)</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                required
-                                placeholder="Toplam Tutar"
-                                value={formData.cost}
-                                onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, liters: Number(e.target.value) })}
                             />
                         </div>
                     </div>
 
-
+                    {/* [NEW] Notes Field */}
+                    <div className="space-y-2">
+                        <Label>Notlar</Label>
+                        <Textarea
+                            placeholder="Varsa notlarınız..."
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        />
+                    </div>
 
                     <DialogFooter>
                         <Button type="submit" disabled={!formData.tankId}>Kaydet</Button>
