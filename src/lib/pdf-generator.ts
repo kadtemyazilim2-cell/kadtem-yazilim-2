@@ -115,20 +115,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // Add Signature Label
     // ...
 
-    // [FIX] Stamp Logic
-    if (item.includeStamp && company?.stamp) {
-        try {
-            // Place stamp near signature area, slightly offset
-            const stampWidth = 35;
-            const stampHeight = 35; // Assume square-ish or adjust
 
-            // Layout: Bottom Right for Stamp usually overlaps signature or is next to it.
-            // Let's place it at: x=140, y=230 (Overlapping signature area slightly)
-            doc.addImage(company.stamp, 'PNG', 140, 230, stampWidth, stampHeight);
-        } catch (e) {
-            console.error("Error adding stamp", e);
-        }
-    }
 
 
 
@@ -412,6 +399,33 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     yPos += 15;
 
 
+
+    // [NEW] Stamp Logic
+    if ((item as any).includeStamp) {
+        const company = companies.find(c => c.id === item.companyId);
+        if (company && company.stamp) {
+            try {
+                const imgProps = doc.getImageProperties(company.stamp);
+                const stampWidth = 40; // Approx 4cm width
+                const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
+
+                // Check page overflow
+                if (yPos + stampHeight > 280) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                // x: 130 seems reasonable for right side. yPos is currently TextEnd + 15.
+                // User wants 2 lines (~10mm) below text. So yPos - 5.
+                doc.addImage(company.stamp, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
+
+                // Advance cursor for next sections (Attachments)
+                yPos += stampHeight;
+            } catch (e) {
+                console.error('Error adding stamp:', e);
+            }
+        }
+    }
 
     // 7. Attachments (Ekler) - No indent, just List
     if ((item.appendices && item.appendices.length > 0) || (item.attachmentUrls && item.attachmentUrls.length > 0)) {
