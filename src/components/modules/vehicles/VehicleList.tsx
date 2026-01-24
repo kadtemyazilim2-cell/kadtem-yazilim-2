@@ -74,7 +74,7 @@ export function VehicleList() {
     // Filter State (All Dropdowns)
     const [filters, setFilters] = useState({
         company: [] as string[],
-        ownership: ['OWNED'] as string[],
+        ownership: [] as string[],
         plate: [] as string[],
         brand: [] as string[],
         model: [] as string[],
