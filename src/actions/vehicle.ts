@@ -75,42 +75,17 @@ export async function createVehicle(data: Partial<Vehicle>) {
 
 export async function updateVehicle(id: string, data: Partial<Vehicle>) {
     try {
+        // Remove undefined keys so Prisma doesn't try to set them to null/undefined
+        const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+                acc[key] = value;
+            }
+            return acc;
+        }, {} as any);
+
         const vehicle = await prisma.vehicle.update({
             where: { id },
-            data: {
-                plate: data.plate,
-                brand: data.brand,
-                model: data.model,
-                year: data.year,
-                type: data.type,
-                ownership: data.ownership,
-                status: data.status,
-                meterType: data.meterType,
-                currentKm: data.currentKm,
-
-                insuranceExpiry: data.insuranceExpiry,
-                kaskoExpiry: data.kaskoExpiry,
-                inspectionExpiry: data.inspectionExpiry,
-                lastInspectionDate: data.lastInspectionDate,
-
-                insuranceCost: data.insuranceCost,
-                kaskoCost: data.kaskoCost,
-                insuranceAgency: data.insuranceAgency,
-                kaskoAgency: data.kaskoAgency, // Ensure these schema fields are mapped if they exist in Partial<Vehicle>
-
-                assignedSiteId: data.assignedSiteId || null,
-                companyId: data.companyId, // companyId is required, must be valid
-
-                rentalCompanyName: data.rentalCompanyName,
-                rentalContact: data.rentalContact,
-                monthlyRentalFee: data.monthlyRentalFee,
-                rentalLastUpdate: data.rentalLastUpdate, // [NEW] Allow manual update of this field
-
-                engineNumber: data.engineNumber,
-                chassisNumber: data.chassisNumber,
-                fuelType: data.fuelType,
-                licenseFile: data.licenseFile
-            }
+            data: cleanData
         });
         revalidatePath('/dashboard/vehicles');
         return { success: true, data: vehicle };
