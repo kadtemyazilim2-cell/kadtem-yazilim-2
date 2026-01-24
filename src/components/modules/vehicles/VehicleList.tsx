@@ -1024,7 +1024,10 @@ export function VehicleList() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {sortedVehicles.filter(v => v.ownership === 'OWNED').map((vehicle) => (
+                                        {sortedVehicles.filter(v =>
+                                            v.ownership === 'OWNED' &&
+                                            !v.rentalCompanyName // [MODIFIED] Exclude vehicles that are assigned to a Rental Company (even if Owned status)
+                                        ).map((vehicle) => (
                                             <TableRow key={vehicle.id}>
                                                 <TableCell className="font-bold font-mono">{vehicle.plate}</TableCell>
                                                 <TableCell>{vehicle.brand} - {vehicle.model}</TableCell>
