@@ -76,6 +76,7 @@ export function FuelForm() {
             unitPrice: Number(formData.unitPrice),
             cost: Number(formData.cost),
             mileage: Number(formData.mileage),
+            fullTank: true, // [FIX] Default to true or add UI if needed
             filledByUserId: user.id
         });
 
@@ -210,12 +211,7 @@ export function FuelForm() {
                         </div>
                     </div>
 
-                    {/* Tank Warning */}
-                    {formData.siteId && !formData.tankId && (
-                        <div className="bg-yellow-50 p-2 rounded border border-yellow-200 text-xs text-yellow-800">
-                            Uyarı: Bu şantiyede tanımlı yakıt deposu bulunamadı.
-                        </div>
-                    )}
+
 
                     <DialogFooter>
                         <Button type="submit" disabled={!formData.tankId}>Kaydet</Button>

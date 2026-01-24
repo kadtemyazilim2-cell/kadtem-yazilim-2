@@ -16,12 +16,10 @@ export function FuelTransferForm() {
     const [open, setOpen] = useState(false);
 
     // Form State
-    // [MODIFIED] Only Tank-to-Tank supported now
     const [fromId, setFromId] = useState('');
     const [toId, setToId] = useState('');
     const [amount, setAmount] = useState(0);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-
+    const [date] = useState(new Date().toISOString().split('T')[0]); // Date is auto-set
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,9 +27,9 @@ export function FuelTransferForm() {
 
         addFuelTransfer({
             id: crypto.randomUUID(),
-            fromType: 'TANK', // [MODIFIED] Always TANK
+            fromType: 'TANK',
             fromId,
-            toType: 'TANK', // [MODIFIED] Always TANK
+            toType: 'TANK',
             toId,
             date,
             amount,
@@ -76,15 +74,9 @@ export function FuelTransferForm() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Tarih</Label>
-                            <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Miktar (Litre)</Label>
-                            <Input type="number" step="0.01" value={amount} onChange={e => setAmount(Number(e.target.value))} required />
-                        </div>
+                    <div className="space-y-2">
+                        <Label>Miktar (Litre)</Label>
+                        <Input type="number" step="0.01" value={amount} onChange={e => setAmount(Number(e.target.value))} required />
                     </div>
 
                     <DialogFooter>
