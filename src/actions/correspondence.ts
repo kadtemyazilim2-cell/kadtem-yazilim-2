@@ -194,7 +194,7 @@ export async function getCorrespondenceList() {
         const session = await auth();
         if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
 
-        let whereClause: any = { status: 'ACTIVE' };
+        let whereClause: any = {}; // Fetch All (ACTIVE + DELETED)
 
         // [SCOPING] If not Admin, filter by assigned sites
         if (session.user.role !== 'ADMIN') {

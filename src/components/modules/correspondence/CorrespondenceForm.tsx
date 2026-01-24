@@ -424,14 +424,16 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <div className="flex items-center space-x-2 border p-2 rounded bg-slate-50 min-w-fit">
-                                            <Checkbox
-                                                id="includeStamp"
-                                                checked={formData.includeStamp}
-                                                onCheckedChange={(c) => setFormData({ ...formData, includeStamp: !!c })}
-                                            />
-                                            <Label htmlFor="includeStamp" className="whitespace-nowrap cursor-pointer">Kaşe Ekle</Label>
-                                        </div>
+                                        {formData.direction === 'OUTGOING' && (
+                                            <div className="flex items-center space-x-2 border p-2 rounded bg-slate-50 min-w-fit">
+                                                <Checkbox
+                                                    id="includeStamp"
+                                                    checked={formData.includeStamp}
+                                                    onCheckedChange={(c) => setFormData({ ...formData, includeStamp: !!c })}
+                                                />
+                                                <Label htmlFor="includeStamp" className="whitespace-nowrap cursor-pointer">Kaşe Ekle</Label>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
