@@ -85,8 +85,8 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Aylık Kira Bedeli (TL)</Label>
-                        <Label>Aylık Kira Bedeli (TL)</Label>
+
+
                         <Input
                             type="text"
                             inputMode="decimal"

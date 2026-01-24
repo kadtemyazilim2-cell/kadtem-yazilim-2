@@ -104,6 +104,7 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
                 rentalCompanyName: data.rentalCompanyName,
                 rentalContact: data.rentalContact,
                 monthlyRentalFee: data.monthlyRentalFee,
+                rentalLastUpdate: data.rentalLastUpdate, // [NEW] Allow manual update of this field
 
                 engineNumber: data.engineNumber,
                 chassisNumber: data.chassisNumber,
