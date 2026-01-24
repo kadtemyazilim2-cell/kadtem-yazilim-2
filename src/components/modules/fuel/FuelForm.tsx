@@ -13,7 +13,7 @@ import { FuelLog } from '@/lib/types';
 
 export function FuelForm() {
     const [open, setOpen] = useState(false);
-    const { addFuelLog, companies, vehicles, sites } = useAppStore();
+    const { addFuelLog, companies, vehicles, sites, fuelTanks } = useAppStore();
     const { user } = useAuth();
 
     // Filter vehicles by company if needed, but for now show all active
@@ -23,12 +23,33 @@ export function FuelForm() {
     const [formData, setFormData] = useState({
         vehicleId: '',
         siteId: '',
-        date: new Date().toISOString().split('T')[0],
+        tankId: '', // [NEW] Auto-set
+        date: new Date().toISOString(), // [MODIFIED] Default to NOW
         liters: 0,
-        unitPrice: 0, // [NEW]
+        unitPrice: 0,
         cost: 0,
         mileage: 0,
     });
+
+    // [NEW] Filter vehicles based on selected site
+    const filteredVehicles = vehicles.filter((v: any) => {
+        if (v.status !== 'ACTIVE') return false;
+        if (!formData.siteId) return false;
+        if (v.assignedSiteId === formData.siteId) return true;
+        if (Array.isArray(v.assignedSiteIds) && v.assignedSiteIds.includes(formData.siteId)) return true;
+        return false;
+    });
+
+    // [NEW] Auto-detect tank when site changes
+    const handleSiteChange = (siteId: string) => {
+        const siteTank = fuelTanks.find((t: any) => t.siteId === siteId);
+        setFormData(prev => ({
+            ...prev,
+            siteId,
+            vehicleId: '', // Reset vehicle when site changes
+            tankId: siteTank ? siteTank.id : ''
+        }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,7 +73,7 @@ export function FuelForm() {
             id: crypto.randomUUID(),
             ...formData,
             liters: Number(formData.liters),
-            unitPrice: Number(formData.unitPrice), // [NEW]
+            unitPrice: Number(formData.unitPrice),
             cost: Number(formData.cost),
             mileage: Number(formData.mileage),
             filledByUserId: user.id
@@ -62,7 +83,8 @@ export function FuelForm() {
         setFormData({
             vehicleId: '',
             siteId: '',
-            date: new Date().toISOString().split('T')[0],
+            tankId: '',
+            date: new Date().toISOString(),
             liters: 0,
             unitPrice: 0,
             cost: 0,
@@ -98,29 +120,12 @@ export function FuelForm() {
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                        <Label>Araç</Label>
-                        <Select
-                            value={formData.vehicleId}
-                            onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}
-                            required
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Araç Seçiniz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {activeVehicles.map((v: any) => (
-                                    <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
+                    {/* 1. Site Selection (First) */}
                     <div className="space-y-2">
                         <Label>Şantiye / Konum</Label>
                         <Select
                             value={formData.siteId}
-                            onValueChange={(v) => setFormData({ ...formData, siteId: v })}
+                            onValueChange={handleSiteChange}
                             required
                         >
                             <SelectTrigger>
@@ -134,16 +139,30 @@ export function FuelForm() {
                         </Select>
                     </div>
 
+                    {/* 2. Vehicle Selection (Filtered) */}
+                    <div className="space-y-2">
+                        <Label>Araç (Seçilen Şantiyedeki)</Label>
+                        <Select
+                            value={formData.vehicleId}
+                            onValueChange={(v) => setFormData({ ...formData, vehicleId: v })}
+                            required
+                            disabled={!formData.siteId}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder={formData.siteId ? "Araç Seçiniz" : "Önce Şantiye Seçiniz"} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {filteredVehicles.map((v: any) => (
+                                    <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand} {v.model}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {formData.siteId && filteredVehicles.length === 0 && (
+                            <p className="text-[10px] text-red-500">Bu şantiyede atanmış araç bulunamadı.</p>
+                        )}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Tarih</Label>
-                            <Input
-                                type="date"
-                                required
-                                value={formData.date}
-                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                            />
-                        </div>
                         <div className="space-y-2">
                             <Label>KM</Label>
                             <Input
@@ -191,8 +210,15 @@ export function FuelForm() {
                         </div>
                     </div>
 
+                    {/* Tank Warning */}
+                    {formData.siteId && !formData.tankId && (
+                        <div className="bg-yellow-50 p-2 rounded border border-yellow-200 text-xs text-yellow-800">
+                            Uyarı: Bu şantiyede tanımlı yakıt deposu bulunamadı.
+                        </div>
+                    )}
+
                     <DialogFooter>
-                        <Button type="submit">Kaydet</Button>
+                        <Button type="submit" disabled={!formData.tankId}>Kaydet</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

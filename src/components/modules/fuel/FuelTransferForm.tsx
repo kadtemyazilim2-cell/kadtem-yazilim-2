@@ -11,19 +11,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowRightLeft } from 'lucide-react';
 
 export function FuelTransferForm() {
-    const { fuelTanks, vehicles, addFuelTransfer } = useAppStore();
+    const { fuelTanks, addFuelTransfer } = useAppStore();
     const { user } = useAuth();
     const [open, setOpen] = useState(false);
 
     // Form State
-    const [fromType, setFromType] = useState<'TANK' | 'EXTERNAL'>('TANK');
+    // [MODIFIED] Only Tank-to-Tank supported now
     const [fromId, setFromId] = useState('');
-    const [toType, setToType] = useState<'TANK'>('TANK');
     const [toId, setToId] = useState('');
     const [amount, setAmount] = useState(0);
-    const [unitPrice, setUnitPrice] = useState(0); // [NEW]
-    const [totalCost, setTotalCost] = useState(0); // [NEW]
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,37 +29,18 @@ export function FuelTransferForm() {
 
         addFuelTransfer({
             id: crypto.randomUUID(),
-            fromType,
+            fromType: 'TANK', // [MODIFIED] Always TANK
             fromId,
-            toType,
+            toType: 'TANK', // [MODIFIED] Always TANK
             toId,
             date,
             amount,
-            unitPrice: fromType === 'EXTERNAL' ? unitPrice : undefined,
-            totalCost: fromType === 'EXTERNAL' ? totalCost : undefined,
             createdByUserId: user.id
         });
         setOpen(false);
         setAmount(0);
-        setUnitPrice(0);
-        setTotalCost(0);
-    };
-
-    // Auto calculate total cost
-    const handleAmountChange = (val: number) => {
-        setAmount(val);
-        if (unitPrice > 0) setTotalCost(Number((val * unitPrice).toFixed(2)));
-    };
-
-    const handleUnitPriceChange = (val: number) => {
-        setUnitPrice(val);
-        if (amount > 0) setTotalCost(Number((amount * val).toFixed(2)));
-    };
-
-    // [NEW] Back-calculate unit price if total cost is entered
-    const handleTotalCostChange = (val: number) => {
-        setTotalCost(val);
-        if (amount > 0) setUnitPrice(Number((val / amount).toFixed(2)));
+        setFromId('');
+        setToId('');
     };
 
     return (
@@ -78,42 +57,22 @@ export function FuelTransferForm() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Çıkış Yeri (Kaynak)</Label>
-                            <Select value={fromType} onValueChange={(v: any) => setFromType(v)}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                            <Label>Çıkış Depo</Label>
+                            <Select value={fromId} onValueChange={setFromId} required>
+                                <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="TANK">Depo (Tank)</SelectItem>
-                                    <SelectItem value="EXTERNAL">Dış Kaynak (Satın Alma)</SelectItem>
+                                    {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            {fromType === 'TANK' && (
-                                <Select value={fromId} onValueChange={setFromId} required>
-                                    <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
-                                    <SelectContent>
-                                        {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            )}
-                            {fromType === 'EXTERNAL' && (
-                                <Input placeholder="Firma Adı" value={fromId} onChange={e => setFromId(e.target.value)} required />
-                            )}
                         </div>
                         <div className="space-y-2">
-                            <Label>Giriş Yeri (Hedef)</Label>
-                            <Select value={toType} onValueChange={(v: any) => setToType(v)} disabled>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                            <Label>Giriş Depo</Label>
+                            <Select value={toId} onValueChange={setToId} required>
+                                <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="TANK">Depo (Tank)</SelectItem>
+                                    {fuelTanks.filter((t: any) => t.id !== fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            {toType === 'TANK' && (
-                                <Select value={toId} onValueChange={setToId} required>
-                                    <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
-                                    <SelectContent>
-                                        {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            )}
                         </div>
                     </div>
 
@@ -124,35 +83,9 @@ export function FuelTransferForm() {
                         </div>
                         <div className="space-y-2">
                             <Label>Miktar (Litre)</Label>
-                            <Input type="number" step="0.01" value={amount} onChange={e => handleAmountChange(Number(e.target.value))} required />
+                            <Input type="number" step="0.01" value={amount} onChange={e => setAmount(Number(e.target.value))} required />
                         </div>
                     </div>
-
-                    {fromType === 'EXTERNAL' && (
-                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-2 rounded border">
-                            <div className="space-y-2">
-                                <Label>Birim Fiyat (TL)</Label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={unitPrice || ''}
-                                    onChange={e => handleUnitPriceChange(Number(e.target.value))}
-                                    placeholder="0.00"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Toplam Tutar (TL)</Label>
-                                <Input
-                                    type="number"
-                                    step="0.01"
-                                    value={totalCost || ''}
-                                    onChange={e => handleTotalCostChange(Number(e.target.value))}
-                                    placeholder="0.00"
-                                    required // Enforce at least Total Cost
-                                />
-                            </div>
-                        </div>
-                    )}
 
                     <DialogFooter>
                         <Button type="submit">Transfer Yap</Button>
