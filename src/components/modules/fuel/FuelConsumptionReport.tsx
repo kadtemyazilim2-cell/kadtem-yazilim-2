@@ -505,257 +505,259 @@ export function FuelConsumptionReport() {
         // Return as is (Newest First) - No need to reverse as we sorted DESC
         return processedData;
 
-        const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
-        const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
+    }, [vehicleLogs, vehicles, plateFilter, siteFilter, dateRange, searchTerm, sites, fuelTransfers, fuelTanks]);
 
-        const renderFilters = () => (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
-                {/* Date Range */}
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Başlangıç Tarihi</Label>
-                    <Input type="date" className="h-8 text-xs bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
-                </div>
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Bitiş Tarihi</Label>
-                    <Input type="date" className="h-8 text-xs bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
-                </div>
+    const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
+    const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
 
-                {/* Plate Filter */}
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Plaka</Label>
-                    <MultiSelect
-                        options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
-                        selected={plateFilter}
-                        onChange={setPlateFilter}
-                        placeholder="Tümü"
-                        searchPlaceholder="Plaka ara..."
-                        className="h-8 text-xs bg-white"
-                    />
-                </div>
-
-                {/* Site Filter */}
-                <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Şantiye</Label>
-                    <MultiSelect
-                        options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
-                        selected={siteFilter}
-                        onChange={setSiteFilter}
-                        placeholder="Tümü"
-                        searchPlaceholder="Şantiye ara..."
-                        className="h-8 text-xs bg-white"
-                    />
-                </div>
-
-                {/* Search Input - Full Width */}
-                <div className="md:col-span-4 relative mt-2">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        placeholder="Genel arama (Plaka, Şantiye vb.)..."
-                        className="pl-8 bg-white"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
+    const renderFilters = () => (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
+            {/* Date Range */}
+            <div className="flex flex-col gap-1">
+                <Label className="text-xs">Başlangıç Tarihi</Label>
+                <Input type="date" className="h-8 text-xs bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
             </div>
-        );
+            <div className="flex flex-col gap-1">
+                <Label className="text-xs">Bitiş Tarihi</Label>
+                <Input type="date" className="h-8 text-xs bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+            </div>
 
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Detaylı Yakıt Tüketim Raporu</CardTitle>
-                    <div className="space-y-4">
-                        {renderFilters()}
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tarih</TableHead>
-                                <TableHead>Plaka / Araç</TableHead>
-                                <TableHead>Sayaç</TableHead>
-                                <TableHead>Fark</TableHead>
-                                <TableHead>Alınan</TableHead>
-                                <TableHead>Ort Tüketim</TableHead>
-                                <TableHead>Genel Ort</TableHead>
-                                <TableHead>Kümülatif Toplam</TableHead>
-                                <TableHead>Yakıt Veren</TableHead>
-                                <TableHead className="w-[80px]">İşlemler</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {reportData.map((row) => (
-                                <TableRow key={row.id} className={row.recordType === 'BALANCE_START' ? "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200" : ""}>
-                                    <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
-                                    <TableCell>
-                                        <div className="font-medium">{row.vehicle.plate}</div>
-                                        <div className="text-xs text-muted-foreground">{row.vehicle.brand}</div>
+            {/* Plate Filter */}
+            <div className="flex flex-col gap-1">
+                <Label className="text-xs">Plaka</Label>
+                <MultiSelect
+                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
+                    selected={plateFilter}
+                    onChange={setPlateFilter}
+                    placeholder="Tümü"
+                    searchPlaceholder="Plaka ara..."
+                    className="h-8 text-xs bg-white"
+                />
+            </div>
+
+            {/* Site Filter */}
+            <div className="flex flex-col gap-1">
+                <Label className="text-xs">Şantiye</Label>
+                <MultiSelect
+                    options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
+                    selected={siteFilter}
+                    onChange={setSiteFilter}
+                    placeholder="Tümü"
+                    searchPlaceholder="Şantiye ara..."
+                    className="h-8 text-xs bg-white"
+                />
+            </div>
+
+            {/* Search Input - Full Width */}
+            <div className="md:col-span-4 relative mt-2">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Genel arama (Plaka, Şantiye vb.)..."
+                    className="pl-8 bg-white"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+        </div>
+    );
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Detaylı Yakıt Tüketim Raporu</CardTitle>
+                <div className="space-y-4">
+                    {renderFilters()}
+                </div>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Tarih</TableHead>
+                            <TableHead>Plaka / Araç</TableHead>
+                            <TableHead>Sayaç</TableHead>
+                            <TableHead>Fark</TableHead>
+                            <TableHead>Alınan</TableHead>
+                            <TableHead>Ort Tüketim</TableHead>
+                            <TableHead>Genel Ort</TableHead>
+                            <TableHead>Kümülatif Toplam</TableHead>
+                            <TableHead>Yakıt Veren</TableHead>
+                            <TableHead className="w-[80px]">İşlemler</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {reportData.map((row) => (
+                            <TableRow key={row.id} className={row.recordType === 'BALANCE_START' ? "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200" : ""}>
+                                <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
+                                <TableCell>
+                                    <div className="font-medium">{row.vehicle.plate}</div>
+                                    <div className="text-xs text-muted-foreground">{row.vehicle.brand}</div>
+                                </TableCell>
+
+                                {/* CONDITIONAL RENDERING FOR VIRMAN */}
+                                {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
+                                    <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
+                                            {row.recordType === 'VIRMAN_OUT' ? (
+                                                <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
+                                            ) : (
+                                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                            )}
+                                            <span>Virman</span>
+                                        </div>
                                     </TableCell>
-
-                                    {/* CONDITIONAL RENDERING FOR VIRMAN */}
-                                    {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
-                                        <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
-                                                {row.recordType === 'VIRMAN_OUT' ? (
-                                                    <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
-                                                ) : (
-                                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                                )}
-                                                <span>Virman</span>
+                                ) : (
+                                    <>
+                                        <TableCell>
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                <>
+                                                    {row.mileage.toLocaleString()}
+                                                    <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
+                                                </>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                row.diffKm > 0 ? `+${row.diffKm}` : '-'
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className={cn("font-bold",
+                                                    row.recordType === 'BALANCE_START' ? 'text-blue-700' :
+                                                        (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
+                                                )}>
+                                                    {row.recordType === 'BALANCE_START' ? (
+                                                        `Devir: ${row.liters.toLocaleString()} Lt`
+                                                    ) : (
+                                                        <>
+                                                            {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
+                                                        </>
+                                                    )}
+                                                </span>
+                                                {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
+                                                {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
                                             </div>
                                         </TableCell>
-                                    ) : (
-                                        <>
-                                            <TableCell>
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    <>
-                                                        {row.mileage.toLocaleString()}
-                                                        <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
-                                                    </>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    row.diffKm > 0 ? `+${row.diffKm}` : '-'
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className={cn("font-bold",
-                                                        row.recordType === 'BALANCE_START' ? 'text-blue-700' :
-                                                            (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
-                                                    )}>
-                                                        {row.recordType === 'BALANCE_START' ? (
-                                                            `Devir: ${row.liters.toLocaleString()} Lt`
-                                                        ) : (
-                                                            <>
-                                                                {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                    {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
-                                                    {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    row.consumption > 0 ? (
-                                                        <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                            {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                        </Badge>
-                                                    ) : '-'
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    row.lifetimeAvg > 0 ? (
-                                                        <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
-                                                    ) : '-'
-                                                )}
-                                            </TableCell>
-                                        </>
+                                        <TableCell>
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                row.consumption > 0 ? (
+                                                    <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
+                                                        {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                    </Badge>
+                                                ) : '-'
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                row.lifetimeAvg > 0 ? (
+                                                    <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
+                                                ) : '-'
+                                            )}
+                                        </TableCell>
+                                    </>
+                                )}
+
+                                <TableCell className={cn("font-semibold",
+                                    row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
+                                        (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
+                                )}>
+                                    {row.cumulativeTotal?.toLocaleString()} Lt
+                                </TableCell>
+                                <TableCell className="text-sm text-muted-foreground">
+                                    {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
+                                </TableCell>
+                                <TableCell>
+                                    {canEditFuel && row.recordType !== 'BALANCE_START' && (
+                                        <div className="flex items-center gap-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
 
-                                    <TableCell className={cn("font-semibold",
-                                        row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
-                                            (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
-                                    )}>
-                                        {row.cumulativeTotal?.toLocaleString()} Lt
-                                    </TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
-                                    </TableCell>
-                                    <TableCell>
-                                        {canEditFuel && row.recordType !== 'BALANCE_START' && (
-                                            <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
-                                                    <Pencil className="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-
-                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
-                        </DialogHeader>
-                        {editingLog && (
-                            <div className="grid gap-4 py-4">
-                                {isReadOnly && (
-                                    <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
-                                        Bu kayıt başka bir kullanıcı tarafından oluşturulmuştur. Düzenleyemezsiniz.
-                                    </div>
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Tarih</Label>
-                                        <Input
-                                            type="date"
-                                            value={editForm.date}
-                                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                                            disabled={isReadOnly}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Şantiye</Label>
-                                        <Select
-                                            value={editForm.siteId}
-                                            onValueChange={(v) => setEditForm({ ...editForm, siteId: v })}
-                                            disabled={isReadOnly}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Seçiniz" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
+                    </DialogHeader>
+                    {editingLog && (
+                        <div className="grid gap-4 py-4">
+                            {isReadOnly && (
+                                <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
+                                    Bu kayıt başka bir kullanıcı tarafından oluşturulmuştur. Düzenleyemezsiniz.
                                 </div>
-                                {(editingLog as any)?.recordType !== 'TRANSFER' && (
-                                    <div className="space-y-2">
-                                        <Label>KM / Saat</Label>
-                                        <Input
-                                            type="number"
-                                            value={editForm.mileage}
-                                            onChange={(e) => setEditForm({ ...editForm, mileage: Number(e.target.value) })}
-                                            disabled={isReadOnly}
-                                        />
-                                    </div>
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Litre</Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            value={editForm.liters}
-                                            onChange={(e) => setEditForm({ ...editForm, liters: Number(e.target.value) })}
-                                        />
-                                    </div>
-                                    {/* Cost Field Removed as per request */}
+                            )}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Tarih</Label>
+                                    <Input
+                                        type="date"
+                                        value={editForm.date}
+                                        onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Şantiye</Label>
+                                    <Select
+                                        value={editForm.siteId}
+                                        onValueChange={(v) => setEditForm({ ...editForm, siteId: v })}
+                                        disabled={isReadOnly}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
-                        )}
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
-                            <Button onClick={handleUpdate}>Güncelle</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </Card >
-        );
-    }
+                            {(editingLog as any)?.recordType !== 'TRANSFER' && (
+                                <div className="space-y-2">
+                                    <Label>KM / Saat</Label>
+                                    <Input
+                                        type="number"
+                                        value={editForm.mileage}
+                                        onChange={(e) => setEditForm({ ...editForm, mileage: Number(e.target.value) })}
+                                        disabled={isReadOnly}
+                                    />
+                                </div>
+                            )}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Litre</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={editForm.liters}
+                                        onChange={(e) => setEditForm({ ...editForm, liters: Number(e.target.value) })}
+                                    />
+                                </div>
+                                {/* Cost Field Removed as per request */}
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
+                        <Button onClick={handleUpdate}>Güncelle</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </Card >
+    );
+}
