@@ -501,8 +501,26 @@ export function PersonnelList() {
             if (siteRecord) return siteRecord;
         }
 
-        // Fallback: Return any record (e.g. OUT_DUTY from another site)
-        return personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr);
+        // Fallsback: Return any record (e.g. OUT_DUTY from another site)
+        const record = personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr);
+        if (record) return record;
+
+        // [NEW] Start Date Auto-Attendance
+        // If no record exists, check if this date is the personnel's Start Date
+        const person = personnel.find((p: any) => p.id === pid);
+        if (person && person.startDate === dateStr) {
+            return {
+                id: 'virtual-start-date',
+                personnelId: pid,
+                siteId: person.siteId || selectedSiteId, // Fallback to current selected site if person has no site (unlikely)
+                date: dateStr,
+                status: 'WORK',
+                note: 'İşe Giriş Tarihi (Otomatik)',
+                virtual: true
+            };
+        }
+
+        return undefined;
     };
 
     const changeMonth = (delta: number) => {

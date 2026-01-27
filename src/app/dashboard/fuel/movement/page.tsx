@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { useUserSites } from '@/hooks/use-user-access';
+import { FuelGivenList } from '@/components/modules/fuel/FuelGivenList'; // [NEW]
 
 export default function FuelMovementPage() {
     const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
@@ -363,6 +364,8 @@ export default function FuelMovementPage() {
                             </form>
                         </CardContent>
                     </Card>
+                    {/* [NEW] User's Dispense History */}
+                    <FuelGivenList />
                 </TabsContent>
 
                 {/* YAKIT TRANSFER (VIRMAN) */}
