@@ -333,105 +333,78 @@ export function FuelConsumptionReport() {
         // A. Pre-Sort by Date DESCENTING (Newest First) for Backward Calc
         processedData.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        // B. Calculate Starting Stock (CURRENT STOCK)
-        // If Site Filter active, sum tanks for that site.
-        // If No Filter, sum ALL tanks.
-        // If Plate Filter, stock doesn't make much sense, but we'll show Stock of the context or Global.
-        // Let's stick to visible tanks based on Site Filter.
-        const visibleTanks = fuelTanks.filter((t: any) =>
-            siteFilter.length === 0 || siteFilter.includes(t.siteId)
-        );
-        const currentTotalStock = visibleTanks.reduce((acc: number, t: any) => acc + (t.currentLevel || 0), 0);
+        // B. Calculate Starting Stock per Site (CURRENT STOCK Map)
+        const currentStocks: Record<string, number> = {};
+        fuelTanks.forEach((t: any) => {
+            if (t.siteId) {
+                currentStocks[t.siteId] = (currentStocks[t.siteId] || 0) + (t.currentLevel || 0);
+            }
+        });
 
-        // C. Walk Backwards
-        let runningBalance = currentTotalStock;
+        // Initialize Running Balances per Site
+        // We clone currentStocks to traverse backwards
+        const runningBalances = { ...currentStocks };
 
-        // We need to process ALL data (even future regarding date range?) 
-        // No, `data` contains all logs/transfers from the store.
-        // But store might filter? Usually useAppStore has all.
-        // We iterate ALL `processedData` (which is currently everything in store converted to rows).
+        // C. Apply Filters (except Date Start, which cuts history)
+        // If we filter by Site here, we reduce the dataset, but runningBalance logic still works 
+        // because we only process visible rows.
+        // However, if we skip rows that DID affect stock (e.g. unrelated vehicle transaction?), 
+        // we might desync if we are not careful.
+        // BUT: Stock is driven by Logs/Transfers. All Logs/Transfers have a Site ID.
+        // If we filter by Site, we only see transactions for that Site.
+        // And we initialized the Balance for that Site correctly from Current Stock.
+        // So filtering by Site is safe.
+        // Filtering by Plate?
+        // If we filter by Plate, we hide some consumption logs of the same site.
+        // This MEANS we miss some "Depletion events".
+        // Use Case: "Show me consuming of Plate X".
+        // Column "Cumulative Total" (Stock).
+        // If I hide Plate Y's consumption, the Stock jump between Plate X logs will be unexplainable?
+        // Or should I calculate Stock against ALL data, THEN filter?
+        // YES. To show accurate "Stock at that moment", we must process ALL transactions to trace the curve,
+        // THEN hide the rows we don't want. 
+        // OTHERWISE, the stock numbers will be nonsensical (e.g. appearing to stay high because we hid other consumption).
 
-        // But we must NOT filter by attributes (Plate/Site) BEFORE calculating global stock history if we want "Global Stock".
-        // HOWEVER, if the user filters by SITE, they want SITE STOCK history.
-        // So we MUST filter processedData by SITE *before* walking, to match `currentTotalStock` which is scoped to SITE.
+        // So: Do NOT filter processedData before calculation if we want accurate STOCK history.
+        // BUT: This is expensive if we have millions of rows. Client-side is fine for thousands.
+        // Let's walk ALL `processedData` (sorted desc), update balances, and mark rows as "visible" or filter later.
 
-        // Filter by Site FIRST (so we track stock only for selected site)
+        // Step 1: Walk all records (Backward) to assign Stock Snapshots
+        processedData.forEach((item: any) => {
+            const sId = item.siteId;
+            if (sId && runningBalances[sId] !== undefined) {
+                // Assign Current Snapshot to this item
+                item.cumulativeTotal = runningBalances[sId];
+
+                // Revert effect for Previous State
+                let effect = 0;
+                // Logic:
+                // LOG (Consumption): Stock was Higher. Balance -= (-Liters) = +Liters.
+                // PURCHASE (Entry): Stock was Lower. Balance -= (+Liters).
+                // VIRMAN_OUT (Exit): Stock was Higher. Balance -= (-Liters) = +Liters.
+                // VIRMAN_IN (Entry): Stock was Lower. Balance -= (+Liters).
+
+                if (item.recordType === 'LOG') effect = -1 * item.liters;
+                else if (item.recordType === 'PURCHASE') effect = item.liters;
+                else if (item.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(item.liters);
+                else if (item.recordType === 'VIRMAN_IN') effect = Math.abs(item.liters);
+
+                runningBalances[sId] -= effect;
+            } else {
+                item.cumulativeTotal = 0; // Or undefined?
+            }
+        });
+
+        // Step 2: NOW Apply Filters for Display
+
+        // Site Filter
         if (siteFilter.length > 0) {
             processedData = processedData.filter((item: any) => item.siteId && siteFilter.includes(item.siteId));
         }
 
-        // Plate Filter?
-        // If I filter by Plate, do I want Stock?
-        // Usually Plate Filter = Consumption Report.
-        // If Plate Filter is ON, showing "Site Stock" is potentially confusing as it jumps.
-        // But let's assume we proceed with the filtered dataset.
-        // If Plate Filter is ON, `visibleTanks` is still All (or Site filtered).
-        // The `processedData` will only have LOGS for that plate.
-        // This breaks the Stock Continuity.
-        // Ideally: If Plate Filter is active, maybe we shouldn't show "Stock Cumulative"?
-        // Or show "Cumulative Consumption"?
-        // User said: "deducting from taken fuel".
-        // Let's stick to the stock math. If they filter by plate, they see the effect of THAT plate on the stock (sort of).
+        // Plate Filter
         if (plateFilter.length > 0) {
             processedData = processedData.filter((item: any) => plateFilter.includes(item.vehicle.plate));
-        }
-
-        // Now Walk Backwards
-        processedData.forEach((item: any) => {
-            // Assign Current Balance to this transaction (Balance After Transaction)
-            item.cumulativeTotal = runningBalance;
-
-            // Revert the effect to get Previous Balance
-            // Logic:
-            // Item was LOG (Consumption) -> Stock went DOWN. Previous was HIGHER. (+ Liters)
-            // Item was PURCHASE (Entry) -> Stock went UP. Previous was LOWER. (- Liters)
-            // Item was VIRMAN_OUT (Exit) -> Stock went DOWN. Previous was HIGHER. (+ Liters)
-            // Item was VIRMAN_IN (Entry) -> Stock went UP. Previous was LOWER. (- Liters)
-
-            // Note: `calculateStockVal` in my head:
-            // LOG: -Liters
-            // PURCHASE: +Liters
-            // OUT: -Liters
-            // IN: +Liters
-
-            // So: Previous = Running - Effect
-            // Log: Running - (-10) = Running + 10. Correct.
-            // Purchase: Running - (+100) = Running - 100. Correct.
-
-            let effect = 0;
-            if (item.recordType === 'LOG') effect = -1 * item.liters;
-            else if (item.recordType === 'PURCHASE') effect = item.liters;
-            else if (item.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(item.liters); // Ensure sign
-            else if (item.recordType === 'VIRMAN_IN') effect = Math.abs(item.liters);
-
-            runningBalance -= effect;
-        });
-
-        // D. Apply Date Filter & Search (After calculation)
-        if (dateRange.start) {
-            const startObj = startOfDay(parseISO(dateRange.start));
-            processedData = processedData.filter((item: any) => parseISO(item.date) >= startObj);
-
-            // Add "Devir" (Opening Balance) Row if we are cutting off history
-            // The `runningBalance` variable holding the state AFTER the last processed item (which is oldest)
-            // ... wait. I need the balance *at the cut-off point*.
-            // If I filter out items older than Start, I want the balance *of the first visible item*?
-            // No, I want the balance *before* the first visible item.
-
-            // Actually, `runningBalance` at the end of the loop is the Balance at the beginning of time (of the data).
-            // But if I filtered by date, I need to capture the balance at that specific date.
-            // Easier: Just look at the Last Item (Oldest) after filtering.
-            // Its Previous Balance is what we want?
-            // `item.cumulativeTotal` is "Balance After".
-            // So "Balance Start" = OldestItem.cumulativeTotal - OldestItem.Effect.
-
-            // Let's refine:
-            // We can insert the devir row later.
-        }
-
-        if (dateRange.end) {
-            const endObj = endOfDay(parseISO(dateRange.end));
-            processedData = processedData.filter((item: any) => parseISO(item.date) <= endObj);
         }
 
         // Search Filter
@@ -445,64 +418,86 @@ export function FuelConsumptionReport() {
             });
         }
 
-        // E. Add Devir Row if needed
-        // If we filtered by Start Date, we should show the "Opening Balance".
-        // The Opening Balance is: The balance *prior* to the first Transaction in the displayed list.
-        // Since we calculated `cumulativeTotal` (Balance After) for everyone, 
-        // Using the OLDER item in the list (last one):
-        // Opening = LastItem.cumulativeTotal - Effect(LastItem).
-        // Wait, `runningBalance -= effect` logic updates runningBalance to be "Before".
-        // checks loop:
-        // Item N (Oldest). Cumulative = Running. Running -= Effect.
-        // So `runningBalance` IS the balance before Item N.
-        // EXCEPT if we filtered items out.
+        // Date Range Filter
+        // Note: Start Date Filter cuts off the rows.
+        // We need to capture the "Devir" (Opening Balance) for the filtered view.
+        // Ideally, we find the Balance of the site AT the start date.
+        // Since we walked backwards effectively to the beginning of time (or data), 
+        // `runningBalances` map now holds the "Initial Stock" (at very start).
+        // BUT we want "Stock at StartDate".
 
-        // Correct approach with filters:
-        // We computed balances for ALL data.
-        // Then we slice the array.
-        // Use the `runningBalance` ? No, that's at end of ALL data.
-        // We need the balance specific to the `dateRange.start`.
+        // This is complex for multi-site in a single list. 
+        // If the view is filtered to one Site (common), we can show one Devir row.
+        // If mixed, showing "Devir" is messy (which site?).
+        // Let's standardise: Only show "Devir" row if `siteFilter` has exactly 1 site.
 
-        // Let's just grab the Balance from the "Next Oldest Item" that was filtered out?
-        // Or simpler: Recalculate 'stock at date' is hard.
+        const showDevir = siteFilter.length === 1 && !!dateRange.start;
+        let devirBalance = 0;
 
-        // BETTER: 
-        // 1. Calculate for ALL.
-        // 2. Find the index where we slice.
-        // 3. The "Balance" of the slice point.
+        if (showDevir) {
+            // We need the balance right before the first visible item?
+            // Or balance at Start Date.
+            // Since we have `processedData` with `cumulativeTotal` assigned (Stock After Transaction),
+            // The "Balance at Start Date" is roughly the `cumulativeTotal` of the *Last Item* inside the date range?
+            // No, "Start" is the cutoff.
+            // We want the balance of the item just *before* the cutoff (older).
+            // Since we sort Newest -> Oldest.
+            // Items: [New (Today), ..., Cutoff Item (Start Date), Old (Yesterday)].
+            // If we filter out Old, the "Opening" is the Stock *After* Old (which is Stock *Before* Cutoff Item).
+            // Actually, `cumulativeTotal` on `Old` is Stock After Old.
+            // So yes, we want `cumulativeTotal` of the newest "Hidden/Old" item.
 
-        // Since we filtered `processedData` in place, we lost the connection to the "previous" item if we just filtered normally.
-        // HACK: We can reconstruct the "Opening Balance" from the Last Displayed Item.
-        // If list is [Newest ... Oldest].
-        // Opening Balance = Oldest.cumulativeTotal - Effect(Oldest).
+            // Let's filter dates.
+        }
 
-        if (processedData.length > 0 && dateRange.start) {
-            const oldest = processedData[processedData.length - 1];
-            let effect = 0;
-            if (oldest.recordType === 'LOG') effect = -1 * oldest.liters;
-            else if (oldest.recordType === 'PURCHASE') effect = oldest.liters;
-            else if (oldest.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(oldest.liters);
-            else if (oldest.recordType === 'VIRMAN_IN') effect = Math.abs(oldest.liters);
+        if (dateRange.start) {
+            const startObj = startOfDay(parseISO(dateRange.start));
 
-            const openingBalance = oldest.cumulativeTotal - effect;
+            // Find Opening Balance for the single site
+            if (showDevir) {
+                const sId = siteFilter[0];
+                // Find the newest transaction OLDER than startObj
+                // Data is sorted Newest First.
+                // So we scan from end? Or find first item < startObj.
+                const olderItem = processedData.find((item: any) => parseISO(item.date) < startObj);
+                if (olderItem) {
+                    // The stock AFTER that older item is our Opening Balance
+                    devirBalance = olderItem.cumulativeTotal;
+                } else {
+                    // No older item found. 
+                    // Did we process everything? 
+                    // If we have data OLDER than start, it would be found.
+                    // If NO older data, then Opening Balance is the `runningBalances[sId]` (Initial Stock calculated at end of walk).
+                    devirBalance = runningBalances[sId];
+                }
+            }
 
+            processedData = processedData.filter((item: any) => parseISO(item.date) >= startObj);
+        }
+
+        if (dateRange.end) {
+            const endObj = endOfDay(parseISO(dateRange.end));
+            processedData = processedData.filter((item: any) => parseISO(item.date) <= endObj);
+        }
+
+        // Add Devir Row if applicable
+        if (showDevir) {
             processedData.push({
                 id: 'balance-start',
                 recordType: 'BALANCE_START',
-                date: dateRange.start, // or startOfDay
+                date: dateRange.start,
                 vehicle: { plate: '-', brand: 'DEVREDEN STOK', meterType: '' } as any,
                 mileage: 0,
                 diffKm: 0,
-                liters: 0, // Just display balance
+                liters: 0,
                 subType: '',
-                cumulativeTotal: openingBalance,
+                cumulativeTotal: devirBalance,
                 sourceName: 'Önceki Dönem',
                 consumption: 0,
                 lifetimeAvg: 0
             });
         }
 
-        // Return as is (Newest First) - No need to reverse as we sorted DESC
         return processedData;
 
     }, [vehicleLogs, vehicles, plateFilter, siteFilter, dateRange, searchTerm, sites, fuelTransfers, fuelTanks]);
