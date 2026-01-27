@@ -74,7 +74,7 @@ export function VehicleList() {
     // Filter State (All Dropdowns)
     const [filters, setFilters] = useState({
         company: [] as string[],
-        ownership: ['OWNED', 'RENTAL'] as string[], // [MODIFIED] Show ALL by default per user request ("All vehicles must be visible")
+        ownership: ['OWNED'] as string[], // [MODIFIED] Show ONLY OWNED by default per user request
         site: [] as string[],
         plate: [] as string[],
         brand: [] as string[],
