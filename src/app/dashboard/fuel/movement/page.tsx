@@ -28,6 +28,7 @@ export default function FuelMovementPage() {
     const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
 
     const [selectedDispenseSiteId, setSelectedDispenseSiteId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false); // [NEW] Loading state
 
     // Auto-select site if only one available
     useEffect(() => {
@@ -131,7 +132,7 @@ export default function FuelMovementPage() {
 
     const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return; // Prevent double click
 
         const amount = parseFormattedNumber(transferData.amount);
         if (amount <= 0) {
@@ -153,13 +154,14 @@ export default function FuelMovementPage() {
         // Auto-set Date to NOW
         const now = new Date();
 
+        setIsSubmitting(true); // Start loading
         try {
             const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
                 fromType: 'TANK',
                 fromId: transferData.fromId,
                 toType: 'TANK',
                 toId: transferData.toId,
-                date: now.toISOString(),
+                date: now, // [FIX] Pass Date object
                 amount: amount,
                 createdByUserId: user.id
             }));
@@ -179,7 +181,7 @@ export default function FuelMovementPage() {
 
     const handlePurchase = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return;
 
         const amount = parseFormattedNumber(purchaseData.amount);
         const price = parseFormattedNumber(purchaseData.unitPrice);
@@ -193,13 +195,14 @@ export default function FuelMovementPage() {
         const combinedDate = new Date(date);
         combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
+        setIsSubmitting(true);
         try {
             const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
                 fromType: 'EXTERNAL',
                 fromId: purchaseData.firmName,
                 toType: 'TANK',
                 toId: purchaseData.toId,
-                date: combinedDate.toISOString(),
+                date: combinedDate, // [FIX] Pass Date object
                 amount: amount,
                 unitPrice: price,
                 totalCost: amount * price,
@@ -222,7 +225,7 @@ export default function FuelMovementPage() {
 
     const handleDispense = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return;
 
         const amount = parseFormattedNumber(dispenseData.amount);
         const mileage = parseFormattedNumber(dispenseData.mileage);
@@ -245,7 +248,7 @@ export default function FuelMovementPage() {
                 vehicleId: dispenseData.vehicleId,
                 siteId: sourceTank.siteId || '',
                 tankId: dispenseData.tankId,
-                date: now.toISOString(),
+                date: now, // [FIX] Pass Date object
                 liters: amount,
                 cost: 0,
                 mileage: mileage,
@@ -388,8 +391,10 @@ export default function FuelMovementPage() {
 
                                 {canDispenseCreate ? (
                                     <div className="flex gap-2">
-                                        <Button className="flex-1" size="lg" type="submit">KAYDET</Button>
-                                        <Button className="flex-none" size="lg" variant="secondary" type="button" onClick={clearDispense}>Temizle</Button>
+                                        <Button className="flex-1" size="lg" type="submit" disabled={isSubmitting}>
+                                            {isSubmitting ? 'Kaydediliyor...' : 'KAYDET'}
+                                        </Button>
+                                        <Button className="flex-none" size="lg" variant="secondary" type="button" onClick={clearDispense} disabled={isSubmitting}>Temizle</Button>
                                     </div>
                                 ) : (
                                     <div className="p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
@@ -456,8 +461,10 @@ export default function FuelMovementPage() {
 
                                 {canTransferCreate ? (
                                     <div className="flex gap-2">
-                                        <Button className="flex-1" size="lg" variant="secondary" type="submit">TRANSFER YAP</Button>
-                                        <Button className="flex-none" size="lg" variant="outline" type="button" onClick={clearTransfer}>Temizle</Button>
+                                        <Button className="flex-1" size="lg" variant="secondary" type="submit" disabled={isSubmitting}>
+                                            {isSubmitting ? 'İşleniyor...' : 'TRANSFER YAP'}
+                                        </Button>
+                                        <Button className="flex-none" size="lg" variant="outline" type="button" onClick={clearTransfer} disabled={isSubmitting}>Temizle</Button>
                                     </div>
                                 ) : (
                                     <div className="p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
@@ -518,8 +525,10 @@ export default function FuelMovementPage() {
 
                                 {canPurchaseCreate ? (
                                     <div className="flex gap-2 mt-4">
-                                        <Button className="flex-1" size="lg" variant="outline" type="submit">STOK GİRİŞİ YAP</Button>
-                                        <Button className="flex-none" size="lg" variant="ghost" type="button" onClick={clearPurchase}>Temizle</Button>
+                                        <Button className="flex-1" size="lg" variant="outline" type="submit" disabled={isSubmitting}>
+                                            {isSubmitting ? 'Kaydediliyor...' : 'STOK GİRİŞİ YAP'}
+                                        </Button>
+                                        <Button className="flex-none" size="lg" variant="ghost" type="button" onClick={clearPurchase} disabled={isSubmitting}>Temizle</Button>
                                     </div>
                                 ) : (
                                     <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 text-center rounded border border-yellow-200">
