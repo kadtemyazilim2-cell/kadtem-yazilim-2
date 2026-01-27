@@ -8,7 +8,7 @@ import { tr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useMemo } from 'react';
 import { FuelLog } from '@/lib/types';
-import { Pencil, Trash2, Calendar, Search, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Pencil, Trash2, Calendar, Search, ArrowRight, ArrowLeft, FileSpreadsheet, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -509,54 +509,111 @@ export function FuelConsumptionReport() {
     const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
     const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
 
+    // [NEW] Export Handlers
+    const handleExportPDF = async () => {
+        try {
+            const mod = await import('@/lib/pdf-generator');
+            // Resolve Site Name
+            let siteName = 'Tümü';
+            if (siteFilter.length === 1) {
+                const s = sites.find((x: any) => x.id === siteFilter[0]);
+                if (s) siteName = s.name;
+            } else if (siteFilter.length > 1) {
+                siteName = 'Çoklu Seçim';
+            }
+
+            mod.generateFuelConsumptionPDF(reportData, dateRange, siteName);
+        } catch (error) {
+            console.error(error);
+            alert('PDF oluşturulurken hata oluştu.');
+        }
+    };
+
+    const handleExportExcel = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const wsData = reportData.map((row: any) => ({
+                'Tarih': row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm'),
+                'Plaka/Araç': row.vehicle.plate,
+                'Tip': row.recordType,
+                'Sayaç': row.mileage || 0,
+                'Alınan (Lt)': row.liters,
+                'Kümülatif': row.cumulativeTotal,
+                'Ort. Tüketim': row.consumption || 0,
+                'Not': row.description || '',
+                'Yakıt Veren': row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')
+            }));
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, "Yakıt Raporu");
+            XLSX.writeFile(wb, `yakit_raporu_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+        } catch (e) {
+            console.error(e);
+            alert('Excel oluşturulurken hata oluştu.');
+        }
+    };
+
     const renderFilters = () => (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
-            {/* Date Range */}
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Başlangıç Tarihi</Label>
-                <Input type="date" className="h-8 text-xs bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Bitiş Tarihi</Label>
-                <Input type="date" className="h-8 text-xs bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 p-4 bg-slate-50/50 rounded-lg border">
+                {/* Date Range */}
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Başlangıç Tarihi</Label>
+                    <Input type="date" className="h-8 text-xs bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Bitiş Tarihi</Label>
+                    <Input type="date" className="h-8 text-xs bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                </div>
+
+                {/* Plate Filter */}
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Plaka</Label>
+                    <MultiSelect
+                        options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
+                        selected={plateFilter}
+                        onChange={setPlateFilter}
+                        placeholder="Tümü"
+                        searchPlaceholder="Plaka ara..."
+                        className="h-8 text-xs bg-white"
+                    />
+                </div>
+
+                {/* Site Filter */}
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Şantiye</Label>
+                    <MultiSelect
+                        options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
+                        selected={siteFilter}
+                        onChange={setSiteFilter}
+                        placeholder="Tümü"
+                        searchPlaceholder="Şantiye ara..."
+                        className="h-8 text-xs bg-white"
+                    />
+                </div>
+
+                {/* Search Input - Full Width */}
+                <div className="md:col-span-4 relative mt-2">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Genel arama (Plaka, Şantiye vb.)..."
+                        className="pl-8 bg-white"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
 
-            {/* Plate Filter */}
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Plaka</Label>
-                <MultiSelect
-                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
-                    selected={plateFilter}
-                    onChange={setPlateFilter}
-                    placeholder="Tümü"
-                    searchPlaceholder="Plaka ara..."
-                    className="h-8 text-xs bg-white"
-                />
-            </div>
-
-            {/* Site Filter */}
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Şantiye</Label>
-                <MultiSelect
-                    options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
-                    selected={siteFilter}
-                    onChange={setSiteFilter}
-                    placeholder="Tümü"
-                    searchPlaceholder="Şantiye ara..."
-                    className="h-8 text-xs bg-white"
-                />
-            </div>
-
-            {/* Search Input - Full Width */}
-            <div className="md:col-span-4 relative mt-2">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Genel arama (Plaka, Şantiye vb.)..."
-                    className="pl-8 bg-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            {/* [NEW] Export Buttons */}
+            <div className="flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
+                    <FileSpreadsheet className="w-4 h-4 text-green-600" /> Excel İndir
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-2">
+                    <FileDown className="w-4 h-4 text-red-600" /> PDF İndir
+                </Button>
             </div>
         </div>
     );

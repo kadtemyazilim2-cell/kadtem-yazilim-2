@@ -474,3 +474,101 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
         doc.save(`${(item.subject || 'dokuman').substring(0, 20)}.pdf`);
     }
 };
+
+// [NEW] Fuel Consumption Report PDF
+import autoTable from 'jspdf-autotable';
+
+export const generateFuelConsumptionPDF = (data: any[], dateRange: { start: string, end: string }, siteName: string) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+    addTurkishFont(doc);
+    const fontName = 'Roboto';
+    doc.setFont(fontName, 'normal');
+
+    // Header
+    doc.setFontSize(14);
+    doc.text('Yakıt Tüketim Raporu', 14, 15);
+
+    doc.setFontSize(10);
+    doc.text(`Tarih: ${format(new Date(), 'dd.MM.yyyy HH:mm')}`, 280, 15, { align: 'right' });
+
+    let subTitle = `Şantiye: ${siteName || 'Tümü'}`;
+    if (dateRange.start || dateRange.end) {
+        subTitle += ` | Tarih Aralığı: ${dateRange.start ? format(new Date(dateRange.start), 'dd.MM.yyyy') : 'Başlangıç'} - ${dateRange.end ? format(new Date(dateRange.end), 'dd.MM.yyyy') : 'Bitiş'}`;
+    }
+    doc.text(subTitle, 14, 22);
+
+    // Table Columns
+    const head = [['Tarih', 'Plaka/Araç', 'Sayaç', 'Fark', 'Alınan (Lt)', 'Ort. Tük.', 'Kümülatif', 'Not', 'Veren']];
+
+    // Table Body
+    const body = data.map((row: any) => {
+        let dateStr = row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm');
+
+        let plate = row.vehicle.plate;
+        if (row.recordType === 'VIRMAN_OUT') plate = `Çıkış: ${row.vehicle.plate} -> ${row.targetName || '-'}`;
+        if (row.recordType === 'VIRMAN_IN') plate = `Giriş: ${row.vehicle.plate} <- ${row.sourceName || '-'}`;
+        if (row.recordType === 'PURCHASE') plate = `Satın Alma: ${row.vehicle.plate}`;
+        if (row.recordType === 'BALANCE_START') plate = 'Devreden Stok';
+
+        let meter = (row.recordType === 'LOG' && row.mileage) ? row.mileage.toLocaleString() : '-';
+        let diff = (row.recordType === 'LOG' && row.diffKm > 0) ? `+${row.diffKm}` : '-';
+
+        let liters = '';
+        if (row.recordType === 'LOG') liters = `-${row.liters.toLocaleString()} Lt`;
+        else if (row.recordType === 'PURCHASE' || row.recordType === 'VIRMAN_IN') liters = `+${row.liters.toLocaleString()} Lt`; // Abs removed, already positive usually
+        else if (row.recordType === 'VIRMAN_OUT') liters = `-${Math.abs(row.liters).toLocaleString()} Lt`;
+        else if (row.recordType === 'BALANCE_START') liters = `${row.cumulativeTotal?.toLocaleString()} Lt`; // Show Balance in Liters col? No, usually in Cumulative.
+
+        // Fix for Balance Start: It shouldn't have Alınan Litre, only Cumulative. 
+        if (row.recordType === 'BALANCE_START') liters = '-';
+
+        let cons = (row.consumption && row.consumption > 0) ? `${row.consumption.toFixed(2)}` : '-';
+        let cumulative = row.cumulativeTotal ? `${row.cumulativeTotal.toLocaleString()} Lt` : '-';
+
+        let filledBy = row.sourceName || '-';
+        // Logic for filledBy fallback
+        // ...
+
+        return [
+            dateStr,
+            plate,
+            meter,
+            diff,
+            liters,
+            cons,
+            cumulative,
+            row.description || '',
+            filledBy
+        ];
+    });
+
+    autoTable(doc, {
+        startY: 30,
+        head: head,
+        body: body,
+        theme: 'grid',
+        styles: {
+            font: fontName,
+            fontSize: 8,
+            cellPadding: 2
+        },
+        headStyles: {
+            fillColor: [41, 128, 185],
+            textColor: 255,
+            fontStyle: 'bold'
+        },
+        columnStyles: {
+            0: { cellWidth: 25 }, // Date
+            1: { cellWidth: 50 }, // Plate
+            2: { cellWidth: 20 }, // Meter
+            3: { cellWidth: 15 }, // Diff
+            4: { cellWidth: 25 }, // Liters
+            5: { cellWidth: 15 }, // Cons
+            6: { cellWidth: 25 }, // Cumulative
+            7: { cellWidth: 'auto' }, // Note
+            8: { cellWidth: 25 }  // Veren
+        }
+    });
+
+    doc.save(`yakit_tuketim_raporu_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+};
