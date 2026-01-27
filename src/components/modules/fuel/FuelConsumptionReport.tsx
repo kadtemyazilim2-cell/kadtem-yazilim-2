@@ -218,7 +218,8 @@ export function FuelConsumptionReport() {
                     fullTank: log.fullTank,
                     siteId: log.siteId,
                     filledByUserId: log.filledByUserId,
-                    sourceName: undefined // Fallback to filledByUserId name in render
+                    sourceName: undefined, // Fallback to filledByUserId name in render,
+                    description: log.description // [NEW] Note
                 });
             });
         });
@@ -271,7 +272,8 @@ export function FuelConsumptionReport() {
                     fullTank: true,
                     siteId: toEnt.siteId || '',
                     filledByUserId: t.createdByUserId,
-                    sourceName: undefined // Shows User Name
+                    sourceName: undefined, // Shows User Name
+                    description: t.description // [NEW] Note
                 });
             }
             // B. VIRMAN (Internal -> Internal)
@@ -298,7 +300,8 @@ export function FuelConsumptionReport() {
                     siteId: fromEnt.siteId || '',
                     filledByUserId: t.createdByUserId,
                     sourceName: undefined,
-                    targetName: toEnt.name // [FIX] Added target name for display
+                    targetName: toEnt.name, // [FIX] Added target name for display
+                    description: t.description // [NEW] Note
                 });
 
                 // 2. IN Record (Target)
@@ -322,7 +325,8 @@ export function FuelConsumptionReport() {
                     fullTank: false,
                     siteId: toEnt.siteId || '',
                     filledByUserId: t.createdByUserId,
-                    sourceName: fromEnt.name // [FIX] Added source name for display
+                    sourceName: fromEnt.name, // [FIX] Added source name for display
+                    description: t.description // [NEW] Note
                 });
             }
         });
@@ -577,6 +581,7 @@ export function FuelConsumptionReport() {
                             <TableHead>Ort Tüketim</TableHead>
                             <TableHead>Genel Ort</TableHead>
                             <TableHead>Kümülatif Toplam</TableHead>
+                            <TableHead>Not</TableHead> {/* [NEW] */}
                             <TableHead>Yakıt Veren</TableHead>
                             <TableHead className="w-[80px]">İşlemler</TableHead>
                         </TableRow>
@@ -660,6 +665,9 @@ export function FuelConsumptionReport() {
                                         (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
                                 )}>
                                     {row.cumulativeTotal?.toLocaleString()} Lt
+                                </TableCell>
+                                <TableCell className="max-w-[150px] truncate" title={row.description}>
+                                    {row.description || '-'}
                                 </TableCell>
                                 <TableCell className="text-sm text-muted-foreground">
                                     {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
