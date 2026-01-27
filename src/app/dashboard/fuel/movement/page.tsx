@@ -129,7 +129,7 @@ export default function FuelMovementPage() {
         setter(prev => ({ ...prev, [field]: final }));
     };
 
-    const handleTransfer = (e: React.FormEvent) => {
+    const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -153,21 +153,31 @@ export default function FuelMovementPage() {
         // Auto-set Date to NOW
         const now = new Date();
 
-        addFuelTransfer({
-            id: crypto.randomUUID(),
-            fromType: 'TANK', // Fixed
-            fromId: transferData.fromId,
-            toType: 'TANK', // Fixed
-            toId: transferData.toId,
-            date: now.toISOString(),
-            amount: amount,
-            createdByUserId: user.id
-        });
-        toast.success('Transfer (Virman) işlemi başarıyla kaydedildi.');
-        clearTransfer();
+        try {
+            const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
+                fromType: 'TANK',
+                fromId: transferData.fromId,
+                toType: 'TANK',
+                toId: transferData.toId,
+                date: now.toISOString(),
+                amount: amount,
+                createdByUserId: user.id
+            }));
+
+            if (result.success && result.data) {
+                addFuelTransfer(result.data as any);
+                toast.success('Transfer (Virman) işlemi başarıyla kaydedildi.');
+                clearTransfer();
+            } else {
+                toast.error(result.error || 'Transfer başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Bir hata oluştu.');
+        }
     };
 
-    const handlePurchase = (e: React.FormEvent) => {
+    const handlePurchase = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -183,24 +193,34 @@ export default function FuelMovementPage() {
         const combinedDate = new Date(date);
         combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
-        addFuelTransfer({
-            id: crypto.randomUUID(),
-            fromType: 'EXTERNAL',
-            fromId: purchaseData.firmName,
-            toType: 'TANK',
-            toId: purchaseData.toId,
-            date: combinedDate.toISOString(),
-            amount: amount,
-            unitPrice: price,
-            totalCost: amount * price,
-            createdByUserId: user.id,
-            description: `Birim Fiyat: ${price} TL`
-        });
-        toast.success('Yakıt Alımı başarıyla kaydedildi.');
-        clearPurchase();
+        try {
+            const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
+                fromType: 'EXTERNAL',
+                fromId: purchaseData.firmName,
+                toType: 'TANK',
+                toId: purchaseData.toId,
+                date: combinedDate.toISOString(),
+                amount: amount,
+                unitPrice: price,
+                totalCost: amount * price,
+                createdByUserId: user.id,
+                description: `Birim Fiyat: ${price} TL`
+            }));
+
+            if (result.success && result.data) {
+                addFuelTransfer(result.data as any);
+                toast.success('Yakıt Alımı başarıyla kaydedildi.');
+                clearPurchase();
+            } else {
+                toast.error(result.error || 'İşlem başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Bir hata oluştu.');
+        }
     };
 
-    const handleDispense = (e: React.FormEvent) => {
+    const handleDispense = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -219,29 +239,32 @@ export default function FuelMovementPage() {
         }
 
         const now = new Date();
-        const combinedDate = new Date(date); // But for dispense we still use "date" state if we kept it?
-        // Wait, user asked to remove Date from Dispense too?
-        // Step 1011 says: "FuelForm.tsx: Yakıt verme işleminde tarih/saat alanını kaldır".
-        // But here in PAGE.tsx, Dispense Form STILL HAS DATE INPUT (lines 394-401).
-        // I should probably remove it here too to match user expectations if they are using this page.
-        // Yes, let's auto-set date for Dispense too.
-        combinedDate.setTime(now.getTime()); // Just use NOW
 
-        addFuelLog({
-            id: crypto.randomUUID(),
-            vehicleId: dispenseData.vehicleId,
-            siteId: sourceTank.siteId || '',
-            tankId: dispenseData.tankId,
-            date: now.toISOString(), // Use NOW
-            liters: amount,
-            cost: 0,
-            mileage: mileage,
-            fullTank: dispenseData.fullTank,
-            filledByUserId: user.id,
-            description: dispenseData.description
-        });
-        toast.success('Yakıt Verme (Tüketim) işlemi başarıyla kaydedildi.');
-        clearDispense();
+        try {
+            const result = await import('@/actions/fuel').then(mod => mod.createFuelLog({
+                vehicleId: dispenseData.vehicleId,
+                siteId: sourceTank.siteId || '',
+                tankId: dispenseData.tankId,
+                date: now.toISOString(),
+                liters: amount,
+                cost: 0,
+                mileage: mileage,
+                fullTank: dispenseData.fullTank,
+                filledByUserId: user.id,
+                description: dispenseData.description
+            }));
+
+            if (result.success && result.data) {
+                addFuelLog(result.data as any);
+                toast.success('Yakıt Verme (Tüketim) işlemi başarıyla kaydedildi.');
+                clearDispense();
+            } else {
+                toast.error(result.error || 'İşlem başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Bir hata oluştu.');
+        }
     };
 
     return (
