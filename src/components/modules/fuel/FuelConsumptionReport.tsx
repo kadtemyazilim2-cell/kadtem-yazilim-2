@@ -375,28 +375,30 @@ export function FuelConsumptionReport() {
 
         // Step 1: Walk all records (Backward) to assign Stock Snapshots
         processedData.forEach((item: any) => {
-            const sId = item.siteId;
-            if (sId && runningBalances[sId] !== undefined) {
-                // Assign Current Snapshot to this item
-                item.cumulativeTotal = runningBalances[sId];
+            const sId = item.siteId || 'unknown'; // Group unknown sites together so they track relatively at least
 
-                // Revert effect for Previous State
-                let effect = 0;
-                // Logic:
-                // LOG (Consumption): Stock was Higher. Balance -= (-Liters) = +Liters.
-                // PURCHASE (Entry): Stock was Lower. Balance -= (+Liters).
-                // VIRMAN_OUT (Exit): Stock was Higher. Balance -= (-Liters) = +Liters.
-                // VIRMAN_IN (Entry): Stock was Lower. Balance -= (+Liters).
-
-                if (item.recordType === 'LOG') effect = -1 * item.liters;
-                else if (item.recordType === 'PURCHASE') effect = item.liters;
-                else if (item.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(item.liters);
-                else if (item.recordType === 'VIRMAN_IN') effect = Math.abs(item.liters);
-
-                runningBalances[sId] -= effect;
-            } else {
-                item.cumulativeTotal = 0; // Or undefined?
+            // Ensure bucket exists (start at 0 if no Tank known)
+            if (runningBalances[sId] === undefined) {
+                runningBalances[sId] = 0;
             }
+
+            // Assign Current Snapshot to this item
+            item.cumulativeTotal = runningBalances[sId];
+
+            // Revert effect for Previous State
+            let effect = 0;
+            // Logic:
+            // LOG (Consumption): Stock was Higher. Balance -= (-Liters) = +Liters.
+            // PURCHASE (Entry): Stock was Lower. Balance -= (+Liters).
+            // VIRMAN_OUT (Exit): Stock was Higher. Balance -= (-Liters) = +Liters.
+            // VIRMAN_IN (Entry): Stock was Lower. Balance -= (+Liters).
+
+            if (item.recordType === 'LOG') effect = -1 * item.liters;
+            else if (item.recordType === 'PURCHASE') effect = item.liters;
+            else if (item.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(item.liters);
+            else if (item.recordType === 'VIRMAN_IN') effect = Math.abs(item.liters);
+
+            runningBalances[sId] -= effect;
         });
 
         // Step 2: NOW Apply Filters for Display
