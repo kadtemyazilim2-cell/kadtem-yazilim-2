@@ -24,6 +24,21 @@ export async function getFuelLogs() {
 
 export async function createFuelLog(data: Partial<FuelLog>) {
     try {
+        // [NEW] Duplication Check
+        const cutoff = new Date(Date.now() - 60 * 1000); // 1 minute safety
+        const duplicate = await prisma.fuelLog.findFirst({
+            where: {
+                vehicleId: data.vehicleId,
+                liters: data.liters,
+                filledByUserId: data.filledByUserId,
+                date: { gt: cutoff }
+            }
+        });
+
+        if (duplicate) {
+            return { success: false, error: 'Bu kayıt zaten eklenmiş (Çift giriş engellendi).' };
+        }
+
         const log = await prisma.fuelLog.create({
             data: {
                 vehicleId: data.vehicleId!,
@@ -39,6 +54,8 @@ export async function createFuelLog(data: Partial<FuelLog>) {
                 description: data.description
             }
         });
+
+
 
         // Update Tank Level if internal tank used
         if (data.tankId) {
@@ -105,6 +122,24 @@ export async function deleteFuelTank(id: string) {
 
 export async function createFuelTransfer(data: Partial<FuelTransfer>) {
     try {
+        // [NEW] Duplication Check
+        const cutoff = new Date(Date.now() - 60 * 1000);
+        const duplicate = await prisma.fuelTransfer.findFirst({
+            where: {
+                fromType: data.fromType,
+                fromId: data.fromId,
+                toType: data.toType,
+                toId: data.toId,
+                amount: data.amount,
+                createdByUserId: data.createdByUserId,
+                date: { gt: cutoff }
+            }
+        });
+
+        if (duplicate) {
+            return { success: false, error: 'Bu transfer zaten işlenmiş (Çift giriş engellendi).' };
+        }
+
         const transfer = await prisma.fuelTransfer.create({
             data: {
                 fromType: data.fromType!,

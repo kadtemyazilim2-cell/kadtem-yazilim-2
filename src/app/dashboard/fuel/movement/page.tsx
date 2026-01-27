@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -28,7 +28,8 @@ export default function FuelMovementPage() {
     const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
 
     const [selectedDispenseSiteId, setSelectedDispenseSiteId] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false); // [NEW] Loading state
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const submitLock = useRef(false); // [NEW] Synclock for double-click prevention
 
     // Auto-select site if only one available
     useEffect(() => {
@@ -132,7 +133,9 @@ export default function FuelMovementPage() {
 
     const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || isSubmitting) return; // Prevent double click
+        if (!user || submitLock.current) return;
+        submitLock.current = true;
+        setIsSubmitting(true);
 
         const amount = parseFormattedNumber(transferData.amount);
         if (amount <= 0) {
@@ -154,7 +157,6 @@ export default function FuelMovementPage() {
         // Auto-set Date to NOW
         const now = new Date();
 
-        setIsSubmitting(true); // Start loading
         try {
             const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
                 fromType: 'TANK',
@@ -181,7 +183,9 @@ export default function FuelMovementPage() {
 
     const handlePurchase = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || isSubmitting) return;
+        if (!user || submitLock.current) return;
+        submitLock.current = true;
+        setIsSubmitting(true);
 
         const amount = parseFormattedNumber(purchaseData.amount);
         const price = parseFormattedNumber(purchaseData.unitPrice);
@@ -195,7 +199,6 @@ export default function FuelMovementPage() {
         const combinedDate = new Date(date);
         combinedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
 
-        setIsSubmitting(true);
         try {
             const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
                 fromType: 'EXTERNAL',
@@ -225,7 +228,9 @@ export default function FuelMovementPage() {
 
     const handleDispense = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user || isSubmitting) return;
+        if (!user || submitLock.current) return;
+        submitLock.current = true;
+        setIsSubmitting(true);
 
         const amount = parseFormattedNumber(dispenseData.amount);
         const mileage = parseFormattedNumber(dispenseData.mileage);
@@ -267,6 +272,9 @@ export default function FuelMovementPage() {
         } catch (error) {
             console.error(error);
             toast.error('Bir hata oluştu.');
+        } finally {
+            setIsSubmitting(false);
+            submitLock.current = false;
         }
     };
 
