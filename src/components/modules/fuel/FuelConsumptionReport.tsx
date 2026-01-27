@@ -148,30 +148,61 @@ export function FuelConsumptionReport() {
             const vehicle = vehicles.find((v: any) => v.id === vehicleId);
             if (!vehicle) return;
 
-            // Calculate consumption stats
-            const rangeLiters = logs.length > 1 ? logs.reduce((acc: any, l: any) => acc + l.liters, 0) - logs[logs.length - 1].liters : 0;
-            const rangeDist = logs.length > 1 ? logs[0].mileage - logs[logs.length - 1].mileage : 0;
-            const lifetimeAvg = rangeDist > 0 ? (vehicle.meterType === 'HOURS' ? (rangeLiters / rangeDist) : (rangeLiters / rangeDist) * 100) : 0;
+            // [NEW] Advanced Consumption Calculation (Full-to-Full Method)
+            let totalValidLiters = 0;
+            let totalValidDist = 0;
+            const consumptionMap: Record<string, number> = {};
+
+            // Iterate to find closed Full-to-Full loops
+            for (let i = 0; i < logs.length; i++) {
+                // If current is Full, look for previous Full
+                if (logs[i].fullTank) {
+                    let j = i + 1;
+                    // Skip partials backwards to find next anchor
+                    while (j < logs.length && !logs[j].fullTank) {
+                        j++;
+                    }
+
+                    if (j < logs.length) {
+                        // Found previous full tank at index j
+                        const prevFull = logs[j];
+                        const dist = logs[i].mileage - prevFull.mileage;
+
+                        // Sum liters of current + intermediate partials
+                        // Range: [i, j)
+                        let liters = 0;
+                        for (let k = i; k < j; k++) {
+                            liters += logs[k].liters;
+                        }
+
+                        if (dist > 0) {
+                            const cons = (liters / dist) * (vehicle.meterType === 'HOURS' ? 1 : 100);
+                            consumptionMap[logs[i].id] = cons;
+
+                            // Add to lifetime totals
+                            totalValidLiters += liters;
+                            totalValidDist += dist;
+                        }
+                    }
+                }
+            }
+
+            const lifetimeAvg = totalValidDist > 0 ? (totalValidLiters / totalValidDist) * (vehicle.meterType === 'HOURS' ? 1 : 100) : 0;
 
             logs.forEach((log: any, index: any) => {
                 let diffKm = 0;
                 let consumption = 0;
-                let prevLog = null;
 
-                const originalIndex = logs.findIndex((l: any) => l.id === log.id);
-                if (originalIndex < logs.length - 1) {
-                    prevLog = logs[originalIndex + 1];
+                // Use pre-calculated consumption if valid
+                if (consumptionMap[log.id]) {
+                    consumption = consumptionMap[log.id];
                 }
 
-                if (prevLog) {
-                    diffKm = log.mileage - prevLog.mileage;
-                    if (diffKm > 0) {
-                        if (vehicle.meterType === 'HOURS') {
-                            consumption = (log.liters / diffKm);
-                        } else {
-                            consumption = (log.liters / diffKm) * 100;
-                        }
-                    }
+                // Simple diffKm for display (Current - Previous Log regardless of Full/Partial)
+                const originalIndex = logs.findIndex((l: any) => l.id === log.id);
+                if (originalIndex < logs.length - 1) {
+                    const nextLog = logs[originalIndex + 1];
+                    diffKm = log.mileage - nextLog.mileage;
                 }
 
                 data.push({
@@ -182,7 +213,7 @@ export function FuelConsumptionReport() {
                     mileage: log.mileage,
                     diffKm,
                     liters: log.liters,
-                    consumption,
+                    consumption, // Now only populated for Full Tank records closing a loop
                     lifetimeAvg: lifetimeAvg,
                     fullTank: log.fullTank,
                     siteId: log.siteId,
