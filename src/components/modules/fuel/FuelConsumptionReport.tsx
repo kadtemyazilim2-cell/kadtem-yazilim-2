@@ -671,7 +671,10 @@ export function FuelConsumptionReport() {
                     </TableHeader>
                     <TableBody>
                         {reportData.map((row) => (
-                            <TableRow key={row.id} className={row.recordType === 'BALANCE_START' ? "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200" : ""}>
+                            <TableRow key={row.id} className={cn(
+                                row.recordType === 'BALANCE_START' && "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200",
+                                (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100"
+                            )}>
                                 <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                 <TableCell className="max-w-[120px]">
                                     <div className="font-medium truncate" title={row.vehicle.plate}>{row.vehicle.plate}</div>
