@@ -361,6 +361,18 @@ export default function FuelMovementPage() {
                                                 className="flex-1"
                                             />
                                         </div>
+                                        <div className="flex items-center space-x-2 mt-2">
+                                            <input
+                                                type="checkbox"
+                                                id="fullTank"
+                                                checked={dispenseData.fullTank}
+                                                onChange={e => setDispenseData({ ...dispenseData, fullTank: e.target.checked })}
+                                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                            />
+                                            <Label htmlFor="fullTank" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                Depo Fullendi
+                                            </Label>
+                                        </div>
                                     </div>
                                 </div>
 
