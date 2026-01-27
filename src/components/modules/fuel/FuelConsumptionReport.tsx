@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useState } from 'react';
 import { normalizeSearchText, cn } from '@/lib/utils';
+import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction } from '@/actions/fuel';
 
 export function FuelConsumptionReport() {
     // [UPDATED] Include fuelTransfers and tanks
@@ -42,19 +43,42 @@ export function FuelConsumptionReport() {
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [searchTerm, setSearchTerm] = useState('');
 
-    const handleDelete = (id: string) => {
-        if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) {
+    const handleDelete = async (id: string) => {
+        if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return;
+
+        let success = false;
+        let errorMsg = '';
+
+        try {
             if (id.includes('_OUT') || id.includes('_IN')) {
                 const realId = id.split('_')[0];
-                deleteFuelTransfer(realId);
+                const res = await deleteFuelTransferAction(realId);
+                if (res.success) {
+                    deleteFuelTransfer(realId);
+                    success = true;
+                } else errorMsg = res.error || 'Silinemedi';
             } else if (fuelTransfers.some((t: any) => t.id === id || 'PUR_' + t.id === id)) {
-                // Check if it matches a Transfer directly or via prefix (Purchase might keep ID or Prefix)
-                // In mapping: Purchase ID = t.id.
-                // So if it exists in transfers, delete it.
-                deleteFuelTransfer(id);
+                // Handle PURCHASE or direct Transfer ID
+                const realId = id.startsWith('PUR_') ? id.replace('PUR_', '') : id;
+                const res = await deleteFuelTransferAction(realId);
+                if (res.success) {
+                    deleteFuelTransfer(realId);
+                    success = true;
+                } else errorMsg = res.error || 'Silinemedi';
             } else {
-                deleteFuelLog(id);
+                const res = await deleteFuelLogAction(id);
+                if (res.success) {
+                    deleteFuelLog(id);
+                    success = true;
+                } else errorMsg = res.error || 'Silinemedi';
             }
+
+            if (!success) {
+                alert(errorMsg);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('İşlem sırasında bir hata oluştu.');
         }
     };
 
