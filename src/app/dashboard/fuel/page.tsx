@@ -3,6 +3,7 @@
 import { FuelTankList } from '@/components/modules/fuel/FuelTankList';
 import { FuelConsumptionReport } from '@/components/modules/fuel/FuelConsumptionReport';
 import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList'; // [NEW]
+import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList'; // [NEW]
 import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard'; // [NEW]
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'; // [NEW]
@@ -84,6 +85,9 @@ export default function FuelPage() {
             </div>
 
             {canViewTanks && <FuelTankList />}
+
+            {/* [NEW] Fuel Purchase List (Alımlar) */}
+            <FuelPurchaseList />
 
             {/* [NEW] Fuel Transfer List */}
             <FuelTransferList />
