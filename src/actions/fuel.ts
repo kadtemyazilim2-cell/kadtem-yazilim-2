@@ -101,51 +101,52 @@ export async function deleteFuelTank(id: string) {
         console.error('deleteFuelTank Error:', error);
         return { success: false, error: 'Depo silinemedi.' };
     }
+}
 
-    export async function createFuelTransfer(data: Partial<FuelTransfer>) {
-        try {
-            const transfer = await prisma.fuelTransfer.create({
-                data: {
-                    fromType: data.fromType!,
-                    fromId: data.fromId!,
-                    fromTankId: data.fromType === 'TANK' ? data.fromId : null,
-                    fromVehicleId: data.fromType === 'VEHICLE' ? data.fromId : null,
+export async function createFuelTransfer(data: Partial<FuelTransfer>) {
+    try {
+        const transfer = await prisma.fuelTransfer.create({
+            data: {
+                fromType: data.fromType!,
+                fromId: data.fromId!,
+                fromTankId: data.fromType === 'TANK' ? data.fromId : null,
+                fromVehicleId: data.fromType === 'VEHICLE' ? data.fromId : null,
 
-                    toType: data.toType!,
-                    toId: data.toId!,
-                    toTankId: data.toType === 'TANK' ? data.toId : null,
-                    toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
+                toType: data.toType!,
+                toId: data.toId!,
+                toTankId: data.toType === 'TANK' ? data.toId : null,
+                toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
 
-                    amount: data.amount!,
-                    date: new Date(data.date!),
-                    createdByUserId: data.createdByUserId!,
-                    description: data.description,
-                    unitPrice: data.unitPrice,
-                    totalCost: data.totalCost
-                }
+                amount: data.amount!,
+                date: new Date(data.date!),
+                createdByUserId: data.createdByUserId!,
+                description: data.description,
+                unitPrice: data.unitPrice,
+                totalCost: data.totalCost
+            }
+        });
+
+        // Update Tank Levels
+        // 1. Decrease From Tank
+        if (data.fromType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: data.fromId },
+                data: { currentLevel: { decrement: data.amount } }
             });
-
-            // Update Tank Levels
-            // 1. Decrease From Tank
-            if (data.fromType === 'TANK') {
-                await prisma.fuelTank.update({
-                    where: { id: data.fromId },
-                    data: { currentLevel: { decrement: data.amount } }
-                });
-            }
-
-            // 2. Increase To Tank
-            if (data.toType === 'TANK') {
-                await prisma.fuelTank.update({
-                    where: { id: data.toId },
-                    data: { currentLevel: { increment: data.amount } }
-                });
-            }
-
-            revalidatePath('/dashboard/fuel');
-            return { success: true, data: transfer };
-        } catch (error) {
-            console.error('createFuelTransfer Error:', error);
-            return { success: false, error: 'Transfer yapılamadı.' };
         }
+
+        // 2. Increase To Tank
+        if (data.toType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: data.toId },
+                data: { currentLevel: { increment: data.amount } }
+            });
+        }
+
+        revalidatePath('/dashboard/fuel');
+        return { success: true, data: transfer };
+    } catch (error) {
+        console.error('createFuelTransfer Error:', error);
+        return { success: false, error: 'Transfer yapılamadı.' };
     }
+}
