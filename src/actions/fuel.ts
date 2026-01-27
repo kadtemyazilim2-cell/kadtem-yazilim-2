@@ -185,3 +185,15 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
         return { success: false, error: 'Transfer yapılamadı.' };
     }
 }
+
+export async function getFuelTransfers() {
+    try {
+        const transfers = await prisma.fuelTransfer.findMany({
+            orderBy: { date: 'desc' },
+        });
+        return { success: true, data: transfers };
+    } catch (error) {
+        console.error('getFuelTransfers Error:', error);
+        return { success: false, error: 'Transferler alınamadı.' };
+    }
+}

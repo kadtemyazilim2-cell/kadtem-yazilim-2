@@ -111,6 +111,8 @@ export const useAppStore = create<AppState>()(
                 };
             }),
             setFuelTanks: (tanks) => set({ fuelTanks: tanks }),
+            setFuelLogs: (logs) => set({ fuelLogs: logs }),
+            setFuelTransfers: (transfers) => set({ fuelTransfers: transfers }),
 
 
             addCashTransaction: (transaction) => set((state) => ({ cashTransactions: [transaction, ...state.cashTransactions] })),

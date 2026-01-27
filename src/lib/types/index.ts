@@ -359,7 +359,9 @@ export interface AppState {
   addFuelTank: (tank: FuelTank) => void;
   updateFuelTank: (id: string, updates: Partial<FuelTank>) => void;
   deleteFuelTank: (id: string) => void;
-  setFuelTanks: (tanks: FuelTank[]) => void; // [NEW]
+  setFuelTanks: (tanks: FuelTank[]) => void;
+  setFuelLogs: (logs: FuelLog[]) => void;
+  setFuelTransfers: (transfers: FuelTransfer[]) => void;
   addFuelTransfer: (transfer: FuelTransfer) => void;
   deleteFuelTransfer: (id: string) => void;
   updateFuelTransfer: (id: string, updates: Partial<FuelTransfer>) => void;
