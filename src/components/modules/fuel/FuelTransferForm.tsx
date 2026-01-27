@@ -21,24 +21,35 @@ export function FuelTransferForm() {
     const [amount, setAmount] = useState(0);
     const [date] = useState(new Date().toISOString().split('T')[0]); // Date is auto-set
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
-        addFuelTransfer({
-            id: crypto.randomUUID(),
-            fromType: 'TANK',
-            fromId,
-            toType: 'TANK',
-            toId,
-            date,
-            amount,
-            createdByUserId: user.id
-        });
-        setOpen(false);
-        setAmount(0);
-        setFromId('');
-        setToId('');
+        try {
+            const result = await import('@/actions/fuel').then(mod => mod.createFuelTransfer({
+                fromType: 'TANK',
+                fromId,
+                toType: 'TANK',
+                toId,
+                date,
+                amount,
+                createdByUserId: user.id
+            }));
+
+            if (result.success && result.data) {
+                // Update Local State for immediate feedback
+                addFuelTransfer(result.data as any);
+                setOpen(false);
+                setAmount(0);
+                setFromId('');
+                setToId('');
+            } else {
+                alert(result.error || 'Transfer başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Bir hata oluştu.');
+        }
     };
 
     return (

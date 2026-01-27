@@ -52,7 +52,7 @@ export function FuelForm() {
         }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -70,29 +70,38 @@ export function FuelForm() {
             }
         }
 
-        addFuelLog({
-            id: crypto.randomUUID(),
-            ...formData,
-            liters: Number(formData.liters),
-            unitPrice: 0, // [MODIFIED] Hidden, set to 0
-            cost: 0, // [MODIFIED] Hidden, set to 0
-            mileage: Number(formData.mileage),
-            fullTank: true, // Default
-            filledByUserId: user.id
-        });
+        try {
+            const result = await import('@/actions/fuel').then(mod => mod.createFuelLog({
+                ...formData,
+                liters: Number(formData.liters),
+                unitPrice: 0,
+                cost: 0,
+                mileage: Number(formData.mileage),
+                fullTank: true,
+                filledByUserId: user.id
+            }));
 
-        setOpen(false);
-        setFormData({
-            vehicleId: '',
-            siteId: '',
-            tankId: '',
-            date: new Date().toISOString(),
-            liters: 0,
-            unitPrice: 0,
-            cost: 0,
-            mileage: 0,
-            description: '',
-        });
+            if (result.success && result.data) {
+                addFuelLog(result.data as any);
+                setOpen(false);
+                setFormData({
+                    vehicleId: '',
+                    siteId: '',
+                    tankId: '',
+                    date: new Date().toISOString(),
+                    liters: 0,
+                    unitPrice: 0,
+                    cost: 0,
+                    mileage: 0,
+                    description: '',
+                });
+            } else {
+                alert(result.error || 'Kayıt başarısız.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Bir hata oluştu.');
+        }
     };
 
     return (
