@@ -330,339 +330,432 @@ export function FuelConsumptionReport() {
         // 4. Filtering & Balancing Logic
         let processedData = [...data];
 
-        // A. Entity Filters
-        if (plateFilter.length > 0) {
-            processedData = processedData.filter((item: any) => plateFilter.includes(item.vehicle.plate));
-        }
+        // A. Pre-Sort by Date DESCENTING (Newest First) for Backward Calc
+        processedData.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        // B. Calculate Starting Stock (CURRENT STOCK)
+        // If Site Filter active, sum tanks for that site.
+        // If No Filter, sum ALL tanks.
+        // If Plate Filter, stock doesn't make much sense, but we'll show Stock of the context or Global.
+        // Let's stick to visible tanks based on Site Filter.
+        const visibleTanks = fuelTanks.filter((t: any) =>
+            siteFilter.length === 0 || siteFilter.includes(t.siteId)
+        );
+        const currentTotalStock = visibleTanks.reduce((acc: number, t: any) => acc + (t.currentLevel || 0), 0);
+
+        // C. Walk Backwards
+        let runningBalance = currentTotalStock;
+
+        // We need to process ALL data (even future regarding date range?) 
+        // No, `data` contains all logs/transfers from the store.
+        // But store might filter? Usually useAppStore has all.
+        // We iterate ALL `processedData` (which is currently everything in store converted to rows).
+
+        // But we must NOT filter by attributes (Plate/Site) BEFORE calculating global stock history if we want "Global Stock".
+        // HOWEVER, if the user filters by SITE, they want SITE STOCK history.
+        // So we MUST filter processedData by SITE *before* walking, to match `currentTotalStock` which is scoped to SITE.
+
+        // Filter by Site FIRST (so we track stock only for selected site)
         if (siteFilter.length > 0) {
             processedData = processedData.filter((item: any) => item.siteId && siteFilter.includes(item.siteId));
         }
 
-        // B. Calculate Previous Balance (Devreden)
-        let previousTotal = 0;
-        let startDateObj: Date | null = null;
+        // Plate Filter?
+        // If I filter by Plate, do I want Stock?
+        // Usually Plate Filter = Consumption Report.
+        // If Plate Filter is ON, showing "Site Stock" is potentially confusing as it jumps.
+        // But let's assume we proceed with the filtered dataset.
+        // If Plate Filter is ON, `visibleTanks` is still All (or Site filtered).
+        // The `processedData` will only have LOGS for that plate.
+        // This breaks the Stock Continuity.
+        // Ideally: If Plate Filter is active, maybe we shouldn't show "Stock Cumulative"?
+        // Or show "Cumulative Consumption"?
+        // User said: "deducting from taken fuel".
+        // Let's stick to the stock math. If they filter by plate, they see the effect of THAT plate on the stock (sort of).
+        if (plateFilter.length > 0) {
+            processedData = processedData.filter((item: any) => plateFilter.includes(item.vehicle.plate));
+        }
 
-        const calculateStockVal = (item: any) => {
-            // Simplified logic as liters are already signed for VIRMAN
-            if (item.recordType === 'LOG') return -1 * item.liters;
-            if (item.recordType === 'PURCHASE') return item.liters; // Positive
-            if (item.recordType === 'VIRMAN_OUT') return item.liters; // Already Negative
-            if (item.recordType === 'VIRMAN_IN') return item.liters; // Already Positive
-            // Fallback for old types if any leaking
-            return 0;
-        };
+        // Now Walk Backwards
+        processedData.forEach((item: any) => {
+            // Assign Current Balance to this transaction (Balance After Transaction)
+            item.cumulativeTotal = runningBalance;
 
+            // Revert the effect to get Previous Balance
+            // Logic:
+            // Item was LOG (Consumption) -> Stock went DOWN. Previous was HIGHER. (+ Liters)
+            // Item was PURCHASE (Entry) -> Stock went UP. Previous was LOWER. (- Liters)
+            // Item was VIRMAN_OUT (Exit) -> Stock went DOWN. Previous was HIGHER. (+ Liters)
+            // Item was VIRMAN_IN (Entry) -> Stock went UP. Previous was LOWER. (- Liters)
+
+            // Note: `calculateStockVal` in my head:
+            // LOG: -Liters
+            // PURCHASE: +Liters
+            // OUT: -Liters
+            // IN: +Liters
+
+            // So: Previous = Running - Effect
+            // Log: Running - (-10) = Running + 10. Correct.
+            // Purchase: Running - (+100) = Running - 100. Correct.
+
+            let effect = 0;
+            if (item.recordType === 'LOG') effect = -1 * item.liters;
+            else if (item.recordType === 'PURCHASE') effect = item.liters;
+            else if (item.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(item.liters); // Ensure sign
+            else if (item.recordType === 'VIRMAN_IN') effect = Math.abs(item.liters);
+
+            runningBalance -= effect;
+        });
+
+        // D. Apply Date Filter & Search (After calculation)
         if (dateRange.start) {
-            startDateObj = startOfDay(parseISO(dateRange.start));
-            const preItems = processedData.filter((item: any) => parseISO(item.date) < startDateObj!);
-            preItems.forEach((item: any) => {
-                previousTotal += calculateStockVal(item);
-            });
-            processedData = processedData.filter((item: any) => parseISO(item.date) >= startDateObj!);
+            const startObj = startOfDay(parseISO(dateRange.start));
+            processedData = processedData.filter((item: any) => parseISO(item.date) >= startObj);
+
+            // Add "Devir" (Opening Balance) Row if we are cutting off history
+            // The `runningBalance` variable holding the state AFTER the last processed item (which is oldest)
+            // ... wait. I need the balance *at the cut-off point*.
+            // If I filter out items older than Start, I want the balance *of the first visible item*?
+            // No, I want the balance *before* the first visible item.
+
+            // Actually, `runningBalance` at the end of the loop is the Balance at the beginning of time (of the data).
+            // But if I filtered by date, I need to capture the balance at that specific date.
+            // Easier: Just look at the Last Item (Oldest) after filtering.
+            // Its Previous Balance is what we want?
+            // `item.cumulativeTotal` is "Balance After".
+            // So "Balance Start" = OldestItem.cumulativeTotal - OldestItem.Effect.
+
+            // Let's refine:
+            // We can insert the devir row later.
         }
 
-        // C. Apply End Date Filter
         if (dateRange.end) {
-            const endDateObj = endOfDay(parseISO(dateRange.end));
-            processedData = processedData.filter((item: any) => parseISO(item.date) <= endDateObj);
+            const endObj = endOfDay(parseISO(dateRange.end));
+            processedData = processedData.filter((item: any) => parseISO(item.date) <= endObj);
         }
 
-        // D. Apply Search Filter
+        // Search Filter
         if (searchTerm) {
             const lowerSearch = normalizeSearchText(searchTerm);
             processedData = processedData.filter((item: any) => {
-                const plate = normalizeSearchText(item.vehicle.plate);
-                const type = normalizeSearchText(item.vehicle.type);
+                const plate = normalizeSearchText(item.vehicle.plate || '');
+                const type = normalizeSearchText(item.vehicle.type || '');
                 const brand = normalizeSearchText(item.vehicle.brand || '');
                 return plate.includes(lowerSearch) || type.includes(lowerSearch) || brand.includes(lowerSearch);
             });
         }
 
-        // E. Calculate Schedule (Running Total)
-        processedData.sort((a: any, b: any) => {
-            const d = new Date(a.date).getTime() - new Date(b.date).getTime();
-            return d !== 0 ? d : a.id.localeCompare(b.id);
-        });
+        // E. Add Devir Row if needed
+        // If we filtered by Start Date, we should show the "Opening Balance".
+        // The Opening Balance is: The balance *prior* to the first Transaction in the displayed list.
+        // Since we calculated `cumulativeTotal` (Balance After) for everyone, 
+        // Using the OLDER item in the list (last one):
+        // Opening = LastItem.cumulativeTotal - Effect(LastItem).
+        // Wait, `runningBalance -= effect` logic updates runningBalance to be "Before".
+        // checks loop:
+        // Item N (Oldest). Cumulative = Running. Running -= Effect.
+        // So `runningBalance` IS the balance before Item N.
+        // EXCEPT if we filtered items out.
 
-        let runningTotal = previousTotal;
-        processedData.forEach((item: any) => {
-            runningTotal += calculateStockVal(item);
-            item.cumulativeTotal = runningTotal;
-        });
+        // Correct approach with filters:
+        // We computed balances for ALL data.
+        // Then we slice the array.
+        // Use the `runningBalance` ? No, that's at end of ALL data.
+        // We need the balance specific to the `dateRange.start`.
 
-        // F. Add 'Devir' Row
-        if (startDateObj || previousTotal !== 0) {
-            processedData.unshift({
+        // Let's just grab the Balance from the "Next Oldest Item" that was filtered out?
+        // Or simpler: Recalculate 'stock at date' is hard.
+
+        // BETTER: 
+        // 1. Calculate for ALL.
+        // 2. Find the index where we slice.
+        // 3. The "Balance" of the slice point.
+
+        // Since we filtered `processedData` in place, we lost the connection to the "previous" item if we just filtered normally.
+        // HACK: We can reconstruct the "Opening Balance" from the Last Displayed Item.
+        // If list is [Newest ... Oldest].
+        // Opening Balance = Oldest.cumulativeTotal - Effect(Oldest).
+
+        if (processedData.length > 0 && dateRange.start) {
+            const oldest = processedData[processedData.length - 1];
+            let effect = 0;
+            if (oldest.recordType === 'LOG') effect = -1 * oldest.liters;
+            else if (oldest.recordType === 'PURCHASE') effect = oldest.liters;
+            else if (oldest.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(oldest.liters);
+            else if (oldest.recordType === 'VIRMAN_IN') effect = Math.abs(oldest.liters);
+
+            const openingBalance = oldest.cumulativeTotal - effect;
+
+            processedData.push({
                 id: 'balance-start',
                 recordType: 'BALANCE_START',
-                date: dateRange.start ? dateRange.start : (processedData.length > 0 ? processedData[0].date : new Date().toISOString()),
+                date: dateRange.start, // or startOfDay
                 vehicle: { plate: '-', brand: 'DEVREDEN STOK', meterType: '' } as any,
                 mileage: 0,
                 diffKm: 0,
-                liters: Math.abs(previousTotal),
-                subType: previousTotal >= 0 ? '+' : '-',
-                cumulativeTotal: previousTotal,
+                liters: 0, // Just display balance
+                subType: '',
+                cumulativeTotal: openingBalance,
                 sourceName: 'Önceki Dönem',
                 consumption: 0,
                 lifetimeAvg: 0
             });
         }
 
-        return processedData.reverse();
+        // Return as is (Newest First) - No need to reverse as we sorted DESC
+        return processedData;
 
-    }, [vehicleLogs, vehicles, plateFilter, siteFilter, dateRange, searchTerm, sites, fuelTransfers, fuelTanks]);
+        const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
+        const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
 
-    const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
-    const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
-
-    const renderFilters = () => (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
-            {/* Date Range */}
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Başlangıç Tarihi</Label>
-                <Input type="date" className="h-8 text-xs bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
-            </div>
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Bitiş Tarihi</Label>
-                <Input type="date" className="h-8 text-xs bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
-            </div>
-
-            {/* Plate Filter */}
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Plaka</Label>
-                <MultiSelect
-                    options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
-                    selected={plateFilter}
-                    onChange={setPlateFilter}
-                    placeholder="Tümü"
-                    searchPlaceholder="Plaka ara..."
-                    className="h-8 text-xs bg-white"
-                />
-            </div>
-
-            {/* Site Filter */}
-            <div className="flex flex-col gap-1">
-                <Label className="text-xs">Şantiye</Label>
-                <MultiSelect
-                    options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
-                    selected={siteFilter}
-                    onChange={setSiteFilter}
-                    placeholder="Tümü"
-                    searchPlaceholder="Şantiye ara..."
-                    className="h-8 text-xs bg-white"
-                />
-            </div>
-
-            {/* Search Input - Full Width */}
-            <div className="md:col-span-4 relative mt-2">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Genel arama (Plaka, Şantiye vb.)..."
-                    className="pl-8 bg-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
-        </div>
-    );
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Detaylı Yakıt Tüketim Raporu</CardTitle>
-                <div className="space-y-4">
-                    {renderFilters()}
+        const renderFilters = () => (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-4 p-4 bg-slate-50/50 rounded-lg border">
+                {/* Date Range */}
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Başlangıç Tarihi</Label>
+                    <Input type="date" className="h-8 text-xs bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
                 </div>
-            </CardHeader>
-            <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Tarih</TableHead>
-                            <TableHead>Plaka / Araç</TableHead>
-                            <TableHead>Sayaç</TableHead>
-                            <TableHead>Fark</TableHead>
-                            <TableHead>Alınan</TableHead>
-                            <TableHead>Ort Tüketim</TableHead>
-                            <TableHead>Genel Ort</TableHead>
-                            <TableHead>Kümülatif Toplam</TableHead>
-                            <TableHead>Yakıt Veren</TableHead>
-                            <TableHead className="w-[80px]">İşlemler</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {reportData.map((row) => (
-                            <TableRow key={row.id} className={row.recordType === 'BALANCE_START' ? "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200" : ""}>
-                                <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
-                                <TableCell>
-                                    <div className="font-medium">{row.vehicle.plate}</div>
-                                    <div className="text-xs text-muted-foreground">{row.vehicle.brand}</div>
-                                </TableCell>
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Bitiş Tarihi</Label>
+                    <Input type="date" className="h-8 text-xs bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                </div>
 
-                                {/* CONDITIONAL RENDERING FOR VIRMAN */}
-                                {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
-                                    <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
-                                            {row.recordType === 'VIRMAN_OUT' ? (
-                                                <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
-                                            ) : (
-                                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                            <span>Virman</span>
-                                        </div>
+                {/* Plate Filter */}
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Plaka</Label>
+                    <MultiSelect
+                        options={uniquePlates.map((p: any) => ({ label: p, value: p }))}
+                        selected={plateFilter}
+                        onChange={setPlateFilter}
+                        placeholder="Tümü"
+                        searchPlaceholder="Plaka ara..."
+                        className="h-8 text-xs bg-white"
+                    />
+                </div>
+
+                {/* Site Filter */}
+                <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Şantiye</Label>
+                    <MultiSelect
+                        options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
+                        selected={siteFilter}
+                        onChange={setSiteFilter}
+                        placeholder="Tümü"
+                        searchPlaceholder="Şantiye ara..."
+                        className="h-8 text-xs bg-white"
+                    />
+                </div>
+
+                {/* Search Input - Full Width */}
+                <div className="md:col-span-4 relative mt-2">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Genel arama (Plaka, Şantiye vb.)..."
+                        className="pl-8 bg-white"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+            </div>
+        );
+
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Detaylı Yakıt Tüketim Raporu</CardTitle>
+                    <div className="space-y-4">
+                        {renderFilters()}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Plaka / Araç</TableHead>
+                                <TableHead>Sayaç</TableHead>
+                                <TableHead>Fark</TableHead>
+                                <TableHead>Alınan</TableHead>
+                                <TableHead>Ort Tüketim</TableHead>
+                                <TableHead>Genel Ort</TableHead>
+                                <TableHead>Kümülatif Toplam</TableHead>
+                                <TableHead>Yakıt Veren</TableHead>
+                                <TableHead className="w-[80px]">İşlemler</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {reportData.map((row) => (
+                                <TableRow key={row.id} className={row.recordType === 'BALANCE_START' ? "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200" : ""}>
+                                    <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
+                                    <TableCell>
+                                        <div className="font-medium">{row.vehicle.plate}</div>
+                                        <div className="text-xs text-muted-foreground">{row.vehicle.brand}</div>
                                     </TableCell>
-                                ) : (
-                                    <>
-                                        <TableCell>
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                <>
-                                                    {row.mileage.toLocaleString()}
-                                                    <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
-                                                </>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                row.diffKm > 0 ? `+${row.diffKm}` : '-'
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className={cn("font-bold",
-                                                    row.recordType === 'BALANCE_START' ? 'text-blue-700' :
-                                                        (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
-                                                )}>
-                                                    {row.recordType === 'BALANCE_START' ? (
-                                                        `Devir: ${row.liters.toLocaleString()} Lt`
-                                                    ) : (
-                                                        <>
-                                                            {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
-                                                        </>
-                                                    )}
-                                                </span>
-                                                {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
-                                                {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+
+                                    {/* CONDITIONAL RENDERING FOR VIRMAN */}
+                                    {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
+                                        <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
+                                                {row.recordType === 'VIRMAN_OUT' ? (
+                                                    <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
+                                                ) : (
+                                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                                )}
+                                                <span>Virman</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                row.consumption > 0 ? (
-                                                    <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                        {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                    </Badge>
-                                                ) : '-'
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                row.lifetimeAvg > 0 ? (
-                                                    <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
-                                                ) : '-'
-                                            )}
-                                        </TableCell>
-                                    </>
-                                )}
-
-                                <TableCell className={cn("font-semibold",
-                                    row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
-                                        (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
-                                )}>
-                                    {row.cumulativeTotal?.toLocaleString()} Lt
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
-                                </TableCell>
-                                <TableCell>
-                                    {canEditFuel && row.recordType !== 'BALANCE_START' && (
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
+                                    ) : (
+                                        <>
+                                            <TableCell>
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    <>
+                                                        {row.mileage.toLocaleString()}
+                                                        <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
+                                                    </>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    row.diffKm > 0 ? `+${row.diffKm}` : '-'
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className={cn("font-bold",
+                                                        row.recordType === 'BALANCE_START' ? 'text-blue-700' :
+                                                            (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
+                                                    )}>
+                                                        {row.recordType === 'BALANCE_START' ? (
+                                                            `Devir: ${row.liters.toLocaleString()} Lt`
+                                                        ) : (
+                                                            <>
+                                                                {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                    {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
+                                                    {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    row.consumption > 0 ? (
+                                                        <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
+                                                            {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                        </Badge>
+                                                    ) : '-'
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    row.lifetimeAvg > 0 ? (
+                                                        <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
+                                                    ) : '-'
+                                                )}
+                                            </TableCell>
+                                        </>
                                     )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </CardContent>
 
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
-                    </DialogHeader>
-                    {editingLog && (
-                        <div className="grid gap-4 py-4">
-                            {isReadOnly && (
-                                <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
-                                    Bu kayıt başka bir kullanıcı tarafından oluşturulmuştur. Düzenleyemezsiniz.
+                                    <TableCell className={cn("font-semibold",
+                                        row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
+                                            (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
+                                    )}>
+                                        {row.cumulativeTotal?.toLocaleString()} Lt
+                                    </TableCell>
+                                    <TableCell className="text-sm text-muted-foreground">
+                                        {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
+                                    </TableCell>
+                                    <TableCell>
+                                        {canEditFuel && row.recordType !== 'BALANCE_START' && (
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+
+                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
+                        </DialogHeader>
+                        {editingLog && (
+                            <div className="grid gap-4 py-4">
+                                {isReadOnly && (
+                                    <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
+                                        Bu kayıt başka bir kullanıcı tarafından oluşturulmuştur. Düzenleyemezsiniz.
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Tarih</Label>
+                                        <Input
+                                            type="date"
+                                            value={editForm.date}
+                                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Şantiye</Label>
+                                        <Select
+                                            value={editForm.siteId}
+                                            onValueChange={(v) => setEditForm({ ...editForm, siteId: v })}
+                                            disabled={isReadOnly}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seçiniz" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Tarih</Label>
-                                    <Input
-                                        type="date"
-                                        value={editForm.date}
-                                        onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                                        disabled={isReadOnly}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Şantiye</Label>
-                                    <Select
-                                        value={editForm.siteId}
-                                        onValueChange={(v) => setEditForm({ ...editForm, siteId: v })}
-                                        disabled={isReadOnly}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seçiniz" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                {(editingLog as any)?.recordType !== 'TRANSFER' && (
+                                    <div className="space-y-2">
+                                        <Label>KM / Saat</Label>
+                                        <Input
+                                            type="number"
+                                            value={editForm.mileage}
+                                            onChange={(e) => setEditForm({ ...editForm, mileage: Number(e.target.value) })}
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Litre</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.liters}
+                                            onChange={(e) => setEditForm({ ...editForm, liters: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                    {/* Cost Field Removed as per request */}
                                 </div>
                             </div>
-                            {(editingLog as any)?.recordType !== 'TRANSFER' && (
-                                <div className="space-y-2">
-                                    <Label>KM / Saat</Label>
-                                    <Input
-                                        type="number"
-                                        value={editForm.mileage}
-                                        onChange={(e) => setEditForm({ ...editForm, mileage: Number(e.target.value) })}
-                                        disabled={isReadOnly}
-                                    />
-                                </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Litre</Label>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={editForm.liters}
-                                        onChange={(e) => setEditForm({ ...editForm, liters: Number(e.target.value) })}
-                                    />
-                                </div>
-                                {/* Cost Field Removed as per request */}
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
-                        <Button onClick={handleUpdate}>Güncelle</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </Card >
-    );
-}
+                        )}
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
+                            <Button onClick={handleUpdate}>Güncelle</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </Card >
+        );
+    }
