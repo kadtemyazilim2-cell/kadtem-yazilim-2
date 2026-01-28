@@ -653,127 +653,129 @@ export function FuelConsumptionReport() {
                 </div>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Tarih</TableHead>
-                            <TableHead>Plaka / Araç</TableHead>
-                            <TableHead>Sayaç</TableHead>
-                            <TableHead>Fark</TableHead>
-                            <TableHead>Alınan</TableHead>
-                            <TableHead>Ort Tüketim</TableHead>
-                            <TableHead>Genel Ort</TableHead>
-                            <TableHead>Kümülatif Toplam</TableHead>
-                            <TableHead>Not</TableHead> {/* [NEW] */}
-                            <TableHead>Yakıt Veren</TableHead>
-                            <TableHead className="w-[80px]">İşlemler</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {reportData.map((row) => (
-                            <TableRow key={row.id} className={cn(
-                                row.recordType === 'BALANCE_START' && "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200",
-                                (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100"
-                            )}>
-                                <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
-                                <TableCell className="max-w-[120px]">
-                                    <div className="font-medium truncate" title={row.vehicle.plate}>{row.vehicle.plate}</div>
-                                    <div className="text-xs text-muted-foreground truncate" title={row.vehicle.brand}>{row.vehicle.brand}</div>
-                                </TableCell>
-
-                                {/* CONDITIONAL RENDERING FOR VIRMAN */}
-                                {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
-                                    <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
-                                            {row.recordType === 'VIRMAN_OUT' ? (
-                                                <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
-                                            ) : (
-                                                <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                            )}
-                                            <span>Virman</span>
-                                        </div>
+                <div className="overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Plaka / Araç</TableHead>
+                                <TableHead>Sayaç</TableHead>
+                                <TableHead>Fark</TableHead>
+                                <TableHead>Alınan</TableHead>
+                                <TableHead>Ort Tüketim</TableHead>
+                                <TableHead>Genel Ort</TableHead>
+                                <TableHead>Kümülatif Toplam</TableHead>
+                                <TableHead>Not</TableHead> {/* [NEW] */}
+                                <TableHead>Yakıt Veren</TableHead>
+                                <TableHead className="w-[80px]">İşlemler</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {reportData.map((row) => (
+                                <TableRow key={row.id} className={cn(
+                                    row.recordType === 'BALANCE_START' && "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200",
+                                    (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100"
+                                )}>
+                                    <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
+                                    <TableCell className="max-w-[120px]">
+                                        <div className="font-medium truncate" title={row.vehicle.plate}>{row.vehicle.plate}</div>
+                                        <div className="text-xs text-muted-foreground truncate" title={row.vehicle.brand}>{row.vehicle.brand}</div>
                                     </TableCell>
-                                ) : (
-                                    <>
-                                        <TableCell>
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                <>
-                                                    {row.mileage.toLocaleString()}
-                                                    <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
-                                                </>
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                row.diffKm > 0 ? `+${row.diffKm}` : '-'
-                                            )}
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className={cn("font-bold",
-                                                    row.recordType === 'BALANCE_START' ? 'text-blue-700' :
-                                                        (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
-                                                )}>
-                                                    {row.recordType === 'BALANCE_START' ? (
-                                                        `Devir: ${row.liters.toLocaleString()} Lt`
-                                                    ) : (
-                                                        <>
-                                                            {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
-                                                        </>
-                                                    )}
-                                                </span>
-                                                {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
-                                                {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+
+                                    {/* CONDITIONAL RENDERING FOR VIRMAN */}
+                                    {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
+                                        <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
+                                                {row.recordType === 'VIRMAN_OUT' ? (
+                                                    <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
+                                                ) : (
+                                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                                )}
+                                                <span>Virman</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell>
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                row.consumption > 0 ? (
-                                                    <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                        {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                    </Badge>
-                                                ) : '-'
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground">
-                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                row.lifetimeAvg > 0 ? (
-                                                    <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
-                                                ) : '-'
-                                            )}
-                                        </TableCell>
-                                    </>
-                                )}
-
-                                <TableCell className={cn("font-semibold",
-                                    row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
-                                        (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
-                                )}>
-                                    {row.cumulativeTotal?.toLocaleString()} Lt
-                                </TableCell>
-                                <TableCell className="max-w-[150px] truncate" title={row.description}>
-                                    {row.description || '-'}
-                                </TableCell>
-                                <TableCell className="text-sm text-muted-foreground">
-                                    {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
-                                </TableCell>
-                                <TableCell>
-                                    {canEditFuel && row.recordType !== 'BALANCE_START' && (
-                                        <div className="flex items-center gap-1">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
+                                    ) : (
+                                        <>
+                                            <TableCell>
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    <>
+                                                        {row.mileage.toLocaleString()}
+                                                        <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
+                                                    </>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    row.diffKm > 0 ? `+${row.diffKm}` : '-'
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className={cn("font-bold",
+                                                        row.recordType === 'BALANCE_START' ? 'text-blue-700' :
+                                                            (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
+                                                    )}>
+                                                        {row.recordType === 'BALANCE_START' ? (
+                                                            `Devir: ${row.liters.toLocaleString()} Lt`
+                                                        ) : (
+                                                            <>
+                                                                {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                    {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
+                                                    {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    row.consumption > 0 ? (
+                                                        <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
+                                                            {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                        </Badge>
+                                                    ) : '-'
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">
+                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                    row.lifetimeAvg > 0 ? (
+                                                        <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
+                                                    ) : '-'
+                                                )}
+                                            </TableCell>
+                                        </>
                                     )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+
+                                    <TableCell className={cn("font-semibold",
+                                        row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
+                                            (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
+                                    )}>
+                                        {row.cumulativeTotal?.toLocaleString()} Lt
+                                    </TableCell>
+                                    <TableCell className="max-w-[150px] truncate" title={row.description}>
+                                        {row.description || '-'}
+                                    </TableCell>
+                                    <TableCell className="max-w-[100px] truncate text-sm text-muted-foreground" title={row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}>
+                                        {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
+                                    </TableCell>
+                                    <TableCell>
+                                        {canEditFuel && row.recordType !== 'BALANCE_START' && (
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
 
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
