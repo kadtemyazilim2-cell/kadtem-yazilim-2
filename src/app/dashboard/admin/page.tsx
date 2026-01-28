@@ -2701,7 +2701,7 @@ export default function AdminPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="px-0 py-0">
-                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-200px)] w-full">
+                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-320px)] w-full">
                                 <Table className="w-full relative">
                                     <TableHeader>
                                         <TableRow className="bg-slate-100">
