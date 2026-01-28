@@ -2,14 +2,23 @@
 
 import { prisma } from '@/lib/db';
 import { Personnel } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
-export async function getPersonnel() {
-    try {
-        const personnel = await prisma.personnel.findMany({
+// [PERFORMANCE] Cached personnel query
+const getPersonnelFromDb = unstable_cache(
+    async () => {
+        return await prisma.personnel.findMany({
             orderBy: { fullName: 'asc' },
             include: { site: true }
         });
+    },
+    ['get-personnel-data'],
+    { tags: ['personnel'], revalidate: 3600 }
+);
+
+export async function getPersonnel() {
+    try {
+        const personnel = await getPersonnelFromDb();
         return { success: true, data: personnel };
     } catch (error) {
         console.error('getPersonnel Error:', error);
@@ -47,6 +56,9 @@ export async function createPersonnel(data: Partial<Personnel>) {
             });
         }
 
+        revalidateTag('personnel');
+        revalidateTag('personnel');
+        revalidateTag('personnel');
         revalidatePath('/dashboard/personnel');
         return { success: true, data: person };
     } catch (error) {
@@ -61,6 +73,9 @@ export async function updatePersonnel(id: string, data: Partial<Personnel>) {
             where: { id },
             data: { ...data }
         });
+        revalidateTag('personnel');
+        revalidateTag('personnel');
+        revalidateTag('personnel');
         revalidatePath('/dashboard/personnel');
         return { success: true, data: person };
     } catch (error) {
@@ -79,6 +94,9 @@ export async function deletePersonnel(id: string) {
         const person = await prisma.personnel.delete({
             where: { id }
         });
+        revalidateTag('personnel');
+        revalidateTag('personnel');
+        revalidateTag('personnel');
         revalidatePath('/dashboard/personnel');
         return { success: true, data: person };
     } catch (error) {

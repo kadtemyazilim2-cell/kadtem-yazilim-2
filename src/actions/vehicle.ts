@@ -2,17 +2,26 @@
 
 import { prisma } from '@/lib/db';
 import { Vehicle } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
-export async function getVehicles() {
-    try {
-        const vehicles = await prisma.vehicle.findMany({
+// [PERFORMANCE] Cached vehicles query
+const getVehiclesFromDb = unstable_cache(
+    async () => {
+        return await prisma.vehicle.findMany({
             orderBy: { plate: 'asc' },
             include: {
                 company: true,
                 assignedSite: true
             }
         });
+    },
+    ['get-vehicles-data'],
+    { tags: ['vehicles'], revalidate: 3600 }
+);
+
+export async function getVehicles() {
+    try {
+        const vehicles = await getVehiclesFromDb();
         return { success: true, data: vehicles };
     } catch (error) {
         console.error('getVehicles Error:', error);
@@ -65,6 +74,8 @@ export async function createVehicle(data: Partial<Vehicle>) {
                 licenseFile: data.licenseFile
             }
         });
+        revalidateTag('vehicles');
+        revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
         return { success: true, data: vehicle };
     } catch (error: any) {
@@ -98,6 +109,8 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
             where: { id },
             data: cleanData
         });
+        revalidateTag('vehicles');
+        revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
         return { success: true, data: vehicle };
     } catch (error: any) {
@@ -121,6 +134,7 @@ export async function deleteVehicle(id: string) {
         await prisma.vehicle.delete({
             where: { id }
         });
+        revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
         return { success: true };
     } catch (error) {

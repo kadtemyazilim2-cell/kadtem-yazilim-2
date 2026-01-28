@@ -2,39 +2,45 @@
 
 import { prisma } from '@/lib/db';
 import { Site } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 
-export async function getSites() {
-    try {
-        const session = await auth();
-        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
-
+// [PERFORMANCE] Cached database query for sites
+const getSitesFromDb = unstable_cache(
+    async (role: string, userId: string) => {
         let whereClause: any = {};
 
         // [SCOPING] If not Admin, filter by assigned sites
-        if (session.user.role !== 'ADMIN') {
-            // Fetch fresh user data to get assigned sites
+        if (role !== 'ADMIN') {
             const user = await prisma.user.findUnique({
-                where: { id: session.user.id },
+                where: { id: userId },
                 include: { assignedSites: true }
             });
 
             if (user) {
                 const assignedSiteIds = user.assignedSites.map((s: { id: string }) => s.id);
                 whereClause.id = { in: assignedSiteIds };
-                // Also restrict to active if needed, but usually users see their inactive sites too?
-                // Let's keep it broad for now, UI filters status.
             } else {
-                return { success: false, error: 'Kullanıcı bulunamadı.' };
+                return []; // User not found case
             }
         }
 
-        const sites = await prisma.site.findMany({
+        return await prisma.site.findMany({
             orderBy: { name: 'asc' },
             include: { company: true, partners: true, similarWorks: true },
             where: whereClause
         });
+    },
+    ['get-sites-data'], // Base key
+    { tags: ['sites'], revalidate: 3600 } // Revalidate every hour or on tag invalidation
+);
+
+export async function getSites() {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        const sites = await getSitesFromDb(session.user.role, session.user.id);
         return { success: true, data: sites };
     } catch (error) {
         console.error('getSites Error:', error);
@@ -142,7 +148,10 @@ export async function createSite(data: Partial<Site> & { companyId: string }) {
         });
 
         console.log('Site Created:', { id: site.id, name: site.name, companyId: site.companyId });
+        revalidateTag('sites');
+        revalidateTag('sites');
         revalidatePath('/dashboard/admin');
+        revalidatePath('/dashboard/sites');
         revalidatePath('/dashboard/sites');
         return { success: true, data: site };
     } catch (error: any) {
@@ -247,6 +256,8 @@ export async function updateSite(id: string, data: Partial<Site>) {
             });
         }
 
+        revalidateTag('sites');
+        revalidateTag('sites');
         revalidatePath('/dashboard/admin');
         revalidatePath('/dashboard/sites');
         return { success: true, data: site };
@@ -272,6 +283,8 @@ export async function fixSiteStatuses() {
             }
         });
 
+        revalidateTag('sites');
+        revalidateTag('sites');
         revalidatePath('/dashboard/admin');
         revalidatePath('/dashboard/sites');
         return { success: true, count: result.count };
@@ -319,6 +332,9 @@ export async function deleteSite(id: string) {
         if (personnelCount > 0) return { success: false, error: `Bu şantiyede çalışan ${personnelCount} adet aktif personel bulunmaktadır.` };
 
         await prisma.site.delete({ where: { id } });
+        revalidateTag('sites'); // [CACHE] Invalidate cache
+        revalidateTag('sites');
+        revalidateTag('sites');
         revalidatePath('/dashboard/admin');
         revalidatePath('/dashboard/sites');
         return { success: true };

@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { Correspondence } from '@/lib/types';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 
 export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -69,6 +69,9 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
             });
         });
         const correspondence = result;
+        revalidateTag('correspondence');
+        revalidateTag('correspondence');
+        revalidateTag('correspondence');
         revalidatePath('/dashboard/correspondence');
         return { success: true, data: correspondence };
     } catch (error: any) {
@@ -121,6 +124,8 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
             where: { id },
             data: payload
         });
+        revalidateTag('correspondence');
+        revalidateTag('correspondence');
         revalidatePath('/dashboard/correspondence');
         return { success: true, data: correspondence };
     } catch (error) {
@@ -181,6 +186,8 @@ export async function deleteCorrespondence(id: string, reason?: string, userId?:
             }
         });
 
+        revalidateTag('correspondence');
+        revalidateTag('correspondence');
         revalidatePath('/dashboard/correspondence');
         return { success: true };
     } catch (error: any) {
@@ -189,38 +196,40 @@ export async function deleteCorrespondence(id: string, reason?: string, userId?:
     }
 }
 
-export async function getCorrespondenceList() {
-    try {
-        const session = await auth();
-        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+// [PERFORMANCE] Cached correspondence query
+const getCorrespondenceListFromDb = unstable_cache(
+    async (role: string, userId: string) => {
+        let whereClause: any = {};
 
-        let whereClause: any = {}; // Fetch All (ACTIVE + DELETED)
-
-        // [SCOPING] If not Admin, filter by assigned sites
-        if (session.user.role !== 'ADMIN') {
-            // Fetch fresh user data to get assigned sites
+        if (role !== 'ADMIN') {
             const user = await prisma.user.findUnique({
-                where: { id: session.user.id },
+                where: { id: userId },
                 include: { assignedSites: true }
             });
 
             if (user) {
                 const assignedSiteIds = user.assignedSites.map((s: { id: string }) => s.id);
-                // Filter: Must be in assigned sites. 
-                // Determine policy for "Company General" (siteId=null). 
-                // Usually restricted users only see their sites. 
-                // If they need generic ones, we'd add 'OR siteId is null'. 
-                // Sticking to strict site scoping for now.
                 whereClause.siteId = { in: assignedSiteIds };
             } else {
-                return { success: false, error: 'Kullanıcı bulunamadı.' };
+                return [];
             }
         }
 
-        const list = await prisma.correspondence.findMany({
+        return await prisma.correspondence.findMany({
             orderBy: { date: 'desc' },
             where: whereClause
         });
+    },
+    ['get-correspondence-data'],
+    { tags: ['correspondence'], revalidate: 3600 }
+);
+
+export async function getCorrespondenceList() {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        const list = await getCorrespondenceListFromDb(session.user.role, session.user.id);
         return { success: true, data: list };
     } catch (error) {
         console.error('getCorrespondenceList Error:', error);
