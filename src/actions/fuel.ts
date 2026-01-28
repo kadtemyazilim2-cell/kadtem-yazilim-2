@@ -4,9 +4,12 @@ import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
-export async function getFuelLogs() {
-    try {
-        const logs = await prisma.fuelLog.findMany({
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+
+// [PERFORMANCE] Cached fuel logs query
+const getFuelLogsFromDb = unstable_cache(
+    async () => {
+        return await prisma.fuelLog.findMany({
             orderBy: { date: 'desc' },
             include: {
                 vehicle: true,
@@ -15,6 +18,14 @@ export async function getFuelLogs() {
                 tank: true
             }
         });
+    },
+    ['get-fuel-logs-data'],
+    { tags: ['fuel-logs'], revalidate: 3600 }
+);
+
+export async function getFuelLogs() {
+    try {
+        const logs = await getFuelLogsFromDb();
         return { success: true, data: logs };
     } catch (error) {
         console.error('getFuelLogs Error:', error);
@@ -67,6 +78,8 @@ export async function createFuelLog(data: Partial<FuelLog>) {
             });
         }
 
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks'); // Tank level changed
         revalidatePath('/dashboard/fuel');
         return { success: true, data: log };
     } catch (error) {
@@ -75,15 +88,49 @@ export async function createFuelLog(data: Partial<FuelLog>) {
     }
 }
 
-export async function getFuelTanks() {
-    try {
-        const tanks = await prisma.fuelTank.findMany({
+import { revalidatePath } from 'next/cache'; // Cleanup unused import if needed, but keeping for now
+
+// [PERFORMANCE] Cached fuel tanks query
+const getFuelTanksFromDb = unstable_cache(
+    async () => {
+        return await prisma.fuelTank.findMany({
             include: { site: true }
         });
+    },
+    ['get-fuel-tanks-data'],
+    { tags: ['fuel-tanks'], revalidate: 3600 }
+);
+
+export async function getFuelTanks() {
+    try {
+        const tanks = await getFuelTanksFromDb();
         return { success: true, data: tanks };
     } catch (error) {
         console.error('getFuelTanks Error:', error);
         return { success: false, error: 'Depolar alınamadı.' };
+    }
+}
+
+// ... createFuelTank ...
+
+// [PERFORMANCE] Cached fuel transfers query
+const getFuelTransfersFromDb = unstable_cache(
+    async () => {
+        return await prisma.fuelTransfer.findMany({
+            orderBy: { date: 'desc' },
+        });
+    },
+    ['get-fuel-transfers-data'],
+    { tags: ['fuel-transfers'], revalidate: 3600 }
+);
+
+export async function getFuelTransfers() {
+    try {
+        const transfers = await getFuelTransfersFromDb();
+        return { success: true, data: transfers };
+    } catch (error) {
+        console.error('getFuelTransfers Error:', error);
+        return { success: false, error: 'Transferler alınamadı.' };
     }
 }
 
@@ -101,6 +148,7 @@ export async function createFuelTank(data: Partial<FuelTank>) {
                 currentLevel: data.currentLevel || 0
             }
         });
+        revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
         return { success: true, data: tank };
     } catch (error: any) {
@@ -112,6 +160,11 @@ export async function createFuelTank(data: Partial<FuelTank>) {
 export async function deleteFuelTank(id: string) {
     try {
         await prisma.fuelTank.delete({ where: { id } });
+        revalidateTag('fuel-tanks');
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks');
+        revalidateTag('fuel-transfers');
+        revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
         return { success: true };
     } catch (error) {
@@ -178,6 +231,8 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
             });
         }
 
+        revalidateTag('fuel-transfers');
+        revalidateTag('fuel-tanks'); // Levels changed
         revalidatePath('/dashboard/fuel');
         return { success: true, data: transfer };
     } catch (error) {
@@ -212,6 +267,11 @@ export async function deleteFuelLog(id: string) {
         }
 
         await prisma.fuelLog.delete({ where: { id } });
+        revalidateTag('fuel-tanks');
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks');
+        revalidateTag('fuel-transfers');
+        revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
         return { success: true };
     } catch (error) {
@@ -242,6 +302,11 @@ export async function deleteFuelTransfer(id: string) {
         }
 
         await prisma.fuelTransfer.delete({ where: { id } });
+        revalidateTag('fuel-tanks');
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks');
+        revalidateTag('fuel-transfers');
+        revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
         return { success: true };
     } catch (error) {

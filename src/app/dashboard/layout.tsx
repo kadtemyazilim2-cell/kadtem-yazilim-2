@@ -5,7 +5,7 @@ import { getVehicles } from '@/actions/vehicle';
 import { getPersonnel } from '@/actions/personnel';
 import { getCorrespondenceList } from '@/actions/correspondence';
 import { getInstitutions } from '@/actions/institution';
-import { getFuelTanks } from '@/actions/fuel';
+import { getFuelTanks, getFuelLogs, getFuelTransfers } from '@/actions/fuel';
 import { StoreInitializer } from '@/components/store-initializer';
 import { serializeData } from '@/lib/serializer';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -19,10 +19,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/login');
     }
 
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [];
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
@@ -30,7 +30,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getUsers(),
             getCorrespondenceList(),
             getInstitutions(),
-            getFuelTanks()
+            getFuelTanks(),
+            getFuelLogs(), // [NEW] Pre-fetch
+            getFuelTransfers() // [NEW] Pre-fetch
         ]);
 
         companies = serializeData(companiesRes?.data || []);
@@ -41,6 +43,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         correspondences = serializeData(correspondencesRes?.data || []);
         institutions = serializeData(institutionsRes?.data || []);
         fuelTanks = serializeData(fuelTanksRes?.data || []);
+        // Note: These need to be passed to StoreInitializer
+        // I need to add them to the local variables first
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
     }

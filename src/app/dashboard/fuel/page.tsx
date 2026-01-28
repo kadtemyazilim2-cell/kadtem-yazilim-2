@@ -10,11 +10,10 @@ import { Input } from '@/components/ui/input'; // [NEW]
 import { Label } from '@/components/ui/label'; // [NEW]
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // [NEW]
 import { useAppStore } from '@/lib/store/use-store'; // [NEW]
-import { useState, useEffect } from 'react'; // [NEW]
+import { useState } from 'react'; // [NEW]
 import { ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store/use-auth';
-import { getFuelLogs, getFuelTanks, getFuelTransfers } from '@/actions/fuel';
 
 export default function FuelPage() {
     const { user, hasPermission } = useAuth(); // [FIX] Destructure
@@ -25,45 +24,12 @@ export default function FuelPage() {
     const canViewConsumption = isAdmin || hasPermission('fuel.consumption', 'VIEW') || hasPermission('fuel.consumption', 'EDIT');
 
     const {
-        fuelTransfers, fuelLogs, fuelTanks, sites,
-        setFuelLogs, setFuelTanks, setFuelTransfers
+        fuelTransfers, fuelLogs, fuelTanks, sites
     } = useAppStore();
-
-    // [NEW] Data Synchronization
-    const [isLoading, setIsLoading] = useState(true);
-
-    // Fetch Data on Mount
-    useEffect(() => {
-        const syncData = async () => {
-            try {
-                setIsLoading(true);
-                const [logsRes, tanksRes, transfersRes] = await Promise.all([
-                    getFuelLogs(),
-                    getFuelTanks(),
-                    getFuelTransfers()
-                ]);
-
-                if (logsRes.success) setFuelLogs(logsRes.data as any);
-                if (tanksRes.success) setFuelTanks(tanksRes.data as any);
-                if (transfersRes.success) setFuelTransfers(transfersRes.data as any);
-            } catch (error) {
-                console.error("Data Sync Error:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        syncData();
-    }, [setFuelLogs, setFuelTanks, setFuelTransfers]);
 
     // [NEW] Filter States
     const [selectedSiteId, setSelectedSiteId] = useState('');
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
-
-    if (isLoading && (!fuelTanks.length && !fuelLogs.length)) {
-        // Only show loading if store is empty, otherwise show stale while revalidating
-        return <div className="p-8 text-center">Veriler yükleniyor...</div>;
-    }
 
     return (
         <div className="space-y-6">
