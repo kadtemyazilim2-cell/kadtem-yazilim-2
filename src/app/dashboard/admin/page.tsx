@@ -2701,8 +2701,8 @@ export default function AdminPage() {
                             </div>
                         </CardHeader>
                         <CardContent className="px-0 py-0">
-                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-320px)] w-full">
-                                <Table className="w-full relative">
+                            <div className="border rounded-md overflow-auto max-h-[calc(100vh-450px)] w-full relative">
+                                <table className="w-full caption-bottom text-sm relative">
                                     <TableHeader>
                                         <TableRow className="bg-slate-100">
                                             {siteColumns.map((col, idx) => (
@@ -3102,7 +3102,7 @@ export default function AdminPage() {
                                             </TableRow>
                                         )}
                                     </TableBody>
-                                </Table>
+                                </table>
                             </div>
                         </CardContent>
                     </Card>
