@@ -2,8 +2,6 @@
 
 import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
-
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
 // [PERFORMANCE] Cached fuel logs query
@@ -66,8 +64,6 @@ export async function createFuelLog(data: Partial<FuelLog>) {
             }
         });
 
-
-
         // Update Tank Level if internal tank used
         if (data.tankId) {
             await prisma.fuelTank.update({
@@ -88,8 +84,6 @@ export async function createFuelLog(data: Partial<FuelLog>) {
     }
 }
 
-import { revalidatePath } from 'next/cache'; // Cleanup unused import if needed, but keeping for now
-
 // [PERFORMANCE] Cached fuel tanks query
 const getFuelTanksFromDb = unstable_cache(
     async () => {
@@ -108,29 +102,6 @@ export async function getFuelTanks() {
     } catch (error) {
         console.error('getFuelTanks Error:', error);
         return { success: false, error: 'Depolar alınamadı.' };
-    }
-}
-
-// ... createFuelTank ...
-
-// [PERFORMANCE] Cached fuel transfers query
-const getFuelTransfersFromDb = unstable_cache(
-    async () => {
-        return await prisma.fuelTransfer.findMany({
-            orderBy: { date: 'desc' },
-        });
-    },
-    ['get-fuel-transfers-data'],
-    { tags: ['fuel-transfers'], revalidate: 3600 }
-);
-
-export async function getFuelTransfers() {
-    try {
-        const transfers = await getFuelTransfersFromDb();
-        return { success: true, data: transfers };
-    } catch (error) {
-        console.error('getFuelTransfers Error:', error);
-        return { success: false, error: 'Transferler alınamadı.' };
     }
 }
 
@@ -161,15 +132,32 @@ export async function deleteFuelTank(id: string) {
     try {
         await prisma.fuelTank.delete({ where: { id } });
         revalidateTag('fuel-tanks');
-        revalidateTag('fuel-logs');
-        revalidateTag('fuel-tanks');
-        revalidateTag('fuel-transfers');
-        revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
         return { success: true };
     } catch (error) {
         console.error('deleteFuelTank Error:', error);
         return { success: false, error: 'Depo silinemedi.' };
+    }
+}
+
+// [PERFORMANCE] Cached fuel transfers query
+const getFuelTransfersFromDb = unstable_cache(
+    async () => {
+        return await prisma.fuelTransfer.findMany({
+            orderBy: { date: 'desc' },
+        });
+    },
+    ['get-fuel-transfers-data'],
+    { tags: ['fuel-transfers'], revalidate: 3600 }
+);
+
+export async function getFuelTransfers() {
+    try {
+        const transfers = await getFuelTransfersFromDb();
+        return { success: true, data: transfers };
+    } catch (error) {
+        console.error('getFuelTransfers Error:', error);
+        return { success: false, error: 'Transferler alınamadı.' };
     }
 }
 
@@ -241,18 +229,6 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
     }
 }
 
-export async function getFuelTransfers() {
-    try {
-        const transfers = await prisma.fuelTransfer.findMany({
-            orderBy: { date: 'desc' },
-        });
-        return { success: true, data: transfers };
-    } catch (error) {
-        console.error('getFuelTransfers Error:', error);
-        return { success: false, error: 'Transferler alınamadı.' };
-    }
-}
-
 export async function deleteFuelLog(id: string) {
     try {
         const log = await prisma.fuelLog.findUnique({ where: { id } });
@@ -267,10 +243,7 @@ export async function deleteFuelLog(id: string) {
         }
 
         await prisma.fuelLog.delete({ where: { id } });
-        revalidateTag('fuel-tanks');
         revalidateTag('fuel-logs');
-        revalidateTag('fuel-tanks');
-        revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
         return { success: true };
@@ -302,9 +275,6 @@ export async function deleteFuelTransfer(id: string) {
         }
 
         await prisma.fuelTransfer.delete({ where: { id } });
-        revalidateTag('fuel-tanks');
-        revalidateTag('fuel-logs');
-        revalidateTag('fuel-tanks');
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
