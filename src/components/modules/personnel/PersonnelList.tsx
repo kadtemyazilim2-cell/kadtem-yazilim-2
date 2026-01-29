@@ -45,7 +45,7 @@ function StatusCell({ record }: { record: { status: string, overtime?: number, n
         </span>
     ) : null;
 
-    let Icon = null;
+    let Icon: any = null;
     let color = "";
     let title = "";
 
@@ -508,16 +508,23 @@ export function PersonnelList() {
         // [NEW] Start Date Auto-Attendance
         // If no record exists, check if this date is the personnel's Start Date
         const person = personnel.find((p: any) => p.id === pid);
-        if (person && person.startDate === dateStr) {
-            return {
-                id: 'virtual-start-date',
-                personnelId: pid,
-                siteId: person.siteId || selectedSiteId, // Fallback to current selected site if person has no site (unlikely)
-                date: dateStr,
-                status: 'WORK',
-                note: 'İşe Giriş Tarihi (Otomatik)',
-                virtual: true
-            };
+        if (person && person.startDate) {
+            // Normalize Date Comparison (Handle ISO string vs YYYY-MM-DD)
+            const startDateStr = person.startDate.split('T')[0];
+            if (startDateStr === dateStr) {
+                return {
+                    id: 'virtual-start-date',
+                    personnelId: pid,
+                    siteId: selectedSiteId,
+                    date: dateStr,
+                    status: 'WORK',
+                    note: 'İşe Giriş Tarihi (Otomatik)',
+                    virtual: true,
+                    overtime: 0,
+                    hours: 8,
+                    createdByUserId: undefined
+                };
+            }
         }
 
         return undefined;

@@ -11,18 +11,22 @@ export const authConfig = {
         async session({ session, token }) {
             if (token.sub && session.user) {
                 session.user.id = token.sub;
-                session.user.role = token.role as any;
-                session.user.permissions = token.permissions as any;
-                session.user.username = token.username as string;
+                session.user.role = (token as any).role;
+                session.user.permissions = (token as any).permissions;
+                session.user.username = (token as any).username;
+                session.user.assignedSiteIds = (token as any).assignedSiteIds;
+                session.user.editLookbackDays = (token as any).editLookbackDays;
             }
             return session;
         },
         async jwt({ token, user }) {
             if (user) {
                 token.sub = user.id;
-                token.role = user.role;
-                token.permissions = user.permissions;
-                token.username = user.username;
+                token.role = (user as any).role;
+                token.permissions = (user as any).permissions;
+                token.username = (user as any).username;
+                token.assignedSiteIds = (user as any).assignedSiteIds;
+                token.editLookbackDays = (user as any).editLookbackDays;
             }
             return token;
         }
