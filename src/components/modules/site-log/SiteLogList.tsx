@@ -488,64 +488,96 @@ export function SiteLogList() {
                         {siteLogEntries.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">Kayıt bulunamadı.</div>
                         ) : (
-                            siteLogEntries.map((entry: any) => (
-                                <div key={entry.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
+                            Object.values(siteLogEntries.reduce((acc: any, entry: any) => {
+                                const key = `${entry.siteId}_${entry.date}`;
+                                if (!acc[key]) {
+                                    acc[key] = {
+                                        ...entry,
+                                        items: []
+                                    };
+                                }
+                                acc[key].items.push(entry);
+                                return acc;
+                            }, {})).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((group: any) => (
+                                <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="font-semibold text-blue-900 flex items-center gap-2">
                                                 <MapPin className="w-4 h-4 text-blue-500" />
-                                                {getSiteName(entry.siteId)}
+                                                {getSiteName(group.siteId)}
                                             </div>
                                             <span className="text-sm text-slate-400">|</span>
                                             <div className="text-sm text-slate-600 flex items-center gap-2">
                                                 <Calendar className="w-4 h-4 text-slate-400" />
-                                                {format(new Date(entry.date), 'dd MMMM yyyy', { locale: tr })}
+                                                {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
                                             </div>
-                                            {entry.weather && (
-                                                <>
-                                                    <span className="text-sm text-slate-400">|</span>
-                                                    <span className="text-sm text-slate-600">{entry.weather}</span>
-                                                </>
-                                            )}
+                                            {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
+                                            {(() => {
+                                                const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
+                                                if (uniqueWeather.length > 0) {
+                                                    return (
+                                                        <>
+                                                            <span className="text-sm text-slate-400">|</span>
+                                                            <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
+                                                        </>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
-                                    </div>
-                                    <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
-                                    <div className="mt-4 flex justify-between items-end">
+
+                                        {/* Action Buttons for the Whole Group (PDF) */}
                                         <div className="flex gap-2">
                                             <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-slate-400 hover:text-blue-600"
-                                                onClick={() => handleDownloadPDF(entry, true)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-slate-600 hover:text-blue-600"
+                                                onClick={() => handleDownloadPDF(group, true)}
                                                 title="Önizle"
                                                 disabled={isGeneratingPDF}
                                             >
-                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                                                Önizle
                                             </Button>
                                             <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-slate-400 hover:text-green-600"
-                                                onClick={() => handleDownloadPDF(entry, false)}
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-slate-600 hover:text-green-600"
+                                                onClick={() => handleDownloadPDF(group, false)}
                                                 title="PDF İndir"
                                                 disabled={isGeneratingPDF}
                                             >
-                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
+                                                PDF İndir
                                             </Button>
-                                            {canEdit && (
-                                                <>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
-                                                        <Pencil className="w-3 h-3" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
-                                                        <Trash2 className="w-3 h-3" />
-                                                    </Button>
-                                                </>
-                                            )}
                                         </div>
-                                        <div className="text-xs text-slate-400 flex items-center gap-1">
-                                            <UserIcon className="w-3 h-3" /> Kaydeden: {user?.name || 'Unknown'} (ID: {entry.authorId})
-                                        </div>
+                                    </div>
+
+                                    {/* Scrollable Content Area if too long, or just stacking */}
+                                    <div className="space-y-4">
+                                        {group.items.map((entry: any) => (
+                                            <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
+                                                <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
+                                                <div className="mt-2 flex justify-between items-center">
+                                                    <div className="text-xs text-slate-400 flex items-center gap-1">
+                                                        <UserIcon className="w-3 h-3" />
+                                                        {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
+                                                    </div>
+
+                                                    {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
+                                                                <Pencil className="w-3 h-3" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ))
