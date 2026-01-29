@@ -4,10 +4,12 @@ import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
-// [PERFORMANCE] Cached fuel logs query
-const getFuelLogsFromDb = unstable_cache(
-    async () => {
-        return await prisma.fuelLog.findMany({
+// [PERFORMANCE] Cached fuel logs query - CACHE ABORTED FOR DEBUGGING
+// const getFuelLogsFromDb = unstable_cache(...)
+
+export async function getFuelLogs() {
+    try {
+        const logs = await prisma.fuelLog.findMany({
             orderBy: { date: 'desc' },
             include: {
                 vehicle: true,
@@ -16,14 +18,6 @@ const getFuelLogsFromDb = unstable_cache(
                 tank: true
             }
         });
-    },
-    ['get-fuel-logs-data'],
-    { tags: ['fuel-logs'], revalidate: 3600 }
-);
-
-export async function getFuelLogs() {
-    try {
-        const logs = await getFuelLogsFromDb();
         return { success: true, data: logs };
     } catch (error) {
         console.error('getFuelLogs Error:', error);
@@ -31,6 +25,7 @@ export async function getFuelLogs() {
     }
 }
 
+// ... createFuelLog ...
 export async function createFuelLog(data: Partial<FuelLog>) {
     try {
         // [NEW] Duplication Check
@@ -84,20 +79,16 @@ export async function createFuelLog(data: Partial<FuelLog>) {
     }
 }
 
-// [PERFORMANCE] Cached fuel tanks query
-const getFuelTanksFromDb = unstable_cache(
-    async () => {
-        return await prisma.fuelTank.findMany({
-            include: { site: true }
-        });
-    },
-    ['get-fuel-tanks-data'],
-    { tags: ['fuel-tanks'], revalidate: 3600 }
-);
+// [PERFORMANCE] Cached fuel tanks query - CACHE ABORTED FOR DEBUGGING
+
+// [PERFORMANCE] Cached fuel tanks query - CACHE ABORTED FOR DEBUGGING
+// const getFuelTanksFromDb = unstable_cache(...)
 
 export async function getFuelTanks() {
     try {
-        const tanks = await getFuelTanksFromDb();
+        const tanks = await prisma.fuelTank.findMany({
+            include: { site: true }
+        });
         return { success: true, data: tanks };
     } catch (error) {
         console.error('getFuelTanks Error:', error);
@@ -105,6 +96,7 @@ export async function getFuelTanks() {
     }
 }
 
+// ... createFuelTank ...
 export async function createFuelTank(data: Partial<FuelTank>) {
     try {
         if (!data.siteId || !data.name || !data.capacity) {
@@ -140,20 +132,16 @@ export async function deleteFuelTank(id: string) {
     }
 }
 
-// [PERFORMANCE] Cached fuel transfers query
-const getFuelTransfersFromDb = unstable_cache(
-    async () => {
-        return await prisma.fuelTransfer.findMany({
-            orderBy: { date: 'desc' },
-        });
-    },
-    ['get-fuel-transfers-data'],
-    { tags: ['fuel-transfers'], revalidate: 3600 }
-);
+// [PERFORMANCE] Cached fuel transfers query - CACHE ABORTED FOR DEBUGGING
+
+// [PERFORMANCE] Cached fuel transfers query - CACHE ABORTED FOR DEBUGGING
+// const getFuelTransfersFromDb = unstable_cache(...)
 
 export async function getFuelTransfers() {
     try {
-        const transfers = await getFuelTransfersFromDb();
+        const transfers = await prisma.fuelTransfer.findMany({
+            orderBy: { date: 'desc' },
+        });
         return { success: true, data: transfers };
     } catch (error) {
         console.error('getFuelTransfers Error:', error);
