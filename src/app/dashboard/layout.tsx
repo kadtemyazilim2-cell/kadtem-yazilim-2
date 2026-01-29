@@ -43,8 +43,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
         correspondences = serializeData(correspondencesRes?.data || []);
         institutions = serializeData(institutionsRes?.data || []);
         fuelTanks = serializeData(fuelTanksRes?.data || []);
-        // Note: These need to be passed to StoreInitializer
-        // I need to add them to the local variables first
+        fuelLogs = serializeData(fuelLogsRes?.data || []); // [FIX] Serialize
+        fuelTransfers = serializeData(fuelTransfersRes?.data || []); // [FIX] Serialize
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
     }
@@ -60,6 +60,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 correspondences={correspondences}
                 institutions={institutions}
                 fuelTanks={fuelTanks}
+                fuelLogs={fuelLogs} // [FIX] Pass to Component
+                fuelTransfers={fuelTransfers} // [FIX] Pass to Component
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>
