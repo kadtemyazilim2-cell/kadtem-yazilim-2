@@ -21,8 +21,11 @@ import { fontBase64 } from '@/lib/pdf-font';
 
 import { useUserSites } from '@/hooks/use-user-access';
 
+import { createSiteLogEntry, updateSiteLogEntry, deleteSiteLogEntry } from '@/actions/site-log';
+import { toast } from 'sonner';
+
 export function SiteLogList() {
-    const { siteLogEntries, addSiteLogEntry, updateSiteLogEntry, deleteSiteLogEntry, users } = useAppStore();
+    const { siteLogEntries, users } = useAppStore();
     const sites = useUserSites();
     const { user, hasPermission } = useAuth();
     const [open, setOpen] = useState(false);
@@ -40,7 +43,7 @@ export function SiteLogList() {
     const [content, setContent] = useState('');
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -58,25 +61,38 @@ export function SiteLogList() {
             }
         }
 
-        if (editingId) {
-            updateSiteLogEntry(editingId, {
-                siteId,
-                date,
-                weather,
-                content
-            });
-        } else {
-            addSiteLogEntry({
-                id: crypto.randomUUID(),
-                siteId,
-                date,
-                weather,
-                content,
-                authorId: user.id
-            });
+        try {
+            if (editingId) {
+                const res = await updateSiteLogEntry(editingId, {
+                    siteId,
+                    date: new Date(date), // Date object expect
+                    weather,
+                    content
+                });
+                if (!res.success) {
+                    toast.error(res.error);
+                    return;
+                }
+                toast.success('Kayıt güncellendi.');
+            } else {
+                const res = await createSiteLogEntry({
+                    siteId,
+                    date: new Date(date),
+                    weather,
+                    content,
+                    authorId: user.id
+                });
+                if (!res.success) {
+                    toast.error(res.error);
+                    return;
+                }
+                toast.success('Kayıt oluşturuldu.');
+            }
+            setOpen(false);
+            resetForm();
+        } catch (error) {
+            toast.error('Bir hata oluştu.');
         }
-        setOpen(false);
-        resetForm();
     };
 
     const resetForm = () => {
@@ -104,13 +120,13 @@ export function SiteLogList() {
 
         setEditingId(entry.id);
         setSiteId(entry.siteId);
-        setDate(entry.date);
+        setDate(format(new Date(entry.date), 'yyyy-MM-dd')); // Fix date format for input
         setWeather(entry.weather || '');
         setContent(entry.content);
         setOpen(true);
     };
 
-    const handleDelete = (id: string, dateStr: string) => {
+    const handleDelete = async (id: string, dateStr: string) => {
         // [NEW] Date Restriction Check
         if (user && user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
             const today = new Date();
@@ -126,7 +142,12 @@ export function SiteLogList() {
         }
 
         if (confirm('Bu kaydı silmek istediğinize emin misiniz?')) {
-            deleteSiteLogEntry(id);
+            const res = await deleteSiteLogEntry(id);
+            if (res.success) {
+                toast.success('Kayıt silindi.');
+            } else {
+                toast.error(res.error);
+            }
         }
     };
 

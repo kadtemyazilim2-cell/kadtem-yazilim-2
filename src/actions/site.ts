@@ -6,34 +6,30 @@ import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { auth } from '@/auth';
 
 // [PERFORMANCE] Cached database query for sites
-const getSitesFromDb = unstable_cache(
-    async (role: string, userId: string) => {
-        let whereClause: any = {};
+const getSitesFromDb = async (role: string, userId: string) => {
+    let whereClause: any = {};
 
-        // [SCOPING] If not Admin, filter by assigned sites
-        if (role !== 'ADMIN') {
-            const user = await prisma.user.findUnique({
-                where: { id: userId },
-                include: { assignedSites: true }
-            });
-
-            if (user) {
-                const assignedSiteIds = user.assignedSites.map((s: { id: string }) => s.id);
-                whereClause.id = { in: assignedSiteIds };
-            } else {
-                return []; // User not found case
-            }
-        }
-
-        return await prisma.site.findMany({
-            orderBy: { name: 'asc' },
-            include: { company: true, partners: true, similarWorks: true },
-            where: whereClause
+    // [SCOPING] If not Admin, filter by assigned sites
+    if (role !== 'ADMIN') {
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { assignedSites: true }
         });
-    },
-    ['get-sites-data'], // Base key
-    { tags: ['sites'], revalidate: 3600 } // Revalidate every hour or on tag invalidation
-);
+
+        if (user) {
+            const assignedSiteIds = user.assignedSites.map((s: { id: string }) => s.id);
+            whereClause.id = { in: assignedSiteIds };
+        } else {
+            return []; // User not found case
+        }
+    }
+
+    return await prisma.site.findMany({
+        orderBy: { name: 'asc' },
+        include: { company: true, partners: true, similarWorks: true },
+        where: whereClause
+    });
+};
 
 export async function getSites() {
     try {

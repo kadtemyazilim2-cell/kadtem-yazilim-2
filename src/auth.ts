@@ -15,6 +15,7 @@ async function getUser(username: string) {
         const user = await Promise.race([
             prisma.user.findUnique({
                 where: { username },
+                include: { assignedSites: { select: { id: true } } }
             }),
             new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('DB Timeout (5s)')), 5000)
@@ -57,7 +58,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     // For now, simple string comparison as per initial mock auth
                     if (user.password === password) {
                         console.log("Password match!");
-                        return user;
+                        // Flatten assignedSites to assignedSiteIds
+                        const assignedSiteIds = user.assignedSites ? user.assignedSites.map((s: any) => s.id) : [];
+                        return { ...user, assignedSiteIds };
                     } else {
                         console.log("Password mismatch");
                     }

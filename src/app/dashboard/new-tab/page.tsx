@@ -836,6 +836,13 @@ export default function NewPage() {
             }
         });
 
+        // [NEW] Check Input Date (Start Date) for Auto-Working
+        if (person.inputDate && person.inputDate.startsWith(monthPrefix)) {
+            if (!person.attendance[person.inputDate]) {
+                fullDays += 1; // Count as FULL work day if no explicit record
+            }
+        }
+
         const leaveAllowance = parseFloat(person.leaveAllowance || '0');
         const paidLeave = Math.min(leaveUsed, leaveAllowance);
 
@@ -1574,9 +1581,10 @@ export default function NewPage() {
                                                                 cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
                                                             }
 
-                                                            // Show LogIn Icon for Start Date (overrides dot, but overridden by status if present)
+                                                            // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
                                                             if (isStartDate && !record) {
-                                                                cellContent = <div className="w-full h-full flex items-center justify-center text-green-600 cursor-help" title="İşe Giriş Tarihi"><LogIn className="w-4 h-4" /></div>;
+                                                                // Treat as FULL WORK
+                                                                cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
                                                             }
 
                                                             if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
