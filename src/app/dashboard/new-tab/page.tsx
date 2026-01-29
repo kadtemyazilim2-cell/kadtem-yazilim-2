@@ -953,7 +953,7 @@ export default function NewPage() {
     const handleExportSalaryExcel = () => {
         const wb = XLSX.utils.book_new();
 
-        const header = ['TC Kimlik', 'Ad Soyad', 'Toplam Gün', 'Mesai (Saat)', 'Hakediş', 'Mesai Tutarı', 'Kalan İzin (Gün)', 'İzin Ücreti', 'Prim', 'Kesinti', 'Toplam Ödeme'];
+        const header = ['TC Kimlik', 'Ad Soyad', 'Maaş', 'Toplam Gün', 'Mesai (Saat)', 'Hakediş', 'Mesai Tutarı', 'Kalan İzin', 'İzin Ücreti', 'Prim', 'Kesinti', 'Toplam Ödeme'];
 
         const data = filteredNames.map(p => {
             const stats = calculateStats(p, date);
@@ -962,6 +962,7 @@ export default function NewPage() {
             return [
                 p.tc,
                 p.name,
+                formatCurrency(p.salary),
                 stats.workedDays,
                 stats.overtimeTotal,
                 fmt(stats.basePay),
@@ -978,6 +979,8 @@ export default function NewPage() {
         XLSX.utils.book_append_sheet(wb, ws, "Maaş Listesi");
         XLSX.writeFile(wb, `Maas_Listesi_${format(date, 'yyyy_MM')}.xlsx`);
     };
+
+
 
     const handleExportSalaryPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
@@ -1030,6 +1033,7 @@ export default function NewPage() {
             return [
                 p.tc,
                 trToAscii(p.name),
+                formatCurrency(p.salary),
                 stats.workedDays,
                 stats.overtimeTotal || '-',
                 fmt(stats.basePay),
@@ -1043,7 +1047,7 @@ export default function NewPage() {
         });
 
         autoTable(doc, {
-            head: [['TC', 'Ad Soyad', 'Gun', 'Mesai', 'Hakedis', 'Mesai Tut.', 'Kalan Izin', 'Izin Ucreti', 'Prim', 'Kesinti', 'TOPLAM']],
+            head: [['TC', 'Ad Soyad', 'Maas', 'Gun', 'Mesai', 'Hakedis', 'Mesai Tut.', 'Kalan Izin', 'Izin Ucreti', 'Prim', 'Kesinti', 'TOPLAM']],
             body: tableBody,
             startY: 25,
             theme: 'grid',
@@ -2246,6 +2250,7 @@ export default function NewPage() {
                                     <TableRow className="bg-slate-50">
                                         <TableHead>TC Kimlik</TableHead>
                                         <TableHead>Ad Soyad</TableHead>
+                                        <TableHead className="text-right">Maaş</TableHead>
                                         <TableHead className="text-center">Toplam Gün</TableHead>
                                         <TableHead className="text-center">Mesai (Saat)</TableHead>
                                         <TableHead className="text-right">Hakediş</TableHead>
@@ -2260,7 +2265,7 @@ export default function NewPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {filteredNames.length === 0 ? (
-                                        <TableRow><TableCell colSpan={11} className="text-center h-24 text-muted-foreground">Kayıt Yok</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={12} className="text-center h-24 text-muted-foreground">Kayıt Yok</TableCell></TableRow>
                                     ) : filteredNames.map(person => {
                                         const stats = calculateStats(person, date);
                                         const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
@@ -2268,6 +2273,7 @@ export default function NewPage() {
                                             <TableRow key={person.id}>
                                                 <TableCell className="font-mono text-xs">{person.tc}</TableCell>
                                                 <TableCell className="font-medium">{person.name}</TableCell>
+                                                <TableCell className="text-right font-mono text-slate-600">{formatCurrency(person.salary)}</TableCell>
                                                 <TableCell className="text-center font-bold text-slate-700">{stats.workedDays}</TableCell>
                                                 <TableCell className="text-center">{stats.overtimeTotal > 0 ? stats.overtimeTotal : '-'}</TableCell>
                                                 <TableCell className="text-right font-mono text-slate-600">{fmt(stats.basePay)}</TableCell>
