@@ -59,22 +59,6 @@ type IndependentPerson = {
     }>;
 };
 
-const formatMoneyInput = (val: string) => {
-    if (!val) return '';
-    // Expected input: "1000,00" or "1000"
-    // Output: "1.000,00"
-    let [main, decimal] = val.split(',');
-    main = main.replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    if (decimal) decimal = decimal.substring(0, 2); // max 2 decimals
-    return decimal !== undefined ? `${main},${decimal}` : main;
-};
-
-const parseMoney = (val: string) => {
-    if (!val) return '0';
-    // Input: "1.000,50" -> Output: "1000.50"
-    return val.replace(/\./g, '').replace(',', '.');
-};
-
 export default function NewPage() {
     const { user, getAccessibleSites } = useAuth();
     const { sites } = useAppStore();
@@ -886,6 +870,9 @@ export default function NewPage() {
             return p;
         }));
 
+        // INSTANT CLOSE
+        setSelectedCell(null);
+
         // Server Call
         const res = await upsertPersonnelAttendance(person.id, selectedCell.date, {
             status: finalStatus,
@@ -899,8 +886,6 @@ export default function NewPage() {
             alert("Kaydedilirken hata oluştu: " + res.error);
             refreshData(); // Revert
         }
-
-        setSelectedCell(null);
     };
 
     const getStatusIcon = (status: string) => {
