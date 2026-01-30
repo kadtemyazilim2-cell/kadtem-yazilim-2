@@ -37,7 +37,11 @@ export async function createPersonnel(data: Partial<Personnel>) {
                 salary: data.salary,
                 siteId: data.siteId,
                 category: data.category || 'FIELD',
-                status: 'ACTIVE'
+                status: 'ACTIVE',
+                startDate: data.startDate,
+                note: data.note,
+                leaveAllowance: data.leaveAllowance,
+                hasOvertime: data.hasOvertime || false
             }
         });
         // Check if start date is provided to auto-create 'WORK' attendance
