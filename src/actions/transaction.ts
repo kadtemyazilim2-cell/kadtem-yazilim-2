@@ -69,8 +69,8 @@ export async function deleteTransaction(id: string) {
         });
         revalidatePath('/dashboard/cash-book');
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('deleteTransaction Error:', error);
-        return { success: false, error: 'İşlem silinemedi.' };
+        return { success: false, error: `İşlem silinemedi: ${error.message}` };
     }
 }
