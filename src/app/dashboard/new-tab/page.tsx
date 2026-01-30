@@ -627,14 +627,13 @@ export default function NewPage() {
                 fullName: formData.name,
                 profession: formData.profession,
                 role: formData.role,
-                salary: parseFloat(parseMoney(formData.newSalary || formData.salary)), // Use formatted logic or raw? 
-                // The API expects Float, but schema is Float?. parseMoney returns string "1000.00". parseFloat is needed.
-                category: 'FIELD', // Default
+                salary: parseFloat(parseMoney(formData.newSalary || formData.salary)),
+                category: 'FIELD',
                 leaveAllowance: formData.leaveAllowance,
                 hasOvertime: formData.hasOvertime,
                 startDate: formData.inputDate ? new Date(formData.inputDate) : undefined,
                 note: formData.note
-            });
+            } as any);
 
             if (res.success) {
                 setEditingId(null);
@@ -647,19 +646,51 @@ export default function NewPage() {
             const res = await createPersonnel({
                 siteId: formData.siteId,
                 tcNumber: formData.tc,
-                fullName: formData.name, // mapped from 'name'
+                fullName: formData.name,
                 profession: formData.profession,
                 role: formData.role,
                 salary: parseFloat(parseMoney(formData.salary)),
                 category: 'FIELD',
-                leaveAllowance: formData.leaveAllowance, // Stored as String as per updated schema
+                leaveAllowance: formData.leaveAllowance,
                 hasOvertime: formData.hasOvertime,
                 startDate: formData.inputDate ? new Date(formData.inputDate) : new Date(),
                 note: formData.note
-            });
+            } as any);
 
-            if (res.success) {
-                refreshData();
+            if (res.success && res.data) {
+                // Optimistic Update / Instant Add
+                const newPersonData = res.data as any; // Cast to any to avoid stale type errors
+                const newIndependentPerson: IndependentPerson = {
+                    id: newPersonData.id,
+                    siteId: newPersonData.siteId || '',
+                    tc: newPersonData.tcNumber || '',
+                    name: newPersonData.fullName,
+                    profession: newPersonData.profession || '',
+                    role: newPersonData.role,
+                    salary: newPersonData.salary ? newPersonData.salary.toString() : '',
+                    leaveAllowance: newPersonData.leaveAllowance || '',
+                    hasOvertime: newPersonData.hasOvertime || false,
+                    note: newPersonData.note || '',
+                    inputDate: newPersonData.startDate ? format(new Date(newPersonData.startDate), 'yyyy-MM-dd') : undefined,
+                    transferOutDate: newPersonData.leftDate ? format(new Date(newPersonData.leftDate), 'yyyy-MM-dd') : undefined,
+                    attendance: {}, // Initially empty, though createPersonnel adds one record. 
+                    // To show that record instantly, we can manually add it:
+                    salaryHistory: [],
+                    salaryAdjustments: {}
+                };
+
+                // If inputDate exists, add the initial 'FULL' attendance we just created on server
+                if (newPersonData.startDate) {
+                    const dateKey = format(new Date(newPersonData.startDate), 'yyyy-MM-dd');
+                    newIndependentPerson.attendance[dateKey] = {
+                        status: 'FULL',
+                        note: 'İşe Giriş - İlk Gün',
+                        createdAt: Date.now()
+                    };
+                }
+
+                setNames(prev => [...prev, newIndependentPerson]);
+                // refreshData(); // Still refresh to be safe, but state is already updated
             } else {
                 alert("Ekleme başarısız: " + res.error);
             }

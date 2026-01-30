@@ -41,7 +41,7 @@ export async function createPersonnel(data: Partial<Personnel>) {
             }
         });
         // Check if start date is provided to auto-create 'WORK' attendance
-        // [MODIFIED] Auto-create 'ENTRY' (İşe Giriş) instead of WORK for the first day
+        // [MODIFIED] Auto-create 'FULL' (Tam Gün Çalıştı) as requested
         if (data.startDate && data.siteId) {
             const startDate = new Date(data.startDate);
             startDate.setHours(0, 0, 0, 0);
@@ -51,9 +51,9 @@ export async function createPersonnel(data: Partial<Personnel>) {
                     personnelId: person.id,
                     siteId: data.siteId,
                     date: startDate,
-                    status: 'ENTRY', // Explicit Entry
-                    hours: 0,
-                    note: 'İşe Giriş'
+                    status: 'FULL', // Worked (Tam Gün)
+                    hours: 11,
+                    note: 'İşe Giriş - İlk Gün'
                 }
             });
         }
