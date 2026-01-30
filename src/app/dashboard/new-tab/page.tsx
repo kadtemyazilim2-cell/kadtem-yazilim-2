@@ -342,7 +342,7 @@ export default function NewPage() {
             // Merge attendance from ALL records in this group
             const combinedAttendance = {};
             group.forEach(p => {
-                Object.assign(combinedAttendance, p.attendance);
+                Object.assign(combinedAttendance, p.attendance || {});
             });
 
             base.attendance = combinedAttendance;
@@ -811,6 +811,8 @@ export default function NewPage() {
     };
 
     const calculateStats = (person: IndependentPerson, referenceDate: Date) => {
+        if (!person) return { workedDays: 0, overtimeTotal: 0, leaveUsed: 0, remainingLeave: 0, basePay: 0, overtimePay: 0, leavePay: 0, bonus: 0, deduction: 0, totalPay: 0 };
+
         let workedDays = 0;
         let overtimeTotal = 0;
         let leaveUsed = 0;
@@ -1556,7 +1558,7 @@ export default function NewPage() {
                                                         </TableCell>
                                                         {days.map(d => {
                                                             const dateKey = format(d, 'yyyy-MM-dd');
-                                                            const record = person.attendance[dateKey];
+                                                            const record = (person.attendance || {})[dateKey];
                                                             const isLocked = !canEditRecord(person, record, d);
 
                                                             // Sequential Logic:
