@@ -96,22 +96,30 @@ export function CashBookForm() {
         });
     };
 
-    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = e.target.value;
-        // Allow only numbers and comma/dot
-        if (!/^[0-9.,]*$/.test(val)) return;
+    const formatMoneyInput = (value: string) => {
+        if (!value) return '';
+        // Remove all non-digits and non-comma
+        let val = value.replace(/[^0-9,]/g, '');
 
-        setDisplayAmount(val);
+        // Handle comma
+        const parts = val.split(',');
+        // Format left (thousands)
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+        // Reassemble
+        return parts.length > 1 ? `${parts[0]},${parts[1].slice(0, 2)}` : parts[0];
+    };
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value;
+        const formatted = formatMoneyInput(raw);
+        setDisplayAmount(formatted);
 
         // Convert key-in format (1.000,50) to standard float for storage
-        // If user uses comma as decimal separator
         let numVal = 0;
-        if (val.includes(',')) {
-            // Remove dots (thousands) and replace comma with dot
-            numVal = parseFloat(val.replace(/\./g, '').replace(',', '.'));
-        } else {
-            // Standard dot decimal or plain number
-            numVal = parseFloat(val);
+        if (formatted) {
+            // Remove dots, replace comma with dot
+            numVal = parseFloat(formatted.replace(/\./g, '').replace(',', '.'));
         }
 
         if (!isNaN(numVal)) {
