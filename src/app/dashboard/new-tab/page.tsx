@@ -680,9 +680,11 @@ export default function NewPage() {
                 };
 
                 // If inputDate exists, add the initial 'FULL' attendance we just created on server
-                if (newPersonData.startDate) {
-                    const dateKey = format(new Date(newPersonData.startDate), 'yyyy-MM-dd');
-                    newIndependentPerson.attendance[dateKey] = {
+                // [FIX] Use formData.inputDate directly if available to avoid timezone shifts when parsing server response
+                const startDateStr = formData.inputDate || (newPersonData.startDate ? format(new Date(newPersonData.startDate), 'yyyy-MM-dd') : undefined);
+
+                if (startDateStr) {
+                    newIndependentPerson.attendance[startDateStr] = {
                         status: 'FULL',
                         note: 'İşe Giriş - İlk Gün',
                         createdAt: Date.now()
