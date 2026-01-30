@@ -64,6 +64,19 @@ export default function NewPage() {
     const { sites } = useAppStore();
     const availableSites = getAccessibleSites(sites);
 
+    // [NEW] Granular Permissions
+    const perms = (user?.permissions || {}) as Record<string, string[]>;
+    // Fallback: If user has ADMIN role, all true.
+    const isAdmin = user?.role === 'ADMIN';
+
+    const canViewSalary = isAdmin || (perms['new-tab.salary'] || []).includes('VIEW');
+    const canEditSalary = isAdmin || (perms['new-tab.salary'] || []).includes('EDIT');
+    const canCreatePersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('CREATE');
+    const canEditPersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('EDIT'); // For Edit/Delete
+    const canEditAttendance = isAdmin || (perms['new-tab.attendance'] || []).includes('EDIT');
+    const canTransfer = isAdmin || (perms['new-tab.transfer'] || []).includes('CREATE');
+
+
     const [names, setNames] = useState<IndependentPerson[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -742,6 +755,9 @@ export default function NewPage() {
     };
 
     const canEditRecord = (person: IndependentPerson, record: AttendanceRecord | undefined, targetDate: Date) => {
+        // [NEW] Permission Check
+        if (!canEditAttendance) return false;
+
         // ALWAYS Check Transfer Lock (Even for Admin)
         if (person.transferOutDate) {
             const targetKey = format(targetDate, 'yyyy-MM-dd');
@@ -1447,7 +1463,7 @@ export default function NewPage() {
             <Tabs defaultValue="attendance" className="w-full space-y-6">
                 <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
                     <TabsTrigger value="attendance" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj</TabsTrigger>
-                    {(user?.role === 'ADMIN' || user?.username === 'mehmet') && (
+                    {canViewSalary && (
                         <TabsTrigger value="salary" className="px-6 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">Maaş Hesabı</TabsTrigger>
                     )}
                 </TabsList>
@@ -1482,20 +1498,22 @@ export default function NewPage() {
 
 
 
-                            <Button onClick={() => {
-                                setEditingId(null);
-                                setFormData({
-                                    siteId: (selectedSiteId && selectedSiteId !== 'all') ? selectedSiteId : (availableSites.length === 1 ? availableSites[0].id : ''),
-                                    tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
-                                    inputDate: format(new Date(), 'yyyy-MM-dd'),
-                                    salaryHistory: []
-                                });
-                                setShowSalaryInput(false);
-                                setIsDialogOpen(true);
-                            }}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                Personel Ekle
-                            </Button>
+                            {canCreatePersonnel && (
+                                <Button onClick={() => {
+                                    setEditingId(null);
+                                    setFormData({
+                                        siteId: (selectedSiteId && selectedSiteId !== 'all') ? selectedSiteId : (availableSites.length === 1 ? availableSites[0].id : ''),
+                                        tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
+                                        inputDate: format(new Date(), 'yyyy-MM-dd'),
+                                        salaryHistory: []
+                                    });
+                                    setShowSalaryInput(false);
+                                    setIsDialogOpen(true);
+                                }}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Personel Ekle
+                                </Button>
+                            )}
                         </div>
                     </div>
 
@@ -1694,12 +1712,16 @@ export default function NewPage() {
                                                         </TableCell>
 
                                                         <TableCell className="text-right whitespace-nowrap">
-                                                            <Button variant="ghost" size="icon" onClick={() => openTransferModal(person)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 mr-1" title="Transfer Et">
-                                                                <ArrowRightLeft className="w-4 h-4" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" title="Sil">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
+                                                            {canTransfer && (
+                                                                <Button variant="ghost" size="icon" onClick={() => openTransferModal(person)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 mr-1" title="Transfer Et">
+                                                                    <ArrowRightLeft className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                            {canEditPersonnel && (
+                                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" title="Sil">
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
                                                         </TableCell>
                                                     </TableRow>
                                                 )
@@ -1732,7 +1754,7 @@ export default function NewPage() {
                                                 <TableHead>Görev</TableHead>
                                                 <TableHead>Şantiye</TableHead>
                                                 <TableHead className="text-center">Mesai?</TableHead>
-                                                <TableHead>Maaş</TableHead>
+                                                {canViewSalary && <TableHead>Maaş</TableHead>}
                                                 <TableHead>İzin</TableHead>
                                                 <TableHead className="text-right">İşlem</TableHead>
                                             </TableRow>
@@ -1752,21 +1774,27 @@ export default function NewPage() {
                                                     <TableCell className="text-center">
                                                         {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
                                                     </TableCell>
-                                                    <TableCell>{formatCurrency(p.salary)}</TableCell>
+                                                    {canViewSalary && <TableCell>{formatCurrency(p.salary)}</TableCell>}
                                                     <TableCell>{p.leaveAllowance} Gün</TableCell>
                                                     <TableCell className="text-right">
                                                         <div className="flex justify-end gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => openTransferModal(p)}
-                                                                title="Şantiye Transferi"
-                                                            >
-                                                                <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                                Transfer
-                                                            </Button>
-                                                            <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
-                                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
+                                                            {canTransfer && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => openTransferModal(p)}
+                                                                    title="Şantiye Transferi"
+                                                                >
+                                                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                                                    Transfer
+                                                                </Button>
+                                                            )}
+                                                            {canEditPersonnel && (
+                                                                <>
+                                                                    <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
+                                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>
@@ -1866,9 +1894,11 @@ export default function NewPage() {
                                                     />
                                                 </div>
                                             </TableHead>
-                                            <TableHead className="cursor-pointer hover:bg-slate-100 select-none" onClick={(e) => handleSort('salary', e)}>
-                                                <div className="flex items-center gap-1">Maaş {sortConfig.find(s => s.key === 'salary') && (sortConfig.find(s => s.key === 'salary')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}</div>
-                                            </TableHead>
+                                            {canViewSalary && (
+                                                <TableHead className="cursor-pointer hover:bg-slate-100 select-none" onClick={(e) => handleSort('salary', e)}>
+                                                    <div className="flex items-center gap-1">Maaş {sortConfig.find(s => s.key === 'salary') && (sortConfig.find(s => s.key === 'salary')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}</div>
+                                                </TableHead>
+                                            )}
                                             <TableHead>İzin</TableHead>
                                             <TableHead className="text-right">İşlem</TableHead>
                                         </TableRow>
@@ -1888,21 +1918,27 @@ export default function NewPage() {
                                                 <TableCell className="text-center">
                                                     {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
                                                 </TableCell>
-                                                <TableCell>{formatCurrency(p.salary)}</TableCell>
+                                                {canViewSalary && <TableCell>{formatCurrency(p.salary)}</TableCell>}
                                                 <TableCell>{p.leaveAllowance} Gün</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => openTransferModal(p)}
-                                                            title="Şantiye Transferi"
-                                                        >
-                                                            <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                            Transfer
-                                                        </Button>
-                                                        <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
-                                                        <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
+                                                        {canTransfer && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openTransferModal(p)}
+                                                                title="Şantiye Transferi"
+                                                            >
+                                                                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                                                Transfer
+                                                            </Button>
+                                                        )}
+                                                        {canEditPersonnel && (
+                                                            <>
+                                                                <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
+                                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>

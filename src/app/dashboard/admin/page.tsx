@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Minus, Search, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Building2, Users, ShieldCheck, ShieldAlert, TrendingUp, RefreshCw, MapPin, Mail, Pencil, FileDown, FileSpreadsheet, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Building2, Users, ShieldCheck, ShieldAlert, TrendingUp, RefreshCw, MapPin, Mail, Pencil, FileDown, FileSpreadsheet, ArrowUp, ArrowDown, Eye } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch'; // [NEW]
 import { MultiSelect } from '@/components/ui/multi-select'; // [NEW]
@@ -89,7 +89,16 @@ const MODULE_HIERARCHY = [
         label: 'Personel',
         children: [
             { id: 'personnel.list', label: 'Personel Listesi' },
-            { id: 'new-tab', label: 'Personel Puantaj' },
+            {
+                id: 'new-tab',
+                label: 'Personel Puantaj',
+                children: [
+                    { id: 'new-tab.salary', label: 'Maaş Bilgileri' },
+                    { id: 'new-tab.personnel', label: 'Personel Yönetimi' },
+                    { id: 'new-tab.attendance', label: 'Puantaj Girişi' },
+                    { id: 'new-tab.transfer', label: 'Transfer İşlemi' },
+                ]
+            },
         ]
     },
 
@@ -1092,95 +1101,77 @@ export default function AdminPage() {
 
         const paddingLeft = depth * 24;
 
+        // Auto-select VIEW if any other permission is selected
+        const handleCheck = (type: 'VIEW' | 'CREATE' | 'EDIT' | 'EXPORT', checked: boolean) => {
+            if (type === 'VIEW') {
+                setPermission(module.id, 'VIEW', checked ? 'SET_VIEW' : 'CLEAR');
+            } else {
+                setPermission(module.id, type, checked ? 'ADD' : 'REMOVE');
+            }
+        };
+
         return (
             <Fragment key={module.id}>
-                <TableRow className={depth > 0 ? "bg-slate-50/50" : ""}>
-                    <TableCell className="font-medium" style={{ paddingLeft: `${paddingLeft + 16}px` }}>
-                        <div className="flex items-center gap-2">
-                            {depth > 0 && <div className="w-1 h-1 rounded-full bg-slate-400" />}
-                            {module.label}
+                <TableRow className={cn(
+                    "hover:bg-slate-50/80 transition-colors",
+                    depth === 0 ? "bg-white" : "bg-slate-50/30"
+                )}>
+                    <TableCell className="py-3" style={{ paddingLeft: `${paddingLeft + 16}px` }}>
+                        <div className="flex items-center gap-3">
+                            {depth > 0 && <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+                            <span className={cn(
+                                "text-sm",
+                                depth === 0 ? "font-semibold text-slate-900" : "text-slate-700"
+                            )}>
+                                {module.label}
+                            </span>
                         </div>
                     </TableCell>
-                    {/* View Button */}
-                    <TableCell className="text-center">
+
+                    {/* VIEW */}
+                    <TableCell className="text-center py-2">
                         <div className="flex justify-center">
-                            <Button
-                                type="button"
-                                variant={hasView ? "default" : "outline"}
-                                size="sm"
-                                className={cn("h-8 w-24 text-xs font-semibold", hasView ? "bg-blue-600 hover:bg-blue-700" : "text-slate-500")}
-                                onClick={() => setPermission(module.id, 'VIEW', hasView ? 'CLEAR' : 'SET_VIEW')}
-                            >
-                                {hasView ? 'Görünür' : 'Görünmez'}
-                            </Button>
+                            <Checkbox
+                                checked={hasView}
+                                onCheckedChange={(c) => handleCheck('VIEW', c as boolean)}
+                                className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                            />
                         </div>
                     </TableCell>
-                    {/* View Only Indicator (Removed, redundant with Button) */}
-                    <TableCell className="text-center text-xs text-muted-foreground">
-                        {hasView ? (
-                            <span className="text-blue-600 font-medium">Aktif</span>
-                        ) : (
-                            <span className="text-slate-400">Pasif</span>
-                        )}
-                    </TableCell>
-                    {/* Create Button */}
-                    <TableCell className="text-center">
+
+                    {/* CREATE */}
+                    <TableCell className="text-center py-2">
                         <div className="flex justify-center">
-                            <Button
-                                type="button"
-                                variant={hasCreate ? "default" : "outline"}
-                                size="sm"
-                                className={cn(
-                                    "h-8 w-24 text-xs font-semibold",
-                                    hasCreate ? "bg-green-600 hover:bg-green-700" : "text-slate-500",
-                                    !hasView && "opacity-50 cursor-not-allowed"
-                                )}
-                                onClick={() => hasView && setPermission(module.id, 'CREATE', hasCreate ? 'REMOVE' : 'ADD')}
+                            <Checkbox
+                                checked={hasCreate}
+                                onCheckedChange={(c) => handleCheck('CREATE', c as boolean)}
                                 disabled={!hasView}
-                            >
-                                <Plus className="w-3 h-3 mr-1" />
-                                Ekle
-                            </Button>
+                                className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 disabled:opacity-30"
+                            />
                         </div>
                     </TableCell>
-                    {/* Edit Button */}
-                    <TableCell className="text-center">
+
+                    {/* EDIT */}
+                    <TableCell className="text-center py-2">
                         <div className="flex justify-center">
-                            <Button
-                                type="button"
-                                variant={hasEdit ? "default" : "outline"}
-                                size="sm"
-                                className={cn(
-                                    "h-8 w-24 text-xs font-semibold",
-                                    hasEdit ? "bg-orange-600 hover:bg-orange-700" : "text-slate-500",
-                                    !hasView && "opacity-50 cursor-not-allowed"
-                                )}
-                                onClick={() => hasView && setPermission(module.id, 'EDIT', hasEdit ? 'REMOVE' : 'ADD')}
+                            <Checkbox
+                                checked={hasEdit}
+                                onCheckedChange={(c) => handleCheck('EDIT', c as boolean)}
                                 disabled={!hasView}
-                            >
-                                <Pencil className="w-3 h-3 mr-1" />
-                                Düzenle
-                            </Button>
+                                className="data-[state=checked]:bg-orange-600 data-[state=checked]:border-orange-600 disabled:opacity-30"
+                            />
                         </div>
                     </TableCell>
-                    {/* Export Button */}
-                    <TableCell className="text-center">
+
+                    {/* EXPORT */}
+                    <TableCell className="text-center py-2">
                         <div className="flex justify-center">
-                            <Button
-                                type="button"
-                                variant={hasExport ? "default" : "outline"}
-                                size="sm"
-                                className={cn(
-                                    "h-8 w-24 text-xs font-semibold",
-                                    hasExport ? "bg-purple-600 hover:bg-purple-700" : "text-slate-500",
-                                    !hasView && "opacity-50 cursor-not-allowed"
-                                )}
-                                onClick={() => hasView && setPermission(module.id, 'EXPORT', hasExport ? 'REMOVE' : 'ADD')}
+                            <Checkbox
+                                checked={hasExport}
+                                onCheckedChange={(c) => handleCheck('EXPORT', c as boolean)}
                                 disabled={!hasView}
-                            >
-                                <FileDown className="w-3 h-3 mr-1" />
-                                İndir
-                            </Button>
+                                className="data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600 disabled:opacity-30"
+                            />
                         </div>
                     </TableCell>
                 </TableRow>
