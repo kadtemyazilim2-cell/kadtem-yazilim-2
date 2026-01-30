@@ -587,23 +587,26 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {siteLogEntries.slice(0, 3).map((entry: any) => {
-                                const site = sites.find((s: any) => s.id === entry.siteId);
-                                const author = users.find((u: any) => u.id === entry.authorId);
-                                return (
-                                    <div key={entry.id} className="border-b last:border-0 pb-3 last:pb-0">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <div className="font-semibold text-sm text-blue-900">{site?.name || 'Bilinmeyen Şantiye'}</div>
-                                            <div className="text-xs text-slate-500">{format(new Date(entry.date), 'dd MMMM', { locale: tr })}</div>
+                            {siteLogEntries
+                                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                .slice(0, 1) // Show only 1 latest entry
+                                .map((entry: any) => {
+                                    const site = sites.find((s: any) => s.id === entry.siteId);
+                                    const author = users.find((u: any) => u.id === entry.authorId);
+                                    return (
+                                        <div key={entry.id} className="border-b last:border-0 pb-3 last:pb-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div className="font-semibold text-sm text-blue-900">{site?.name || 'Bilinmeyen Şantiye'}</div>
+                                                <div className="text-xs text-slate-500">{format(new Date(entry.date), 'dd MMMM', { locale: tr })}</div>
+                                            </div>
+                                            <p className="text-sm text-slate-600 line-clamp-2">{entry.content}</p>
+                                            <div className="mt-1 flex gap-2 text-xs text-slate-400">
+                                                <span>{author?.name || 'Bilinmeyen Kullanıcı'}</span>
+                                                {entry.weather && <span>• {entry.weather}</span>}
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-slate-600 line-clamp-2">{entry.content}</p>
-                                        <div className="mt-1 flex gap-2 text-xs text-slate-400">
-                                            <span>{author?.name || 'Bilinmeyen Kullanıcı'}</span>
-                                            {entry.weather && <span>• {entry.weather}</span>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
                             {siteLogEntries.length === 0 && (
                                 <div className="text-center text-sm text-slate-500 py-4">Henüz kayıt yok.</div>
                             )}
