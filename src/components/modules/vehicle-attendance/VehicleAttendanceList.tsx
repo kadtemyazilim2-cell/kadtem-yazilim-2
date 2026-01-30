@@ -201,10 +201,17 @@ export function VehicleAttendanceList() {
 
     const getStatusForDate = (vid: string, date: Date) => {
         const targetDate = format(date, 'yyyy-MM-dd');
-        return vehicleAttendance.find((a: any) =>
-            a.vehicleId === vid &&
-            format(new Date(a.date), 'yyyy-MM-dd') === targetDate
-        );
+        return vehicleAttendance.find((a: any) => {
+            if (!a.vehicleId || !a.date) return false;
+            try {
+                // Handle both ISO string and Date object
+                const aDate = new Date(a.date);
+                if (isNaN(aDate.getTime())) return false;
+                return a.vehicleId === vid && format(aDate, 'yyyy-MM-dd') === targetDate;
+            } catch (e) {
+                return false;
+            }
+        });
     };
 
     const getStatusBadge = (status: string) => {
