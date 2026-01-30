@@ -15,6 +15,7 @@ import { createTransaction } from '@/actions/transaction';
 
 export function CashBookForm() {
     const [open, setOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false); // [NEW]
     const { addCashTransaction, sites, users } = useAppStore();
     const { user, hasPermission } = useAuth();
     const canCreate = hasPermission('cash-book', 'CREATE');
@@ -130,7 +131,7 @@ export function CashBookForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return;
 
         // [NEW] Date Restriction Check
         if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
@@ -186,6 +187,7 @@ export function CashBookForm() {
         }
 
         // Server Action
+        setIsSubmitting(true);
         try {
             const payload = {
                 siteId: formData.siteId,
@@ -223,6 +225,8 @@ export function CashBookForm() {
         } catch (error) {
             console.error(error);
             alert('Bir hata oluştu.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -388,7 +392,9 @@ export function CashBookForm() {
                     </div>
 
                     <DialogFooter>
-                        <Button type="submit">Kaydet</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
