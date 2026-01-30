@@ -114,38 +114,36 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
     const colors = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#ea580c'];
 
     const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length) {
+        if (active && payload && payload.length > 0) {
+            // Strictly take the first entry (nearest/hovered) to ensure only THAT site is shown
+            const entry = payload[0];
+
+            if (entry.value === 0) return null;
+
+            const siteName = entry.name;
+            const details = entry.payload.details?.[siteName] || [];
+
             return (
                 <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg text-xs max-w-[250px] max-h-[300px] overflow-y-auto z-50">
                     <p className="font-bold mb-2 text-slate-700 border-b pb-1">{label}</p>
-                    {payload.map((entry: any, index: number) => {
-                        // [FIX] Since shared={false}, payload contains only the hovered item.
-                        // However, just to be absolutely safe and for clarity:
-                        if (entry.value === 0) return null;
 
-                        const siteName = entry.name;
-                        const details = entry.payload.details?.[siteName] || [];
-
-                        return (
-                            <div key={index} className="mb-3 last:mb-0">
-                                <div className="flex items-center justify-between font-semibold" style={{ color: entry.color }}>
-                                    <span>{siteName}</span>
-                                </div>
-                                {details.length > 0 && (
-                                    <div className="mt-1 pl-2 border-l-2 border-slate-100 space-y-1">
-                                        {details.map((d: any, i: number) => (
-                                            <div key={i} className="flex justify-between items-center text-[10px]">
-                                                <span className="text-slate-600 truncate max-w-[120px]" title={d.label}>{d.label}</span>
-                                                <span className={`font-mono font-bold ${d.type === 'IN' ? 'text-green-600' : 'text-red-500'}`}>
-                                                    {d.type === 'IN' ? '+' : '-'}{d.liters.toLocaleString('tr-TR')} Lt
-                                                </span>
-                                            </div>
-                                        ))}
+                    <div className="mb-3 last:mb-0">
+                        <div className="flex items-center justify-between font-semibold" style={{ color: entry.color }}>
+                            <span>{siteName}</span>
+                        </div>
+                        {details.length > 0 && (
+                            <div className="mt-1 pl-2 border-l-2 border-slate-100 space-y-1">
+                                {details.map((d: any, i: number) => (
+                                    <div key={i} className="flex justify-between items-center text-[10px]">
+                                        <span className="text-slate-600 truncate max-w-[120px]" title={d.label}>{d.label}</span>
+                                        <span className={`font-mono font-bold ${d.type === 'IN' ? 'text-green-600' : 'text-red-500'}`}>
+                                            {d.type === 'IN' ? '+' : '-'}{d.liters.toLocaleString('tr-TR')} Lt
+                                        </span>
                                     </div>
-                                )}
+                                ))}
                             </div>
-                        );
-                    })}
+                        )}
+                    </div>
                 </div>
             );
         }
