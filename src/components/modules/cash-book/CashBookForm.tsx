@@ -213,8 +213,8 @@ export function CashBookForm() {
                     // The store likely handles ISO strings or Date objects. 
                     // Let's pass what we get from Prisma (likely Date object or string depending on serialization).
                     // Next.js actions serialize Date to string usually.
-                    date: res.data.date.toString(),
-                    createdAt: res.data.createdAt.toString(),
+                    date: new Date(res.data.date).toISOString(),
+                    createdAt: new Date(res.data.createdAt).toISOString(),
                 } as any);
 
                 setOpen(false);
