@@ -22,6 +22,23 @@ export async function getTransactionsBySite(siteId: string) {
     }
 }
 
+export async function getAllTransactions() {
+    try {
+        const transactions = await prisma.cashTransaction.findMany({
+            orderBy: { date: 'desc' },
+            include: {
+                createdByUser: true,
+                responsibleUser: true,
+                site: true
+            }
+        });
+        return { success: true, data: transactions };
+    } catch (error) {
+        console.error('getAllTransactions Error:', error);
+        return { success: false, error: 'İşlemler alınamadı.' };
+    }
+}
+
 export async function createTransaction(data: Partial<CashTransaction>) {
     try {
         const transaction = await prisma.cashTransaction.create({

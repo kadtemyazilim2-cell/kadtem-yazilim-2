@@ -7,6 +7,7 @@ import { getCorrespondenceList } from '@/actions/correspondence';
 import { getInstitutions } from '@/actions/institution';
 import { getFuelTanks, getFuelLogs, getFuelTransfers } from '@/actions/fuel';
 import { getSiteLogEntries } from '@/actions/site-log'; // [NEW]
+import { getAllTransactions } from '@/actions/transaction'; // [NEW]
 import { StoreInitializer } from '@/components/store-initializer';
 import { serializeData } from '@/lib/serializer';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -20,10 +21,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/login');
     }
 
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [];
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
@@ -34,7 +35,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getFuelTanks(),
             getFuelLogs(), // [NEW] Pre-fetch
             getFuelTransfers(), // [NEW] Pre-fetch
-            getSiteLogEntries() // [NEW] Pre-fetch
+            getSiteLogEntries(), // [NEW] Pre-fetch
+            getAllTransactions() // [NEW] Pre-fetch
         ]);
 
         companies = serializeData(companiesRes?.data || []);
@@ -48,6 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         fuelLogs = serializeData(fuelLogsRes?.data || []);
         fuelTransfers = serializeData(fuelTransfersRes?.data || []);
         siteLogEntries = serializeData(siteLogsRes?.data || []); // [NEW]
+        cashTransactions = serializeData(transactionsRes?.data || []);
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
     }
@@ -66,6 +69,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 fuelLogs={fuelLogs}
                 fuelTransfers={fuelTransfers}
                 siteLogEntries={siteLogEntries} // [NEW]
+                cashTransactions={cashTransactions} // [NEW]
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>
