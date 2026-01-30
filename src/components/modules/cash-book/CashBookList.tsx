@@ -20,6 +20,7 @@ import { fontBase64 } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
+import { deleteTransaction } from '@/actions/transaction';
 
 export function CashBookList() {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
@@ -518,7 +519,7 @@ export function CashBookList() {
         doc.save(`Kasa_Raporu_${dateStr}.pdf`);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         // [NEW] Find transaction to check date
         const transaction = cashTransactions.find((t: any) => t.id === id);
         if (!transaction) return;
@@ -538,7 +539,17 @@ export function CashBookList() {
         }
 
         if (confirm('Bu işlemi silmek istediğinize emin misiniz?')) {
-            deleteCashTransaction(id);
+            try {
+                const res = await deleteTransaction(id);
+                if (res.success) {
+                    deleteCashTransaction(id);
+                } else {
+                    alert(res.error || 'Silme işlemi başarısız.');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Bir hata oluştu.');
+            }
         }
     };
 

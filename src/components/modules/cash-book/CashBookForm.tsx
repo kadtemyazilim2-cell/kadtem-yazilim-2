@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { createTransaction } from '@/actions/transaction';
 
 export function CashBookForm() {
     const [open, setOpen] = useState(false);
@@ -127,7 +128,7 @@ export function CashBookForm() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
 
@@ -184,18 +185,45 @@ export function CashBookForm() {
             }
         }
 
-        addCashTransaction({
-            id: crypto.randomUUID(),
-            ...formData,
-            type: formData.type as 'INCOME' | 'EXPENSE',
-            amount: Number(formData.amount),
-            createdByUserId: user.id,
-            responsibleUserId: formData.responsibleUserId || user.id, // Fallback
-            createdAt: new Date().toISOString(),
-        });
+        // Server Action
+        try {
+            const payload = {
+                siteId: formData.siteId,
+                date: new Date(formData.date), // Action expects Date object
+                type: formData.type as 'INCOME' | 'EXPENSE',
+                category: formData.category,
+                amount: Number(formData.amount),
+                description: formData.description,
+                documentNo: formData.documentNo,
+                createdByUserId: user.id,
+                responsibleUserId: formData.responsibleUserId || user.id
+            };
 
-        setOpen(false);
-        resetForm();
+            const res = await createTransaction(payload as any);
+
+            if (res.success && res.data) {
+                // Determine 'responsibleUserId' to match what the store expects (to support existing UI logic)
+                // The server 'res.data' should have the fields.
+
+                addCashTransaction({
+                    ...res.data,
+                    // Ensure dates are strings if store expects strings, or Dates if objects.
+                    // The store likely handles ISO strings or Date objects. 
+                    // Let's pass what we get from Prisma (likely Date object or string depending on serialization).
+                    // Next.js actions serialize Date to string usually.
+                    date: res.data.date.toString(),
+                    createdAt: res.data.createdAt.toString(),
+                } as any);
+
+                setOpen(false);
+                resetForm();
+            } else {
+                alert(res.error || 'İşlem kaydedilemedi.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Bir hata oluştu.');
+        }
     };
 
     // Set default on open if empty
