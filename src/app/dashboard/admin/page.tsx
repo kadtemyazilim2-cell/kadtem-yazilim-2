@@ -89,6 +89,7 @@ const MODULE_HIERARCHY = [
         label: 'Personel',
         children: [
             { id: 'personnel.list', label: 'Personel Listesi' },
+            { id: 'new-tab', label: 'Personel Puantaj' },
         ]
     },
 
