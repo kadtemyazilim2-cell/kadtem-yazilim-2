@@ -35,8 +35,8 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                 details: {} as Record<string, { label: string; liters: number; type: 'IN' | 'OUT' }[]>
             };
             activeSites.forEach((site: any) => {
-                row[site.name] = 0;
-                row.details[site.name] = [];
+                row[site.id] = 0;
+                row.details[site.id] = [];
             });
             return row;
         });
@@ -52,9 +52,9 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
 
                 if (site && site.status === 'ACTIVE') {
                     // For Chart Line: We use Total Activity (Sum of Liters) to ensure point exists
-                    dataRow[site.name] = (dataRow[site.name] || 0) + log.liters;
+                    dataRow[site.id] = (dataRow[site.id] || 0) + log.liters;
 
-                    dataRow.details[site.name].push({
+                    dataRow.details[site.id].push({
                         label: vehicle ? vehicle.plate : 'Araç',
                         liters: log.liters,
                         type: 'OUT'
@@ -77,10 +77,10 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
 
                         if (site && site.status === 'ACTIVE') {
                             // Add to Activity Sum so it shows on chart
-                            dataRow[site.name] = (dataRow[site.name] || 0) + t.amount;
+                            dataRow[site.id] = (dataRow[site.id] || 0) + t.amount;
 
                             const provider = t.fromType === 'EXTERNAL' ? (t.fromId || 'Satın Alma') : 'Transfer Giriş';
-                            dataRow.details[site.name].push({
+                            dataRow.details[site.id].push({
                                 label: provider,
                                 liters: t.amount,
                                 type: 'IN'
@@ -94,9 +94,9 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                         const site = sites.find((s: any) => s.id === tank?.siteId);
 
                         if (site && site.status === 'ACTIVE') {
-                            dataRow[site.name] = (dataRow[site.name] || 0) + t.amount;
+                            dataRow[site.id] = (dataRow[site.id] || 0) + t.amount;
 
-                            dataRow.details[site.name].push({
+                            dataRow.details[site.id].push({
                                 label: 'Transfer Çıkış',
                                 liters: t.amount,
                                 type: 'OUT'
@@ -121,7 +121,8 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
             if (entry.value === 0) return null;
 
             const siteName = entry.name;
-            const details = entry.payload.details?.[siteName] || [];
+            const siteId = entry.dataKey; // [NEW] Use the dataKey (ID) to lookup details
+            const details = entry.payload.details?.[siteId] || [];
 
             return (
                 <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg text-xs max-w-[250px] max-h-[300px] overflow-y-auto z-50">
@@ -181,9 +182,10 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                                 <Line
                                     key={site.id}
                                     type="monotone"
-                                    dataKey={site.name}
+                                    dataKey={site.id} // [NEW] Use ID as internal key
+                                    name={site.name} // [NEW] Display name
                                     stroke={colors[index % colors.length]}
-                                    strokeWidth={3}
+                                    strokeWidth={4} // [MOD] Thicker lines for easier hovering
                                     dot={{ r: 4, fill: colors[index % colors.length] }}
                                     activeDot={{ r: 6 }}
                                 />
