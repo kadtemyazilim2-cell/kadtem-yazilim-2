@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FuelLog, Site, FuelTransfer, FuelTank } from '@/lib/types';
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
 export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehicles }: {
     fuelLogs: FuelLog[];
-    fuelTransfers?: FuelTransfer[]; // Optional to avoid break if not passed
+    fuelTransfers?: FuelTransfer[];
     fuelTanks?: FuelTank[];
     sites: Site[];
     vehicles: any[];
@@ -25,7 +25,7 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
             };
         });
 
-        const activeSites = sites.filter((s: any) => s.status === 'ACTIVE');
+        const activeTanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
 
         // Initialize data structure
         const data = days.map((day: any) => {
@@ -35,28 +35,29 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                 total: 0,
                 details: {} as Record<string, { label: string; liters: number; type: 'IN' | 'OUT' }[]>
             };
-            activeSites.forEach((site: any) => {
-                row[site.id] = 0;
-                row.details[site.id] = [];
+            activeTanks.forEach((tank: any) => {
+                row[tank.id] = 0;
+                row.details[tank.id] = [];
             });
             return row;
         });
 
-        // 1. Process Logs (OUT)
+        // 1. Process Logs (OUT from Tank)
         fuelLogs.forEach((log: any) => {
+            if (!log.tankId) return; // Skip if no tank (Direct Purchase)
+
             const logDate = format(new Date(log.date), 'yyyy-MM-dd');
             const dataRow = data.find((d: any) => d.fullDate === logDate);
 
             if (dataRow) {
-                const site = sites.find((s: any) => s.id === log.siteId);
+                const tank = activeTanks.find((t: any) => t.id === log.tankId);
                 const vehicle = vehicles.find((v: any) => v.id === log.vehicleId);
 
-                if (site && site.status === 'ACTIVE') {
-                    // For Chart Bar: We use Total Activity (Sum of Liters)
-                    dataRow[site.id] = (dataRow[site.id] || 0) + log.liters;
+                if (tank) {
+                    dataRow[tank.id] = (dataRow[tank.id] || 0) + log.liters;
                     dataRow.total += log.liters;
 
-                    dataRow.details[site.id].push({
+                    dataRow.details[tank.id].push({
                         label: vehicle ? vehicle.plate : 'Araç',
                         liters: log.liters,
                         type: 'OUT'
@@ -66,7 +67,7 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
         });
 
         // 2. Process Transfers (IN & OUT)
-        if (fuelTransfers && fuelTanks) {
+        if (fuelTransfers) {
             fuelTransfers.forEach((t: any) => {
                 const tDate = format(new Date(t.date), 'yyyy-MM-dd');
                 const dataRow = data.find((d: any) => d.fullDate === tDate);
@@ -74,16 +75,14 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                 if (dataRow) {
                     // A. INCOMING (Target is Tank)
                     if (t.toType === 'TANK') {
-                        const tank = fuelTanks.find((tk: any) => tk.id === t.toId);
-                        const site = sites.find((s: any) => s.id === tank?.siteId);
+                        const tank = activeTanks.find((tk: any) => tk.id === t.toId);
 
-                        if (site && site.status === 'ACTIVE') {
-                            // Add to Activity Sum so it shows on chart
-                            dataRow[site.id] = (dataRow[site.id] || 0) + t.amount;
+                        if (tank) {
+                            dataRow[tank.id] = (dataRow[tank.id] || 0) + t.amount;
                             dataRow.total += t.amount;
 
                             const provider = t.fromType === 'EXTERNAL' ? (t.fromId || 'Satın Alma') : 'Transfer Giriş';
-                            dataRow.details[site.id].push({
+                            dataRow.details[tank.id].push({
                                 label: provider,
                                 liters: t.amount,
                                 type: 'IN'
@@ -93,14 +92,13 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
 
                     // B. OUTGOING (Source is Tank)
                     if (t.fromType === 'TANK') {
-                        const tank = fuelTanks.find((tk: any) => tk.id === t.fromId);
-                        const site = sites.find((s: any) => s.id === tank?.siteId);
+                        const tank = activeTanks.find((tk: any) => tk.id === t.fromId);
 
-                        if (site && site.status === 'ACTIVE') {
-                            dataRow[site.id] = (dataRow[site.id] || 0) + t.amount;
+                        if (tank) {
+                            dataRow[tank.id] = (dataRow[tank.id] || 0) + t.amount;
                             dataRow.total += t.amount;
 
-                            dataRow.details[site.id].push({
+                            dataRow.details[tank.id].push({
                                 label: 'Transfer Çıkış',
                                 liters: t.amount,
                                 type: 'OUT'
@@ -112,14 +110,13 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
         }
 
         return data;
-    }, [fuelLogs, sites, vehicles, fuelTransfers, fuelTanks]);
+    }, [fuelLogs, vehicles, fuelTransfers, fuelTanks]);
 
-    // Generate colors for sites safely
+    // Generate colors
     const colors = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#ea580c'];
 
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length > 0) {
-            // Sort payload by value descending to show biggest contributors first
             const sortedPayload = [...payload].sort((a: any, b: any) => b.value - a.value);
             const total = sortedPayload.reduce((sum: number, entry: any) => sum + entry.value, 0);
 
@@ -133,18 +130,17 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                     <div className="space-y-3 max-h-[300px] overflow-y-auto">
                         {sortedPayload.map((entry: any) => {
                             if (entry.value === 0) return null;
-                            const siteId = entry.dataKey;
-                            const siteName = entry.name;
-                            const details = entry.payload.details?.[siteId] || [];
+                            const tankId = entry.dataKey;
+                            const tankName = entry.name;
+                            const details = entry.payload.details?.[tankId] || [];
 
                             return (
-                                <div key={siteId} className="flex flex-col gap-1">
+                                <div key={tankId} className="flex flex-col gap-1">
                                     <div className="flex items-center justify-between font-semibold" style={{ color: entry.color }}>
-                                        <span>{siteName}</span>
+                                        <span>{tankName}</span>
                                         <span>{entry.value.toLocaleString('tr-TR')} Lt</span>
                                     </div>
 
-                                    {/* Optional: Show top 3 details per site to keep it clean */}
                                     <div className="pl-2 border-l-2 border-slate-100 space-y-0.5">
                                         {details.slice(0, 5).map((d: any, i: number) => (
                                             <div key={i} className="flex justify-between items-center text-[10px] text-slate-500">
@@ -167,6 +163,8 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
         }
         return null;
     };
+
+    const activeTanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
 
     return (
         <Card className="col-span-4 lg:col-span-7">
@@ -195,11 +193,11 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                             />
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
                             <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                            {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any, index: any) => (
+                            {activeTanks.map((tank: any, index: any) => (
                                 <Bar
-                                    key={site.id}
-                                    dataKey={site.id}
-                                    name={site.name}
+                                    key={tank.id}
+                                    dataKey={tank.id}
+                                    name={tank.name}
                                     stackId="a"
                                     fill={colors[index % colors.length]}
                                     radius={[0, 0, 0, 0]}
