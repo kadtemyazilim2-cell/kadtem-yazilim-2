@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
+import { getPersonnelWithAttendance, upsertPersonnelAttendance, createPersonnel, updatePersonnel, deletePersonnel } from '@/actions/personnel';
 
 
 type AttendanceRecord = {
@@ -63,26 +64,8 @@ export default function NewPage() {
     const { sites } = useAppStore();
     const availableSites = getAccessibleSites(sites);
 
-    const [names, setNames] = useState<IndependentPerson[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('independent-personnel-data');
-            if (saved) {
-                try {
-                    return JSON.parse(saved);
-                } catch (e) {
-                    console.error('Failed to parse saved personnel data', e);
-                }
-            }
-        }
-        return [];
-    });
-
-    // Persist to LocalStorage
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('independent-personnel-data', JSON.stringify(names));
-        }
-    }, [names]);
+    const [names, setNames] = useState<IndependentPerson[]>([]);
+    const [loading, setLoading] = useState(true);
 
     // Site Filter State
     const [selectedSiteId, setSelectedSiteId] = useState<string>('all');
@@ -263,6 +246,57 @@ export default function NewPage() {
     });
 
     const [date, setDate] = useState(new Date());
+
+    // Fetch from Server (Moved here to access 'date' and 'selectedSiteId')
+    const refreshData = async () => {
+        setLoading(true);
+        try {
+            const res = await getPersonnelWithAttendance(date, selectedSiteId);
+            if (res.success && res.data) {
+                // Map DB Personnel to IndependentPerson format
+                const mapped: IndependentPerson[] = res.data.map((p: any) => {
+                    const attendanceMap: Record<string, AttendanceRecord> = {};
+                    p.attendance.forEach((a: any) => {
+                        const dateKey = format(new Date(a.date), 'yyyy-MM-dd');
+                        attendanceMap[dateKey] = {
+                            status: a.status,
+                            overtime: a.overtime ? a.overtime.toString() : undefined,
+                            note: a.note || undefined,
+                            createdById: a.createdById || undefined,
+                            createdAt: new Date(a.createdAt || Date.now()).getTime()
+                        };
+                    });
+
+                    return {
+                        id: p.id,
+                        siteId: p.siteId || '',
+                        tc: p.tcNumber || '',
+                        name: p.fullName,
+                        profession: p.profession || '',
+                        role: p.role,
+                        salary: p.salary ? p.salary.toString() : '',
+                        leaveAllowance: p.leaveAllowance || '',
+                        hasOvertime: p.hasOvertime || false,
+                        note: p.note || '',
+                        inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
+                        transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
+                        attendance: attendanceMap,
+                        salaryHistory: [],
+                        salaryAdjustments: {}
+                    };
+                });
+                setNames(mapped);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
+    }, [date, selectedSiteId]);
 
     // Smart Entry: Auto-fill form on TC match with Duplicate Prevention
     useEffect(() => {
@@ -582,87 +616,53 @@ export default function NewPage() {
         setIsTransferOpen(false);
     };
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (!formData.tc || !formData.name || !formData.profession || !formData.role || !formData.salary || !formData.leaveAllowance || !formData.siteId) return;
 
-        // Check for duplicate TC
-        const duplicatePerson = names.find(p => p.tc === formData.tc && p.id !== editingId);
-
         if (editingId) {
-            // Update existing (Edit Mode)
-            setNames(prev => prev.map(p => {
-                if (p.id === editingId) {
-                    let finalSalary = formData.salary || '';
-                    let finalHistory = p.salaryHistory || [];
-
-                    if (formData.newSalary && formData.newSalary.trim() !== '') {
-                        if (p.salary && p.salary !== formData.newSalary) {
-                            // Use selected date or fallback to now
-                            const updateDate = formData.newSalaryDate ? new Date(formData.newSalaryDate).toISOString() : new Date().toISOString();
-                            finalHistory = [...finalHistory, { amount: p.salary, date: updateDate }];
-                        }
-                        finalSalary = parseMoney(formData.newSalary);
-                    }
-
-                    return {
-                        ...p,
-                        siteId: formData.siteId,
-                        tc: formData.tc,
-                        name: formData.name,
-                        profession: formData.profession || '',
-                        role: formData.role || '',
-                        salary: finalSalary,
-                        salaryHistory: finalHistory,
-                        leaveAllowance: formData.leaveAllowance || '',
-                        hasOvertime: formData.hasOvertime,
-                        note: formData.note || '',
-                        inputDate: formData.inputDate
-                    };
-                }
-                return p;
-            }));
-            setEditingId(null);
-        } else if (duplicatePerson) {
-            // Re-hire Logic (Smart Entry)
-            if (window.confirm(`"${duplicatePerson.name}" (TC: ${duplicatePerson.tc}) zaten sistemde kayıtlı. \n\nBilgileri güncelleyip bu şantiyede tekrar işe başlatmak istiyor musunuz? \n(Eski kayıtlar korunacak, yeni bir dönem başlatılacaktır.)`)) {
-                // Create NEW Record (New Period)
-                const newPeriodPerson: IndependentPerson = {
-                    id: crypto.randomUUID(),
-                    siteId: formData.siteId,
-                    tc: formData.tc,
-                    name: formData.name,
-                    profession: formData.profession || '',
-                    role: formData.role || '',
-                    salary: formData.salary || '',
-                    leaveAllowance: formData.leaveAllowance || '',
-                    hasOvertime: formData.hasOvertime,
-                    inputDate: formData.inputDate, // New Start Date
-                    note: formData.note || '',
-                    attendance: {}, // Fresh start
-                    salaryHistory: [] // Fresh salary history for this period
-                };
-
-                // Append (Don't update old one)
-                setNames(prev => [...prev, newPeriodPerson]);
-            }
-        } else {
-            // Create New
-            const newPerson: IndependentPerson = {
-                id: crypto.randomUUID(),
+            // Update
+            const res = await updatePersonnel(editingId, {
                 siteId: formData.siteId,
-                tc: formData.tc,
-                name: formData.name,
+                tcNumber: formData.tc,
+                fullName: formData.name,
                 profession: formData.profession,
                 role: formData.role,
-                salary: parseMoney(formData.salary),
+                salary: parseFloat(parseMoney(formData.newSalary || formData.salary)), // Use formatted logic or raw? 
+                // The API expects Float, but schema is Float?. parseMoney returns string "1000.00". parseFloat is needed.
+                category: 'FIELD', // Default
                 leaveAllowance: formData.leaveAllowance,
                 hasOvertime: formData.hasOvertime,
-                note: formData.note,
-                inputDate: formData.inputDate,
-                attendance: {},
-                salaryHistory: []
-            };
-            setNames([...names, newPerson]);
+                startDate: formData.inputDate ? new Date(formData.inputDate) : undefined,
+                note: formData.note
+            });
+
+            if (res.success) {
+                setEditingId(null);
+                refreshData();
+            } else {
+                alert("Güncelleme başarısız: " + res.error);
+            }
+        } else {
+            // Create
+            const res = await createPersonnel({
+                siteId: formData.siteId,
+                tcNumber: formData.tc,
+                fullName: formData.name, // mapped from 'name'
+                profession: formData.profession,
+                role: formData.role,
+                salary: parseFloat(parseMoney(formData.salary)),
+                category: 'FIELD',
+                leaveAllowance: formData.leaveAllowance, // Stored as String as per updated schema
+                hasOvertime: formData.hasOvertime,
+                startDate: formData.inputDate ? new Date(formData.inputDate) : new Date(),
+                note: formData.note
+            });
+
+            if (res.success) {
+                refreshData();
+            } else {
+                alert("Ekleme başarısız: " + res.error);
+            }
         }
 
         setFormData({
@@ -695,16 +695,16 @@ export default function NewPage() {
         setIsDialogOpen(true);
     };
 
-    const handleResetData = () => {
-        if (window.confirm('TÜM GEÇİCİ verileri (Personel ve Puantaj) silmek istediğinize emin misiniz? \n\nBu işlem geri alınamaz!')) {
-            setNames([]);
-            localStorage.removeItem('independent-personnel-data');
-        }
-    };
 
-    const handleDelete = (id: string) => {
+
+    const handleDelete = async (id: string) => {
         if (window.confirm('Bu personeli silmek istediğinize emin misiniz?')) {
-            setNames(names.filter(p => p.id !== id));
+            const res = await deletePersonnel(id);
+            if (res.success) {
+                refreshData();
+            } else {
+                alert(res.error);
+            }
         }
     };
 
@@ -744,14 +744,13 @@ export default function NewPage() {
         return true;
     };
 
-    const saveAttendance = (status?: string) => {
+    const saveAttendance = async (status?: string) => {
         if (!selectedCell) return;
 
         const person = names.find(p => p.id === selectedCell.personId);
-        const dateKey = format(selectedCell.date, 'yyyy-MM-dd');
-        const existingRecord = person?.attendance[dateKey];
+        // const dateKey = format(selectedCell.date, 'yyyy-MM-dd');
+        const existingRecord = person?.attendance[format(selectedCell.date, 'yyyy-MM-dd')];
 
-        // Should not happen as person is found from ID
         if (!person) return;
 
         if (!canEditRecord(person, existingRecord, selectedCell.date)) {
@@ -774,16 +773,19 @@ export default function NewPage() {
             return;
         }
 
+        // Optimistic Update
         setNames(prev => prev.map(p => {
             if (p.id === selectedCell.personId) {
                 const newAttendance = { ...p.attendance };
+                const dateKey = format(selectedCell.date, 'yyyy-MM-dd');
+
                 if (finalStatus) {
                     newAttendance[dateKey] = {
                         status: finalStatus,
                         overtime: attendanceForm.overtime,
                         note: attendanceForm.note,
-                        createdById: existingRecord?.createdById || user?.id, // Preserve creator if updating, or set new
-                        createdAt: existingRecord?.createdAt || Date.now() // Preserve time or set new? Usually invalidation restarts timer only if content changes significantly. I'll preserve original creation time for 'edit window'.
+                        createdById: user?.id,
+                        createdAt: Date.now()
                     };
                 } else {
                     delete newAttendance[dateKey];
@@ -792,6 +794,20 @@ export default function NewPage() {
             }
             return p;
         }));
+
+        // Server Call
+        const res = await upsertPersonnelAttendance(person.id, selectedCell.date, {
+            status: finalStatus,
+            hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
+            overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,
+            note: attendanceForm.note,
+            siteId: person.siteId
+        });
+
+        if (!res.success) {
+            alert("Kaydedilirken hata oluştu: " + res.error);
+            refreshData(); // Revert
+        }
 
         setSelectedCell(null);
     };
@@ -1389,15 +1405,10 @@ export default function NewPage() {
         <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Puantaj (Bağımsız)</h1>
-                    <p className="text-muted-foreground">Sistemden bağımsız, manuel kişi ve puantaj takibi.</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Personel Puantaj</h1>
+                    <p className="text-muted-foreground">Personel ve puantaj yönetimi.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-yellow-50 px-3 py-1 rounded border border-yellow-200 mr-2">
-                        <AlertCircle className="w-4 h-4 text-yellow-600" />
-                        <span>Bu sayfa ana sistemden bağımsızdır.</span>
-                    </div>
-                </div>
+                {/* Warning Removed */}
             </div>
 
             <Tabs defaultValue="attendance" className="w-full space-y-6">
@@ -1436,10 +1447,7 @@ export default function NewPage() {
                                 PDF
                             </Button>
 
-                            <Button variant="outline" onClick={handleResetData} className="text-orange-600 hover:text-orange-700 hover:bg-orange-50" title="Verileri Sıfırla">
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Sıfırla
-                            </Button>
+
 
                             <Button onClick={() => {
                                 setEditingId(null);

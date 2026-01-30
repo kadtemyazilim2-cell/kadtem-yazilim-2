@@ -262,6 +262,10 @@ model Personnel {
   leftDate    DateTime?
   startDate   DateTime?
   note        String?
+
+  // [NEW] Fields for Independent View Parity
+  leaveAllowance String?  // Storing as String to match UI flexibility for now
+  hasOvertime    Boolean  @default(false)
   
   // Relations
   attendance  PersonnelAttendance[]
