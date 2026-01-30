@@ -650,7 +650,30 @@ export default function NewPage() {
 
             if (res.success) {
                 setEditingId(null);
-                refreshData();
+                setEditingId(null);
+
+                // Optimistic Update
+                setNames(prev => prev.map(p => {
+                    if (p.id === editingId) {
+                        return {
+                            ...p,
+                            siteId: formData.siteId,
+                            tc: formData.tc,
+                            name: formData.name,
+                            profession: formData.profession,
+                            role: formData.role,
+                            salary: parseMoney(formData.newSalary || formData.salary),
+                            leaveAllowance: formData.leaveAllowance,
+                            hasOvertime: formData.hasOvertime,
+                            note: formData.note,
+                            // Ensure attendance isn't lost during optimistic update
+                            attendance: p.attendance,
+                            salaryAdjustments: p.salaryAdjustments
+                        };
+                    }
+                    return p;
+                }));
+                // refreshData(); // Skip refresh for speed
             } else {
                 alert("Güncelleme başarısız: " + res.error);
             }
@@ -745,11 +768,14 @@ export default function NewPage() {
 
     const handleDelete = async (id: string) => {
         if (window.confirm('Bu personeli silmek istediğinize emin misiniz?')) {
+            // Optimistic Delete
+            const previousNames = [...names];
+            setNames(prev => prev.filter(p => p.id !== id));
+
             const res = await deletePersonnel(id);
-            if (res.success) {
-                refreshData();
-            } else {
+            if (!res.success) {
                 alert(res.error);
+                setNames(previousNames); // Rollback
             }
         }
     };

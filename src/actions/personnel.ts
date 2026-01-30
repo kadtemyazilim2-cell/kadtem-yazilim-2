@@ -188,11 +188,8 @@ export async function updatePersonnel(id: string, data: Partial<Personnel>) {
 }
 export async function deletePersonnel(id: string) {
     try {
-        // Check for attendance history
-        const attendanceCount = await prisma.personnelAttendance.count({ where: { personnelId: id } });
-        if (attendanceCount > 0) {
-            return { success: false, error: `Bu personele ait ${attendanceCount} adet puantaj/yevmiye kaydı bulunmaktadır. Geçmiş verileri korumak adına silme işlemi yapılamaz. Durumunu 'Ayrıldı' olarak güncelleyiniz.` };
-        }
+        // [MODIFIED] Cascade Delete: Delete attendance history first
+        await prisma.personnelAttendance.deleteMany({ where: { personnelId: id } });
 
         const person = await prisma.personnel.delete({
             where: { id }

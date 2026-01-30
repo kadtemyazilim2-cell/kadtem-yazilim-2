@@ -953,7 +953,7 @@ export default function AdminPage() {
         });
     };
 
-    const setAllPermissions = (level: 'VIEW' | 'CREATE' | 'EDIT' | 'NONE') => {
+    const setAllPermissions = (level: 'VIEW' | 'CREATE' | 'EDIT' | 'FULL' | 'NONE') => {
         // Legacy support helper or Bulk Action
         // If NONE -> Clear all
         // If VIEW -> Set all to ['VIEW']
@@ -965,6 +965,7 @@ export default function AdminPage() {
         if (level === 'VIEW') targetArray = ['VIEW'];
         if (level === 'CREATE') targetArray = ['VIEW', 'CREATE'];
         if (level === 'EDIT') targetArray = ['VIEW', 'CREATE', 'EDIT'];
+        if (level === 'FULL') targetArray = ['VIEW', 'CREATE', 'EDIT', 'EXPORT'];
         if (level === 'NONE') targetArray = [];
 
         const collectModuleIds = (modules: any[]) => {
@@ -1355,7 +1356,14 @@ export default function AdminPage() {
                                                                         Tümünü Gör
                                                                     </Button>
                                                                     <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('EDIT')} className="h-7 text-xs">
-                                                                        Tümünü Düzenle
+                                                                        Tümüne Veri Girişi
+                                                                    </Button>
+                                                                    <Button type="button" variant="outline" size="sm" onClick={() => toggleColumn('EXPORT')} className="h-7 text-xs text-purple-700 hover:text-purple-800 hover:bg-purple-50">
+                                                                        <FileDown className="w-3 h-3 mr-1" />
+                                                                        İndirme İzni
+                                                                    </Button>
+                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('FULL')} className="h-7 text-xs font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-50">
+                                                                        Tam Yetki
                                                                     </Button>
                                                                 </div>
                                                             </div>
