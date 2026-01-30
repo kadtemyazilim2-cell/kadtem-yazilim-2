@@ -350,6 +350,7 @@ export interface AppState {
   deletePersonnelAttendance: (pid: string, date: string, siteId?: string) => void;
   addVehicleAttendance: (v: VehicleAttendance) => void;
   deleteVehicleAttendance: (vehicleId: string, date: string) => void;
+  deleteVehicleAttendanceById: (id: string) => void;
   addSiteLogEntry: (entry: SiteLogEntry) => void;
   deleteSiteLogEntry: (id: string) => void;
   updateSiteLogEntry: (id: string, updates: Partial<SiteLogEntry>) => void;

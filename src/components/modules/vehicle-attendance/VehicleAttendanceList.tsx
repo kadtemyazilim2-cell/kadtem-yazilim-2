@@ -27,7 +27,7 @@ import { addVehicleAttendance, deleteVehicleAttendance } from '@/actions/vehicle
 
 
 export function VehicleAttendanceList() {
-    const { vehicles, vehicleAttendance, addVehicleAttendance: addLocal, deleteVehicleAttendance: deleteLocal, fuelLogs } = useAppStore();
+    const { vehicles, vehicleAttendance, addVehicleAttendance: addLocal, deleteVehicleAttendance: deleteLocal, deleteVehicleAttendanceById, fuelLogs } = useAppStore();
     const rawSites = useUserSites();
     const sites = rawSites.filter((s: any) => s.status !== 'INACTIVE');
     const { hasPermission, user } = useAuth(); // [NEW]
@@ -140,6 +140,21 @@ export function VehicleAttendanceList() {
             return;
         }
 
+        const tempId = `temp-${Date.now()}`;
+        const optimisticPayload = {
+            id: tempId,
+            vehicleId: editingCell.vehicleId,
+            siteId: selectedSiteId,
+            date: new Date(targetDateStr), // Use Date object locally to match component expectations
+            status: newStatus,
+            hours: 8,
+            createdByUserId: user?.id
+        };
+
+        // 1. Optimistic Update (Prepend to mask existing)
+        addLocal(optimisticPayload as any);
+        setIsDialogOpen(false); // Close immediately
+
         const payload = {
             vehicleId: editingCell.vehicleId,
             siteId: selectedSiteId,
@@ -149,13 +164,25 @@ export function VehicleAttendanceList() {
             createdByUserId: user?.id
         };
 
-        const res = await addVehicleAttendance(payload);
-        if (res.success && res.data) {
-            addLocal(res.data as any);
-        } else {
-            alert(res.error || 'Kaydedilemedi');
+        try {
+            const res = await addVehicleAttendance(payload);
+
+            // 2. Cleanup Temp
+            deleteVehicleAttendanceById(tempId);
+
+            if (res.success && res.data) {
+                // 3. Replace with Real
+                addLocal(res.data as any);
+            } else {
+                // Error: Temp already removed, so we reverted to old state (if any)
+                alert(res.error || 'Kaydedilemedi');
+                // Optional: Re-open dialog?
+            }
+        } catch (error) {
+            deleteVehicleAttendanceById(tempId);
+            console.error(error);
+            alert('Bir hatayla karşılaşıldı.');
         }
-        setIsDialogOpen(false);
     };
 
     const handleDelete = async () => {

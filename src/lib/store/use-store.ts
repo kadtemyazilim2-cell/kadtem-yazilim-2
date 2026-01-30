@@ -139,6 +139,9 @@ export const useAppStore = create<AppState>()(
             deleteVehicleAttendance: (vid, date) => set((state) => ({
                 vehicleAttendance: state.vehicleAttendance.filter(a => !(a.vehicleId === vid && a.date === date))
             })),
+            deleteVehicleAttendanceById: (id) => set((state) => ({
+                vehicleAttendance: state.vehicleAttendance.filter(a => a.id !== id)
+            })),
             addSiteLogEntry: (entry) => set((state) => ({ siteLogEntries: [entry, ...state.siteLogEntries] })),
             updateSiteLogEntry: (id, data) => set((state) => ({
                 siteLogEntries: state.siteLogEntries.map(e => e.id === id ? { ...e, ...data } : e)

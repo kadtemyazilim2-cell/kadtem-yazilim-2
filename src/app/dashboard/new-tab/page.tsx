@@ -384,7 +384,7 @@ export default function NewPage() {
             let effectiveEndDateStr: string | null = null;
 
             // 1. Check 'EXIT' status
-            const exitEntries = Object.entries(n.attendance)
+            const exitEntries = Object.entries(n.attendance || {})
                 .filter(([_, r]) => r.status === 'EXIT')
                 .sort((a, b) => a[0].localeCompare(b[0]));
 
@@ -529,7 +529,7 @@ export default function NewPage() {
         // Future interactions are cleared because they are leaving.
         // History remains EXACTLY as is (Icons: Full -> Full, Half -> Half).
         const oldAttendance: Record<string, AttendanceRecord> = {};
-        Object.entries(originalPerson.attendance).forEach(([key, record]) => {
+        Object.entries(originalPerson.attendance || {}).forEach(([key, record]) => {
             if (key < dateThreshold) {
                 oldAttendance[key] = record;
             }
@@ -542,7 +542,7 @@ export default function NewPage() {
         // Only for days BEFORE transfer date where they actually worked.
         // "Transfer olduğu şantiyede... kaç gün çalıştıysa... o kadar uçak simgesi"
         const newAttendance: Record<string, AttendanceRecord> = {};
-        Object.entries(originalPerson.attendance).forEach(([key, record]) => {
+        Object.entries(originalPerson.attendance || {}).forEach(([key, record]) => {
             if (key < dateThreshold) {
                 // Check if 'Worked' or 'Occupied' (Full, Half, Out, Leave, Report)
                 if (['FULL', 'HALF', 'OUT', 'LEAVE', 'REPORT'].includes(record.status)) {
@@ -822,7 +822,7 @@ export default function NewPage() {
         const end = endOfMonth(referenceDate);
         const monthPrefix = format(referenceDate, 'yyyy-MM');
 
-        Object.entries(person.attendance).forEach(([dateKey, record]) => {
+        Object.entries(person.attendance || {}).forEach(([dateKey, record]) => {
             if (!dateKey.startsWith(monthPrefix)) return;
 
             if (record.status === 'FULL') fullDays += 1;
@@ -1144,7 +1144,7 @@ export default function NewPage() {
 
             // Calculate Effective Exit Date
             let effectiveEndDateStr: string | null = null;
-            const exitEntries = Object.entries(p.attendance)
+            const exitEntries = Object.entries(p.attendance || {})
                 .filter(([_, r]) => r.status === 'EXIT')
                 .sort((a, b) => a[0].localeCompare(b[0]));
             if (exitEntries.length > 0) {
