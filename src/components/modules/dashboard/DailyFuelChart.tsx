@@ -177,7 +177,7 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
                                 tickFormatter={(value) => `${value} Lt`}
                             />
                             <Tooltip content={<CustomTooltip />} shared={false} cursor={{ strokeDasharray: '3 3' }} />
-                            {/* Legend removed to prevent UI clutter with many sites */}
+                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
                             {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any, index: any) => (
                                 <Line
                                     key={site.id}
