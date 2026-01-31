@@ -24,6 +24,7 @@ import { useUserSites } from '@/hooks/use-user-access';
 import { useAuth } from '@/lib/store/use-auth';
 import { useEffect } from 'react';
 import { addVehicleAttendance, deleteVehicleAttendance } from '@/actions/vehicle-attendance';
+import { getVehicleAssignmentHistory } from '@/actions/vehicle';
 
 
 export function VehicleAttendanceList() {
@@ -41,6 +42,19 @@ export function VehicleAttendanceList() {
         }
     }, [sites, selectedSiteId]);
     const [showFuel, setShowFuel] = useState(true);
+    const [assignmentHistory, setAssignmentHistory] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!selectedSiteId) return;
+        const start = startOfMonth(selectedDate);
+        const end = endOfMonth(selectedDate);
+
+        getVehicleAssignmentHistory(selectedSiteId, start, end).then(res => {
+            if (res.success) {
+                setAssignmentHistory(res.data || []);
+            }
+        });
+    }, [selectedSiteId, selectedDate]);
 
     // Dialog State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -58,6 +72,48 @@ export function VehicleAttendanceList() {
         if (!selectedSiteId) {
             alert('Lütfen önce şantiye seçiniz.');
             return;
+        }
+
+        // Temporal Validation
+        // 1. Check if vehicle has any history for this site in this month
+        const vehicleHistory = assignmentHistory.filter(h => h.vehicleId === vehicleId);
+
+        let isDateValid = false;
+
+        if (vehicleHistory.length > 0) {
+            // Strict check against history
+            isDateValid = vehicleHistory.some(h => {
+                const start = new Date(h.startDate);
+                const end = h.endDate ? new Date(h.endDate) : new Date('2999-12-31');
+                // Normalize dates
+                start.setHours(0, 0, 0, 0);
+                end.setHours(23, 59, 59, 999);
+                const target = new Date(date);
+                target.setHours(12, 0, 0, 0); // Mid-day to be safe
+                return target >= start && target <= end;
+            });
+        } else {
+            // Legacy / Fallback: If currently assigned, allow.
+            // But wait, if unassigned and NO history (legacy case where we just tracked status), 
+            // then it shouldn't be in the list?
+            // Actually, if we filter list by "Assigned", then it IS assigned.
+            const vehicle = vehicles.find((v: any) => v.id === vehicleId);
+            const isAssigned = (vehicle?.assignedSiteIds && vehicle.assignedSiteIds.includes(selectedSiteId)) || vehicle?.assignedSiteId === selectedSiteId;
+            isDateValid = !!isAssigned;
+        }
+
+        if (!isDateValid) {
+            // Allow clicking ONLY if record exists (to delete/view) but warn/readonly
+            const record = vehicleAttendance.find((a: any) =>
+                a.vehicleId === vehicleId &&
+                format(new Date(a.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+            );
+
+            if (!record) {
+                alert('Bu tarihte araç şantiyeye atanmamış görünüyor. İşlem yapılamaz.');
+                return;
+            }
+            // If record exists but invalid date logic says invalid (e.g. unassigned later), allow viewing (ReadOnly handled later)
         }
 
         const record = vehicleAttendance.find((a: any) =>
@@ -233,13 +289,16 @@ export function VehicleAttendanceList() {
     };
 
     // Filter vehicles by status (Active only) AND Assigned Site
-    const activeVehicles = vehicles.filter((v: any) =>
-        v.status === 'ACTIVE' &&
-        (
-            (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
-            v.assignedSiteId === selectedSiteId
-        )
-    );
+    const activeVehicles = vehicles.filter((v: any) => {
+        if (v.status === 'PASSIVE') return false;
+
+        const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
+            v.assignedSiteId === selectedSiteId;
+
+        const hasHistory = assignmentHistory.some(h => h.vehicleId === v.id);
+
+        return isAssigned || hasHistory;
+    });
 
     // Export Logic
     const handleExportExcel = () => {
@@ -553,11 +612,34 @@ export function VehicleAttendanceList() {
                                                         .filter((l: any) => l.vehicleId === v.id && l.date === format(day, 'yyyy-MM-dd'))
                                                         .reduce((sum: any, l: any) => sum + Number(l.liters), 0) : 0;
 
+                                                    // Determine validity for styling
+                                                    let isValidDay = true;
+                                                    const vHistory = assignmentHistory.filter(h => h.vehicleId === v.id);
+
+                                                    if (vHistory.length > 0) {
+                                                        isValidDay = vHistory.some(h => {
+                                                            const start = new Date(h.startDate);
+                                                            const end = h.endDate ? new Date(h.endDate) : new Date('2999-12-31');
+                                                            start.setHours(0, 0, 0, 0);
+                                                            end.setHours(23, 59, 59, 999);
+                                                            const t = new Date(day);
+                                                            t.setHours(12, 0, 0, 0);
+                                                            return t >= start && t <= end;
+                                                        });
+                                                    } else {
+                                                        // Legacy fallback: if assigned, valid.
+                                                        const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) || v.assignedSiteId === selectedSiteId;
+                                                        isValidDay = !!isAssigned;
+                                                    }
+
                                                     return (
                                                         <TableCell
                                                             key={day.toISOString()}
-                                                            className="p-0 border-l h-10 cursor-pointer hover:bg-slate-100 transition-colors relative"
-                                                            onClick={() => handleCellClick(v.id, day)}
+                                                            className={cn(
+                                                                "p-0 border-l h-10 transition-colors relative",
+                                                                isValidDay ? "cursor-pointer hover:bg-slate-100" : "bg-slate-50 opacity-60 cursor-not-allowed"
+                                                            )}
+                                                            onClick={isValidDay ? () => handleCellClick(v.id, day) : undefined}
                                                         >
                                                             <div className="relative w-full h-full flex items-center justify-center">
                                                                 {displayRecord ? getStatusBadge(displayRecord.status) : null}

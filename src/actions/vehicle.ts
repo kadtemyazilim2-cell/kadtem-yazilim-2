@@ -105,7 +105,6 @@ export async function createVehicle(data: Partial<Vehicle>) {
 
 export async function updateVehicle(id: string, data: Partial<Vehicle>) {
     try {
-        // Remove undefined keys
         let cleanData: any = {};
         for (const [key, value] of Object.entries(data)) {
             if (value !== undefined) {
@@ -113,49 +112,111 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
             }
         }
 
-        // [FIX] Handle assignedSiteIds (Virtual field from client for many-to-many)
+        // Handle assignedSiteIds history logic
         if ('assignedSiteIds' in cleanData) {
-            const ids = cleanData.assignedSiteIds as string[];
-            delete cleanData.assignedSiteIds; // Remove scalar field that doesn't exist
+            const newSiteIds = cleanData.assignedSiteIds as string[];
+            delete cleanData.assignedSiteIds;
 
-            // Add relation update logic
-            cleanData.assignedSites = {
-                set: ids.map(id => ({ id }))
-            };
+            await prisma.$transaction(async (tx) => {
+                // 1. Update Relation
+                await tx.vehicle.update({
+                    where: { id },
+                    data: {
+                        ...cleanData,
+                        assignedSites: {
+                            set: newSiteIds.map(sid => ({ id: sid }))
+                        }
+                    }
+                });
+
+                // 2. Update History
+                const activeHistories = await tx.vehicleAssignmentHistory.findMany({
+                    where: { vehicleId: id, endDate: null }
+                });
+
+                // Close removed
+                const toClose = activeHistories.filter(h => !newSiteIds.includes(h.siteId));
+                if (toClose.length > 0) {
+                    await tx.vehicleAssignmentHistory.updateMany({
+                        where: { id: { in: toClose.map(h => h.id) } },
+                        data: { endDate: new Date() }
+                    });
+                }
+
+                // Open new
+                const activeSiteIds = activeHistories.map(h => h.siteId);
+                const toOpen = newSiteIds.filter(sId => !activeSiteIds.includes(sId));
+                if (toOpen.length > 0) {
+                    await tx.vehicleAssignmentHistory.createMany({
+                        data: toOpen.map(sId => ({
+                            vehicleId: id,
+                            siteId: sId,
+                            startDate: new Date()
+                        }))
+                    });
+                }
+            });
+        } else {
+            // Normal update
+            // [FIX] Convert date strings (duplicated logic but simplified for brevity in diff)
+            const dateFields = [
+                'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
+                'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
+            ];
+            dateFields.forEach(field => {
+                if (cleanData[field] && typeof cleanData[field] === 'string') {
+                    cleanData[field] = new Date(cleanData[field]);
+                }
+            });
+
+            await prisma.vehicle.update({
+                where: { id },
+                data: cleanData
+            });
         }
 
-        // [FIX] Convert date strings to Date objects for Prisma
-        const dateFields = [
-            'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
-            'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
-        ];
-
-        dateFields.forEach(field => {
-            if (cleanData[field] && typeof cleanData[field] === 'string') {
-                cleanData[field] = new Date(cleanData[field]);
-            }
-        });
-
-        const vehicle = await prisma.vehicle.update({
-            where: { id },
-            data: cleanData
-        });
-        revalidateTag('vehicles');
         revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
-        return { success: true, data: vehicle };
+        return { success: true };
     } catch (error: any) {
         console.error('updateVehicle Error:', error);
         return { success: false, error: error.message || 'Araç güncellenemedi.' };
     }
 }
 
+// [NEW] Get Assignment History for Validation
+export async function getVehicleAssignmentHistory(siteId: string, startDate: Date, endDate: Date) {
+    try {
+        const history = await prisma.vehicleAssignmentHistory.findMany({
+            where: {
+                siteId,
+                OR: [
+                    // Overlap logic
+                    { startDate: { lte: endDate }, endDate: { gte: startDate } },
+                    { startDate: { lte: endDate }, endDate: null }
+                ]
+            },
+            select: {
+                vehicleId: true,
+                startDate: true,
+                endDate: true
+            }
+        });
+        return { success: true, data: history };
+    } catch (error) {
+        console.error('getVehicleAssignmentHistory Error:', error);
+        return { success: false, error: 'Geçmiş verisi alınamadı.' };
+    }
+}
+
 // [NEW] Bulk Assignment Action
+// [NEW] Bulk Assignment Action with History
 export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]) {
     try {
-        await prisma.$transaction(
-            vehicleIds.map(id =>
-                prisma.vehicle.update({
+        await prisma.$transaction(async (tx) => {
+            // 1. Update actual relation
+            await Promise.all(vehicleIds.map(id =>
+                tx.vehicle.update({
                     where: { id },
                     data: {
                         assignedSites: {
@@ -163,8 +224,37 @@ export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]
                         }
                     }
                 })
-            )
-        );
+            ));
+
+            // 2. Update History
+            for (const vId of vehicleIds) {
+                const activeHistories = await tx.vehicleAssignmentHistory.findMany({
+                    where: { vehicleId: vId, endDate: null }
+                });
+                const activeSiteIds = activeHistories.map(h => h.siteId);
+
+                // Close removed sites
+                const toClose = activeHistories.filter(h => !siteIds.includes(h.siteId));
+                if (toClose.length > 0) {
+                    await tx.vehicleAssignmentHistory.updateMany({
+                        where: { id: { in: toClose.map(h => h.id) } },
+                        data: { endDate: new Date() }
+                    });
+                }
+
+                // Open new sites
+                const toOpen = siteIds.filter(sId => !activeSiteIds.includes(sId));
+                if (toOpen.length > 0) {
+                    await tx.vehicleAssignmentHistory.createMany({
+                        data: toOpen.map(sId => ({
+                            vehicleId: vId,
+                            siteId: sId,
+                            startDate: new Date()
+                        }))
+                    });
+                }
+            }
+        });
 
         revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
@@ -172,6 +262,42 @@ export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]
     } catch (error) {
         console.error('bulkAssignVehicles Error:', error);
         return { success: false, error: 'Toplu atama yapılamadı.' };
+    }
+}
+
+// [NEW] Bulk Unassignment Action with History
+export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string[]) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            // 1. Update Relation
+            await Promise.all(vehicleIds.map(id =>
+                tx.vehicle.update({
+                    where: { id },
+                    data: {
+                        assignedSites: {
+                            disconnect: siteIds.map(sid => ({ id: sid }))
+                        }
+                    }
+                })
+            ));
+
+            // 2. Close History
+            await tx.vehicleAssignmentHistory.updateMany({
+                where: {
+                    vehicleId: { in: vehicleIds },
+                    siteId: { in: siteIds },
+                    endDate: null
+                },
+                data: { endDate: new Date() }
+            });
+        });
+
+        revalidateTag('vehicles');
+        revalidatePath('/dashboard/vehicles');
+        return { success: true };
+    } catch (error) {
+        console.error('bulkUnassignVehicles Error:', error);
+        return { success: false, error: 'Şantiyeden çıkarma işlemi yapılamadı.' };
     }
 }
 

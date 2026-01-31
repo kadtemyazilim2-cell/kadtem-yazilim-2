@@ -14,7 +14,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { Label } from '@/components/ui/label';
 import { toTurkishLower } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
-import { updateVehicle } from '@/actions/vehicle';
+import { updateVehicle, bulkAssignVehicles, bulkUnassignVehicles } from '@/actions/vehicle';
 import { toast } from 'sonner';
 
 export function VehicleAssignment() {
@@ -75,22 +75,56 @@ export function VehicleAssignment() {
 
         setIsAssigning(true);
         try {
-            // [FIX] Call Server Action for each vehicle to persist assignment
-            const promises = selectedVehicles.map(id =>
-                updateVehicle(id, { assignedSiteIds: targetSiteIds } as any)
-            );
+            // [FIX] Use Bulk Server Action
+            const res = await bulkAssignVehicles(selectedVehicles, targetSiteIds);
 
-            await Promise.all(promises);
+            if (res.success) {
+                // Update Local Store
+                assignVehiclesToSite(selectedVehicles, targetSiteIds);
 
-            // Update Local Store
-            assignVehiclesToSite(selectedVehicles, targetSiteIds);
-
-            toast.success(`${selectedVehicles.length} araç başarıyla ${targetSiteIds.length} şantiyeye atandı.`);
-            setSelectedVehicles([]);
-            setTargetSiteIds([]);
+                toast.success(`${selectedVehicles.length} araç başarıyla ${targetSiteIds.length} şantiyeye atandı.`);
+                setSelectedVehicles([]);
+                setTargetSiteIds([]);
+            } else {
+                toast.error(res.error || 'Atama işlemi başarısız.');
+            }
         } catch (error) {
             console.error(error);
             toast.error('Atama işlemi sırasında bir hata oluştu.');
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    const handleUnassign = async () => {
+        if (targetSiteIds.length === 0) {
+            toast.error('Lütfen çıkarmak istediğiniz şantiyeyi seçiniz.');
+            return;
+        }
+        if (selectedVehicles.length === 0) {
+            toast.error('Lütfen en az bir araç seçiniz.');
+            return;
+        }
+
+        if (!confirm('Seçili araçları seçili şantiyelerden çıkarmak istediğinize emin misiniz?')) {
+            return;
+        }
+
+        setIsAssigning(true);
+        try {
+            const res = await bulkUnassignVehicles(selectedVehicles, targetSiteIds);
+
+            if (res.success) {
+                toast.success(`${selectedVehicles.length} araç ${targetSiteIds.length} şantiyeden çıkarıldı.`);
+                setSelectedVehicles([]);
+                setTargetSiteIds([]);
+                window.location.reload();
+            } else {
+                toast.error(res.error || 'İşlem başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('İşlem sırasında bir hata oluştu.');
         } finally {
             setIsAssigning(false);
         }
@@ -145,8 +179,27 @@ export function VehicleAssignment() {
                                     placeholder="Şantiye Seçiniz"
                                 />
                             </div>
-                            <Button onClick={handleAssign} disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}>
-                                {isAssigning ? 'Atanıyor...' : `Atama Yap (${selectedVehicles.length})`}
+                            <Button
+                                onClick={handleAssign}
+                                disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}
+                            >
+                                {isAssigning ? 'İşleniyor...' : `Atama Yap (${selectedVehicles.length})`}
+                            </Button>
+
+                            <Button
+                                variant="destructive"
+                                onClick={handleUnassign}
+                                disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}
+                            >
+                                {isAssigning ? 'İşleniyor...' : `Atamayı Kaldır (${selectedVehicles.length})`}
+                            </Button>
+
+                            <Button
+                                variant="destructive"
+                                onClick={handleUnassign}
+                                disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}
+                            >
+                                {isAssigning ? 'İşleniyor...' : `Atamayı Kaldır (${selectedVehicles.length})`}
                             </Button>
                         </div>
                     </div>

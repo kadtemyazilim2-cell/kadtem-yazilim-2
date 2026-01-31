@@ -167,6 +167,9 @@ model Site {
   transactions    CashTransaction[]
   logs            SiteLogEntry[]
   correspondences Correspondence[]
+  
+  // History
+  assignmentHistory VehicleAssignmentHistory[]
 }
 
 // -----------------------------------------------------------------------------
@@ -245,6 +248,26 @@ model Vehicle {
   attendance      VehicleAttendance[]
   transfersIn     FuelTransfer[] @relation("VehicleTo")
   transfersOut    FuelTransfer[] @relation("VehicleFrom")
+  
+  // History
+  assignmentHistory VehicleAssignmentHistory[]
+}
+
+model VehicleAssignmentHistory {
+  id        String    @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  
+  siteId    String
+  site      Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  
+  startDate DateTime  @default(now())
+  endDate   DateTime? // Null means currently active
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vehicleId, siteId])
 }
 
 model Personnel {
