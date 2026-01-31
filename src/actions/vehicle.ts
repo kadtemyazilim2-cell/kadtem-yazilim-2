@@ -118,7 +118,14 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
             delete cleanData.assignedSiteIds;
 
             await prisma.$transaction(async (tx) => {
-                // 1. Update Relation
+                // [FIX] Fetch current state BEFORE updating
+                const currentVehicle = await tx.vehicle.findUnique({
+                    where: { id },
+                    include: { assignedSites: true }
+                });
+                const currentSiteIds = currentVehicle?.assignedSites.map(s => s.id) || [];
+
+                // 2. Update Relation
                 await tx.vehicle.update({
                     where: { id },
                     data: {
@@ -129,31 +136,66 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
                     }
                 });
 
-                // 2. Update History
+                // 3. Handle History
                 const activeHistories = await tx.vehicleAssignmentHistory.findMany({
                     where: { vehicleId: id, endDate: null }
                 });
 
-                // Close removed
-                const toClose = activeHistories.filter(h => !newSiteIds.includes(h.siteId));
-                if (toClose.length > 0) {
-                    await tx.vehicleAssignmentHistory.updateMany({
-                        where: { id: { in: toClose.map(h => h.id) } },
-                        data: { endDate: new Date() }
+                // Identify changes
+                const removedSiteIds = currentSiteIds.filter(sid => !newSiteIds.includes(sid));
+                const addedSiteIds = newSiteIds.filter(sid => !currentSiteIds.includes(sid));
+                const keptSiteIds = newSiteIds.filter(sid => currentSiteIds.includes(sid));
+
+                // A. Close History for Removed Sites
+                for (const rSid of removedSiteIds) {
+                    const history = activeHistories.find(h => h.siteId === rSid);
+                    if (history) {
+                        await tx.vehicleAssignmentHistory.update({
+                            where: { id: history.id },
+                            data: { endDate: new Date() }
+                        });
+                    } else {
+                        // Legacy Close
+                        const fallbackDate = new Date();
+                        fallbackDate.setFullYear(fallbackDate.getFullYear() - 1);
+                        await tx.vehicleAssignmentHistory.create({
+                            data: {
+                                vehicleId: id,
+                                siteId: rSid,
+                                startDate: fallbackDate,
+                                endDate: new Date()
+                            }
+                        });
+                    }
+                }
+
+                // B. Open History for Added Sites
+                if (addedSiteIds.length > 0) {
+                    await tx.vehicleAssignmentHistory.createMany({
+                        data: addedSiteIds.map(sId => ({
+                            vehicleId: id,
+                            siteId: sId,
+                            startDate: new Date(),
+                            endDate: null
+                        }))
                     });
                 }
 
-                // Open new
-                const activeSiteIds = activeHistories.map(h => h.siteId);
-                const toOpen = newSiteIds.filter(sId => !activeSiteIds.includes(sId));
-                if (toOpen.length > 0) {
-                    await tx.vehicleAssignmentHistory.createMany({
-                        data: toOpen.map(sId => ({
-                            vehicleId: id,
-                            siteId: sId,
-                            startDate: new Date()
-                        }))
-                    });
+                // C. Ensure History for Kept Sites (Legacy Fix)
+                for (const kSid of keptSiteIds) {
+                    const history = activeHistories.find(h => h.siteId === kSid);
+                    if (!history) {
+                        const fallbackDate = new Date();
+                        fallbackDate.setFullYear(fallbackDate.getFullYear() - 1);
+                        await tx.vehicleAssignmentHistory.create({
+                            data: {
+                                vehicleId: id,
+                                siteId: kSid,
+                                startDate: fallbackDate,
+                                endDate: null
+                            }
+                        });
+                    }
                 }
             });
         } else {
@@ -214,44 +256,96 @@ export async function getVehicleAssignmentHistory(siteId: string, startDate: Dat
 export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]) {
     try {
         await prisma.$transaction(async (tx) => {
-            // 1. Update actual relation
-            await Promise.all(vehicleIds.map(id =>
-                tx.vehicle.update({
-                    where: { id },
+            for (const vId of vehicleIds) {
+                // [FIX] Fetch current state BEFORE updating to handle legacy assignments
+                const vehicle = await tx.vehicle.findUnique({
+                    where: { id: vId },
+                    include: { assignedSites: true }
+                });
+
+                if (!vehicle) continue;
+
+                const currentSiteIds = vehicle.assignedSites.map(s => s.id);
+                const activeHistories = await tx.vehicleAssignmentHistory.findMany({
+                    where: { vehicleId: vId, endDate: null }
+                });
+
+                // 1. Update Relation
+                await tx.vehicle.update({
+                    where: { id: vId },
                     data: {
                         assignedSites: {
                             set: siteIds.map(sid => ({ id: sid }))
                         }
                     }
-                })
-            ));
-
-            // 2. Update History
-            for (const vId of vehicleIds) {
-                const activeHistories = await tx.vehicleAssignmentHistory.findMany({
-                    where: { vehicleId: vId, endDate: null }
                 });
-                const activeSiteIds = activeHistories.map(h => h.siteId);
 
-                // Close removed sites
-                const toClose = activeHistories.filter(h => !siteIds.includes(h.siteId));
-                if (toClose.length > 0) {
-                    await tx.vehicleAssignmentHistory.updateMany({
-                        where: { id: { in: toClose.map(h => h.id) } },
-                        data: { endDate: new Date() }
+                // 2. Handle History
+
+                // Identify sites being removed (Left)
+                const removedSiteIds = currentSiteIds.filter(id => !siteIds.includes(id));
+
+                // Identify sites being added (Joined)
+                const addedSiteIds = siteIds.filter(id => !currentSiteIds.includes(id));
+
+                // Identify sites staying (Remained) - Ensure they have open history
+                const keptSiteIds = siteIds.filter(id => currentSiteIds.includes(id));
+
+                // A. Close History for Removed Sites
+                for (const rSid of removedSiteIds) {
+                    const history = activeHistories.find(h => h.siteId === rSid);
+                    if (history) {
+                        // Normal close
+                        await tx.vehicleAssignmentHistory.update({
+                            where: { id: history.id },
+                            data: { endDate: new Date() }
+                        });
+                    } else {
+                        // Legacy Close: Was assigned but no history. Create backward entry then close.
+                        // We set startDate to beginning of year or fallback to ensure it appears in past.
+                        const fallbackDate = new Date();
+                        fallbackDate.setFullYear(fallbackDate.getFullYear() - 1); // 1 year back
+
+                        await tx.vehicleAssignmentHistory.create({
+                            data: {
+                                vehicleId: vId,
+                                siteId: rSid,
+                                startDate: fallbackDate,
+                                endDate: new Date()
+                            }
+                        });
+                    }
+                }
+
+                // B. Open History for Added Sites
+                if (addedSiteIds.length > 0) {
+                    await tx.vehicleAssignmentHistory.createMany({
+                        data: addedSiteIds.map(sId => ({
+                            vehicleId: vId,
+                            siteId: sId,
+                            startDate: new Date(),
+                            endDate: null
+                        }))
                     });
                 }
 
-                // Open new sites
-                const toOpen = siteIds.filter(sId => !activeSiteIds.includes(sId));
-                if (toOpen.length > 0) {
-                    await tx.vehicleAssignmentHistory.createMany({
-                        data: toOpen.map(sId => ({
-                            vehicleId: vId,
-                            siteId: sId,
-                            startDate: new Date()
-                        }))
-                    });
+                // C. Ensure History for Kept Sites (Legacy Fix)
+                for (const kSid of keptSiteIds) {
+                    const history = activeHistories.find(h => h.siteId === kSid);
+                    if (!history) {
+                        // Was assigned, is still assigned, but no history. Create it.
+                        const fallbackDate = new Date();
+                        fallbackDate.setFullYear(fallbackDate.getFullYear() - 1);
+
+                        await tx.vehicleAssignmentHistory.create({
+                            data: {
+                                vehicleId: vId,
+                                siteId: kSid,
+                                startDate: fallbackDate,
+                                endDate: null
+                            }
+                        });
+                    }
                 }
             }
         });
@@ -269,27 +363,64 @@ export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]
 export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string[]) {
     try {
         await prisma.$transaction(async (tx) => {
-            // 1. Update Relation
-            await Promise.all(vehicleIds.map(id =>
-                tx.vehicle.update({
-                    where: { id },
+            for (const vId of vehicleIds) {
+                // [FIX] Fetch current state BEFORE updating
+                const vehicle = await tx.vehicle.findUnique({
+                    where: { id: vId },
+                    include: { assignedSites: true }
+                });
+
+                if (!vehicle) continue;
+
+                // 1. Update Relation
+                await tx.vehicle.update({
+                    where: { id: vId },
                     data: {
                         assignedSites: {
                             disconnect: siteIds.map(sid => ({ id: sid }))
                         }
                     }
-                })
-            ));
+                });
 
-            // 2. Close History
-            await tx.vehicleAssignmentHistory.updateMany({
-                where: {
-                    vehicleId: { in: vehicleIds },
-                    siteId: { in: siteIds },
-                    endDate: null
-                },
-                data: { endDate: new Date() }
-            });
+                // 2. Handle History
+                const currentSiteIds = vehicle.assignedSites.map(s => s.id);
+                // We are only removing specific siteIds.
+                // Check if the sites being removed had history.
+
+                const activeHistories = await tx.vehicleAssignmentHistory.findMany({
+                    where: {
+                        vehicleId: vId,
+                        siteId: { in: siteIds },
+                        endDate: null
+                    }
+                });
+
+                for (const sId of siteIds) {
+                    // Only process if the vehicle WAS assigned to this site
+                    if (currentSiteIds.includes(sId)) {
+                        const history = activeHistories.find(h => h.siteId === sId);
+                        if (history) {
+                            await tx.vehicleAssignmentHistory.update({
+                                where: { id: history.id },
+                                data: { endDate: new Date() }
+                            });
+                        } else {
+                            // Legacy Close
+                            const fallbackDate = new Date();
+                            fallbackDate.setFullYear(fallbackDate.getFullYear() - 1);
+
+                            await tx.vehicleAssignmentHistory.create({
+                                data: {
+                                    vehicleId: vId,
+                                    siteId: sId,
+                                    startDate: fallbackDate,
+                                    endDate: new Date()
+                                }
+                            });
+                        }
+                    }
+                }
+            }
         });
 
         revalidateTag('vehicles');
