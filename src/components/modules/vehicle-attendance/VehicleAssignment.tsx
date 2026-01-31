@@ -145,8 +145,8 @@ export function VehicleAssignment() {
                                     placeholder="Şantiye Seçiniz"
                                 />
                             </div>
-                            <Button onClick={handleAssign} disabled={!canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}>
-                                Atama Yap ({selectedVehicles.length})
+                            <Button onClick={handleAssign} disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}>
+                                {isAssigning ? 'Atanıyor...' : `Atama Yap (${selectedVehicles.length})`}
                             </Button>
                         </div>
                     </div>

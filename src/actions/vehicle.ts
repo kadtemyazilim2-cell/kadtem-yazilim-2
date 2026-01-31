@@ -144,6 +144,31 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
     }
 }
 
+// [NEW] Bulk Assignment Action
+export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]) {
+    try {
+        await prisma.$transaction(
+            vehicleIds.map(id =>
+                prisma.vehicle.update({
+                    where: { id },
+                    data: {
+                        assignedSites: {
+                            set: siteIds.map(sid => ({ id: sid }))
+                        }
+                    }
+                })
+            )
+        );
+
+        revalidateTag('vehicles');
+        revalidatePath('/dashboard/vehicles');
+        return { success: true };
+    } catch (error) {
+        console.error('bulkAssignVehicles Error:', error);
+        return { success: false, error: 'Toplu atama yapılamadı.' };
+    }
+}
+
 export async function deleteVehicle(id: string) {
     try {
         const fuelLogCount = await prisma.fuelLog.count({ where: { vehicleId: id } });
