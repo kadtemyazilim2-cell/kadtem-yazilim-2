@@ -45,6 +45,18 @@ export async function createVehicle(data: Partial<Vehicle>) {
             return { success: false, error: 'Eksik bilgi (Plaka, Marka, Model veya Firma). Kiralık araçlar için Şantiye seçimi zorunludur (Firma tespiti için).' };
         }
 
+        // [FIX] Convert date strings to Date objects
+        const dateFields = [
+            'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
+            'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
+        ];
+
+        dateFields.forEach(field => {
+            if ((data as any)[field] && typeof (data as any)[field] === 'string') {
+                (data as any)[field] = new Date((data as any)[field]);
+            }
+        });
+
         const vehicle = await prisma.vehicle.create({
             data: {
                 // Mandatory fields with fallbacks or strict checks
@@ -105,6 +117,18 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
                 set: ids.map(id => ({ id }))
             };
         }
+
+        // [FIX] Convert date strings to Date objects for Prisma
+        const dateFields = [
+            'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
+            'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
+        ];
+
+        dateFields.forEach(field => {
+            if (cleanData[field] && typeof cleanData[field] === 'string') {
+                cleanData[field] = new Date(cleanData[field]);
+            }
+        });
 
         const vehicle = await prisma.vehicle.update({
             where: { id },

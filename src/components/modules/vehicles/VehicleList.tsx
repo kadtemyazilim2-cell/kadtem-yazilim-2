@@ -44,6 +44,22 @@ export function VehicleList() {
     const [assignmentDialog, setAssignmentDialog] = useState(false);
     const [selectedVehicleForProposal, setSelectedVehicleForProposal] = useState<{ vehicle: any, type: string } | null>(null);
 
+    // [FIX] Helper to update vehicle via Server Action + Local Store
+    const handleUpdate = async (id: string, data: any, successMessage: string = 'Güncellendi.') => {
+        try {
+            const result = await updateVehicleAction(id, data);
+            if (result.success) {
+                updateVehicle(id, data); // Update Client Store
+                toast.success(successMessage);
+            } else {
+                toast.error(result.error || 'Güncelleme başarısız.');
+            }
+        } catch (error) {
+            console.error('Update Error:', error);
+            toast.error('Bir hata oluştu.');
+        }
+    };
+
     // General Search State
     const [searchTerm, setSearchTerm] = useState('');
     const [showFilters, setShowFilters] = useState(false); // [NEW] Collapsible filter state
@@ -969,9 +985,9 @@ export function VehicleList() {
                                                         <DropdownMenuItem onClick={() => setSelectedVehicleForEdit(vehicle)}>
                                                             <FileEdit className="w-4 h-4 mr-2" /> Bilgileri Düzenle
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => updateVehicle(vehicle.id, { status: 'ACTIVE' })}>Aktif Yap</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => updateVehicle(vehicle.id, { status: 'MAINTENANCE' })}>Bakıma Al</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => updateVehicle(vehicle.id, { status: 'PASSIVE' })} className="text-red-600">Pasif</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'ACTIVE' }, 'Araç aktif hale getirildi.')}>Aktif Yap</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'MAINTENANCE' }, 'Araç bakıma alındı.')}>Bakıma Al</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'PASSIVE' }, 'Araç pasif hale getirildi.')} className="text-red-600">Pasif</DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => handleDeleteVehicle(vehicle)} className="text-red-600 font-bold focus:text-red-600 focus:bg-red-50">
                                                             <Trash2 className="w-4 h-4 mr-2" /> Sil
@@ -1102,8 +1118,7 @@ export function VehicleList() {
                                                                             const form = e.target as HTMLFormElement;
                                                                             const dateInput = form.elements.namedItem('date') as HTMLInputElement;
                                                                             if (dateInput.value) {
-                                                                                updateVehicle(vehicle.id, { inspectionExpiry: new Date(dateInput.value).toISOString() });
-                                                                                toast.success('Muayene tarihi güncellendi.');
+                                                                                handleUpdate(vehicle.id, { inspectionExpiry: new Date(dateInput.value).toISOString() }, 'Muayene tarihi güncellendi.');
                                                                             }
                                                                         }}
                                                                         className="flex flex-col gap-2"
@@ -1165,8 +1180,7 @@ export function VehicleList() {
                                                                             const form = e.target as HTMLFormElement;
                                                                             const dateInput = form.elements.namedItem('date') as HTMLInputElement;
                                                                             if (dateInput.value) {
-                                                                                updateVehicle(vehicle.id, { vehicleCardExpiry: new Date(dateInput.value).toISOString() });
-                                                                                toast.success('Taşıt kartı tarihi güncellendi.');
+                                                                                handleUpdate(vehicle.id, { vehicleCardExpiry: new Date(dateInput.value).toISOString() }, 'Taşıt kartı tarihi güncellendi.');
                                                                             }
                                                                         }}
                                                                         className="flex flex-col gap-2"
