@@ -14,6 +14,8 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { Label } from '@/components/ui/label';
 import { toTurkishLower } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
+import { updateVehicle } from '@/actions/vehicle';
+import { toast } from 'sonner';
 
 export function VehicleAssignment() {
     const { vehicles, sites, assignVehiclesToSite } = useAppStore();
@@ -29,6 +31,9 @@ export function VehicleAssignment() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredVehicles = vehicles.filter((v: any) => {
+        // [FIX] Exclude passive vehicles from assignment
+        if (v.status === 'PASSIVE') return false;
+
         const matchesOwnership = ownershipFilter === 'ALL' || v.ownership === ownershipFilter;
         // Use helper with safe string access (in case plate/model are somehow undefined, though they shouldn't be)
         const plate = v.plate || '';
@@ -56,20 +61,39 @@ export function VehicleAssignment() {
         }
     };
 
-    const handleAssign = () => {
+    const [isAssigning, setIsAssigning] = useState(false);
+
+    const handleAssign = async () => {
         if (targetSiteIds.length === 0) {
-            alert('Lütfen en az bir şantiye seçiniz.');
+            toast.error('Lütfen en az bir şantiye seçiniz.');
             return;
         }
         if (selectedVehicles.length === 0) {
-            alert('Lütfen en az bir araç seçiniz.');
+            toast.error('Lütfen en az bir araç seçiniz.');
             return;
         }
 
-        assignVehiclesToSite(selectedVehicles, targetSiteIds);
-        alert(`${selectedVehicles.length} araç başarıyla ${targetSiteIds.length} şantiyeye atandı.`);
-        setSelectedVehicles([]);
-        setTargetSiteIds([]);
+        setIsAssigning(true);
+        try {
+            // [FIX] Call Server Action for each vehicle to persist assignment
+            const promises = selectedVehicles.map(id =>
+                updateVehicle(id, { assignedSiteIds: targetSiteIds } as any)
+            );
+
+            await Promise.all(promises);
+
+            // Update Local Store
+            assignVehiclesToSite(selectedVehicles, targetSiteIds);
+
+            toast.success(`${selectedVehicles.length} araç başarıyla ${targetSiteIds.length} şantiyeye atandı.`);
+            setSelectedVehicles([]);
+            setTargetSiteIds([]);
+        } catch (error) {
+            console.error(error);
+            toast.error('Atama işlemi sırasında bir hata oluştu.');
+        } finally {
+            setIsAssigning(false);
+        }
     };
 
     return (

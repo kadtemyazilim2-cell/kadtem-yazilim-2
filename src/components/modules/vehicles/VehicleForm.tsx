@@ -493,28 +493,26 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
 
                     {/* Insurance and Kasko fields removed as per request */}
 
-                    {/* Site Selection - Only for Rental as per request */}
-                    {formData.ownership === 'RENTAL' && (
-                        <div className="grid grid-cols-1 gap-4">
-                            <div className="space-y-2">
-                                <Label>Çalıştığı Şantiye <span className="text-red-500">*</span></Label>
-                                <Select
-                                    value={formData.assignedSiteId || ''}
-                                    onValueChange={(v) => setFormData({ ...formData, assignedSiteId: v })}
-                                >
-                                    <SelectTrigger className={formErrors.assignedSiteId ? "border-red-500" : ""}>
-                                        <SelectValue placeholder="Şantiye Seçiniz (Opsiyonel)" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableSites.map((s: any) => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                {formErrors.assignedSiteId && <span className="text-xs text-red-500">{formErrors.assignedSiteId}</span>}
-                            </div>
+                    {/* Site Selection - Available for ALL vehicles */}
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
+                            <Label>Çalıştığı Şantiye {formData.ownership === 'RENTAL' && <span className="text-red-500">*</span>}</Label>
+                            <Select
+                                value={formData.assignedSiteId || ''}
+                                onValueChange={(v) => setFormData({ ...formData, assignedSiteId: v })}
+                            >
+                                <SelectTrigger className={formData.ownership === 'RENTAL' && formErrors.assignedSiteId ? "border-red-500" : ""}>
+                                    <SelectValue placeholder="Şantiye Seçiniz (Opsiyonel)" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableSites.map((s: any) => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {formData.ownership === 'RENTAL' && formErrors.assignedSiteId && <span className="text-xs text-red-500">{formErrors.assignedSiteId}</span>}
                         </div>
-                    )}
+                    </div>
 
                     {/* NEW FIELDS: Engine, Chassis, Fuel, Inspection Date - NUR FOR OWNED VEHICLES */}
                     {formData.ownership === 'OWNED' && (
