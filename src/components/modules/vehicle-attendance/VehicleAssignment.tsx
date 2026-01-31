@@ -173,7 +173,7 @@ export function VehicleAssignment() {
                             <div className="space-y-2 w-64">
                                 <Label>Atanacak Şantiyeler</Label>
                                 <MultiSelect
-                                    options={sites.filter((s: any) => s.status === 'ACTIVE' && s.isWarehouse).map((s: any) => ({ label: s.name, value: s.id }))}
+                                    options={sites.filter((s: any) => s.status === 'ACTIVE' && (s.isWarehouse || (s._count?.fuelTanks || 0) > 0)).map((s: any) => ({ label: s.name, value: s.id }))}
                                     selected={targetSiteIds}
                                     onChange={setTargetSiteIds}
                                     placeholder="Şantiye Seçiniz"

@@ -26,7 +26,16 @@ const getSitesFromDb = async (role: string, userId: string) => {
 
     return await prisma.site.findMany({
         orderBy: { name: 'asc' },
-        include: { company: true, partners: true, similarWorks: true },
+        include: {
+            company: true,
+            partners: true,
+            similarWorks: true,
+            _count: {
+                select: {
+                    fuelTanks: true
+                }
+            }
+        },
         where: whereClause
     });
 };
