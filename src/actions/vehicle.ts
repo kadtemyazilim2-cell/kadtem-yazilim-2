@@ -11,18 +11,29 @@ const getVehiclesFromDb = unstable_cache(
             orderBy: { plate: 'asc' },
             include: {
                 company: true,
-                assignedSite: true
-            }
-        });
-    },
-    ['get-vehicles-data'],
+                async() => {
+    return await prisma.vehicle.findMany({
+        orderBy: { plate: 'asc' },
+        include: {
+            company: true,
+            assignedSite: true,
+            assignedSites: { select: { id: true } } // [NEW] Fetch relation IDs
+        }
+    });
+},
+['get-vehicles-data'],
     { tags: ['vehicles'], revalidate: 3600 }
 );
 
 export async function getVehicles() {
     try {
         const vehicles = await getVehiclesFromDb();
-        return { success: true, data: vehicles };
+        // Transform the result to include assignedSiteIds as array of strings
+        const transformedVehicles = vehicles.map(v => ({
+            ...v,
+            assignedSiteIds: v.assignedSites ? v.assignedSites.map(s => s.id) : []
+        }));
+        return { success: true, data: transformedVehicles };
     } catch (error) {
         console.error('getVehicles Error:', error);
         return { success: false, error: 'Araçlar getirilirken hata oluştu.' };
