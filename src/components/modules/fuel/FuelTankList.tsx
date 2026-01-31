@@ -12,12 +12,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Fuel, Trash2 } from 'lucide-react';
 import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel';
 
+// Helper for TR number formatting
+const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 2 }).format(num);
+};
+
+const parseNumber = (str: string) => {
+    // Remove all dots (thousands), replace comma with dot (decimal)
+    const clean = str.replace(/\./g, '').replace(',', '.');
+    return parseFloat(clean) || 0;
+};
+
 export function FuelTankList() {
     const { fuelTanks, addFuelTank, deleteFuelTank, sites } = useAppStore();
     const [open, setOpen] = useState(false);
     const [name, setName] = useState('');
-    const [capacity, setCapacity] = useState(0);
-    const [currentLevel, setCurrentLevel] = useState(0);
+    const [capacity, setCapacity] = useState(''); // [CHANGED] String for formatting
+    const [currentLevel, setCurrentLevel] = useState(''); // [CHANGED] String for formatting
     const [siteId, setSiteId] = useState('');
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -40,7 +51,10 @@ export function FuelTankList() {
             return;
         }
 
-        if (capacity <= 0) {
+        const numCapacity = parseNumber(capacity);
+        const numCurrentLevel = parseNumber(currentLevel);
+
+        if (numCapacity <= 0) {
             alert('Kapasite 0\'dan büyük olmalıdır.');
             return;
         }
@@ -48,8 +62,8 @@ export function FuelTankList() {
         const tankData = {
             siteId,
             name,
-            capacity,
-            currentLevel
+            capacity: numCapacity,
+            currentLevel: numCurrentLevel
         };
 
         const result = await createFuelTank(tankData);
@@ -61,8 +75,8 @@ export function FuelTankList() {
             });
             setOpen(false);
             setName('');
-            setCapacity(0);
-            setCurrentLevel(0);
+            setCapacity('');
+            setCurrentLevel('');
             setSiteId(''); // Reset site selection too
         } else {
             alert('Depo oluşturulamadı: ' + (result.error || 'Bilinmeyen hata'));
@@ -115,11 +129,25 @@ export function FuelTankList() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Kapasite (Lt)</Label>
-                                    <Input type="number" step="0.01" value={capacity} onChange={e => setCapacity(Number(e.target.value))} required />
+                                    <Input
+                                        type="text"
+                                        value={capacity}
+                                        onChange={e => setCapacity(e.target.value)}
+                                        onBlur={() => setCapacity(formatNumber(parseNumber(capacity)))}
+                                        required
+                                        placeholder="0,00"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Mevcut Seviye (Lt)</Label>
-                                    <Input type="number" step="0.01" value={currentLevel} onChange={e => setCurrentLevel(Number(e.target.value))} required />
+                                    <Input
+                                        type="text"
+                                        value={currentLevel}
+                                        onChange={e => setCurrentLevel(e.target.value)}
+                                        onBlur={() => setCurrentLevel(formatNumber(parseNumber(currentLevel)))}
+                                        required
+                                        placeholder="0,00"
+                                    />
                                 </div>
                             </div>
                             <DialogFooter>

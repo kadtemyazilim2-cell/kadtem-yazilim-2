@@ -194,13 +194,7 @@ export function VehicleAssignment() {
                                 {isAssigning ? 'İşleniyor...' : `Atamayı Kaldır (${selectedVehicles.length})`}
                             </Button>
 
-                            <Button
-                                variant="destructive"
-                                onClick={handleUnassign}
-                                disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}
-                            >
-                                {isAssigning ? 'İşleniyor...' : `Atamayı Kaldır (${selectedVehicles.length})`}
-                            </Button>
+
                         </div>
                     </div>
 

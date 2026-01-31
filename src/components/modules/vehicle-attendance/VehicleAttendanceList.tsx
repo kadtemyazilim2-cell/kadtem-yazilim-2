@@ -588,69 +588,82 @@ export function VehicleAttendanceList() {
                                                 </TableCell>
                                                 {/* Cinsi cell removed */}
 
-                                                {daysInMonth.map((day: any) => {
-                                                    const record = getStatusForDate(v.id, day);
-                                                    // Only show record if it belongs to selected site or if we decide to show all history? 
-                                                    // User requested filtering by site for personnel, assuming same for vehicles.
-                                                    // But vehicles move. If a vehicle worked at Site A on Day 1, and Site B on Day 2.
-                                                    // When looking at Site A, should we see Day 1? Yes.
-                                                    // Should we see Day 2? Probably no, or empty.
+    // [FIX] Filter active vehicles to include those with assignments OR history OR existing attendance on this site
+    const activeVehicles = vehicles.filter((v: any) => {
+        if (v.status === 'PASSIVE') return false;
 
-                                                    // Current logic: getStatusForDate finds ANY record for that vehicle/date.
-                                                    // We should filter check if record.siteId === selectedSiteId.
+                                                const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
+                                                v.assignedSiteId === selectedSiteId;
 
-                                                    const isRelevant = record?.siteId === selectedSiteId;
-                                                    const displayRecord = isRelevant ? record : null;
+        const hasHistory = assignmentHistory.some(h => h.vehicleId === v.id);
 
-                                                    if (displayRecord) {
+        // [NEW] Check for legacy attendance records for this site
+        const hasAttendance = vehicleAttendance.some((a: any) => a.vehicleId === v.id && a.siteId === selectedSiteId);
+
+                                                return isAssigned || hasHistory || hasAttendance;
+    });
+
+    const getStatusForDate = (vehicleId: string, date: Date) => {
+        const record = vehicleAttendance.find((a: any) =>
+                                                a.vehicleId === vehicleId &&
+                                                isSameDay(new Date(a.date), date) &&
+                                                a.siteId === selectedSiteId // [FIX] Strict Site Check
+                                                );
+                                                return record;
+    };
+
+                                                const isRelevant = record?.siteId === selectedSiteId;
+                                                const displayRecord = isRelevant ? record : null;
+
+                                                if (displayRecord) {
                                                         if (displayRecord.status === 'WORK') totalWorked += 1;
-                                                        if (displayRecord.status === 'HALF_DAY') totalWorked += 0.5;
+                                                if (displayRecord.status === 'HALF_DAY') totalWorked += 0.5;
                                                     }
 
-                                                    // Calculate Fuel for this day
-                                                    const dailyFuel = showFuel ? fuelLogs
+                                                // Calculate Fuel for this day
+                                                const dailyFuel = showFuel ? fuelLogs
                                                         .filter((l: any) => l.vehicleId === v.id && l.date === format(day, 'yyyy-MM-dd'))
                                                         .reduce((sum: any, l: any) => sum + Number(l.liters), 0) : 0;
 
-                                                    // Determine validity for styling
-                                                    let isValidDay = true;
+                                                // Determine validity for styling
+                                                let isValidDay = true;
                                                     const vHistory = assignmentHistory.filter(h => h.vehicleId === v.id);
 
                                                     if (vHistory.length > 0) {
-                                                        isValidDay = vHistory.some(h => {
-                                                            const start = new Date(h.startDate);
-                                                            const end = h.endDate ? new Date(h.endDate) : new Date('2999-12-31');
-                                                            start.setHours(0, 0, 0, 0);
-                                                            end.setHours(23, 59, 59, 999);
-                                                            const t = new Date(day);
-                                                            t.setHours(12, 0, 0, 0);
-                                                            return t >= start && t <= end;
-                                                        });
+                                                    isValidDay = vHistory.some(h => {
+                                                        const start = new Date(h.startDate);
+                                                        const end = h.endDate ? new Date(h.endDate) : new Date('2999-12-31');
+                                                        start.setHours(0, 0, 0, 0);
+                                                        end.setHours(23, 59, 59, 999);
+                                                        const t = new Date(day);
+                                                        t.setHours(12, 0, 0, 0);
+                                                        return t >= start && t <= end;
+                                                    });
                                                     } else {
                                                         // Legacy fallback: if assigned, valid.
                                                         const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) || v.assignedSiteId === selectedSiteId;
-                                                        isValidDay = !!isAssigned;
+                                                isValidDay = !!isAssigned;
                                                     }
 
-                                                    return (
-                                                        <TableCell
-                                                            key={day.toISOString()}
-                                                            className={cn(
-                                                                "p-0 border-l h-10 transition-colors relative",
-                                                                isValidDay ? "cursor-pointer hover:bg-slate-100" : "bg-slate-50 opacity-60 cursor-not-allowed"
-                                                            )}
-                                                            onClick={isValidDay ? () => handleCellClick(v.id, day) : undefined}
-                                                        >
-                                                            <div className="relative w-full h-full flex items-center justify-center">
-                                                                {displayRecord ? getStatusBadge(displayRecord.status) : null}
-                                                                {dailyFuel > 0 && (
-                                                                    <span className="absolute bottom-0 right-0 text-[8px] leading-3 font-bold bg-yellow-100 text-yellow-800 px-0.5 rounded-tl-sm z-10 border border-yellow-200">
-                                                                        {dailyFuel}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </TableCell>
-                                                    );
+                                                return (
+                                                <TableCell
+                                                    key={day.toISOString()}
+                                                    className={cn(
+                                                        "p-0 border-l h-10 transition-colors relative",
+                                                        isValidDay ? "cursor-pointer hover:bg-slate-100" : "bg-slate-50 opacity-60 cursor-not-allowed"
+                                                    )}
+                                                    onClick={isValidDay ? () => handleCellClick(v.id, day) : undefined}
+                                                >
+                                                    <div className="relative w-full h-full flex items-center justify-center">
+                                                        {displayRecord ? getStatusBadge(displayRecord.status) : null}
+                                                        {dailyFuel > 0 && (
+                                                            <span className="absolute bottom-0 right-0 text-[8px] leading-3 font-bold bg-yellow-100 text-yellow-800 px-0.5 rounded-tl-sm z-10 border border-yellow-200">
+                                                                {dailyFuel}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                );
                                                 })}
                                                 <TableCell className="font-bold text-center border-l bg-muted/10">{totalWorked}</TableCell>
                                             </TableRow>
