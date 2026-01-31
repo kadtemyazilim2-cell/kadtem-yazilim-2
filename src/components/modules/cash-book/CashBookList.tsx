@@ -17,18 +17,33 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { fontBase64 } from '@/lib/pdf-font';
-import { Download, FileSpreadsheet, FileText, Trash2 } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, Trash2, Edit } from 'lucide-react'; // [NEW] Edit
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
 import { deleteTransaction } from '@/actions/transaction';
 
-export function CashBookList() {
+interface CashBookListProps {
+    siteId?: string;
+    type?: 'INCOME' | 'EXPENSE' | 'ALL';
+}
+
+export function CashBookList({ siteId, type }: CashBookListProps) {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
     const { user, hasPermission } = useAuth();
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
-    const [selectedSiteId, setSelectedSiteId] = useState<string>('all'); // [NEW]
-    const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
+    const [selectedSiteId, setSelectedSiteId] = useState<string>(siteId || 'all');
+    const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>(type || 'ALL');
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Update state if props change
+    useEffect(() => {
+        if (siteId) setSelectedSiteId(siteId);
+        if (type) setSelectedType(type);
+    }, [siteId, type]);
+
+    // [NEW] Edit State
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
     // Date Filters
     const currentDate = new Date();
@@ -583,7 +598,9 @@ export function CashBookList() {
                                 </Button>
                             </>
                         )}
-                        <CashBookForm />
+                        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setEditingTransaction(null); setIsFormOpen(true); }}>
+                            + İşlem Ekle
+                        </Button>
                     </div>
                 </div>
 
@@ -735,14 +752,27 @@ export function CashBookList() {
                                     </TableCell>
                                     <TableCell>
                                         {item.type !== 'BALANCE_START' && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => handleDelete(item.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                    onClick={() => {
+                                                        setEditingTransaction(item);
+                                                        setIsFormOpen(true);
+                                                    }}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleDelete(item.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </TableCell>
                                 </TableRow>
@@ -751,6 +781,19 @@ export function CashBookList() {
                     </TableBody>
                 </Table>
             </CardContent>
+
+            <CashBookForm
+                open={isFormOpen}
+                onOpenChange={(open) => {
+                    setIsFormOpen(open);
+                    if (!open) setEditingTransaction(null);
+                }}
+                initialData={editingTransaction}
+                onSuccess={() => {
+                    // Optional: Trigger refresh if needed, but Store update should handle it
+                    setEditingTransaction(null);
+                }}
+            />
         </Card >
     );
 }

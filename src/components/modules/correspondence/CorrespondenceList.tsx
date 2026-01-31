@@ -1,5 +1,7 @@
 'use client';
 
+import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
 import { useAppStore } from '@/lib/store/use-store';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { deleteCorrespondence as deleteCorrespondenceAction } from '@/actions/correspondence';
+import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction } from '@/actions/correspondence';
 import { useState, useEffect } from 'react';
 import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
@@ -297,24 +299,40 @@ export function CorrespondenceList() {
 
     }, [correspondences]);
 
-    const handleSaveRefs = () => {
-        Object.entries(editRefs).forEach(([id, refNo]) => {
-            if (refNo && refNo.trim() !== '') {
-                updateCorrespondence(id, { referenceNumber: refNo });
-            }
+    const handleSaveRefs = async () => {
+        const updates = Object.entries(editRefs).filter(([_, refNo]) => refNo && refNo.trim() !== '');
+
+        // Optimistic Update
+        updates.forEach(([id, refNo]) => {
+            updateCorrespondence(id, { referenceNumber: refNo });
         });
+
         setIsReminderOpen(false);
         setEditRefs({});
+
+        // Server Update
+        for (const [id, refNo] of updates) {
+            await updateCorrespondenceAction(id, { referenceNumber: refNo });
+        }
+        toast.success('Evrak sayı numaraları güncellendi.');
     };
 
-    const handleSaveRegs = () => {
-        Object.entries(editRegs).forEach(([id, regNo]) => {
-            if (regNo && regNo.trim() !== '') {
-                updateCorrespondence(id, { registrationNumber: regNo });
-            }
+    const handleSaveRegs = async () => {
+        const updates = Object.entries(editRegs).filter(([_, regNo]) => regNo && regNo.trim() !== '');
+
+        // Optimistic Update
+        updates.forEach(([id, regNo]) => {
+            updateCorrespondence(id, { registrationNumber: regNo });
         });
+
         setIsRegReminderOpen(false);
         setEditRegs({});
+
+        // Server Update
+        for (const [id, regNo] of updates) {
+            await updateCorrespondenceAction(id, { registrationNumber: regNo });
+        }
+        toast.success('Evrak kayıt numaraları güncellendi.');
     };
 
     const handleDeleteClick = (item: any) => {

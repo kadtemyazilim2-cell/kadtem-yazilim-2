@@ -10,16 +10,40 @@ import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access';
 import { useState, useMemo } from 'react';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { Edit, Trash2 } from 'lucide-react'; // [NEW]
+import { Button } from '@/components/ui/button'; // [NEW]
+import { deleteFuelLog } from '@/actions/fuel'; // [NEW]
 
 export function FuelList() {
-    const { fuelLogs, vehicles, users } = useAppStore();
-    const availableSites = useUserSites(); // [NEW] Restricted sites
+    const { fuelLogs, vehicles, users, deleteFuelLog: deleteLocal } = useAppStore(); // [FIX] Added deleteLocal
+    const availableSites = useUserSites();
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState({
         site: [] as string[],
         vehicle: [] as string[]
     });
+
+    // [NEW] Edit State
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingLog, setEditingLog] = useState<any>(null);
+
+    // [NEW] Delete Handler
+    const handleDelete = async (id: string) => {
+        if (!confirm('Bu yakıt kaydını silmek istediğinize emin misiniz?')) return;
+
+        try {
+            const res = await deleteFuelLog(id);
+            if (res.success) {
+                if (deleteLocal) deleteLocal(id); // Update store if method exists
+            } else {
+                alert(res.error || 'Silinemedi.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Hata oluştu.');
+        }
+    };
 
     const uniqueSites = useMemo(() => {
         // Only show sites that are available to user AND present in logs (or just available sites?)
@@ -66,7 +90,9 @@ export function FuelList() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Yakıt Tüketim Kayıtları</CardTitle>
-                <FuelForm />
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setEditingLog(null); setIsFormOpen(true); }}>
+                    + Yakıt Girişi
+                </Button>
             </CardHeader>
             <CardContent>
                 <div className="mb-4">
@@ -132,12 +158,45 @@ export function FuelList() {
                                     <TableCell>{log.cost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
                                     <TableCell>{log.mileage.toLocaleString()} km</TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{users.find((u: any) => u.id === log.filledByUserId)?.name || '-'}</TableCell>
+                                    <TableCell className="p-1 w-20">
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                onClick={() => {
+                                                    setEditingLog(log);
+                                                    setIsFormOpen(true);
+                                                }}
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => handleDelete(log.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}
                     </TableBody>
                 </Table>
             </CardContent>
+
+            {/* [NEW] Global FuelForm for Edit/Create */}
+            <FuelForm
+                open={isFormOpen}
+                onOpenChange={(open) => {
+                    setIsFormOpen(open);
+                    if (!open) setEditingLog(null);
+                }}
+                initialData={editingLog}
+            />
         </Card >
     );
 }

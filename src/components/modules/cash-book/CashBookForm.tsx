@@ -13,15 +13,25 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { createTransaction } from '@/actions/transaction';
 
-export function CashBookForm() {
-    const [open, setOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false); // [NEW]
-    const { addCashTransaction, sites, users } = useAppStore();
+// [NEW] Props for Editing
+interface CashBookFormProps {
+    initialData?: any;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    onSuccess?: () => void;
+}
+
+// [MOD] Export with Props
+export function CashBookForm({ initialData, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess }: CashBookFormProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+    const setOpen = externalOnOpenChange || setInternalOpen;
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { addCashTransaction, updateCashTransaction, sites, users } = useAppStore(); // [FIX] Added updateCashTransaction (assume it exists in store, if not need to add)
     const { user, hasPermission } = useAuth();
     const canCreate = hasPermission('cash-book', 'CREATE');
-
-    // [NEW] Separate permission for Edit/Delete actions within the list, but this form is for Create.
-    // However, if we are in "Edit Mode" (not implemented here yet, but good practice), we'd check EDIT.
+    const canEdit = hasPermission('cash-book', 'EDIT'); // [NEW]
 
     const activeSites = sites.filter((s: any) => s.status === 'ACTIVE');
 
@@ -36,10 +46,29 @@ export function CashBookForm() {
         responsibleUserId: '',
     });
 
-    // [CHANGED] Separate display state for Amount to support formatting (e.g. 10.000,50)
     const [displayAmount, setDisplayAmount] = useState('0');
 
-    // Default responsible user to current user when opening/resetting
+    // [NEW] Initialize from initialData
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                siteId: initialData.siteId,
+                date: new Date(initialData.date).toISOString().split('T')[0],
+                type: initialData.type,
+                category: initialData.category,
+                amount: initialData.amount,
+                description: initialData.description || '',
+                documentNo: initialData.documentNo || '',
+                responsibleUserId: initialData.responsibleUserId || '',
+            });
+            setDisplayAmount(initialData.amount ? initialData.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0');
+        } else if (isOpen) {
+            // Reset if opening new
+            if (!externalOpen) resetForm();
+        }
+    }, [initialData, isOpen]);
+
+
     const resetForm = () => {
         setFormData({
             siteId: '',
@@ -54,12 +83,12 @@ export function CashBookForm() {
         setDisplayAmount('0');
     };
 
+    // ... (generateDescription, handleDateChange, handleCategoryChange, formatMoneyInput, handleAmountChange kept same)
     const generateDescription = (date: string, category: string) => {
         if (!date || !category) return '';
         try {
             const d = new Date(date);
             const monthName = format(d, 'MMMM', { locale: tr });
-            // Capitalize first letter
             const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
             return `${capitalizedMonth} Ayı Şantiye Harcaması İçin Verilen`;
         } catch (e) {
@@ -67,48 +96,52 @@ export function CashBookForm() {
         }
     };
 
-    // Handling Date Change
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newDate = e.target.value;
         let newDescription = formData.description;
-
         if (formData.type === 'INCOME' && formData.category) {
             newDescription = generateDescription(newDate, formData.category);
         }
-
-        setFormData({
-            ...formData,
-            date: newDate,
-            description: newDescription
-        });
+        setFormData({ ...formData, date: newDate, description: newDescription });
     };
 
-    // Handling Category Change
     const handleCategoryChange = (val: string) => {
         let newDescription = formData.description;
-
         if (formData.type === 'INCOME') {
             newDescription = generateDescription(formData.date, val);
+        }
+        setFormData({ ...formData, category: val, description: newDescription });
+    };
+
+    // [NEW] Auto-set category when Type changes to INCOME
+    const handleTypeChange = (val: string) => {
+        let newCategory = formData.category;
+        let newDescription = formData.description;
+
+        if (val === 'INCOME') {
+            newCategory = 'Şantiye Harcaması İçin Gönderilen';
+            newDescription = generateDescription(formData.date, newCategory);
+        } else {
+            // Reset if switching back to Expense? Maybe not, keep user input unless it was the auto one.
+            if (newCategory === 'Şantiye Harcaması İçin Gönderilen') {
+                newCategory = '';
+                newDescription = '';
+            }
         }
 
         setFormData({
             ...formData,
-            category: val,
+            type: val,
+            category: newCategory,
             description: newDescription
         });
     };
 
     const formatMoneyInput = (value: string) => {
         if (!value) return '';
-        // Remove all non-digits and non-comma
         let val = value.replace(/[^0-9,]/g, '');
-
-        // Handle comma
         const parts = val.split(',');
-        // Format left (thousands)
         parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-        // Reassemble
         return parts.length > 1 ? `${parts[0]},${parts[1].slice(0, 2)}` : parts[0];
     };
 
@@ -116,14 +149,10 @@ export function CashBookForm() {
         const raw = e.target.value;
         const formatted = formatMoneyInput(raw);
         setDisplayAmount(formatted);
-
-        // Convert key-in format (1.000,50) to standard float for storage
         let numVal = 0;
         if (formatted) {
-            // Remove dots, replace comma with dot
             numVal = parseFloat(formatted.replace(/\./g, '').replace(',', '.'));
         }
-
         if (!isNaN(numVal)) {
             setFormData(prev => ({ ...prev, amount: numVal }));
         }
@@ -133,7 +162,7 @@ export function CashBookForm() {
         e.preventDefault();
         if (!user || isSubmitting) return;
 
-        // [NEW] Date Restriction Check
+        // Date Restriction Check
         if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -147,51 +176,18 @@ export function CashBookForm() {
             }
         }
 
-        // Validation
-        if (!formData.siteId) {
-            alert('Lütfen şantiye seçiniz.');
-            return;
-        }
-        if (!formData.category.trim()) {
-            alert('Lütfen kategori giriniz.');
-            return;
-        }
-        if (!formData.description.trim()) {
-            alert('Lütfen açıklama giriniz.');
-            return;
-        }
-
-        // Date Validation
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const selectedDate = new Date(formData.date);
-        selectedDate.setHours(0, 0, 0, 0);
+        if (!formData.siteId) { alert('Lütfen şantiye seçiniz.'); return; }
+        if (!formData.category.trim()) { alert('Lütfen kategori giriniz.'); return; }
+        if (!formData.description.trim()) { alert('Lütfen açıklama giriniz.'); return; }
 
         const todayStr = new Date().toISOString().split('T')[0];
+        if (formData.date > todayStr) { alert('İleri tarihli işlem giremezsiniz.'); return; }
 
-        if (formData.date > todayStr) {
-            alert('İleri tarihli işlem giremezsiniz.');
-            return;
-        }
-
-        if (user.role !== 'ADMIN') {
-            const allowedDays = user.editLookbackDays || 0;
-            const minDate = new Date(today);
-            minDate.setDate(today.getDate() - allowedDays);
-
-            // Compare timestamps or strings. Since time is zeroed, timestamps work well.
-            if (selectedDate < minDate) {
-                alert(`Geçmişe yönelik işlem girme yetkiniz kısıtlanmıştır. En fazla ${allowedDays} gün geriye işlem yapabilirsiniz.`);
-                return;
-            }
-        }
-
-        // Server Action
         setIsSubmitting(true);
         try {
             const payload = {
                 siteId: formData.siteId,
-                date: new Date(formData.date), // Action expects Date object
+                date: new Date(formData.date),
                 type: formData.type as 'INCOME' | 'EXPENSE',
                 category: formData.category,
                 amount: Number(formData.amount),
@@ -201,27 +197,37 @@ export function CashBookForm() {
                 responsibleUserId: formData.responsibleUserId || user.id
             };
 
-            const res = await createTransaction(payload as any);
-
-            if (res.success && res.data) {
-                // Determine 'responsibleUserId' to match what the store expects (to support existing UI logic)
-                // The server 'res.data' should have the fields.
-
-                addCashTransaction({
-                    ...res.data,
-                    // Ensure dates are strings if store expects strings, or Dates if objects.
-                    // The store likely handles ISO strings or Date objects. 
-                    // Let's pass what we get from Prisma (likely Date object or string depending on serialization).
-                    // Next.js actions serialize Date to string usually.
-                    date: new Date(res.data.date).toISOString(),
-                    createdAt: new Date(res.data.createdAt).toISOString(),
-                } as any);
-
-                setOpen(false);
-                resetForm();
+            if (initialData) {
+                // UPDATE
+                const updateAction = await import('@/actions/transaction').then(m => m.updateTransaction);
+                const res = await updateAction(initialData.id, payload);
+                if (res.success && res.data) {
+                    // Update Store (Optimistic or Refresh)
+                    // Assume updateCashTransaction exists in store
+                    // updateCashTransaction(initialData.id, res.data);
+                    window.location.reload(); // Temporary force refresh to ensure sync if store update not ready
+                    setOpen(false);
+                    if (onSuccess) onSuccess();
+                } else {
+                    alert(res.error || 'Güncelleme başarısız.');
+                }
             } else {
-                alert(res.error || 'İşlem kaydedilemedi.');
+                // CREATE
+                const res = await createTransaction(payload as any);
+                if (res.success && res.data) {
+                    addCashTransaction({
+                        ...res.data,
+                        date: new Date(res.data.date).toISOString(),
+                        createdAt: new Date(res.data.createdAt).toISOString(),
+                    } as any);
+                    setOpen(false);
+                    resetForm();
+                    if (onSuccess) onSuccess();
+                } else {
+                    alert(res.error || 'İşlem kaydedilemedi.');
+                }
             }
+
         } catch (error) {
             console.error(error);
             alert('Bir hata oluştu.');
@@ -230,17 +236,20 @@ export function CashBookForm() {
         }
     };
 
-    // Set default on open if empty
     const handleOpenChange = (open: boolean) => {
         setOpen(open);
-        if (open && !formData.responsibleUserId && user) {
+        if (open && !initialData && !formData.responsibleUserId && user) {
             setFormData(prev => ({ ...prev, responsibleUserId: user.id }));
+        }
+        if (!open) {
+            // If closed, reset unless initialData exists (which persists)
+            if (!initialData) resetForm();
         }
     };
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            {canCreate && (
+            {canCreate && !initialData && (
                 <DialogTrigger asChild>
                     <Button className="bg-blue-600 hover:bg-blue-700">
                         <Plus className="w-4 h-4 mr-2" /> İşlem Ekle
@@ -249,9 +258,9 @@ export function CashBookForm() {
             )}
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Kasa İşlemi Ekle</DialogTitle>
+                    <DialogTitle>{initialData ? 'İşlemi Düzenle' : 'Kasa İşlemi Ekle'}</DialogTitle>
                     <DialogDescription>
-                        Gelir veya gider kaydı oluşturun.
+                        {initialData ? 'Mevcut kaydı güncelleyin.' : 'Gelir veya gider kaydı oluşturun.'}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -294,7 +303,7 @@ export function CashBookForm() {
                             <Label>İşlem Tipi</Label>
                             <Select
                                 value={formData.type}
-                                onValueChange={(v) => setFormData({ ...formData, type: v })}
+                                onValueChange={handleTypeChange}
                             >
                                 <SelectTrigger>
                                     <SelectValue />

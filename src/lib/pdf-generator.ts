@@ -133,38 +133,47 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // Move up 1 line
     doc.setFont(fontName, 'bold');
     doc.setFontSize(12);
-    // Increase boldness/visibility by drawing twice or setting color if needed, but 'bold' font should suffice.
-    // User asked for "koyu renkli", standard black is usually fine but let's ensure it's absolute black and maybe heavier?
-    // JS PDF standard bold is usually enough, but let's ensure opacity/color.
+    // Increase boldness/visibility by setting line width and rendering as stroke/fill
+    doc.setLineWidth(0.4); // Strock effect for extra bold
+    doc.setDrawColor(0, 0, 0);
     doc.setTextColor(0, 0, 0);
+
+    // Toggle rendering mode to Fill + Stroke (2) or just Fill (0) usually. 
+    // jsPDF text options: { renderingMode: 'fillThenStroke' } isn't always standard in this version.
+    // We can simulate by drawing twice with slight offset or just setting font weight if valid.
+    // Let's use the line width trick if we use stroke(), but doc.text() usually fills. 
+    // Best way in jsPDF for "Extra Bold":
+    // doc.text(..., { renderingMode: 'fillThenStroke' });
+
     const recipientText = (item.senderReceiver || '').toUpperCase();
+
+    // [FIX] Force Bold Rendering for Recipient
+    doc.setFont(fontName, 'bold');
+    doc.setLineWidth(0.5); // Slightly thicker for "Extra Bold" appearance
+    doc.setDrawColor(0, 0, 0); // Black stroke
+    doc.setTextColor(0, 0, 0); // Black fill
+    // Use 'fillThenStroke' to mimic bold if font weight isn't enough
+    const renderMode: any = 'fillThenStroke';
+
     const recipientLines = doc.splitTextToSize(recipientText, contentWidth);
 
     // Calculate line height in mm (approximate for layout)
-    // jsPDF uses points for font size, but document is in mm. 
-    // 1 pt = 0.352778 mm. Default line height factor is 1.15.
     const lineHeightPt = doc.getFontSize() * 1.15;
     const lineHeightMm = lineHeightPt * 0.352778;
 
     if (recipientLines.length > 1) {
-        // Draw all lines except last one normally (centered)
         for (let i = 0; i < recipientLines.length - 1; i++) {
-            doc.text(recipientLines[i], 105, yPos, { align: 'center' });
+            doc.text(recipientLines[i], 105, yPos, { align: 'center', renderingMode: renderMode });
             yPos += lineHeightMm;
         }
-
-        // Draw last line aligned to the end of the previous line
         const prevLine = recipientLines[recipientLines.length - 2];
         const prevLineWidth = doc.getTextWidth(prevLine);
-        // Center alignment: Starts at 105 - (Width/2), Ends at 105 + (Width/2)
         const prevLineEndX = 105 + (prevLineWidth / 2);
-
         const lastLine = recipientLines[recipientLines.length - 1];
-        doc.text(lastLine, prevLineEndX, yPos);
+        doc.text(lastLine, prevLineEndX, yPos, { renderingMode: renderMode });
         yPos += lineHeightMm;
     } else {
-        // Single line - just center
-        doc.text(recipientLines, 105, yPos, { align: 'center' });
+        doc.text(recipientLines, 105, yPos, { align: 'center', renderingMode: renderMode });
         yPos += lineHeightMm;
     }
 

@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppStore } from '@/lib/store/use-store';
-import { FileText, Wallet, Droplet, Users, AlertTriangle, ArrowRight } from 'lucide-react';
+import { FileText, Wallet, Droplet, Users, AlertTriangle, ArrowRight, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteStockOverview } from '@/components/modules/dashboard/SiteStockOverview';
 import { DailyFuelChart } from '@/components/modules/dashboard/DailyFuelChart';
@@ -19,6 +19,9 @@ import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // Ensure these are imported
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard';
+import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
@@ -31,6 +34,10 @@ export default function DashboardPage() {
     const [inspectionModalOpen, setInspectionModalOpen] = useState(false);
     const [selectedInspection, setSelectedInspection] = useState<any>(null);
     const [inspectionDate, setInspectionDate] = useState('');
+
+    // [NEW] Fuel Dashboard States
+    const [selectedFuelSiteId, setSelectedFuelSiteId] = useState('');
+    const [fuelDateRange, setFuelDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
 
     const handleAlertClick = (item: any) => {
         if (item.type === 'Muayene') {
@@ -76,7 +83,7 @@ export default function DashboardPage() {
         : null;
 
     // Get Missing Reference Numbers (excluding BANK) - Only show to creator
-    const missingDocs = correspondences.filter((c: any) => c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
+    const missingDocs = correspondences.filter((c: any) => c.type === 'OUTGOING' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
 
     // 1. Financial Status (Balance per User)
     const { users } = useAppStore();
@@ -444,7 +451,102 @@ export default function DashboardPage() {
                 <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
             </div> */}
 
+            {/* [NEW] Active Sites Navigation Grid */}
+            <div className="space-y-4 mt-8">
+                <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Aktif Şantiyeler</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any) => (
+                        <Card
+                            key={site.id}
+                            className="cursor-pointer hover:bg-slate-50 transition-colors border-l-4 border-l-blue-500"
+                            onClick={() => router.push(`/dashboard/sites/${site.id}`)}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg font-semibold text-slate-800 flex items-center justify-between">
+                                    {site.name}
+                                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-sm text-slate-500 flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 text-slate-400" />
+                                        <span>{site.location || 'Konum Yok'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Users className="h-4 w-4 text-slate-400" />
+                                        <span>{personnel.filter((p: any) => p.siteId === site.id && p.status !== 'LEFT').length} Personel</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {sites.filter((s: any) => s.status === 'ACTIVE').length === 0 && (
+                        <div className="text-slate-500 col-span-3">Aktif şantiye bulunmamaktadır.</div>
+                    )}
+                </div>
+            </div>
+
             {/* Incoming Fuel Purchases Widget */}
+            {/* --- FUEL DASHBOARD SECTION --- */}
+            <div className="space-y-4 mt-8">
+                <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Yakıt & Depo Durumları</h3>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-4 items-end bg-white p-4 rounded-lg border shadow-sm">
+                    <div className="w-full md:w-64 space-y-2">
+                        <Label>Şantiye Seçimi</Label>
+                        <Select value={selectedFuelSiteId} onValueChange={setSelectedFuelSiteId}>
+                            <SelectTrigger className="bg-slate-50">
+                                <SelectValue placeholder="Şantiye Seçiniz" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Başlangıç</Label>
+                        <Input type="date" className="bg-slate-50" value={fuelDateRange.start} onChange={e => setFuelDateRange(prev => ({ ...prev, start: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Bitiş</Label>
+                        <Input type="date" className="bg-slate-50" value={fuelDateRange.end} onChange={e => setFuelDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                    </div>
+                    {selectedFuelSiteId && (
+                        <Button variant="ghost" className="text-red-500" onClick={() => { setSelectedFuelSiteId(''); setFuelDateRange({ start: '', end: '' }); }}>
+                            Filtreleri Temizle
+                        </Button>
+                    )}
+                </div>
+
+                {/* Info: Select site to see stats */}
+                {!selectedFuelSiteId && (
+                    <div className="text-center p-8 bg-slate-50 border border-dashed rounded-lg text-slate-500">
+                        Detaylı depo stokları için lütfen bir şantiye seçiniz.
+                    </div>
+                )}
+
+                {selectedFuelSiteId && (
+                    <FuelStatsCard
+                        siteId={selectedFuelSiteId}
+                        startDate={fuelDateRange.start}
+                        endDate={fuelDateRange.end}
+                        fuelTransfers={fuelTransfers}
+                        fuelLogs={fuelLogs}
+                        fuelTanks={fuelTanks}
+                        sites={sites}
+                    />
+                )}
+
+                {/* Fuel Purchase List */}
+                <div className="grid grid-cols-1 gap-4">
+                    <FuelPurchaseList />
+                </div>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
                 <Card className="col-span-2 border-emerald-100 shadow-sm">
                     <CardHeader className="pb-3 border-b border-emerald-50 bg-emerald-50/30">

@@ -86,10 +86,13 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         includeStamp: initialData?.includeStamp || false, // [NEW]
     });
 
+    const [isRefManual, setIsRefManual] = useState(false);
+
     // [NEW] Auto-Generate Reference Number
     useEffect(() => {
-        if (initialData && !isCopy) return; // Don't auto-change on edit (but allow on Copy)
+        if (initialData && !isCopy) return;
         if (formData.direction !== 'OUTGOING') return;
+        if (isRefManual) return; // Don't overwrite if manually entered
         if (!formData.companyId || !formData.senderReceiver) return;
 
         const company = companies.find(c => c.id === formData.companyId);
@@ -106,12 +109,6 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         if (inst && inst.shortName) {
             instShort = inst.shortName.toUpperCase();
         } else if (inst) {
-            // If recognized institution but no shortname, maybe use first word? 
-            // User requested "Muhatap kısa adı", implying preference for configured short name.
-            // If not configured, full name might be too long. Let's try to be smart or just use full.
-            // Requirement says " / Muhatap kısa adı . ". 
-            // I'll stick to full name if no short name is found, or first 3 letters? 
-            // Better to just use what we have.
             instShort = inst.name.toUpperCase();
         }
 
@@ -120,12 +117,11 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         // Format: [Short]-[YY]/[RecipientShort].[Seq] (No spaces)
         const newRef = `${compShort}-${yearShort}/${instShort}.${seq}`;
 
-        // Only update if different to avoid infinite loop (though dependencies handle this)
         if (formData.referenceNumber !== newRef) {
             setFormData(prev => ({ ...prev, referenceNumber: newRef }));
         }
 
-    }, [formData.companyId, formData.senderReceiver, formData.date, formData.direction, companies, institutions, initialData, isCopy]);
+    }, [formData.companyId, formData.senderReceiver, formData.date, formData.direction, companies, institutions, initialData, isCopy, isRefManual]);
 
     const [filteredInstitutions, setFilteredInstitutions] = useState<typeof institutions>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -459,196 +455,119 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 </div>
                             )}
 
-                            {initialType !== 'BANK' && (
-                                <div className="space-y-2">
-                                    <Label>Evrak Sayı Numarası</Label>
-                                    <Input
-                                        placeholder="Ref-123"
-                                        value={formData.referenceNumber}
-                                        onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
-                                        readOnly={((!initialData || isCopy) && formData.direction === 'OUTGOING')}
-                                        className={((!initialData || isCopy) && formData.direction === 'OUTGOING') ? 'bg-slate-50 text-slate-500' : ''}
-                                    />
-                                </div>
+                            <Label>Evrak Sayı Numarası</Label>
+                            <Input
+                                placeholder="Ref-123"
+                                value={formData.referenceNumber}
+                                onChange={(e) => {
+                                    setFormData({ ...formData, referenceNumber: e.target.value });
+                                    setIsRefManual(true);
+                                }}
+                            // Removed readOnly and className logic to allow editing
+                            />
+                    </div>
                             )}
 
-                            {initialType !== 'BANK' && (
-                                <div className="space-y-2">
-                                    <Label>Konu</Label>
-                                    <Input
-                                        placeholder="Yazışma konusu"
-                                        required
-                                        value={formData.subject}
-                                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                    />
-                                </div>
-                            )}
+                    {initialType !== 'BANK' && (
+                        <div className="space-y-2">
+                            <Label>Konu</Label>
+                            <Input
+                                placeholder="Yazışma konusu"
+                                required
+                                value={formData.subject}
+                                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                            />
+                        </div>
+                    )}
 
-                            <div className="space-y-2 relative">
-                                <div className="flex items-center justify-between">
-                                    <Label>Muhatap (Kurum/Şahıs)</Label>
+                    <div className="space-y-2 relative">
+                        <div className="flex items-center justify-between">
+                            <Label>Muhatap (Kurum/Şahıs)</Label>
 
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            type="button"
-                                            className="h-6 text-xs px-2"
-                                            onClick={() => {
-                                                setIsAddInstOpen(true);
-                                                // Initialize category based on context when opening
-                                                setNewInstCategory(initialType === 'BANK' ? 'BANK' : 'INSTITUTION');
-                                            }}
-                                        >
-                                            <Plus className="w-3 h-3 mr-1" /> Yeni
-                                        </Button>
-                                    </div>
-                                </div>
-                                <Select
-                                    value={formData.senderReceiver}
-                                    onValueChange={(v) => {
-                                        if (v === 'NEW') {
-                                            setIsAddInstOpen(true);
-                                        } else {
-                                            const inst = institutions.find((i: any) => i.name === v);
-                                            setFormData({
-                                                ...formData,
-                                                senderReceiver: v,
-                                                senderReceiverAlignment: inst?.alignment || formData.senderReceiverAlignment || 'center'
-                                            });
-                                        }
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    type="button"
+                                    className="h-6 text-xs px-2"
+                                    onClick={() => {
+                                        setIsAddInstOpen(true);
+                                        // Initialize category based on context when opening
+                                        setNewInstCategory(initialType === 'BANK' ? 'BANK' : 'INSTITUTION');
                                     }}
                                 >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Muhatap Seçiniz..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dropdownOptions.map((inst: any) => (
-                                            <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
-                                        ))}
-                                        {/* Fallback: If value is set but not in the FILTERED list, show it anyway */}
-                                        {formData.senderReceiver && !dropdownOptions.find((i: any) => i.name === formData.senderReceiver) && (
-                                            <SelectItem key="fallback-val" value={formData.senderReceiver}>{formData.senderReceiver}</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                    <Plus className="w-3 h-3 mr-1" /> Yeni
+                                </Button>
                             </div>
-
-                            <div className="space-y-2">
-                                {/* Hiding Interest (İlgi) for Incoming as per request */}
-                                {initialDirection !== 'INCOMING' && formData.direction !== 'INCOMING' && (
-                                    <>
-                                        <div className="flex justify-between items-center">
-                                            <Label>İlgi (Opsiyonel)</Label>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setFormData(prev => ({ ...prev, interest: [...(prev.interest || []), ''] }))}
-                                                className="h-6 text-xs"
-                                            >
-                                                <Plus className="w-3 h-3 mr-1" /> İlgi Ekle
-                                            </Button>
-                                        </div>
-                                        {(formData.interest || []).map((int, idx) => (
-                                            <div key={idx} className="flex gap-2">
-                                                <div className="flex items-center justify-center w-8 h-10 bg-slate-100 rounded text-sm font-medium text-slate-500 shrink-0">
-                                                    {String.fromCharCode(65 + idx)}
-                                                </div>
-                                                <Input
-                                                    value={int}
-                                                    onChange={(e) => {
-                                                        const newInterests = [...(formData.interest || [])];
-                                                        newInterests[idx] = e.target.value;
-                                                        setFormData({ ...formData, interest: newInterests });
-                                                    }}
-                                                    placeholder={`İlgi ${String.fromCharCode(65 + idx)}...`}
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => {
-                                                        const newInterests = [...(formData.interest || [])];
-                                                        newInterests.splice(idx, 1);
-                                                        setFormData({ ...formData, interest: newInterests });
-                                                    }}
-                                                    className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </>
+                        </div>
+                        <Select
+                            value={formData.senderReceiver}
+                            onValueChange={(v) => {
+                                if (v === 'NEW') {
+                                    setIsAddInstOpen(true);
+                                } else {
+                                    const inst = institutions.find((i: any) => i.name === v);
+                                    setFormData({
+                                        ...formData,
+                                        senderReceiver: v,
+                                        senderReceiverAlignment: inst?.alignment || formData.senderReceiverAlignment || 'center'
+                                    });
+                                }
+                            }}
+                        >
+                            <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Muhatap Seçiniz..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {dropdownOptions.map((inst: any) => (
+                                    <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
+                                ))}
+                                {/* Fallback: If value is set but not in the FILTERED list, show it anyway */}
+                                {formData.senderReceiver && !dropdownOptions.find((i: any) => i.name === formData.senderReceiver) && (
+                                    <SelectItem key="fallback-val" value={formData.senderReceiver}>{formData.senderReceiver}</SelectItem>
                                 )}
-                            </div>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-
-
-                            <div className="space-y-2">
-                                {/* Hiding Description (Metin) for Incoming as per request */}
-                                {initialDirection !== 'INCOMING' && formData.direction !== 'INCOMING' && (
-                                    <>
-                                        <Label>Metin</Label>
-                                        <SimpleRichTextEditor
-                                            value={formData.description}
-                                            onChange={(val) => setFormData({ ...formData, description: val })}
-                                        />
-                                    </>
-                                )}
-                            </div>
-
-                            {/* PDF Preview REMOVED as per request */}
-
-                            <div className="space-y-2">
-                                <Label>Dosya Yükle (PDF)</Label>
-                                <Input
-                                    type="file"
-                                    accept="application/pdf"
-                                    onChange={handleFileChange}
-                                />
-                                {formData.attachmentUrls.length > 0 && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                        {formData.attachmentUrls.length} dosya eklendi.
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
+                    <div className="space-y-2">
+                        {/* Hiding Interest (İlgi) for Incoming as per request */}
+                        {initialDirection !== 'INCOMING' && formData.direction !== 'INCOMING' && (
+                            <>
                                 <div className="flex justify-between items-center">
-                                    <Label>Ekler (Opsiyonel)</Label>
+                                    <Label>İlgi (Opsiyonel)</Label>
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => setFormData(prev => ({ ...prev, appendices: [...(prev.appendices || []), ''] }))}
+                                        onClick={() => setFormData(prev => ({ ...prev, interest: [...(prev.interest || []), ''] }))}
                                         className="h-6 text-xs"
                                     >
-                                        <Plus className="w-3 h-3 mr-1" /> Ek Ekle
+                                        <Plus className="w-3 h-3 mr-1" /> İlgi Ekle
                                     </Button>
                                 </div>
-                                {(formData.appendices || []).map((app, idx) => (
+                                {(formData.interest || []).map((int, idx) => (
                                     <div key={idx} className="flex gap-2">
                                         <div className="flex items-center justify-center w-8 h-10 bg-slate-100 rounded text-sm font-medium text-slate-500 shrink-0">
-                                            {idx + 1}
+                                            {String.fromCharCode(65 + idx)}
                                         </div>
                                         <Input
-                                            value={app}
+                                            value={int}
                                             onChange={(e) => {
-                                                const newAppendices = [...(formData.appendices || [])];
-                                                newAppendices[idx] = e.target.value;
-                                                setFormData({ ...formData, appendices: newAppendices });
+                                                const newInterests = [...(formData.interest || [])];
+                                                newInterests[idx] = e.target.value;
+                                                setFormData({ ...formData, interest: newInterests });
                                             }}
-                                            placeholder={`Ek ${idx + 1}...`}
+                                            placeholder={`İlgi ${String.fromCharCode(65 + idx)}...`}
                                         />
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => {
-                                                const newAppendices = [...(formData.appendices || [])];
-                                                newAppendices.splice(idx, 1);
-                                                setFormData({ ...formData, appendices: newAppendices });
+                                                const newInterests = [...(formData.interest || [])];
+                                                newInterests.splice(idx, 1);
+                                                setFormData({ ...formData, interest: newInterests });
                                             }}
                                             className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                         >
@@ -656,75 +575,152 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         </Button>
                                     </div>
                                 ))}
+                            </>
+                        )}
+                    </div>
+
+
+
+                    <div className="space-y-2">
+                        {/* Hiding Description (Metin) for Incoming as per request */}
+                        {initialDirection !== 'INCOMING' && formData.direction !== 'INCOMING' && (
+                            <>
+                                <Label>Metin</Label>
+                                <SimpleRichTextEditor
+                                    value={formData.description}
+                                    onChange={(val) => setFormData({ ...formData, description: val })}
+                                />
+                            </>
+                        )}
+                    </div>
+
+                    {/* PDF Preview REMOVED as per request */}
+
+                    <div className="space-y-2">
+                        <Label>Dosya Yükle (PDF)</Label>
+                        <Input
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleFileChange}
+                        />
+                        {formData.attachmentUrls.length > 0 && (
+                            <p className="text-xs text-green-600 mt-1">
+                                {formData.attachmentUrls.length} dosya eklendi.
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label>Ekler (Opsiyonel)</Label>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setFormData(prev => ({ ...prev, appendices: [...(prev.appendices || []), ''] }))}
+                                className="h-6 text-xs"
+                            >
+                                <Plus className="w-3 h-3 mr-1" /> Ek Ekle
+                            </Button>
+                        </div>
+                        {(formData.appendices || []).map((app, idx) => (
+                            <div key={idx} className="flex gap-2">
+                                <div className="flex items-center justify-center w-8 h-10 bg-slate-100 rounded text-sm font-medium text-slate-500 shrink-0">
+                                    {idx + 1}
+                                </div>
+                                <Input
+                                    value={app}
+                                    onChange={(e) => {
+                                        const newAppendices = [...(formData.appendices || [])];
+                                        newAppendices[idx] = e.target.value;
+                                        setFormData({ ...formData, appendices: newAppendices });
+                                    }}
+                                    placeholder={`Ek ${idx + 1}...`}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                        const newAppendices = [...(formData.appendices || [])];
+                                        newAppendices.splice(idx, 1);
+                                        setFormData({ ...formData, appendices: newAppendices });
+                                    }}
+                                    className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </Button>
                             </div>
+                        ))}
+                    </div>
 
 
 
-                        </form>
-                    </div >
+                </form>
+            </div >
 
-                    <DialogFooter className="px-6 py-4 border-t">
-                        <Button type="button" variant="outline" onClick={handlePreview} className="gap-2">
-                            <Printer className="w-4 h-4" /> Ön İzleme
-                        </Button>
-                        <Button type="submit" form="correspondence-form" disabled={(user?.role !== 'ADMIN' && !getCurrentPermission()) || isSubmitting}>
-                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent >
+            <DialogFooter className="px-6 py-4 border-t">
+                <Button type="button" variant="outline" onClick={handlePreview} className="gap-2">
+                    <Printer className="w-4 h-4" /> Ön İzleme
+                </Button>
+                <Button type="submit" form="correspondence-form" disabled={(user?.role !== 'ADMIN' && !getCurrentPermission()) || isSubmitting}>
+                    {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                </Button>
+            </DialogFooter>
+        </DialogContent >
             </Dialog >
 
-            <Dialog open={isAddInstOpen} onOpenChange={setIsAddInstOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Yeni Muhatap Ekle</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Kategori</Label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button
-                                    type="button"
-                                    variant={newInstCategory === 'INSTITUTION' ? 'default' : 'outline'}
-                                    onClick={() => setNewInstCategory('INSTITUTION')}
-                                    className="gap-2"
-                                >
-                                    <Building2 className="w-4 h-4" /> Kurum / Şahıs
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant={newInstCategory === 'BANK' ? 'default' : 'outline'}
-                                    onClick={() => setNewInstCategory('BANK')}
-                                    className="gap-2"
-                                >
-                                    <Landmark className="w-4 h-4" /> Banka
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Muhatap Adı</Label>
-                            <Textarea
-                                value={newInstName}
-                                onChange={(e) => setNewInstName(e.target.value)}
-                                placeholder="Örn: Ankara Büyükşehir Belediyesi&#10;Fen İşleri Daire Başkanlığı"
-                                rows={4}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Kısa Ad (Opsiyonel)</Label>
-                            <Input
-                                value={newInstShortName}
-                                onChange={(e) => setNewInstShortName(e.target.value)}
-                                placeholder="Örn: ABB"
-                            />
+        <Dialog open={isAddInstOpen} onOpenChange={setIsAddInstOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Yeni Muhatap Ekle</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Kategori</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button
+                                type="button"
+                                variant={newInstCategory === 'INSTITUTION' ? 'default' : 'outline'}
+                                onClick={() => setNewInstCategory('INSTITUTION')}
+                                className="gap-2"
+                            >
+                                <Building2 className="w-4 h-4" /> Kurum / Şahıs
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={newInstCategory === 'BANK' ? 'default' : 'outline'}
+                                onClick={() => setNewInstCategory('BANK')}
+                                className="gap-2"
+                            >
+                                <Landmark className="w-4 h-4" /> Banka
+                            </Button>
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsAddInstOpen(false)}>İptal</Button>
-                        <Button onClick={handleAddInstitution}>Kaydet</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog >
+                    <div className="space-y-2">
+                        <Label>Muhatap Adı</Label>
+                        <Textarea
+                            value={newInstName}
+                            onChange={(e) => setNewInstName(e.target.value)}
+                            placeholder="Örn: Ankara Büyükşehir Belediyesi&#10;Fen İşleri Daire Başkanlığı"
+                            rows={4}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Kısa Ad (Opsiyonel)</Label>
+                        <Input
+                            value={newInstShortName}
+                            onChange={(e) => setNewInstShortName(e.target.value)}
+                            placeholder="Örn: ABB"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddInstOpen(false)}>İptal</Button>
+                    <Button onClick={handleAddInstitution}>Kaydet</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog >
         </>
     );
 }

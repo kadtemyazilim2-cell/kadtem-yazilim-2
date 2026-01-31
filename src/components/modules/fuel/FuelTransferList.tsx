@@ -7,20 +7,22 @@ import { format, parseISO } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
 
 export function FuelTransferList() {
-    const { fuelTransfers, fuelTanks, sites, vehicles } = useAppStore();
+    const { fuelTransfers, fuelTanks, sites, vehicles, users } = useAppStore(); // [FIX] Added users
 
     // Helper to resolve Site Name from Entity ID
-    const getEntityName = (type: string, id: string) => { // Changed function name to reflect it returns Entity Name (Tank/Company)
+    const getEntityName = (type: string, id: string) => {
         if (type === 'TANK') {
             const tank = fuelTanks.find((t: any) => t.id === id);
             return tank?.name || '-';
         }
         if (type === 'EXTERNAL') {
-            // For External, id is the company name string
             return id || 'Dış Kaynak';
         }
         return '-';
     };
+
+    // [NEW] Helper for Author
+    const getAuthorName = (id: string) => users.find((u: any) => u.id === id)?.name || 'Bilinmeyen';
 
     // Filter only Internal Transfers (Virman) -> Exclude External Purchases
     const transfers = fuelTransfers
@@ -37,7 +39,7 @@ export function FuelTransferList() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Tarih</TableHead>
-                            <TableHead>Kaynak (Depo/Firma)</TableHead>
+                            <TableHead>İşlemi Yapan (Veren)</TableHead>
                             <TableHead></TableHead>
                             <TableHead>Varış (Depo)</TableHead>
                             <TableHead className="text-right">Miktar</TableHead>
@@ -55,7 +57,7 @@ export function FuelTransferList() {
                                 <TableRow key={t.id}>
                                     <TableCell>{format(new Date(t.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                     <TableCell className="font-medium text-slate-700">
-                                        {getEntityName(t.fromType, t.fromId)}
+                                        {getAuthorName(t.createdByUserId)}
                                     </TableCell>
                                     <TableCell>
                                         <ArrowRight className="w-4 h-4 text-slate-400" />

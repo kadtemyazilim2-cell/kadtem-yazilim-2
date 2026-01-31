@@ -79,6 +79,58 @@ export async function createFuelLog(data: Partial<FuelLog>) {
     }
 }
 
+export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
+    try {
+        const existing = await prisma.fuelLog.findUnique({ where: { id } });
+        if (!existing) return { success: false, error: 'Kayıt bulunamadı.' };
+
+        // 1. Revert Old Tank Level if Tank Changed or Amount Changed
+        if (existing.tankId) {
+            await prisma.fuelTank.update({
+                where: { id: existing.tankId },
+                data: { currentLevel: { increment: existing.liters } }
+            });
+        }
+
+        // 2. Update Log
+        const log = await prisma.fuelLog.update({
+            where: { id },
+            data: {
+                vehicleId: data.vehicleId,
+                siteId: data.siteId,
+                tankId: data.tankId,
+                date: data.date ? new Date(data.date) : undefined,
+                liters: data.liters,
+                cost: data.cost,
+                unitPrice: data.unitPrice,
+                mileage: data.mileage,
+                fullTank: data.fullTank,
+                description: data.description,
+                // filledByUserId usually doesn't change or is not allowed to change easily
+            }
+        });
+
+        // 3. Apply New Tank Level
+        if (data.tankId) {
+            await prisma.fuelTank.update({
+                where: { id: data.tankId },
+                data: {
+                    currentLevel: { decrement: data.liters! }
+                }
+            });
+        }
+
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks');
+        revalidatePath('/dashboard/fuel');
+        return { success: true, data: log };
+
+    } catch (error) {
+        console.error('updateFuelLog Error:', error);
+        return { success: false, error: 'Güncelleme yapılamadı.' };
+    }
+}
+
 // [PERFORMANCE] Cached fuel tanks query - CACHE ABORTED FOR DEBUGGING
 
 // [PERFORMANCE] Cached fuel tanks query - CACHE ABORTED FOR DEBUGGING

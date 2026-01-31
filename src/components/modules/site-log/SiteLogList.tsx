@@ -24,7 +24,7 @@ import { useUserSites } from '@/hooks/use-user-access';
 import { createSiteLogEntry, updateSiteLogEntry, deleteSiteLogEntry } from '@/actions/site-log';
 import { toast } from 'sonner';
 
-export function SiteLogList() {
+export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const { siteLogEntries, users } = useAppStore();
     const sites = useUserSites();
     const { user, hasPermission } = useAuth();
@@ -187,167 +187,168 @@ export function SiteLogList() {
             const dateStr = format(new Date(entry.date), 'dd.MM.yyyy', { locale: tr });
             const dayName = format(new Date(entry.date), 'EEEE', { locale: tr });
 
-            // Calculate Page Number (Based on Unique Dates)
-            const siteEntries = siteLogEntries.filter((e: any) => e.siteId === entry.siteId);
+            // Calculate "Entry Page Number" logic (Business Logic)
+            // Filter entries by site first
+            const allSiteEntries = siteLogEntries.filter((e: any) => e.siteId === entry.siteId);
+            const siteEntries = filterSiteId
+                ? allSiteEntries.filter((e: any) => e.siteId === filterSiteId)
+                : allSiteEntries;
+
             const uniqueDates = Array.from(new Set(siteEntries.map((e: any) => e.date))).sort();
             const dateIndex = uniqueDates.indexOf(entry.date);
             const pageNumber = dateIndex !== -1 ? dateIndex + 1 : 1;
-
-            // Fonts & Layout
-            doc.setFontSize(14);
-
-            // 1. Header
-            doc.text("ŞANTİYE GÜNLÜK DEFTERİ", 105, 15, { align: 'center' });
-
-            // 2. Info Box (Top)
-            doc.setLineWidth(0.3);
-            doc.rect(20, 20, 170, 16); // Main Box
-
-            // Horizontal Line inside Info Box
-            doc.line(20, 28, 190, 28);
-
-            // Vertical Line for Page No
-            doc.line(135, 20, 135, 28);
-
-            // Labels & Values - Row 1
-            doc.setFontSize(9);
-            doc.setFont('Roboto', 'bold');
-            doc.text("TARİH ve GÜN", 22, 25);
-
-            doc.setFont('Roboto', 'normal');
-            doc.text(`: ${dateStr} ${dayName}`, 55, 25);
-
-            doc.setFont('Roboto', 'bold');
-            doc.text("SAYFA NO", 137, 25);
-            doc.setFont('Roboto', 'normal');
-            doc.text(`: ${pageNumber}`, 155, 25);
-
-            // Row 2
-            // Consolidate Weather? Use the current entry's weather or join them?
-            // User entered weather for *this* entry. If multiple people enter logs, weather might differ or be same.
-            // Let's use the weather from the entry triggering the download, or join unique weathers.
             const dayEntries = siteEntries.filter((e: any) => e.date === entry.date);
-            // Sort by creation or something consistent. Let's assume array order is roughly creation order.
 
-            const uniqueWeather = Array.from(new Set(dayEntries.map((e: any) => e.weather).filter(Boolean)));
-            const weatherStr = uniqueWeather.length > 0 ? uniqueWeather.join(', ') : '-';
+            // Draw Template Function
+            const drawTemplate = (currentSheet: number) => {
+                doc.setFontSize(14);
+                // 1. Header
+                doc.setFont('Roboto', 'bold');
+                doc.text("ŞANTİYE GÜNLÜK DEFTERİ", 105, 15, { align: 'center' });
 
-            doc.setFont('Roboto', 'bold');
-            doc.text("HAVA DURUMU", 22, 33);
+                // 2. Info Box (Top)
+                doc.setLineWidth(0.3);
+                doc.rect(20, 20, 170, 16); // Main Box
+                doc.line(20, 28, 190, 28); // Horizontal Line
+                doc.line(135, 20, 135, 28); // Vertical Line for Page No
 
-            doc.setFont('Roboto', 'normal');
-            doc.text(`: ${weatherStr}`, 55, 33);
+                // Labels & Values - Row 1
+                doc.setFontSize(9);
+                doc.setFont('Roboto', 'bold');
+                doc.text("TARİH ve GÜN", 22, 25);
 
-            // 3. Content Area
+                doc.setFont('Roboto', 'normal');
+                doc.text(`: ${dateStr} ${dayName}`, 55, 25);
+
+                doc.setFont('Roboto', 'bold');
+                doc.text("SAYFA NO", 137, 25);
+                doc.setFont('Roboto', 'normal');
+                doc.text(`: ${pageNumber} (${currentSheet})`, 155, 25);
+
+                // Row 2
+                const uniqueWeather = Array.from(new Set(dayEntries.map((e: any) => e.weather).filter(Boolean)));
+                const weatherStr = uniqueWeather.length > 0 ? uniqueWeather.join(', ') : '-';
+
+                doc.setFont('Roboto', 'bold');
+                doc.text("HAVA DURUMU", 22, 33);
+
+                doc.setFont('Roboto', 'normal');
+                doc.text(`: ${weatherStr}`, 55, 33);
+
+                // 3. Content Area Frame
+                const contentBoxTop = 36;
+                const contentBoxHeight = 200;
+                doc.rect(20, contentBoxTop, 170, contentBoxHeight); // Main Content Box Frame
+
+                // DRAW LINES (Ruled Paper Effect)
+                const lineHeight = 7; // Distance between lines in mm
+                const startLineY = contentBoxTop + lineHeight;
+                const endLineY = contentBoxTop + contentBoxHeight;
+
+                doc.setDrawColor(200, 200, 200); // Light gray for lines
+                for (let y = startLineY; y < endLineY; y += lineHeight) {
+                    doc.line(20, y, 190, y);
+                }
+                doc.setDrawColor(0, 0, 0); // Reset to black
+
+                // 4. Footer (Signatures)
+                const footerY = contentBoxTop + contentBoxHeight; // 236
+                const footerHeight = 30;
+
+                doc.rect(20, footerY, 170, footerHeight); // Footer Container
+
+                const boxWidth = 170 / 3;
+
+                // Vertical dividers
+                doc.line(20 + boxWidth, footerY, 20 + boxWidth, footerY + footerHeight);
+                doc.line(20 + boxWidth * 2, footerY, 20 + boxWidth * 2, footerY + footerHeight);
+
+                doc.setFont('Roboto', 'bold');
+                doc.setFontSize(9);
+                doc.setTextColor(0, 0, 0); // Reset black
+
+                // Titles
+                doc.text("ŞANTİYE ŞEFİ", 20 + (boxWidth / 2), footerY + 6, { align: 'center' });
+                doc.text("MÜTEAHHİT", 20 + boxWidth + (boxWidth / 2), footerY + 6, { align: 'center' });
+                doc.text("KONTROL MÜHENDİSİ", 20 + (boxWidth * 2) + (boxWidth / 2), footerY + 6, { align: 'center' });
+            };
+
+            // Start Logic
+            let currentSheet = 1;
+            drawTemplate(currentSheet);
+
             const contentBoxTop = 36;
             const contentBoxHeight = 200;
-            doc.rect(20, contentBoxTop, 170, contentBoxHeight); // Main Content Box Frame
-
-            // DRAW LINES (Ruled Paper Effect)
-            const lineHeight = 7; // Distance between lines in mm
-            const startLineY = contentBoxTop + lineHeight;
-            const endLineY = contentBoxTop + contentBoxHeight;
-
-            doc.setDrawColor(200, 200, 200); // Light gray for lines
-            for (let y = startLineY; y < endLineY; y += lineHeight) {
-                doc.line(20, y, 190, y);
-            }
-            doc.setDrawColor(0, 0, 0); // Reset to black
-
-            // Content Text Iteration
+            const endContentY = contentBoxTop + contentBoxHeight;
             let currentY = contentBoxTop + 6;
 
             dayEntries.forEach((dayEntry: any, index: any) => {
                 const bullet = "• ";
                 const rawContent = dayEntry.content || '';
-                // Ensure content starts with bullet
                 const contentText = bullet + rawContent;
 
                 const splitText = doc.splitTextToSize(contentText, 165);
+                const lineSpacing = 4.5;
 
                 doc.setFont('Roboto', 'normal');
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
 
-                const lineHeight = doc.getLineHeight() * 0.3527; // pt to mm approx
-                const lineSpacing = 4.5;
+                for (let i = 0; i < splitText.length; i++) {
+                    const line = splitText[i];
+                    if (currentY + lineSpacing > endContentY - 2) {
+                        doc.addPage();
+                        currentSheet++;
+                        drawTemplate(currentSheet);
+                        currentY = contentBoxTop + 6;
+                    }
+                    doc.text(line, 22, currentY);
+                    currentY += lineSpacing;
+                }
 
-                doc.text(splitText, 22, currentY, { lineHeightFactor: 1.15 });
-
-                // Calculate end position of the last line
-                const lastLine = splitText[splitText.length - 1] || '';
-                const lastLineWidth = doc.getTextWidth(lastLine);
-
-                // Author Style
-                doc.setFont('Roboto', 'normal');
-                doc.setFontSize(8);
-                doc.setTextColor(150, 150, 150); // Gray
-
+                // Author
                 const author = users.find((u: any) => u.id === dayEntry.authorId);
                 const authorName = author ? author.name : 'Bilinmeyen Kullanıcı';
                 const authorStr = ` - ${authorName}`;
 
+                const lastLine = splitText[splitText.length - 1] || '';
+                const lastLineWidth = doc.getTextWidth(lastLine);
                 const authorWidth = doc.getTextWidth(authorStr);
 
-                // 22 (Left) + 170 (Width) = 192 (Right Boundary). Let's say 190 margin.
-                let authorX = 22 + lastLineWidth + 1;
-                let authorY = currentY + (splitText.length - 1) * lineSpacing;
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
 
-                // Check overflow
+                let authorX = 22 + lastLineWidth + 1;
+                let authorY = currentY - lineSpacing;
+
                 if (authorX + authorWidth > 190) {
-                    authorX = 22; // Wrap to next line, indented? No, just start of line
-                    authorY += lineSpacing;
+                    authorX = 22;
+                    if (currentY + lineSpacing > endContentY - 2) {
+                        doc.addPage();
+                        currentSheet++;
+                        drawTemplate(currentSheet);
+                        currentY = contentBoxTop + 6;
+                        authorY = currentY;
+                        currentY += lineSpacing;
+                    } else {
+                        authorY = currentY;
+                        currentY += lineSpacing;
+                    }
                 }
 
                 doc.text(authorStr, authorX, authorY);
+                doc.setTextColor(0, 0, 0);
 
-                // Update Y for next entry
-                // If we wrapped author, we added a line.
-                // Also splitText.length is number of lines of content.
-                // Logic: currentY is start. (splitText.length - 1) * lineSpacing is Y of last content line.
-                // If we stay on same line, total height is determined by content.
-                // If we wrap, we add one line spacing.
-
-                let totalHeight = (splitText.length - 1) * lineSpacing;
-                if (authorX === 22) { // We wrapped
-                    totalHeight += lineSpacing;
-                }
-
-                currentY += totalHeight + 6; // +6 for spacing between entries (paragraph gap)
-
-                // Separator if not last
                 if (index < dayEntries.length - 1) {
-                    // Maybe a small dashed line? Or just space. 
-                    // User said "alt alta", simple spacing is usually enough.
-                    // Let's check boundary
-                    if (currentY > endLineY - 10) {
-                        // Overflow warning or new page? 
-                        // For now, no multi-page logic requested, just stop or let overflow (hidden by clip usually or flows out).
+                    currentY += 2;
+                    if (currentY > endContentY - 4) {
+                        doc.addPage();
+                        currentSheet++;
+                        drawTemplate(currentSheet);
+                        currentY = contentBoxTop + 6;
                     }
                 }
             });
-
-
-            // 4. Footer (Signatures)
-            const footerY = contentBoxTop + contentBoxHeight; // 236
-            const footerHeight = 30;
-
-            doc.rect(20, footerY, 170, footerHeight); // Footer Container
-
-            const boxWidth = 170 / 3;
-
-            // Vertical dividers
-            doc.line(20 + boxWidth, footerY, 20 + boxWidth, footerY + footerHeight);
-            doc.line(20 + boxWidth * 2, footerY, 20 + boxWidth * 2, footerY + footerHeight);
-
-            doc.setFont('Roboto', 'bold');
-            doc.setFontSize(9);
-            doc.setTextColor(0, 0, 0); // Reset black
-
-            // Titles
-            doc.text("ŞANTİYE ŞEFİ", 20 + (boxWidth / 2), footerY + 6, { align: 'center' });
-            doc.text("MÜTEAHHİT", 20 + boxWidth + (boxWidth / 2), footerY + 6, { align: 'center' });
-            doc.text("KONTROL MÜHENDİSİ", 20 + (boxWidth * 2) + (boxWidth / 2), footerY + 6, { align: 'center' });
 
             if (isPreview) {
                 window.open(doc.output('bloburl'), '_blank');
@@ -488,99 +489,101 @@ export function SiteLogList() {
                         {siteLogEntries.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">Kayıt bulunamadı.</div>
                         ) : (
-                            Object.values(siteLogEntries.reduce((acc: any, entry: any) => {
-                                const key = `${entry.siteId}_${entry.date}`;
-                                if (!acc[key]) {
-                                    acc[key] = {
-                                        ...entry,
-                                        items: []
-                                    };
-                                }
-                                acc[key].items.push(entry);
-                                return acc;
-                            }, {})).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((group: any) => (
-                                <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="font-semibold text-blue-900 flex items-center gap-2">
-                                                <MapPin className="w-4 h-4 text-blue-500" />
-                                                {getSiteName(group.siteId)}
-                                            </div>
-                                            <span className="text-sm text-slate-400">|</span>
-                                            <div className="text-sm text-slate-600 flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-slate-400" />
-                                                {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
-                                            </div>
-                                            {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
-                                            {(() => {
-                                                const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
-                                                if (uniqueWeather.length > 0) {
-                                                    return (
-                                                        <>
-                                                            <span className="text-sm text-slate-400">|</span>
-                                                            <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
-                                                        </>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
-
-                                        {/* Action Buttons for the Whole Group (PDF) */}
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-slate-600 hover:text-blue-600"
-                                                onClick={() => handleDownloadPDF(group, true)}
-                                                title="Önizle"
-                                                disabled={isGeneratingPDF}
-                                            >
-                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                                                Önizle
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-slate-600 hover:text-green-600"
-                                                onClick={() => handleDownloadPDF(group, false)}
-                                                title="PDF İndir"
-                                                disabled={isGeneratingPDF}
-                                            >
-                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
-                                                PDF İndir
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {/* Scrollable Content Area if too long, or just stacking */}
-                                    <div className="space-y-4">
-                                        {group.items.map((entry: any) => (
-                                            <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
-                                                <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
-                                                <div className="mt-2 flex justify-between items-center">
-                                                    <div className="text-xs text-slate-400 flex items-center gap-1">
-                                                        <UserIcon className="w-3 h-3" />
-                                                        {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
-                                                    </div>
-
-                                                    {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
-                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
-                                                                <Pencil className="w-3 h-3" />
-                                                            </Button>
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
-                                                                <Trash2 className="w-3 h-3" />
-                                                            </Button>
-                                                        </div>
-                                                    )}
+                            Object.values(siteLogEntries
+                                .filter((e: any) => !filterSiteId || e.siteId === filterSiteId) // [NEW] Filter
+                                .reduce((acc: any, entry: any) => {
+                                    const key = `${entry.siteId}_${entry.date}`;
+                                    if (!acc[key]) {
+                                        acc[key] = {
+                                            ...entry,
+                                            items: []
+                                        };
+                                    }
+                                    acc[key].items.push(entry);
+                                    return acc;
+                                }, {})).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((group: any) => (
+                                    <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="font-semibold text-blue-900 flex items-center gap-2">
+                                                    <MapPin className="w-4 h-4 text-blue-500" />
+                                                    {getSiteName(group.siteId)}
                                                 </div>
+                                                <span className="text-sm text-slate-400">|</span>
+                                                <div className="text-sm text-slate-600 flex items-center gap-2">
+                                                    <Calendar className="w-4 h-4 text-slate-400" />
+                                                    {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
+                                                </div>
+                                                {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
+                                                {(() => {
+                                                    const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
+                                                    if (uniqueWeather.length > 0) {
+                                                        return (
+                                                            <>
+                                                                <span className="text-sm text-slate-400">|</span>
+                                                                <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
+                                                            </>
+                                                        );
+                                                    }
+                                                    return null;
+                                                })()}
                                             </div>
-                                        ))}
+
+                                            {/* Action Buttons for the Whole Group (PDF) */}
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-slate-600 hover:text-blue-600"
+                                                    onClick={() => handleDownloadPDF(group, true)}
+                                                    title="Önizle"
+                                                    disabled={isGeneratingPDF}
+                                                >
+                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                                                    Önizle
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-slate-600 hover:text-green-600"
+                                                    onClick={() => handleDownloadPDF(group, false)}
+                                                    title="PDF İndir"
+                                                    disabled={isGeneratingPDF}
+                                                >
+                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
+                                                    PDF İndir
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* Scrollable Content Area if too long, or just stacking */}
+                                        <div className="space-y-4">
+                                            {group.items.map((entry: any) => (
+                                                <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
+                                                    <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
+                                                    <div className="mt-2 flex justify-between items-center">
+                                                        <div className="text-xs text-slate-400 flex items-center gap-1">
+                                                            <UserIcon className="w-3 h-3" />
+                                                            {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
+                                                        </div>
+
+                                                        {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
+                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
+                                                                    <Pencil className="w-3 h-3" />
+                                                                </Button>
+                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
+                                                                    <Trash2 className="w-3 h-3" />
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                ))
                         )}
                     </div>
                 </CardContent>

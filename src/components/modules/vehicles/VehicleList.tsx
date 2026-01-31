@@ -449,47 +449,14 @@ export function VehicleList() {
     };
 
     const exportExcel = () => {
-        // 1. Group Data by Site
+        // 1. Group Data by Site (Using filteredVehicles directly)
         const grouped: Record<string, typeof vehicles> = {};
         const noSite: typeof vehicles = [];
 
-        // Helper to check filters excluding status
-        const matchesFiltersExceptStatus = (vehicle: any) => {
-            if (!canViewOwned && vehicle.ownership === 'OWNED') return false;
+        // Logic: filteredVehicles already respects ALL filters including status and search.
+        // We just need to group them.
 
-            if (searchTerm) {
-                const lowerSearch = normalizeSearchText(searchTerm);
-                const searchFields = [
-                    vehicle.plate, vehicle.brand, vehicle.model, getCompanyName(vehicle),
-                    vehicle.year.toString(), typeMap[vehicle.type] || vehicle.type,
-                    statusMap[vehicle.status] || vehicle.status,
-                    vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
-                    vehicle.monthlyRentalFee ? vehicle.monthlyRentalFee.toString() : ''
-                ];
-                if (!searchFields.some(field => normalizeSearchText(field).includes(lowerSearch))) return false;
-            }
-
-            if (filters.company.length > 0 && !filters.company.includes(getCompanyName(vehicle))) return false;
-            if (filters.ownership.length > 0 && !filters.ownership.includes(vehicle.ownership)) return false;
-            if (filters.plate.length > 0 && !filters.plate.includes(vehicle.plate)) return false;
-            if (filters.brand.length > 0 && !filters.brand.includes(vehicle.brand)) return false;
-            if (filters.model.length > 0 && !filters.model.includes(vehicle.model)) return false;
-            if (filters.year.length > 0 && !filters.year.includes(vehicle.year.toString())) return false;
-            if (filters.type.length > 0 && !filters.type.includes(vehicle.type)) return false;
-            if (filters.site.length > 0) {
-                const vSites = vehicle.assignedSiteIds && vehicle.assignedSiteIds.length > 0
-                    ? vehicle.assignedSiteIds
-                    : (vehicle.assignedSiteId ? [vehicle.assignedSiteId] : []);
-                if (!vSites.some((sid: string) => filters.site.includes(sid))) return false;
-            }
-            return true;
-        };
-
-        const allMatchingVehicles = sortedVehicles.filter(matchesFiltersExceptStatus);
-        const activeList = allMatchingVehicles.filter(v => v.status !== 'PASSIVE');
-        const passiveList = allMatchingVehicles.filter(v => v.status === 'PASSIVE');
-
-        activeList.forEach(v => {
+        filteredVehicles.forEach(v => {
             // Check assigned sites
             if (v.assignedSiteIds && v.assignedSiteIds.length > 0) {
                 v.assignedSiteIds.forEach((sid: string) => {
@@ -507,12 +474,9 @@ export function VehicleList() {
             }
         });
 
-        // Prepare "Merkez" group explicitly if needed, or just handle noSite
-        // Let's treat noSite as a group named "Merkez / Atanmamış"
-
         const dataRows: any[] = [];
         const merges: any[] = [];
-        let currentRow = 1; // Start after header (0-indexed header is row 0, data starts row 1)
+        let currentRow = 1; // Start after header
 
         // Headers
         const headers = ['Şantiye', 'Araç Sayısı', 'Sıra', 'Plaka', 'Firma', 'Mülkiyet', 'Marka', 'Model', 'Yıl', 'Tip', 'KM/Saat', 'Durum', 'Sigorta Bitiş', 'Kasko Bitiş', 'Muayene Bitiş'];
@@ -525,79 +489,54 @@ export function VehicleList() {
             const startRow = currentRow;
             groupVehicles.forEach((v, idx) => {
                 dataRows.push([
-                    groupName,                      // Col 0: Site Name (will be merged)
-                    groupVehicles.length,           // Col 1: Count (will be merged)
-                    idx + 1,                        // Col 2: Index
-                    v.plate,                        // Col 3: Plate
-                    getCompanyName(v),              // Col 4: Company
-                    v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal', // Col 5: Ownership
-                    v.brand,                        // Col 6
-                    v.model,                        // Col 7
-                    v.year,                         // Col 8
-                    typeMap[v.type] || v.type,      // Col 9
-                    v.currentKm,                    // Col 10
-                    statusMap[v.status] || v.status, // Col 11
-                    formatDateSafe(v.insuranceExpiry), // Col 12
-                    formatDateSafe(v.kaskoExpiry),     // Col 13
-                    formatDateSafe(v.inspectionExpiry) // Col 14
+                    groupName,
+                    groupVehicles.length,
+                    idx + 1,
+                    v.plate,
+                    getCompanyName(v),
+                    v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
+                    v.brand,
+                    v.model,
+                    v.year,
+                    typeMap[v.type] || v.type,
+                    v.currentKm,
+                    statusMap[v.status] || v.status,
+                    formatDateSafe(v.insuranceExpiry),
+                    formatDateSafe(v.kaskoExpiry),
+                    formatDateSafe(v.inspectionExpiry)
                 ]);
                 currentRow++;
             });
 
-            // Add merges if more than 1 row (or even 1 row to be consistent)
-            // Merge Site Name (Col 0)
+            // Add merges
             merges.push({ s: { r: startRow, c: 0 }, e: { r: currentRow - 1, c: 0 } });
-            // Merge Count (Col 1)
             merges.push({ s: { r: startRow, c: 1 }, e: { r: currentRow - 1, c: 1 } });
         };
 
-        // 2. Process Sites (Active)
+        // 2. Process Sites (Active or Passive depending on filter)
+        // We iterate sites to keep order, but check if they exist in 'grouped'
         sites.forEach((site: any) => {
             if (grouped[site.id]) {
                 processGroup(site.name, grouped[site.id]);
             }
         });
 
-        // 3. Process No Site / Center (Active)
+        // 3. Process No Site / Center
         if (noSite.length > 0) {
             processGroup('Merkez / Atanmamış', noSite);
         }
 
-        // 4. Process Passive Vehicles (Separate Group)
-        if (passiveList.length > 0) {
-            // Add a separator row or just process as a group
-            processGroup('PASİF ARAÇLAR', passiveList);
-        }
-
-        // 4. Create Sheet
         const ws = XLSX.utils.aoa_to_sheet(dataRows);
-
-        // Apply Merges
         ws['!merges'] = merges;
-
-        // Apply rough column widths
         ws['!cols'] = [
-            { wch: 20 }, // Site
-            { wch: 10 }, // Count
-            { wch: 5 },  // Index
-            { wch: 15 }, // Plate
-            { wch: 20 }, // Company
-            { wch: 10 }, // Ownership
-            { wch: 15 }, // Brand
-            { wch: 15 }, // Model
-            { wch: 6 },  // Year
-            { wch: 15 }, // Type
-            { wch: 10 }, // KM
-            { wch: 10 }, // Status
-            { wch: 12 }, // Ins
-            { wch: 12 }, // Kasko
-            { wch: 12 }  // Insp
+            { wch: 20 }, { wch: 10 }, { wch: 5 }, { wch: 15 }, { wch: 20 },
+            { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 6 }, { wch: 15 },
+            { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
         ];
 
-        // 5. Save
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Araç Listesi");
-        XLSX.writeFile(wb, `arac-listesi-gruplu-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        XLSX.writeFile(wb, `arac-listesi-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
     };
 
     const exportPDF = () => {
@@ -606,54 +545,14 @@ export function VehicleList() {
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
         doc.setFont('Roboto');
 
-        // [FIX] Title at the top of the first page
         doc.setFontSize(16);
         doc.text("Araç Listesi", 14, 15);
-        doc.setFontSize(10); // Reset for table
+        doc.setFontSize(10);
 
-        // Helper to check filters excluding status
-        const matchesFiltersExceptStatus = (vehicle: any) => {
-            if (!canViewOwned && vehicle.ownership === 'OWNED') return false;
-
-            // Search term check
-            if (searchTerm) {
-                const lowerSearch = normalizeSearchText(searchTerm);
-                const searchFields = [
-                    vehicle.plate, vehicle.brand, vehicle.model, getCompanyName(vehicle),
-                    vehicle.year.toString(), typeMap[vehicle.type] || vehicle.type,
-                    statusMap[vehicle.status] || vehicle.status,
-                    vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
-                    vehicle.monthlyRentalFee ? vehicle.monthlyRentalFee.toString() : ''
-                ];
-                if (!searchFields.some(field => normalizeSearchText(field).includes(lowerSearch))) return false;
-            }
-
-            if (filters.company.length > 0 && !filters.company.includes(getCompanyName(vehicle))) return false;
-            if (filters.ownership.length > 0 && !filters.ownership.includes(vehicle.ownership)) return false;
-            if (filters.plate.length > 0 && !filters.plate.includes(vehicle.plate)) return false;
-            if (filters.brand.length > 0 && !filters.brand.includes(vehicle.brand)) return false;
-            if (filters.model.length > 0 && !filters.model.includes(vehicle.model)) return false;
-            if (filters.year.length > 0 && !filters.year.includes(vehicle.year.toString())) return false;
-            if (filters.type.length > 0 && !filters.type.includes(vehicle.type)) return false;
-            // Site Filter
-            if (filters.site.length > 0) {
-                const vSites = vehicle.assignedSiteIds && vehicle.assignedSiteIds.length > 0
-                    ? vehicle.assignedSiteIds
-                    : (vehicle.assignedSiteId ? [vehicle.assignedSiteId] : []);
-                if (!vSites.some((sid: string) => filters.site.includes(sid))) return false;
-            }
-            return true;
-        };
-
-        // 1. Separate Active (Non-Passive) and Passive
-        const allMatchingVehicles = sortedVehicles.filter(matchesFiltersExceptStatus);
-        const activeList = allMatchingVehicles.filter(v => v.status !== 'PASSIVE');
-        const passiveList = allMatchingVehicles.filter(v => v.status === 'PASSIVE');
-
+        // Use filteredVehicles directly to respect all filters (including Active/Passive)
         const tableColumn = ["Plaka", "Firma", "Mülkiyet", "Marka", "Model", "Yıl", "Tip", "Durum"];
 
-        // Render Active Table
-        const activeRows = activeList.map(v => [
+        const rows = filteredVehicles.map(v => [
             v.plate,
             getCompanyName(v),
             v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
@@ -666,46 +565,12 @@ export function VehicleList() {
 
         autoTable(doc, {
             head: [tableColumn],
-            body: activeRows,
+            body: rows,
             styles: { font: 'Roboto', fontSize: 8 },
             headStyles: { fillColor: [41, 128, 185] },
             startY: 20,
             margin: { top: 20 }
         });
-
-        // Render Passive Table (if any)
-        if (passiveList.length > 0) {
-            const finalY = (doc as any).lastAutoTable.finalY + 15;
-
-            // Check if we need a new page
-            if (finalY > 250) {
-                doc.addPage();
-                doc.text("Pasif Araçlar", 14, 15);
-                // Reset startY for new page
-            } else {
-                doc.text("Pasif Araçlar", 14, finalY - 5);
-            }
-
-            const passiveRows = passiveList.map(v => [
-                v.plate,
-                getCompanyName(v),
-                v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
-                v.brand,
-                v.model,
-                v.year,
-                typeMap[v.type] || v.type,
-                statusMap[v.status] || v.status
-            ]);
-
-            autoTable(doc, {
-                head: [tableColumn],
-                body: passiveRows,
-                styles: { font: 'Roboto', fontSize: 8 },
-                headStyles: { fillColor: [192, 57, 43] }, // Red header for passive
-                startY: finalY > 250 ? 20 : finalY,
-                margin: { top: 20 }
-            });
-        }
 
         doc.save(`arac-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };

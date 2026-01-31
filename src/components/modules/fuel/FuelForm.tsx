@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
 
-export function FuelForm() {
-    const [open, setOpen] = useState(false);
-    const { addFuelLog, vehicles, sites, fuelTanks } = useAppStore();
+// [NEW] Props for Editing
+interface FuelFormProps {
+    initialData?: any;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    onSuccess?: () => void;
+}
+
+export function FuelForm({ initialData, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess }: FuelFormProps) {
+    const [internalOpen, setInternalOpen] = useState(false);
+    const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+    const setOpen = externalOnOpenChange || setInternalOpen;
+
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { addFuelLog, updateFuelLog, vehicles, sites, fuelTanks } = useAppStore(); // [FIX] Added updateFuelLog
     const { user } = useAuth();
+
+    // [NEW] Permissions
+    // As per previous pattern, we might need to check if user can edit
+    // const canEdit = hasPermission('fuel', 'EDIT');
 
     // Filter vehicles by company if needed, but for now show all active
     const activeVehicles = vehicles.filter((v: any) => v.status === 'ACTIVE');
@@ -31,6 +47,40 @@ export function FuelForm() {
         mileage: 0,
         description: '', // [NEW] Notes
     });
+
+    // [NEW] Initialize from initialData
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                vehicleId: initialData.vehicleId,
+                siteId: initialData.siteId,
+                tankId: initialData.tankId || '',
+                date: initialData.date, // ISO string
+                liters: initialData.liters,
+                unitPrice: initialData.unitPrice || 0,
+                cost: initialData.cost || 0,
+                mileage: initialData.mileage,
+                description: initialData.description || '',
+            });
+        } else if (isOpen) {
+            // Reset if opening new
+            if (!externalOpen) resetForm();
+        }
+    }, [initialData, isOpen]);
+
+    const resetForm = () => {
+        setFormData({
+            vehicleId: '',
+            siteId: '',
+            tankId: '',
+            date: new Date().toISOString(),
+            liters: 0,
+            unitPrice: 0,
+            cost: 0,
+            mileage: 0,
+            description: '',
+        });
+    };
 
     // [NEW] Filter vehicles based on selected site
     const filteredVehicles = vehicles.filter((v: any) => {
@@ -54,7 +104,7 @@ export function FuelForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) return;
+        if (!user || isSubmitting) return;
 
         // [NEW] Date Restriction Check
         if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
@@ -70,8 +120,9 @@ export function FuelForm() {
             }
         }
 
+        setIsSubmitting(true);
         try {
-            const result = await import('@/actions/fuel').then(mod => mod.createFuelLog({
+            const payload = {
                 ...formData,
                 liters: Number(formData.liters),
                 unitPrice: 0,
@@ -79,43 +130,73 @@ export function FuelForm() {
                 mileage: Number(formData.mileage),
                 fullTank: true,
                 filledByUserId: user.id
-            }));
+            };
 
-            if (result.success && result.data) {
-                addFuelLog(result.data as any);
-                setOpen(false);
-                setFormData({
-                    vehicleId: '',
-                    siteId: '',
-                    tankId: '',
-                    date: new Date().toISOString(),
-                    liters: 0,
-                    unitPrice: 0,
-                    cost: 0,
-                    mileage: 0,
-                    description: '',
-                });
+            if (initialData) {
+                // UPDATE
+                const updateAction = await import('@/actions/fuel').then(mod => mod.updateFuelLog);
+
+                // [FIX] Fix Date Type Mismatch (Action expects Date object or string that matches Prisma input)
+                // Prisma Client update expects Date object for DateTime fields.
+                // Our payload has .date as ISO string.
+                const updatePayload = {
+                    ...payload,
+                    date: new Date(payload.date as string) // ensure Date object
+                };
+
+                const result = await updateAction(initialData.id, updatePayload as any); // Cast as any to bypass strict Partial<FuelLog> mismatch if necessary
+
+                if (result.success && result.data) {
+                    // Update Store
+                    if (updateFuelLog) updateFuelLog(initialData.id, result.data as any);
+                    // [FIX] Use window.location.reload() but cast to ignore TS if needed, or just standard
+                    // window.location.reload(); 
+                    // Actually, let's just close. Store update usually enough for UI.
+
+                    setOpen(false);
+                    if (onSuccess) onSuccess();
+                } else {
+                    alert(result.error || 'Güncelleme başarısız.');
+                }
             } else {
-                alert(result.error || 'Kayıt başarısız.');
+                // CREATE
+                const createPayload = {
+                    ...payload,
+                    date: new Date(payload.date as string)
+                };
+                const result = await import('@/actions/fuel').then(mod => mod.createFuelLog(createPayload as any));
+
+                if (result.success && result.data) {
+                    addFuelLog(result.data as any);
+                    setOpen(false);
+                    resetForm();
+                    if (onSuccess) onSuccess();
+                } else {
+                    alert(result.error || 'Kayıt başarısız.');
+                }
             }
         } catch (e) {
             console.error(e);
             alert('Bir hata oluştu.');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                    <Plus className="w-4 h-4 mr-2" /> Yakıt Girişi
-                </Button>
-            </DialogTrigger>
+            {!initialData && (
+                <DialogTrigger asChild>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="w-4 h-4 mr-2" /> Yakıt Girişi
+                    </Button>
+                </DialogTrigger>
+            )}
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Yakıt Girişi</DialogTitle>
+                    <DialogTitle>{initialData ? 'Yakıt Kaydını Düzenle' : 'Yakıt Girişi'}</DialogTitle>
                     <DialogDescription>
-                        Araç için yakıt alımını kaydedin.
+                        {initialData ? 'Mevcut yakıt kaydını güncelleyin.' : 'Araç için yakıt alımını kaydedin.'}
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -196,7 +277,9 @@ export function FuelForm() {
                     </div>
 
                     <DialogFooter>
-                        <Button type="submit" disabled={!formData.tankId}>Kaydet</Button>
+                        <Button type="submit" disabled={!formData.tankId || isSubmitting}>
+                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
