@@ -1043,6 +1043,7 @@ export function VehicleList() {
                                     <TableBody>
                                         {sortedVehicles.filter(v =>
                                             v.ownership === 'OWNED' &&
+                                            v.status === 'ACTIVE' && // [NEW] Only show Active vehicles
                                             !v.rentalCompanyName && // Exclude vehicles assigned to Rental Companies
                                             companies.some(c => c.id === v.companyId) // [NEW] Exclude vehicles belonging to non-managed companies
                                         ).map((vehicle) => (
