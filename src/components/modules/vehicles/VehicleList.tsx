@@ -1019,6 +1019,7 @@ export function VehicleList() {
                                             <TableHead>Trafik Sigortası Bitiş</TableHead>
                                             <TableHead>Kasko Bitiş</TableHead>
                                             <TableHead>Muayene Bitiş</TableHead>
+                                            <TableHead>Taşıt Kartı Bitiş</TableHead>
                                             <TableHead className="text-right">Durum</TableHead>
                                             <TableHead className="w-[100px]"></TableHead>
                                         </TableRow>
@@ -1137,6 +1138,59 @@ export function VehicleList() {
                                                         <div className="flex flex-col gap-1">
                                                             <span className="font-medium text-slate-700">{formatDateSafe(vehicle.inspectionExpiry)}</span>
                                                             {getExpiryStatus(vehicle.inspectionExpiry)}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {canEditInsurance ? (
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <div className="flex flex-col gap-1 cursor-pointer hover:bg-slate-100 p-1 rounded transition-colors group">
+                                                                    <span className="font-medium text-slate-700 flex items-center gap-1 group-hover:text-blue-600">
+                                                                        {formatDateSafe(vehicle.vehicleCardExpiry)}
+                                                                        <CalendarIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                    </span>
+                                                                    {getExpiryStatus(vehicle.vehicleCardExpiry)}
+                                                                </div>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-auto p-0" align="start">
+                                                                <div className="p-3 border-b bg-slate-50">
+                                                                    <p className="text-sm font-medium">Taşıt Kartı Tarihini Güncelle</p>
+                                                                    <p className="text-xs text-muted-foreground">{vehicle.plate}</p>
+                                                                </div>
+                                                                <div className="p-3">
+                                                                    <form
+                                                                        onSubmit={(e) => {
+                                                                            e.preventDefault();
+                                                                            const form = e.target as HTMLFormElement;
+                                                                            const dateInput = form.elements.namedItem('date') as HTMLInputElement;
+                                                                            if (dateInput.value) {
+                                                                                updateVehicle(vehicle.id, { vehicleCardExpiry: new Date(dateInput.value).toISOString() });
+                                                                                toast.success('Taşıt kartı tarihi güncellendi.');
+                                                                            }
+                                                                        }}
+                                                                        className="flex flex-col gap-2"
+                                                                    >
+                                                                        <Input
+                                                                            name="date"
+                                                                            type="date"
+                                                                            defaultValue={(() => {
+                                                                                if (!vehicle.vehicleCardExpiry) return format(new Date(), 'yyyy-MM-dd');
+                                                                                return format(parseISO(vehicle.vehicleCardExpiry), 'yyyy-MM-dd');
+                                                                            })()}
+                                                                            className="w-full"
+                                                                        />
+                                                                        <Button size="sm" type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                                                            Kaydet
+                                                                        </Button>
+                                                                    </form>
+                                                                </div>
+                                                            </PopoverContent>
+                                                        </Popover>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className="font-medium text-slate-700">{formatDateSafe(vehicle.vehicleCardExpiry)}</span>
+                                                            {getExpiryStatus(vehicle.vehicleCardExpiry)}
                                                         </div>
                                                     )}
                                                 </TableCell>

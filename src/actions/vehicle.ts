@@ -61,6 +61,7 @@ export async function createVehicle(data: Partial<Vehicle>) {
                 // Optional fields
                 insuranceExpiry: data.insuranceExpiry,
                 kaskoExpiry: data.kaskoExpiry,
+                vehicleCardExpiry: data.vehicleCardExpiry,
                 assignedSiteId: data.assignedSiteId || null,
                 companyId: data.companyId!, // Checked above
 

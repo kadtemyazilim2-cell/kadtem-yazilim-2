@@ -114,6 +114,7 @@ export interface Vehicle {
   kaskoExpiry: string; // ISO Date
   kaskoStartDate?: string; // [NEW] ISO Date
   inspectionExpiry?: string; // [NEW] Muayene Bitiş Tarihi
+  vehicleCardExpiry?: string; // [NEW] Taşıt Kartı Bitiş Tarihi
   insuranceAgency?: string; // [MODIFIED] Acente (Aracı)
   insuranceCompany?: string; // [NEW] Sigorta Firması (Sağlayıcı)
   kaskoAgency?: string; // [MODIFIED] Kasko Acentesi (Aracı)
