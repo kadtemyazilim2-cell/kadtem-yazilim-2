@@ -11,17 +11,12 @@ const getVehiclesFromDb = unstable_cache(
             orderBy: { plate: 'asc' },
             include: {
                 company: true,
-                async() => {
-    return await prisma.vehicle.findMany({
-        orderBy: { plate: 'asc' },
-        include: {
-            company: true,
-            assignedSite: true,
-            assignedSites: { select: { id: true } }
-        }
-    });
-},
-['get-vehicles-data'],
+                assignedSite: true,
+                assignedSites: { select: { id: true } }
+            }
+        });
+    },
+    ['get-vehicles-data'],
     { tags: ['vehicles'], revalidate: 3600 }
 );
 
