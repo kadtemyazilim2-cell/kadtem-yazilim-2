@@ -17,7 +17,7 @@ const getVehiclesFromDb = unstable_cache(
         include: {
             company: true,
             assignedSite: true,
-            assignedSites: { select: { id: true } } // [NEW] Fetch relation IDs
+            assignedSites: { select: { id: true } }
         }
     });
 },
@@ -29,9 +29,9 @@ export async function getVehicles() {
     try {
         const vehicles = await getVehiclesFromDb();
         // Transform the result to include assignedSiteIds as array of strings
-        const transformedVehicles = vehicles.map(v => ({
+        const transformedVehicles = vehicles.map((v: any) => ({
             ...v,
-            assignedSiteIds: v.assignedSites ? v.assignedSites.map(s => s.id) : []
+            assignedSiteIds: v.assignedSites ? v.assignedSites.map((s: any) => s.id) : []
         }));
         return { success: true, data: transformedVehicles };
     } catch (error) {
