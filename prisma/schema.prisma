@@ -111,6 +111,8 @@ model Site {
   location    String?
   status      Status   @default(ACTIVE) // ACTIVE, INACTIVE, COMPLETED
   
+  isWarehouse Boolean  @default(false) // [NEW] Depo olarak işaretlenen şantiyeler
+
   // Construction Details
   workGroup             String?
 

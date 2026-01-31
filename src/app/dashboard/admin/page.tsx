@@ -775,6 +775,7 @@ export default function AdminPage() {
         personnelCount: 0,
 
         note: '',
+        isWarehouse: false, // [NEW]
         provisionalAcceptanceDoc: '',
         finalAcceptanceDoc: '',
         workExperienceDoc: '',
@@ -908,7 +909,8 @@ export default function AdminPage() {
             contractToCurrentUfeRatio: undefined, currentUfeDate: '', currentWorkExperienceAmount: undefined, priceDifference: undefined,
             personnelCount: 0, note: '',
             provisionalAcceptanceDoc: '', finalAcceptanceDoc: '', workExperienceDoc: '',
-            similarWorks: []
+            similarWorks: [],
+            isWarehouse: false // [NEW]
         });
     };
 
@@ -921,7 +923,8 @@ export default function AdminPage() {
         setIsEditingSite(true);
         setSelectedSiteId(site.id);
         setNewSiteData({
-            ...site
+            ...site,
+            isWarehouse: site.isWarehouse || false, // [NEW] Handle null/undefined checks
         });
         setSiteModalOpen(true);
     };
@@ -2205,7 +2208,19 @@ export default function AdminPage() {
                                                     <TabsContent value="general" className="space-y-4 pt-4">
                                                         <div className="grid grid-cols-2 gap-4">
                                                             <div className="space-y-2 col-span-2">
-                                                                <Label>İşin Adı <span className="text-red-500">*</span></Label>
+                                                                <div className="flex items-center justify-between">
+                                                                    <Label>İşin Adı <span className="text-red-500">*</span></Label>
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Checkbox
+                                                                            id="isWarehouse"
+                                                                            checked={newSiteData.isWarehouse || false}
+                                                                            onCheckedChange={(checked: boolean) => setNewSiteData({ ...newSiteData, isWarehouse: checked })}
+                                                                        />
+                                                                        <label htmlFor="isWarehouse" className="text-sm font-medium leading-none cursor-pointer text-slate-600">
+                                                                            Şantiye Depo / Merkez Statüsünde
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
                                                                 <Input
                                                                     value={newSiteData.name || ''}
                                                                     onChange={e => setNewSiteData({ ...newSiteData, name: e.target.value })}

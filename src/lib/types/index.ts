@@ -43,6 +43,7 @@ export interface Site {
   name: string; // İşin Adı
   location: string; // Yer / Konum
   status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED';
+  isWarehouse?: boolean; // [NEW]
 
   // [NEW] Detailed Construction Project Info
   // [NEW] Detailed Construction Project Info
