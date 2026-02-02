@@ -149,7 +149,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
     // [FIX] Force Bold Rendering for Recipient
     doc.setFont(fontName, 'bold');
-    doc.setLineWidth(0.5); // Slightly thicker for "Extra Bold" appearance
+    doc.setLineWidth(0.2); // Reduced from 0.5 to 0.2 for lighter bold
     doc.setDrawColor(0, 0, 0); // Black stroke
     doc.setTextColor(0, 0, 0); // Black fill
     // Use 'fillThenStroke' to mimic bold if font weight isn't enough

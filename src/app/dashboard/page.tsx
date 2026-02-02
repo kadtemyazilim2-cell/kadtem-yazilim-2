@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
         try {
             const res = await updateVehicleAction(selectedInspection.vehicleId, {
-                inspectionExpiry: new Date(inspectionDate).toISOString()
+                inspectionExpiry: new Date(inspectionDate)
             });
 
             if (res.success) {
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         : null;
 
     // Get Missing Reference Numbers (excluding BANK) - Only show to creator
-    const missingDocs = correspondences.filter((c: any) => c.type === 'OUTGOING' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
+    const missingDocs = correspondences.filter((c: any) => c.direction === 'OUTGOING' && c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
 
     // 1. Financial Status (Balance per User)
     const { users } = useAppStore();
@@ -446,44 +446,11 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            {/* Site Fuel Stocks Removed as per request */}
-            {/* <div className="grid gap-4" >
-                <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
-            </div> */}
-
-            {/* [NEW] Active Sites Navigation Grid */}
+            {/* Site Fuel Stocks */}
             <div className="space-y-4 mt-8">
-                <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Aktif Şantiyeler</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sites.filter((s: any) => s.status === 'ACTIVE').map((site: any) => (
-                        <Card
-                            key={site.id}
-                            className="cursor-pointer hover:bg-slate-50 transition-colors border-l-4 border-l-blue-500"
-                            onClick={() => router.push(`/dashboard/sites/${site.id}`)}
-                        >
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-lg font-semibold text-slate-800 flex items-center justify-between">
-                                    {site.name}
-                                    <ArrowRight className="h-4 w-4 text-slate-400" />
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-sm text-slate-500 flex flex-col gap-1">
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-slate-400" />
-                                        <span>{site.location || 'Konum Yok'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Users className="h-4 w-4 text-slate-400" />
-                                        <span>{personnel.filter((p: any) => p.siteId === site.id && p.status !== 'LEFT').length} Personel</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                    {sites.filter((s: any) => s.status === 'ACTIVE').length === 0 && (
-                        <div className="text-slate-500 col-span-3">Aktif şantiye bulunmamaktadır.</div>
-                    )}
+                <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Aktif Şantiye Depo Stokları</h3>
+                <div className="grid gap-4" >
+                    <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
                 </div>
             </div>
 

@@ -540,6 +540,13 @@ export function VehicleList() {
     };
 
     const exportPDF = () => {
+        if (filteredVehicles.length === 0) {
+            toast.error('Dışa aktarılacak araç bulunamadı.');
+            return;
+        }
+
+        toast.info(`${filteredVehicles.length} adet araç PDF olarak hazırlanıyor...`);
+
         const doc = new jsPDF();
         doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
@@ -573,6 +580,7 @@ export function VehicleList() {
         });
 
         doc.save(`arac-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        toast.success('PDF başarıyla oluşturuldu.');
     };
 
     const exportPoliciesExcel = () => {
