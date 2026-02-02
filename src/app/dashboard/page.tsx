@@ -46,6 +46,7 @@ export default function DashboardPage() {
     const [editCorrespondenceId, setEditCorrespondenceId] = useState('');
     const [editReferenceNumber, setEditReferenceNumber] = useState('');
     const [editRegistrationNumber, setEditRegistrationNumber] = useState('');
+    const [showAllMissingDocs, setShowAllMissingDocs] = useState(false);
 
     const handleAlertClick = (item: any) => {
         if (item.type === 'Muayene') {
@@ -368,7 +369,7 @@ export default function DashboardPage() {
                 </Card> */}
 
                 {/* Insurance Alerts Card */}
-                <Card className="bg-red-50 border-red-100 border shadow-sm">
+                <Card className="bg-red-50 border-red-100 border shadow-sm col-span-2">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-600">
                             Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
@@ -379,7 +380,7 @@ export default function DashboardPage() {
                         {upcomingExpirations.length === 0 ? (
                             <div className="text-sm text-slate-500">Yaklaşan ödeme bulunmuyor.</div>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
                                 {upcomingExpirations.map((item) => (
                                     <div
                                         key={item.id}
@@ -403,6 +404,64 @@ export default function DashboardPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Quick Actions & Info Card (Moved Here) */}
+                <Card className="col-span-1 shadow-sm border-slate-200">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-600">Bilgiler & Endeksler</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* YI-UFE Display */}
+                        {(() => {
+                            const sortedYiufe = [...yiUfeRates].sort((a, b) => {
+                                if (a.year !== b.year) return b.year - a.year;
+                                return b.month - a.month;
+                            });
+                            const current = sortedYiufe[0];
+                            const previous = sortedYiufe[1];
+                            const rate = (current && previous) ? ((current.index / previous.index) - 1) : 0;
+
+                            return (
+                                <div className="space-y-3">
+                                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs text-slate-500 font-medium">Son Yi-ÜFE</span>
+                                            <span className="text-[10px] text-slate-400">
+                                                {current ? `${new Date(0, current.month - 1).toLocaleString('tr-TR', { month: 'long' })} ${current.year}` : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="text-xl font-bold font-mono text-blue-700">
+                                            {current ? current.index.toFixed(2) : '-'}
+                                        </div>
+                                    </div>
+
+                                    {previous && (
+                                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs text-slate-500 font-medium">Önceki Ay</span>
+                                                <span className="text-[10px] text-slate-400">
+                                                    {new Date(0, previous.month - 1).toLocaleString('tr-TR', { month: 'long' })} {previous.year}
+                                                </span>
+                                            </div>
+                                            <div className="text-lg font-semibold font-mono text-slate-600 flex items-center justify-between">
+                                                {previous.index.toFixed(2)}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {current && previous && (
+                                        <div className="flex items-center justify-between pt-1">
+                                            <span className="text-xs font-medium text-slate-500">Aylık Artış (Ortalama)</span>
+                                            <span className={cn("text-sm font-bold", rate > 0 ? "text-green-600" : "text-slate-600")}>
+                                                %{(rate * 100).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Site Fuel Stocks */}
@@ -418,9 +477,8 @@ export default function DashboardPage() {
 
 
             {/* Fuel Tables Section */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-1">
                 <FuelPurchaseList />
-                <FuelTransferList />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -428,7 +486,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4 border-red-200 shadow-sm">
+                <Card className="col-span-7 border-red-200 shadow-sm">
                     <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-red-700">
                             <FileText className="h-5 w-5" />
@@ -445,63 +503,54 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {missingDocs.map((doc: any) => (
-                                    <div
-                                        key={doc.id}
-                                        onClick={() => {
-                                            setEditCorrespondenceId(doc.id);
-                                            setEditReferenceNumber(doc.referenceNumber || '');
-                                            setEditRegistrationNumber(doc.registrationNumber || '');
-                                            setIsEditCorrespondenceOpen(true);
-                                        }}
-                                        className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100 hover:border-red-200 cursor-pointer transition-all"
-                                    >
-                                        <div className="space-y-1">
-                                            <div className="font-medium text-slate-900 group-hover:text-red-900 transition-colors">
-                                                {doc.subject}
+                                <div className="grid md:grid-cols-2 gap-2">
+                                    {missingDocs.slice(0, showAllMissingDocs ? undefined : 4).map((doc: any) => (
+                                        <div
+                                            key={doc.id}
+                                            onClick={() => {
+                                                setEditCorrespondenceId(doc.id);
+                                                setEditReferenceNumber(doc.referenceNumber || '');
+                                                setEditRegistrationNumber(doc.registrationNumber || '');
+                                                setIsEditCorrespondenceOpen(true);
+                                            }}
+                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100 hover:border-red-200 cursor-pointer transition-all"
+                                        >
+                                            <div className="space-y-1">
+                                                <div className="font-medium text-slate-900 group-hover:text-red-900 transition-colors">
+                                                    {doc.subject}
+                                                </div>
+                                                <div className="text-xs text-slate-500 flex items-center gap-2">
+                                                    <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
+                                                </div>
+                                                {/* Show missing types explicitly */}
+                                                <div className="flex gap-2">
+                                                    {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}
+                                                    {(!doc.referenceNumber) && <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">Sayı No Eksik</span>}
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-slate-500 flex items-center gap-2">
-                                                <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
-                                                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
-                                            </div>
-                                            {/* Show missing types explicitly */}
-                                            <div className="flex gap-2">
-                                                {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}
-                                                {(!doc.referenceNumber) && <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">Sayı No Eksik</span>}
+                                            <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
+                                                Numara Gir &rarr;
                                             </div>
                                         </div>
-                                        <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
-                                            Numara Gir &rarr;
-                                        </div>
+                                    ))}
+                                </div>
+
+                                {missingDocs.length > 4 && (
+                                    <div className="flex justify-center pt-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowAllMissingDocs(!showAllMissingDocs)}
+                                            className="text-slate-500 hover:text-slate-800"
+                                        >
+                                            {showAllMissingDocs ? 'Daha Az Göster' : `Devamını Göster (+${missingDocs.length - 4})`}
+                                        </Button>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         )}
-                    </CardContent>
-                </Card>
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Hızlı İşlemler & Bilgiler</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {/* YI-UFE Display */}
-                        <div className="p-4 bg-slate-50 rounded-lg border flex items-center justify-between">
-                            <div>
-                                <div className="text-sm font-medium text-slate-500">Son Yi-ÜFE Endeksi</div>
-                                <div className="text-xs text-slate-400">
-                                    {latestYiUfe ? `${latestYiUfe.year} - ${new Date(0, latestYiUfe.month - 1).toLocaleString('tr-TR', { month: 'long' })}` : 'Veri Yok'}
-                                </div>
-                            </div>
-                            <div className="flex flex-col items-end">
-                                <div className="text-2xl font-bold font-mono text-blue-700">
-                                    {latestYiUfe ? latestYiUfe.index.toFixed(2) : '-'}
-                                </div>
-                                <div className="text-[10px] text-muted-foreground">Endeks Değeri</div>
-                            </div>
-                        </div>
-
-                        <p className="text-sm text-slate-500">Kısayollar buraya gelecek.</p>
                     </CardContent>
                 </Card>
             </div>

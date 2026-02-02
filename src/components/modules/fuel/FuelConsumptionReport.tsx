@@ -759,11 +759,11 @@ export function FuelConsumptionReport() {
                                         </TableCell>
                                         <TableCell className="max-w-[200px]" title={row.description}>
                                             {row.recordType.startsWith('VIRMAN') ? (
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-slate-800">{row.counterpartSiteName}</span>
-                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                        <span>Virman</span>
-                                                        {row.description && <span>- {row.description}</span>}
+                                                <div className="flex flex-col overflow-hidden">
+                                                    <span className="font-medium text-slate-800 truncate" title={row.counterpartSiteName}>{row.counterpartSiteName}</span>
+                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
+                                                        <span className="shrink-0">Virman</span>
+                                                        {row.description && <span className="truncate">- {row.description}</span>}
                                                     </div>
                                                 </div>
                                             ) : (
