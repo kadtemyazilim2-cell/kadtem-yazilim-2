@@ -1,275 +1,239 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MultiSelect } from '@/components/ui/multi-select';
 import { Label } from '@/components/ui/label';
 import { toTurkishLower } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
-import { updateVehicle, bulkAssignVehicles, bulkUnassignVehicles } from '@/actions/vehicle';
+import { bulkAssignVehicles, bulkUnassignVehicles } from '@/actions/vehicle';
 import { toast } from 'sonner';
+import { Loader2, Plus, X } from 'lucide-react';
+import { Input } from '@/components/ui/input'; // Added Input import
 
 export function VehicleAssignment() {
     const { vehicles, sites, assignVehiclesToSite } = useAppStore();
     const { hasPermission } = useAuth();
 
     // Permission Check
-    // Assignment is considered a CREATE or EDIT action for vehicle-attendance.assignment submodule
     const canAssign = hasPermission('vehicle-attendance.assignment', 'CREATE') || hasPermission('vehicle-attendance.assignment', 'EDIT');
 
-    const [ownershipFilter, setOwnershipFilter] = useState<'ALL' | 'OWNED' | 'RENTAL'>('ALL');
-    const [selectedVehicles, setSelectedVehicles] = useState<string[]>([]);
-    const [targetSiteIds, setTargetSiteIds] = useState<string[]>([]); // [MODIFIED]
-    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+    const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
 
-    const filteredVehicles = vehicles.filter((v: any) => {
-        // [FIX] Exclude passive vehicles from assignment
-        if (v.status === 'PASSIVE') return false;
+    // [New] Search States
+    const [assignedSearch, setAssignedSearch] = useState('');
+    const [availableSearch, setAvailableSearch] = useState('');
 
-        const matchesOwnership = ownershipFilter === 'ALL' || v.ownership === ownershipFilter;
-        // Use helper with safe string access (in case plate/model are somehow undefined, though they shouldn't be)
-        const plate = v.plate || '';
-        const model = v.model || '';
-        const lowerSearch = toTurkishLower(searchTerm);
+    // 1. Vehicles in Selected Site
+    const assignedVehicles = useMemo(() => {
+        if (!selectedSiteId) return [];
+        return vehicles.filter((v: any) => v.status !== 'PASSIVE' && v.assignedSiteIds?.includes(selectedSiteId))
+            .filter((v: any) => {
+                if (!assignedSearch) return true;
+                const search = toTurkishLower(assignedSearch);
+                return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
+            });
+    }, [vehicles, selectedSiteId, assignedSearch]);
 
-        const matchesSearch = toTurkishLower(plate).includes(lowerSearch) ||
-            toTurkishLower(model).includes(lowerSearch);
-        return matchesOwnership && matchesSearch;
-    });
+    // 2. Available Vehicles (Idle - Not assigned to ANY site)
+    const availableVehicles = useMemo(() => {
+        return vehicles.filter((v: any) => {
+            if (v.status === 'PASSIVE') return false;
+            // Strict check: Must not be assigned to ANY site
+            return !v.assignedSiteIds || v.assignedSiteIds.length === 0;
+        }).filter((v: any) => {
+            if (!availableSearch) return true;
+            const search = toTurkishLower(availableSearch);
+            return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
+        });
+    }, [vehicles, availableSearch]);
 
-    const handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            setSelectedVehicles(filteredVehicles.map((v: any) => v.id));
-        } else {
-            setSelectedVehicles([]);
-        }
-    };
 
-    const handleSelectVehicle = (id: string, checked: boolean) => {
-        if (checked) {
-            setSelectedVehicles([...selectedVehicles, id]);
-        } else {
-            setSelectedVehicles(selectedVehicles.filter((vId: any) => vId !== id));
-        }
-    };
-
-    const [isAssigning, setIsAssigning] = useState(false);
-
-    const handleAssign = async () => {
-        if (targetSiteIds.length === 0) {
-            toast.error('Lütfen en az bir şantiye seçiniz.');
-            return;
-        }
-        if (selectedVehicles.length === 0) {
-            toast.error('Lütfen en az bir araç seçiniz.');
-            return;
-        }
-
-        setIsAssigning(true);
+    const handleAdd = async (vehicleId: string) => {
+        if (!selectedSiteId) return;
+        setLoadingIds(prev => ({ ...prev, [vehicleId]: true }));
         try {
-            // [FIX] Use Bulk Server Action
-            const res = await bulkAssignVehicles(selectedVehicles, targetSiteIds);
-
+            const res = await bulkAssignVehicles([vehicleId], [selectedSiteId]);
             if (res.success) {
-                // Update Local Store
-                assignVehiclesToSite(selectedVehicles, targetSiteIds);
-
-                toast.success(`${selectedVehicles.length} araç başarıyla ${targetSiteIds.length} şantiyeye atandı.`);
-                setSelectedVehicles([]);
-                setTargetSiteIds([]);
+                assignVehiclesToSite([vehicleId], [selectedSiteId]); // Update local store
+                toast.success('Araç şantiyeye eklendi.');
             } else {
-                toast.error(res.error || 'Atama işlemi başarısız.');
+                toast.error(res.error || 'Ekleme başarısız.');
             }
         } catch (error) {
             console.error(error);
-            toast.error('Atama işlemi sırasında bir hata oluştu.');
+            toast.error('Hata oluştu.');
         } finally {
-            setIsAssigning(false);
+            setLoadingIds(prev => ({ ...prev, [vehicleId]: false }));
         }
     };
 
-    const handleUnassign = async () => {
-        if (targetSiteIds.length === 0) {
-            toast.error('Lütfen çıkarmak istediğiniz şantiyeyi seçiniz.');
-            return;
-        }
-        if (selectedVehicles.length === 0) {
-            toast.error('Lütfen en az bir araç seçiniz.');
-            return;
-        }
+    const handleRemove = async (vehicleId: string) => {
+        if (!selectedSiteId) return;
+        if (!confirm('Aracı şantiyeden çıkarmak istediğinize emin misiniz?')) return;
 
-        if (!confirm('Seçili araçları seçili şantiyelerden çıkarmak istediğinize emin misiniz?')) {
-            return;
-        }
-
-        setIsAssigning(true);
+        setLoadingIds(prev => ({ ...prev, [vehicleId]: true }));
         try {
-            const res = await bulkUnassignVehicles(selectedVehicles, targetSiteIds);
-
+            const res = await bulkUnassignVehicles([vehicleId], [selectedSiteId]);
             if (res.success) {
-                toast.success(`${selectedVehicles.length} araç ${targetSiteIds.length} şantiyeden çıkarıldı.`);
-                setSelectedVehicles([]);
-                setTargetSiteIds([]);
+                // Since store doesn't have explicit unassign helper, we reload entirely OR update local logic if we had one.
+                // Assuming assignVehiclesToSite merges. We need a way to unmerge or just re-fetch.
+                // For now, let's force a reload or implement remove in store.
+                // Quick fix: Page reload is safe but slow. Better:
                 window.location.reload();
             } else {
-                toast.error(res.error || 'İşlem başarısız.');
+                toast.error(res.error || 'Çıkarma başarısız.');
             }
         } catch (error) {
             console.error(error);
-            toast.error('İşlem sırasında bir hata oluştu.');
+            toast.error('Hata oluştu.');
         } finally {
-            setIsAssigning(false);
+            setLoadingIds(prev => ({ ...prev, [vehicleId]: false }));
         }
     };
 
     return (
-        <div className="space-y-4">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Araç Şantiye Atama</CardTitle>
-                    <CardDescription>
-                        Araçları mülkiyet durumuna göre filtreleyip şantiyelere atayabilirsiniz.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {/* Filters */}
-                    <div className="flex flex-col md:flex-row gap-4 justify-between items-end">
-                        <div className="flex gap-4 items-end w-full md:w-auto">
-                            <div className="space-y-2 w-48">
-                                <Label>Mülkiyet Durumu</Label>
-                                <Select
-                                    value={ownershipFilter}
-                                    onValueChange={(val: any) => setOwnershipFilter(val)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Tümü" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="ALL">Tümü</SelectItem>
-                                        <SelectItem value="OWNED">Özmal (Şirket Aracı)</SelectItem>
-                                        <SelectItem value="RENTAL">Kiralık</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2 w-64">
-                                <Label>Araç Ara</Label>
+        <div className="space-y-6">
+            <Card className="border-none shadow-none bg-transparent">
+                <div className="bg-slate-900 text-white p-4 rounded-t-md flex items-center justify-between">
+                    <div className="font-semibold px-2">Yönetim Paneli / Araç Atama</div>
+                </div>
+
+                {/* Site Selector Bar */}
+                <div className="bg-white p-6 border rounded-b-md shadow-sm mb-6">
+                    <Label className="text-lg font-semibold mb-2 block">Şantiye Seçin:</Label>
+                    <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                        <SelectTrigger className="w-full h-12 text-lg">
+                            <SelectValue placeholder="Şantiye Seçiniz..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {selectedSiteId && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* LEFT: Assigned */}
+                        <Card>
+                            <CardHeader className="pb-3 border-b">
+                                <CardTitle className="text-lg font-bold text-slate-800">Şantiyedeki Araçlar</CardTitle>
+                                <CardDescription>{assignedVehicles.length} araç listeleniyor</CardDescription>
                                 <Input
-                                    placeholder="Plaka veya Model..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Araç ara..."
+                                    value={assignedSearch}
+                                    onChange={(e) => setAssignedSearch(e.target.value)}
+                                    className="mt-2"
                                 />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 items-end w-full md:w-auto">
-                            <div className="space-y-2 w-64">
-                                <Label>Atanacak Şantiyeler</Label>
-                                <MultiSelect
-                                    options={sites.filter((s: any) => s.status === 'ACTIVE' && (s.isWarehouse || (s._count?.fuelTanks || 0) > 0)).map((s: any) => ({ label: s.name, value: s.id }))}
-                                    selected={targetSiteIds}
-                                    onChange={setTargetSiteIds}
-                                    placeholder="Şantiye Seçiniz"
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <AssignTable
+                                    vehicles={assignedVehicles}
+                                    actionLabel="Çıkar"
+                                    actionVariant="destructive"
+                                    onAction={handleRemove}
+                                    loadingIds={loadingIds}
+                                    disabled={!canAssign}
                                 />
-                            </div>
-                            <Button
-                                onClick={handleAssign}
-                                disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}
-                            >
-                                {isAssigning ? 'İşleniyor...' : `Atama Yap (${selectedVehicles.length})`}
-                            </Button>
+                            </CardContent>
+                        </Card>
 
-                            <Button
-                                variant="destructive"
-                                onClick={handleUnassign}
-                                disabled={isAssigning || !canAssign || targetSiteIds.length === 0 || selectedVehicles.length === 0}
-                            >
-                                {isAssigning ? 'İşleniyor...' : `Atamayı Kaldır (${selectedVehicles.length})`}
-                            </Button>
-
-
-                        </div>
+                        {/* RIGHT: Available */}
+                        <Card>
+                            <CardHeader className="pb-3 border-b">
+                                <CardTitle className="text-lg font-bold text-slate-800">Boştaki Araçlar</CardTitle>
+                                <CardDescription>{availableVehicles.length} araç listeleniyor</CardDescription>
+                                <Input
+                                    placeholder="Araç ara..."
+                                    value={availableSearch}
+                                    onChange={(e) => setAvailableSearch(e.target.value)}
+                                    className="mt-2"
+                                />
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <AssignTable
+                                    vehicles={availableVehicles}
+                                    actionLabel="Ekle"
+                                    actionVariant="default"
+                                    onAction={handleAdd}
+                                    loadingIds={loadingIds}
+                                    disabled={!canAssign}
+                                    isAdd
+                                />
+                            </CardContent>
+                        </Card>
                     </div>
-
-                    {/* Table */}
-                    <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-12">
-                                        <Checkbox
-                                            checked={selectedVehicles.length === filteredVehicles.length && filteredVehicles.length > 0}
-                                            onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
-                                        />
-                                    </TableHead>
-                                    <TableHead>Plaka</TableHead>
-                                    <TableHead>Marka/Model</TableHead>
-                                    <TableHead>Mülkiyet</TableHead>
-                                    <TableHead>Mevcut Şantiye(ler)</TableHead>
-                                    <TableHead>Durum</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredVehicles.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="text-center text-muted-foreground h-24">
-                                            Kriterlere uygun araç bulunamadı.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredVehicles.map((v: any) => {
-                                        // Display assigned sites
-                                        let displaySites = '-';
-                                        if (v.assignedSiteIds && v.assignedSiteIds.length > 0) {
-                                            displaySites = v.assignedSiteIds
-                                                .map((sid: any) => sites.find((s: any) => s.id === sid)?.name)
-                                                .filter(Boolean)
-                                                .join(', ');
-                                        } else if (v.assignedSiteId) {
-                                            displaySites = sites.find((s: any) => s.id === v.assignedSiteId)?.name || '-';
-                                        }
-
-                                        return (
-                                            <TableRow key={v.id}>
-                                                <TableCell>
-                                                    <Checkbox
-                                                        checked={selectedVehicles.includes(v.id)}
-                                                        onCheckedChange={(checked) => handleSelectVehicle(v.id, checked as boolean)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="font-medium">{v.plate}</TableCell>
-                                                <TableCell>{v.brand} {v.model}</TableCell>
-                                                <TableCell>
-                                                    {v.ownership === 'OWNED' ? (
-                                                        <Badge variant="secondary">Özmal</Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="border-orange-500 text-orange-600">Kiralık</Badge>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="max-w-[200px] truncate" title={displaySites}>
-                                                    {displaySites}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={v.status === 'ACTIVE' ? 'default' : 'destructive'}>
-                                                        {v.status === 'ACTIVE' ? 'Aktif' : v.status}
-                                                    </Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
+                )}
             </Card>
+        </div>
+    );
+}
+
+function AssignTable({
+    vehicles,
+    actionLabel,
+    actionVariant,
+    onAction,
+    loadingIds,
+    disabled,
+    isAdd
+}: {
+    vehicles: any[],
+    actionLabel: string,
+    actionVariant: "default" | "destructive",
+    onAction: (id: string) => void,
+    loadingIds: Record<string, boolean>,
+    disabled: boolean,
+    isAdd?: boolean
+}) {
+    if (vehicles.length === 0) {
+        return <div className="p-8 text-center text-muted-foreground">Liste boş.</div>;
+    }
+
+    return (
+        <div className="max-h-[600px] overflow-y-auto">
+            <Table>
+                <TableHeader className="bg-slate-50 sticky top-0">
+                    <TableRow>
+                        <TableHead>Plaka</TableHead>
+                        <TableHead>Tür</TableHead>
+                        <TableHead className="text-right">İşlem</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {vehicles.map(v => (
+                        <TableRow key={v.id}>
+                            <TableCell className="font-medium">
+                                <div className="flex flex-col">
+                                    <span>{v.plate}</span>
+                                    <span className="text-xs text-muted-foreground">{v.brand} {v.model}</span>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                {v.ownership === 'OWNED' ? 'Kendi' : 'Kiralık'}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <Button
+                                    size="sm"
+                                    variant={actionVariant}
+                                    onClick={() => onAction(v.id)}
+                                    disabled={loadingIds[v.id] || disabled}
+                                    className={isAdd ? "bg-green-600 hover:bg-green-700 w-20" : "w-20"}
+                                >
+                                    {loadingIds[v.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : actionLabel}
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
 }
