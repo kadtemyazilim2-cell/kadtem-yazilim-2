@@ -671,19 +671,50 @@ export function CorrespondenceList() {
         </div >
     );
 
+    // Address Book States
+    const [showPassive, setShowPassive] = useState(false);
+
+    const handleRestoreInstitution = async (inst: any) => {
+        if (!confirm(`${inst.name} adlı muhatabı tekrar aktif yapmak istiyor musunuz?`)) return;
+
+        try {
+            const result = await updateInstitutionAction(inst.id, { status: 'ACTIVE' });
+            if (result.success) {
+                updateInstitution(inst.id, { status: 'ACTIVE' });
+                toast.success('Muhatap tekrar aktif edildi.');
+            } else {
+                toast.error(result.error || 'İşlem başarısız.');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Hata oluştu.');
+        }
+    };
+
     const renderAddressBook = () => {
         return (
             <div className="space-y-4">
-                <div className="flex justify-end">
-                    {(user?.role === 'ADMIN' || canCreateContacts) && (
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowPassive(!showPassive)}
+                            className={showPassive ? "bg-amber-50 text-amber-700 border-amber-200" : "text-slate-500"}
+                        >
+                            {showPassive ? <Eye className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                            {showPassive ? "Aktifleri Göster" : "Pasifleri (Silinenleri) Göster"}
+                        </Button>
+                    </div>
+                    {(user?.role === 'ADMIN' || canCreateContacts) && !showPassive && (
                         <Button onClick={() => openAddressModal()} className="bg-purple-600 hover:bg-purple-700">
                             <Plus className="w-4 h-4 mr-2" /> Yeni Muhatap Ekle
                         </Button>
                     )}
                 </div>
-                {institutions.length === 0 ? (
+                {institutions.filter(i => showPassive ? i.status === 'PASSIVE' : i.status !== 'PASSIVE').length === 0 ? (
                     <div className="text-center py-10 text-slate-500">
-                        Henüz kayıtlı muhatap bulunmuyor.
+                        {showPassive ? 'Pasif (silinmiş) muhatap bulunmuyor.' : 'Henüz kayıtlı muhatap bulunmuyor.'}
                     </div>
                 ) : (
                     <Table>
@@ -700,28 +731,45 @@ export function CorrespondenceList() {
                                     // [FIX] Strict Type Filter
                                     if (inst.category === 'INSURANCE_AGENCY' || inst.category === 'INSURANCE_COMPANY') return false;
 
+                                    // Filter Logic (Show Passive vs Active)
+                                    // Default status is usually undefined for old records -> treat as ACTIVE
+                                    const isPassive = inst.status === 'PASSIVE';
+                                    if (showPassive && !isPassive) return false;
+                                    if (!showPassive && isPassive) return false;
+
                                     const lowerName = normalizeSearchText(inst.name || '');
                                     // Filter out Insurance companies as they are for Mailing only
                                     if (lowerName.includes('sigorta') || lowerName.includes('kasko') || lowerName.includes('acente')) return false;
                                     return true;
                                 })
                                 .map((inst: any) => (
-                                    <TableRow key={inst.id}>
-                                        <TableCell className="max-w-[400px] truncate" title={inst.name}>{inst.name}</TableCell>
+                                    <TableRow key={inst.id} className={inst.status === 'PASSIVE' ? 'bg-slate-50 opacity-70' : ''}>
+                                        <TableCell className="max-w-[400px] truncate" title={inst.name}>
+                                            {inst.name}
+                                            {inst.status === 'PASSIVE' && <Badge variant="secondary" className="ml-2 text-[10px]">PASİF</Badge>}
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant="outline">{inst.category === 'BANK' ? 'Banka' : 'Kurum/Şahıs'}</Badge>
                                         </TableCell>
                                         <TableCell>
                                             {(user?.role === 'ADMIN' || canEditContacts) && (
                                                 <div className="flex items-center gap-1">
-                                                    <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
-                                                        <Edit className="w-4 h-4 text-blue-600" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
-                                                        if (confirm('Silmek istediğinize emin misiniz?')) deleteInstitution(inst.id);
-                                                    }}>
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
+                                                    {inst.status === 'PASSIVE' ? (
+                                                        <Button variant="ghost" size="sm" onClick={() => handleRestoreInstitution(inst)} title="Geri Yükle (Aktif Et)">
+                                                            <RotateCcw className="w-4 h-4 text-green-600" />
+                                                        </Button>
+                                                    ) : (
+                                                        <>
+                                                            <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
+                                                                <Edit className="w-4 h-4 text-blue-600" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
+                                                                if (confirm('Silmek (Pasife almak) istediğinize emin misiniz?')) deleteInstitution(inst.id);
+                                                            }}>
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </TableCell>

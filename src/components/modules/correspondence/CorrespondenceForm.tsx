@@ -351,6 +351,9 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         // [FIX] Strict filtering for Insurance entities
         if (inst.category === 'INSURANCE_AGENCY' || inst.category === 'INSURANCE_COMPANY') return false;
 
+        // [FIX] Filter out PASSIVE (Soft Deleted) records from selection
+        if (inst.status === 'PASSIVE') return false;
+
         if (initialType === 'BANK') return inst.category === 'BANK' || !inst.category;
 
         // Exclude Insurance/Kasko agencies for standard correspondence (double check via name just in case)
