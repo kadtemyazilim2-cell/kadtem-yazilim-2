@@ -604,20 +604,6 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             {/* PDF Preview REMOVED as per request */}
 
                             <div className="space-y-2">
-                                <Label>Dosya Yükle (PDF)</Label>
-                                <Input
-                                    type="file"
-                                    accept="application/pdf"
-                                    onChange={handleFileChange}
-                                />
-                                {formData.attachmentUrls.length > 0 && (
-                                    <p className="text-xs text-green-600 mt-1">
-                                        {formData.attachmentUrls.length} dosya eklendi.
-                                    </p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
                                 <div className="flex justify-between items-center">
                                     <Label>Ekler (Opsiyonel)</Label>
                                     <Button
@@ -659,6 +645,20 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         </Button>
                                     </div>
                                 ))}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Dosya Yükle (PDF)</Label>
+                                <Input
+                                    type="file"
+                                    accept="application/pdf"
+                                    onChange={handleFileChange}
+                                />
+                                {formData.attachmentUrls.length > 0 && (
+                                    <p className="text-xs text-green-600 mt-1">
+                                        {formData.attachmentUrls.length} dosya eklendi.
+                                    </p>
+                                )}
                             </div>
 
 
