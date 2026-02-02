@@ -91,7 +91,7 @@ export default function FuelPage() {
                 )}
             </div>
 
-            {canViewTanks && <FuelTankList />}
+
 
             {/* [NEW] Fuel Purchase List (Alımlar) */}
             <FuelPurchaseList />
