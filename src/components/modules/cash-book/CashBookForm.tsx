@@ -74,7 +74,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         }
     };
 
-    const [displayAmount, setDisplayAmount] = useState('0');
+    const [displayAmount, setDisplayAmount] = useState('');
 
     // [NEW] Initialize from initialData or defaultValues
     useEffect(() => {
@@ -112,6 +112,20 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         }
     }, [initialData, isOpen, defaultValues]);
 
+    // [NEW] Logic to handle auto-selection when opened via props (external control)
+    useEffect(() => {
+        if (isOpen && !initialData) {
+            // Auto Select Site if only 1 available
+            if (availableSites.length === 1) {
+                setFormData(prev => ({ ...prev, siteId: availableSites[0].id }));
+            }
+            // Auto Select User if not set
+            if (user && !formData.responsibleUserId) {
+                setFormData(prev => ({ ...prev, responsibleUserId: user.id }));
+            }
+        }
+    }, [isOpen]); // Only run when open state changes (specifically to true)
+
 
     const resetForm = () => {
         setFormData({
@@ -127,7 +141,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
             imageUrl: '',
         });
         setFile(null);
-        setDisplayAmount('0');
+        setDisplayAmount('');
     };
 
     // ... (generateDescription, handleDateChange, handleCategoryChange, formatMoneyInput, handleAmountChange kept same)
@@ -288,14 +302,6 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
 
     const handleOpenChange = (open: boolean) => {
         setOpen(open);
-        if (open && !initialData) {
-            const singleSiteId = availableSites.length === 1 ? availableSites[0].id : '';
-            setFormData(prev => ({
-                ...prev,
-                responsibleUserId: (!prev.responsibleUserId && user) ? user.id : prev.responsibleUserId,
-                siteId: singleSiteId || prev.siteId // Auto select if only 1 site available
-            }));
-        }
         if (!open) {
             // If closed, reset unless initialData exists (which persists)
             if (!initialData) resetForm();
