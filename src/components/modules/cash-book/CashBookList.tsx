@@ -17,7 +17,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { fontBase64 } from '@/lib/pdf-font';
-import { Download, FileSpreadsheet, FileText, Trash2, Edit } from 'lucide-react'; // [NEW] Edit
+import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
 import { deleteTransaction } from '@/actions/transaction';
@@ -44,6 +44,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
     // [NEW] Edit State
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
+    const [formDefaultValues, setFormDefaultValues] = useState<any>(undefined); // [NEW] Default values for form
 
     // Date Filters
     const currentDate = new Date();
@@ -638,21 +639,79 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <CardTitle className="text-2xl font-bold">Kasa Hareketleri</CardTitle>
                     <div className="flex gap-2">
-                        {canExport && (
+                        {/* [MOD] Role-Based Action Buttons */}
+                        {user?.role === 'ADMIN' ? (
                             <>
-                                <Button variant="outline" onClick={exportPDF} title="PDF İndir">
-                                    <FileText className="h-4 w-4 text-red-600 mr-2" />
-                                    PDF
-                                </Button>
-                                <Button variant="outline" onClick={exportExcel} title="Excel İndir">
-                                    <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
-                                    Excel
+                                {canExport && (
+                                    <>
+                                        <Button variant="outline" onClick={exportPDF} title="PDF İndir">
+                                            <FileText className="h-4 w-4 text-red-600 mr-2" />
+                                            PDF
+                                        </Button>
+                                        <Button variant="outline" onClick={exportExcel} title="Excel İndir">
+                                            <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
+                                            Excel
+                                        </Button>
+                                    </>
+                                )}
+                                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => {
+                                    setEditingTransaction(null);
+                                    setFormDefaultValues(undefined); // Reset defaults
+                                    setIsFormOpen(true);
+                                }}>
+                                    + İşlem Ekle
                                 </Button>
                             </>
+                        ) : (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto">
+                                <Button
+                                    variant="outline"
+                                    className="h-12 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300 shadow-sm"
+                                    onClick={() => {
+                                        setEditingTransaction(null);
+                                        setFormDefaultValues({ type: 'EXPENSE', description: 'Nakit Ödeme' });
+                                        setIsFormOpen(true);
+                                    }}
+                                >
+                                    <Banknote className="mr-2 h-5 w-5" />
+                                    Nakit Ödeme
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    className="h-12 border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 hover:border-yellow-500 shadow-sm"
+                                    onClick={() => {
+                                        setEditingTransaction(null);
+                                        setFormDefaultValues({ type: 'EXPENSE', description: 'Kredi Kartı ile Ödeme' }); // Pre-fill desc?
+                                        setIsFormOpen(true);
+                                    }}
+                                >
+                                    <CreditCard className="mr-2 h-5 w-5" />
+                                    Kredi Kartı ile Ödeme
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    className="h-12 border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 shadow-sm"
+                                    onClick={() => {
+                                        setEditingTransaction(null);
+                                        setFormDefaultValues({ type: 'INCOME', description: 'Nakit Tahsilat' });
+                                        setIsFormOpen(true);
+                                    }}
+                                >
+                                    <Banknote className="mr-2 h-5 w-5" />
+                                    Nakit Tahsilat
+                                </Button>
+
+                                <Button
+                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                                    onClick={exportPDF} // Restricted user mainly needs PDF report
+                                >
+                                    <BarChart className="mr-2 h-5 w-5" />
+                                    Kasa Raporu
+                                </Button>
+                            </div>
                         )}
-                        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setEditingTransaction(null); setIsFormOpen(true); }}>
-                            + İşlem Ekle
-                        </Button>
                     </div>
                 </div>
 
@@ -838,9 +897,13 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                 open={isFormOpen}
                 onOpenChange={(open) => {
                     setIsFormOpen(open);
-                    if (!open) setEditingTransaction(null);
+                    if (!open) {
+                        setEditingTransaction(null);
+                        setFormDefaultValues(undefined);
+                    }
                 }}
                 initialData={editingTransaction}
+                defaultValues={formDefaultValues}
                 onSuccess={() => {
                     // Optional: Trigger refresh if needed, but Store update should handle it
                     setEditingTransaction(null);

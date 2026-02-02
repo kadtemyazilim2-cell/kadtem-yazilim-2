@@ -16,22 +16,23 @@ import { createTransaction, updateTransaction } from '@/actions/transaction';
 // [NEW] Props for Editing
 interface CashBookFormProps {
     initialData?: any;
+    defaultValues?: any; // [NEW] For pre-filling new records
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
 }
 
 // [MOD] Export with Props
-export function CashBookForm({ initialData, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess }: CashBookFormProps) {
+export function CashBookForm({ initialData, defaultValues, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess }: CashBookFormProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
     const setOpen = externalOnOpenChange || setInternalOpen;
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { addCashTransaction, updateCashTransaction, sites, users } = useAppStore(); // [FIX] Added updateCashTransaction (assume it exists in store, if not need to add)
+    const { addCashTransaction, updateCashTransaction, sites, users } = useAppStore();
     const { user, hasPermission } = useAuth();
     const canCreate = hasPermission('cash-book', 'CREATE');
-    const canEdit = hasPermission('cash-book', 'EDIT'); // [NEW]
+    const canEdit = hasPermission('cash-book', 'EDIT');
 
     const activeSites = (sites || []).filter((s: any) => s.status === 'ACTIVE');
 
@@ -48,7 +49,7 @@ export function CashBookForm({ initialData, open: externalOpen, onOpenChange: ex
 
     const [displayAmount, setDisplayAmount] = useState('0');
 
-    // [NEW] Initialize from initialData
+    // [NEW] Initialize from initialData or defaultValues
     useEffect(() => {
         if (initialData) {
             setFormData({
@@ -65,8 +66,12 @@ export function CashBookForm({ initialData, open: externalOpen, onOpenChange: ex
         } else if (isOpen) {
             // Reset if opening new
             if (!externalOpen) resetForm();
+            // Apply defaults if provided
+            if (defaultValues) {
+                setFormData(prev => ({ ...prev, ...defaultValues }));
+            }
         }
-    }, [initialData, isOpen]);
+    }, [initialData, isOpen, defaultValues]);
 
 
     const resetForm = () => {
