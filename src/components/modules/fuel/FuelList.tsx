@@ -109,7 +109,7 @@ export function FuelList() {
                         <TableRow>
                             <TableHead>Tarih</TableHead>
                             <TableHead>Plaka</TableHead>
-                            <TableHead>Şantiye</TableHead>
+                            <TableHead>Plaka</TableHead>
                             <TableHead>Litre</TableHead>
                             <TableHead>Tutar</TableHead>
                             <TableHead>KM</TableHead>
@@ -153,7 +153,6 @@ export function FuelList() {
                                 <TableRow key={log.id}>
                                     <TableCell>{format(new Date(log.date), 'dd MMM yyyy', { locale: tr })}</TableCell>
                                     <TableCell className="font-bold">{getVehiclePlate(log.vehicleId)}</TableCell>
-                                    <TableCell>{getSiteName(log.siteId)}</TableCell>
                                     <TableCell>{log.liters.toFixed(2)} Lt</TableCell>
                                     <TableCell>{log.cost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
                                     <TableCell>{log.mileage.toLocaleString()} km</TableCell>

@@ -680,12 +680,12 @@ export function FuelConsumptionReport() {
                                 <TableRow>
                                     <TableHead>Tarih</TableHead>
                                     <TableHead>Plaka / Araç</TableHead>
-                                    <TableHead>Sayaç</TableHead>
-                                    <TableHead>Fark</TableHead>
-                                    <TableHead>Alınan</TableHead>
+                                    <TableHead className="text-right">Sayaç</TableHead>
+                                    <TableHead className="text-right">Fark</TableHead>
+                                    <TableHead className="text-right">Alınan</TableHead>
                                     <TableHead>Ort Tüketim</TableHead>
                                     <TableHead>Genel Ort</TableHead>
-                                    <TableHead>Kümülatif Toplam</TableHead>
+                                    <TableHead className="text-right">Kümülatif Toplam</TableHead>
                                     <TableHead>Not</TableHead>
                                     <TableHead>Yakıt Veren</TableHead>
                                     <TableHead className="w-[80px]">İşlemler</TableHead>
@@ -703,7 +703,7 @@ export function FuelConsumptionReport() {
                                             <div className="text-xs text-muted-foreground truncate" title={row.vehicle.brand}>{row.vehicle.brand}</div>
                                         </TableCell>
 
-                                        <TableCell>
+                                        <TableCell className="text-right">
                                             {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
                                                 <>
                                                     {row.mileage.toLocaleString()}
@@ -711,13 +711,13 @@ export function FuelConsumptionReport() {
                                                 </>
                                             )}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="text-right">
                                             {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
                                                 row.diffKm > 0 ? `+${row.diffKm}` : '-'
                                             )}
                                         </TableCell>
-                                        <TableCell className="min-w-[110px]">
-                                            <div className="flex flex-col">
+                                        <TableCell className="min-w-[110px] text-right">
+                                            <div className="flex flex-col items-end">
                                                 <span className={cn("font-bold whitespace-nowrap",
                                                     row.recordType === 'BALANCE_START' ? 'text-blue-700' :
                                                         (row.recordType === 'PURCHASE' || (row.recordType === 'VIRMAN_IN') ? 'text-green-600' : 'text-red-600')
@@ -752,7 +752,7 @@ export function FuelConsumptionReport() {
                                             )}
                                         </TableCell>
 
-                                        <TableCell className={cn("font-semibold",
+                                        <TableCell className={cn("font-semibold text-right",
                                             row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
                                                 (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
                                         )}>

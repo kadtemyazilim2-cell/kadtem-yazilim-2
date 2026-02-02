@@ -122,7 +122,11 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard'); // Further ensure layout updates
+        revalidatePath('/', 'layout'); // Global layout reset to force fetch
         return { success: true, data: log };
 
     } catch (error) {
