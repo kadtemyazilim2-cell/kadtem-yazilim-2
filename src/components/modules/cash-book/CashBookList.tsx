@@ -84,10 +84,20 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
     };
 
     // Helper for safe date formatting
-    const safeFormat = (dateStr: string | Date | null | undefined, fmt: string) => {
+    const safeFormat = (dateStr: string | Date | number | null | undefined, fmt: string) => {
         if (!dateStr) return '-';
         try {
-            const d = typeof dateStr === 'string' ? parseISO(dateStr) : dateStr;
+            let d: Date;
+            if (typeof dateStr === 'string') {
+                d = parseISO(dateStr);
+                // Fallback for non-ISO strings if parseISO fails or returns invalid
+                if (!isValid(d)) d = new Date(dateStr);
+            } else if (typeof dateStr === 'number') {
+                d = new Date(dateStr);
+            } else {
+                d = dateStr as Date;
+            }
+
             if (!isValid(d)) return '-';
             return format(d, fmt, { locale: tr });
         } catch (e) {
@@ -103,6 +113,9 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
     const filteredTransactions = useMemo(() => {
         let result = [...(cashTransactions || [])];
+
+        // Ensure valid objects
+        result = result.filter(t => t && typeof t === 'object');
 
         // [NEW] Isolation Logic: If not ADMIN, only see own transactions
         if (user && user.role !== 'ADMIN') {
@@ -186,7 +199,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         // Filter transactions strictly BEFORE the start date calculate total balance until then
         // Apply SAME user/site filters as the main list
         let preTransactions = (cashTransactions || []).filter((t: any) => {
-            if (!t.date) return false;
+            if (!t || typeof t !== 'object' || !t.date) return false;
             const d = new Date(t.date);
             if (isNaN(d.getTime())) return false;
             return d < start;
@@ -203,8 +216,8 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             preTransactions = preTransactions.filter((t: any) => t.siteId === selectedSiteId);
         }
 
-        const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
-        const expense = preTransactions.filter((t: any) => t.type === 'EXPENSE').reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+        const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+        const expense = preTransactions.filter((t: any) => t.type === 'EXPENSE').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
 
         return income - expense;
     }, [cashTransactions, selectedUserId, selectedSiteId, startDate, user]);
@@ -216,7 +229,8 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
         // Since filteredTransactions is ALREADY sorted by Date Ascending, we can just map
         const calculated = result.map((t: any) => {
-            const amt = t.amount || 0;
+            if (!t) return t;
+            const amt = Number(t.amount || 0);
             if (t.type === 'INCOME') runningBalance += amt;
             else runningBalance -= amt;
 
@@ -224,7 +238,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         });
 
         // [NEW] Add "Previous Balance Row"
-        // This is added as the "first" item chronologically (so it will be last when reversed)
+        // This is added as the "first" item chronologically (so it's base)
 
         let validStartDateIso = new Date().toISOString();
         try {
@@ -250,7 +264,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             createdByUserId: ''
         };
 
-        // Prepend to chronological list (so it's the base)
+        // Prepend to chronological list
         calculated.unshift(previousBalanceRow as any);
 
         // Reverse for display (Newest First) -> Previous Balance will be at the BOTTOM
@@ -270,7 +284,8 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         if (startDate) {
             const start = parseISO(startDate);
 
-            let preList = cashTransactions.filter((t: any) => new Date(t.date) < start);
+            // [FIX] Ensure cashTransactions is array
+            let preList = (cashTransactions || []).filter((t: any) => t && t.date && new Date(t.date) < start);
 
             // Apply same User Filter
             if (user && user.role !== 'ADMIN') {
@@ -280,18 +295,20 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             }
 
             preList.forEach((t: any) => {
-                if (!balances[t.siteId]) return; // Skip if site deleted or unknown
-                if (t.type === 'INCOME') balances[t.siteId].previousBalance += t.amount;
-                else balances[t.siteId].previousBalance -= t.amount;
+                if (!t || !t.siteId || !balances[t.siteId]) return; // Skip if site deleted or unknown
+                const amt = Number(t.amount || 0);
+                if (t.type === 'INCOME') balances[t.siteId].previousBalance += amt;
+                else balances[t.siteId].previousBalance -= amt;
             });
         }
 
         // 2. Add Current Period Transactions
         // filteredTransactions is already filtered by User and Date
         filteredTransactions.forEach((t: any) => {
-            if (!balances[t.siteId]) return;
-            if (t.type === 'INCOME') balances[t.siteId].income += t.amount;
-            else balances[t.siteId].expense += t.amount;
+            if (!t || !t.siteId || !balances[t.siteId]) return;
+            const amt = Number(t.amount || 0);
+            if (t.type === 'INCOME') balances[t.siteId].income += amt;
+            else balances[t.siteId].expense += amt;
         });
 
         return Object.values(balances).filter(b => b.income > 0 || b.expense > 0 || b.previousBalance !== 0);
