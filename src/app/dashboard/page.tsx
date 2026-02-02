@@ -82,8 +82,16 @@ export default function DashboardPage() {
         })[0]
         : null;
 
-    // Get Missing Reference Numbers (excluding BANK) - Only show to creator
-    const missingDocs = correspondences.filter((c: any) => c.direction === 'OUTGOING' && c.type !== 'BANK' && (!c.referenceNumber || c.referenceNumber.trim() === '') && c.createdByUserId === user?.id);
+    // Get Missing Reference Numbers (excluding BANK) - Show to all authorized users (removed user filter)
+    // Checks for missing Reference Number AND/OR Missing Registration Number
+    const missingDocs = correspondences.filter((c: any) =>
+        c.direction === 'OUTGOING' &&
+        c.type !== 'BANK' &&
+        (
+            (!c.referenceNumber || c.referenceNumber.trim() === '') ||
+            (!c.registrationNumber || c.registrationNumber.trim() === '')
+        )
+    );
 
     // 1. Financial Status (Balance per User)
     const { users } = useAppStore();
