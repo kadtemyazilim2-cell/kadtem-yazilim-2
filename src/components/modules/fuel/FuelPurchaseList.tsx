@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react'; // [NEW]
 import { useAppStore } from '@/lib/store/use-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
+import { FuelTransferEditDialog } from './FuelTransferEditDialog'; // [NEW]
 
 export function FuelPurchaseList() {
     const { fuelTransfers, fuelTanks } = useAppStore();
+    const [selectedTransfer, setSelectedTransfer] = useState<any>(null); // [NEW]
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // [NEW]
 
     // Helper to resolve Entity Names
     const getEntityName = (type: string, id: string) => {
@@ -57,7 +61,11 @@ export function FuelPurchaseList() {
                             </TableRow>
                         ) : (
                             purchases.map((t: any) => (
-                                <TableRow key={t.id}>
+                                <TableRow
+                                    key={t.id}
+                                    className="cursor-pointer hover:bg-slate-50" // [NEW] Pointer
+                                    onClick={() => { setSelectedTransfer(t); setIsEditDialogOpen(true); }} // [NEW] Click Handler
+                                >
                                     <TableCell>{format(new Date(t.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                     <TableCell className="font-medium text-slate-700">
                                         {getEntityName(t.fromType, t.fromId)}
@@ -83,6 +91,14 @@ export function FuelPurchaseList() {
                     </TableBody>
                 </Table>
             </CardContent>
+
+            {selectedTransfer && (
+                <FuelTransferEditDialog
+                    open={isEditDialogOpen}
+                    onOpenChange={setIsEditDialogOpen}
+                    transfer={selectedTransfer}
+                />
+            )}
         </Card>
     );
 }

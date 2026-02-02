@@ -1,13 +1,17 @@
 'use client';
 
+import { useState } from 'react'; // [NEW]
 import { useAppStore } from '@/lib/store/use-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
+import { FuelTransferEditDialog } from './FuelTransferEditDialog'; // [NEW]
 
 export function FuelTransferList() {
-    const { fuelTransfers, fuelTanks, sites, vehicles, users } = useAppStore(); // [FIX] Added users
+    const { fuelTransfers, fuelTanks, sites, vehicles, users } = useAppStore();
+    const [selectedTransfer, setSelectedTransfer] = useState<any>(null); // [NEW]
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // [NEW]
 
     // Helper to resolve Site Name from Entity ID
     const getEntityName = (type: string, id: string) => {
@@ -55,7 +59,11 @@ export function FuelTransferList() {
                             </TableRow>
                         ) : (
                             transfers.map((t: any) => (
-                                <TableRow key={t.id}>
+                                <TableRow
+                                    key={t.id}
+                                    className="cursor-pointer hover:bg-slate-50" // [NEW] Pointer
+                                    onClick={() => { setSelectedTransfer(t); setIsEditDialogOpen(true); }} // [NEW] Click Handler
+                                >
                                     <TableCell>{format(new Date(t.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                     <TableCell className="font-medium text-slate-700">
                                         {getAuthorName(t.createdByUserId)}
@@ -78,6 +86,14 @@ export function FuelTransferList() {
                     </TableBody>
                 </Table>
             </CardContent>
+
+            {selectedTransfer && (
+                <FuelTransferEditDialog
+                    open={isEditDialogOpen}
+                    onOpenChange={setIsEditDialogOpen}
+                    transfer={selectedTransfer}
+                />
+            )}
         </Card>
     );
 }
