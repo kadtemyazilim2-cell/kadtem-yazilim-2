@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,8 +25,13 @@ import { createSiteLogEntry, updateSiteLogEntry, deleteSiteLogEntry } from '@/ac
 import { toast } from 'sonner';
 
 export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
-    const { siteLogEntries, users } = useAppStore();
-    const sites = useUserSites();
+    const { siteLogEntries: rawEntries, users: rawUsers } = useAppStore();
+    const rawSites = useUserSites();
+
+    // Safety Wrappers
+    const siteLogEntries = rawEntries || [];
+    const users = rawUsers || [];
+    const sites = rawSites || [];
     const { user, hasPermission } = useAuth();
     const [open, setOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -49,23 +54,20 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
     // [NEW] Filtered & Grouped Data
-    const filteredGroups = useAppStore(state => {
-        const entries = state.siteLogEntries;
-        // Group by Site+Date
+    // const storeEntries = ... (removed redundant)
+
+    const filteredGroups = useMemo(() => {
         const grouped: Record<string, any> = {};
 
-        entries.filter((entry: any) => {
-            // 1. Site Filter (Prop or State?)
-            // If prop filterSiteId is present, strictly enforce it.
+        siteLogEntries.filter((entry: any) => {
+            // 1. Site Filter
             if (filterSiteId && entry.siteId !== filterSiteId) return false;
-            // If internal state siteId filter exists (e.g. from UI dropdown we might add?), check it.
-            // For now, let's stick to the prop or "All" if no prop.
 
             // 2. Date Range
             if (filterStartDate && new Date(entry.date) < new Date(filterStartDate)) return false;
             if (filterEndDate && new Date(entry.date) > new Date(filterEndDate)) return false;
 
-            // 3. Search Term (Content, Weather, SiteName, AuthorName)
+            // 3. Search Term
             if (searchTerm) {
                 const term = searchTerm.toLowerCase();
                 const siteName = (sites.find((s: any) => s.id === entry.siteId)?.name || '').toLowerCase();
@@ -97,13 +99,16 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
 
         // Sort Groups
         list.sort((a: any, b: any) => {
-            const timeA = new Date(a.date).getTime();
-            const timeB = new Date(b.date).getTime();
+            // [FIX] Handle potential date errors
+            const d1 = new Date(a.date);
+            const d2 = new Date(b.date);
+            const timeA = !isNaN(d1.getTime()) ? d1.getTime() : 0;
+            const timeB = !isNaN(d2.getTime()) ? d2.getTime() : 0;
             return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
         });
 
         return list;
-    });
+    }, [siteLogEntries, filterSiteId, filterStartDate, filterEndDate, searchTerm, sortOrder, sites, users]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
