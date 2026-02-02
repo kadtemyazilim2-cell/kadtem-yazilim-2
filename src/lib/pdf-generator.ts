@@ -80,6 +80,13 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
         }
     }
 
+
+    // [NEW] Gray Separator Line
+    doc.setDrawColor(200, 200, 200); // Light Gray
+    doc.setLineWidth(0.1); // Thin
+    doc.line(marginLeft, yPos - 8, 210 - marginRight, yPos - 8);
+    doc.setDrawColor(0, 0, 0); // Reset to Black
+
     // 2. Date (Right Aligned)
     // Use item.date or current date if missing? handlePrint uses item.date.
     const dateStr = item.date ? format(new Date(item.date), 'dd.MM.yyyy') : format(new Date(), 'dd.MM.yyyy');
