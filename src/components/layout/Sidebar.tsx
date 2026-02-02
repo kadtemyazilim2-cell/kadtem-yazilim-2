@@ -34,7 +34,7 @@ const NAV_ITEMS = [
     { label: 'Yönetim', href: '/dashboard/admin', icon: Settings }, // [NEW] Admin Link
 ];
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({ className, onNavItemClick }: { className?: string, onNavItemClick?: () => void }) {
     const pathname = usePathname();
     const { logout, user } = useAuth();
 
@@ -73,6 +73,7 @@ export function Sidebar({ className }: { className?: string }) {
                             <li key={item.href}>
                                 <Link
                                     href={item.href}
+                                    onClick={onNavItemClick}
                                     className={cn(
                                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                                         isActive

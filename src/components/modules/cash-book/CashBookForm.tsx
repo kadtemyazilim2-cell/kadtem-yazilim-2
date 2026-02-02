@@ -36,6 +36,10 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
     const canEdit = hasPermission('cash-book', 'EDIT');
 
     const activeSites = (sites || []).filter((s: any) => s.status === 'ACTIVE');
+    // [MOD] Filter sites available to user
+    const availableSites = user?.role === 'ADMIN'
+        ? activeSites
+        : activeSites.filter((s: any) => user?.assignedSiteIds?.includes(s.id));
 
     const [formData, setFormData] = useState({
         siteId: '',
@@ -284,8 +288,13 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
 
     const handleOpenChange = (open: boolean) => {
         setOpen(open);
-        if (open && !initialData && !formData.responsibleUserId && user) {
-            setFormData(prev => ({ ...prev, responsibleUserId: user.id }));
+        if (open && !initialData) {
+            const singleSiteId = availableSites.length === 1 ? availableSites[0].id : '';
+            setFormData(prev => ({
+                ...prev,
+                responsibleUserId: (!prev.responsibleUserId && user) ? user.id : prev.responsibleUserId,
+                siteId: singleSiteId || prev.siteId // Auto select if only 1 site available
+            }));
         }
         if (!open) {
             // If closed, reset unless initialData exists (which persists)
@@ -310,23 +319,24 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    <div className="space-y-2">
-                        <Label>İlgili Personel (İşlemi Yapan)</Label>
-                        <Select
-                            value={formData.responsibleUserId}
-                            onValueChange={(v) => setFormData({ ...formData, responsibleUserId: v })}
-                            disabled={user?.role !== 'ADMIN'}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Personel Seçiniz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {(user?.role === 'ADMIN' ? (users || []) : (users || []).filter((u: any) => u.id === user?.id)).map((u: any) => (
-                                    <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {user?.role === 'ADMIN' && (
+                        <div className="space-y-2">
+                            <Label>İlgili Personel (İşlemi Yapan)</Label>
+                            <Select
+                                value={formData.responsibleUserId}
+                                onValueChange={(v) => setFormData({ ...formData, responsibleUserId: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Personel Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(users || []).map((u: any) => (
+                                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
 
                     <div className={defaultValues?.type ? "space-y-2" : "grid grid-cols-2 gap-4"}>
                         <div className="space-y-2">
@@ -340,7 +350,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                     <SelectValue placeholder="Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {activeSites.map((s: any) => (
+                                    {availableSites.map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>

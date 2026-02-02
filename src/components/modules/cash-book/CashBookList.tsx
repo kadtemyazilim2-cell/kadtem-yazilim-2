@@ -667,33 +667,33 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full md:w-auto">
                                 <Button
                                     variant="outline"
-                                    className="h-12 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300 shadow-sm"
+                                    className="h-auto min-h-[3rem] py-3 whitespace-normal border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
                                         setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CASH', description: '' });
                                         setIsFormOpen(true);
                                     }}
                                 >
-                                    <Banknote className="mr-2 h-5 w-5" />
+                                    <Banknote className="mr-2 h-5 w-5 shrink-0" />
                                     Nakit Ödeme
                                 </Button>
 
                                 <Button
                                     variant="outline"
-                                    className="h-12 border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 hover:border-yellow-500 shadow-sm"
+                                    className="h-auto min-h-[3rem] py-3 whitespace-normal border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 hover:border-yellow-500 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
                                         setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CREDIT_CARD', description: '' });
                                         setIsFormOpen(true);
                                     }}
                                 >
-                                    <CreditCard className="mr-2 h-5 w-5" />
+                                    <CreditCard className="mr-2 h-5 w-5 shrink-0" />
                                     Kredi Kartı ile Ödeme
                                 </Button>
 
                                 <Button
                                     variant="outline"
-                                    className="h-12 border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 shadow-sm"
+                                    className="h-auto min-h-[3rem] py-3 whitespace-normal border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 shadow-sm"
                                     onClick={() => {
                                         const currentMonthName = format(new Date(), 'MMMM', { locale: tr });
                                         // Capitalize first letter of month
@@ -707,15 +707,15 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                         setIsFormOpen(true);
                                     }}
                                 >
-                                    <Banknote className="mr-2 h-5 w-5" />
+                                    <Banknote className="mr-2 h-5 w-5 shrink-0" />
                                     Nakit Tahsilat
                                 </Button>
 
                                 <Button
-                                    className={cn("h-12 text-white shadow-sm", showReport ? "bg-slate-700 hover:bg-slate-800" : "bg-blue-600 hover:bg-blue-700")}
+                                    className={cn("h-auto min-h-[3rem] py-3 whitespace-normal text-white shadow-sm", showReport ? "bg-slate-700 hover:bg-slate-800" : "bg-blue-600 hover:bg-blue-700")}
                                     onClick={() => setShowReport(!showReport)}
                                 >
-                                    <BarChart className="mr-2 h-5 w-5" />
+                                    <BarChart className="mr-2 h-5 w-5 shrink-0" />
                                     {showReport ? 'Raporu Gizle' : 'Kasa Raporu'}
                                 </Button>
                             </div>
