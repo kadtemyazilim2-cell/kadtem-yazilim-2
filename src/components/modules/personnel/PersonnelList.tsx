@@ -646,6 +646,23 @@ export function PersonnelList() {
                 }
 
                 row['İzin (Gün)'] = leaveValue;
+
+                // [NEW] Total Payment Calculation (Hakediş)
+                let totalPayment = 0;
+                const salary = Number(p.salary) || 0;
+                if (salary > 0) {
+                    const dailyWage = salary / 30;
+                    const hourlyWage = salary / 225;
+                    const overtimeWage = hourlyWage * 1.5;
+
+                    totalPayment = (workedDays * dailyWage) + (overtimeTotal * overtimeWage);
+                }
+
+                // Format as Currency String
+                row['Hakediş'] = totalPayment > 0
+                    ? totalPayment.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'
+                    : '-';
+
                 return row;
             });
         };
@@ -667,7 +684,7 @@ export function PersonnelList() {
             finalData.push(...fieldRows);
         }
 
-        const header = ['Ad Soyad', 'Görevi', 'Durum', ...dayHeaders, 'Çalışılan (Gün)', 'Fazla Mesai (Saat)', 'İzin (Gün)'];
+        const header = ['Ad Soyad', 'Görevi', 'Durum', ...dayHeaders, 'Çalışılan (Gün)', 'Fazla Mesai (Saat)', 'İzin (Gün)', 'Hakediş'];
 
         // Create Sheet with Title
         const ws = XLSX.utils.json_to_sheet([], { header: [] }); // Start empty
@@ -695,7 +712,7 @@ export function PersonnelList() {
         doc.setFontSize(14);
         doc.text(`${siteName} - ${monthStr} - Personel Puantajı`, 14, 15);
 
-        const tableColumn = ["Ad Soyad", "Görevi", ...daysInMonth.map((d: any) => format(d, 'dd')), "Ç (Gün)", "FM (Sa)", "İzin"];
+        const tableColumn = ["Ad Soyad", "Görevi", ...daysInMonth.map((d: any) => format(d, 'dd')), "Ç (Gün)", "FM (Sa)", "İzin", "Hakediş"];
         const tableRows: any[] = [];
 
         // Helper to generate rows
@@ -746,13 +763,28 @@ export function PersonnelList() {
                     if (remaining > 0) leaveDisplay = remaining.toString();
                 }
 
+                // [NEW] Total Payment Calculation
+                let paymentDisplay = '-';
+                const salary = Number(p.salary) || 0;
+                if (salary > 0) {
+                    const dailyWage = salary / 30;
+                    const hourlyWage = salary / 225;
+                    const overtimeWage = hourlyWage * 1.5;
+
+                    const totalPayment = (workedDays * dailyWage) + (overtimeTotal * overtimeWage);
+                    if (totalPayment > 0) {
+                        paymentDisplay = totalPayment.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    }
+                }
+
                 return [
                     p.fullName,
                     p.role,
                     ...dayCells,
                     workedDays.toString(),
                     overtimeTotal > 0 ? overtimeTotal.toString() : '-',
-                    leaveDisplay
+                    leaveDisplay,
+                    paymentDisplay
                 ];
             });
         };
