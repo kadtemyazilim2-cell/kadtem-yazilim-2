@@ -63,8 +63,8 @@ async function main() {
         }
 
         if (plateOrName.toLowerCase().includes('fiat hitachi')) {
-            // User Mapping: Fiat Hitachi 200.3 -> DB Vehicle
-            const target = vehicles.find(v => v.brand.toLowerCase().includes('fiat') || v.model.toLowerCase().includes('hitachi'));
+            // User Mapping: Fiat Hitachi 200.3 -> NEW DB Vehicle
+            const target = vehicles.find(v => v.plate === 'Fiat Hitachi 200.3');
             if (target) return target;
         }
 
