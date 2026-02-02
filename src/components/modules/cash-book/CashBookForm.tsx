@@ -464,14 +464,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>Belge No</Label>
-                        <Input
-                            placeholder="Fatura No / Fiş No"
-                            value={formData.documentNo}
-                            onChange={(e) => setFormData({ ...formData, documentNo: e.target.value })}
-                        />
-                    </div>
+
 
                     {/* File Upload for Slip */}
                     <div className="space-y-2 border-t pt-4">

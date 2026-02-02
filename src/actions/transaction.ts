@@ -60,7 +60,7 @@ export async function createTransaction(data: Partial<CashTransaction>) {
         return { success: true, data: transaction };
     } catch (error) {
         console.error('createTransaction Error:', error);
-        return { success: false, error: 'İşlem eklenemedi.' };
+        return { success: false, error: `İşlem eklenemedi: ${error instanceof Error ? error.message : String(error)}` };
     }
 }
 
