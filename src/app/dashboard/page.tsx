@@ -441,75 +441,114 @@ export default function DashboardPage() {
             {hasPermission('correspondence', 'VIEW') && (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     <Card className="col-span-7 border-red-200 shadow-sm">
-                        <CardHeader className="pb-3">
+                        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
                             <CardTitle className="flex items-center gap-2 text-red-700">
                                 <FileText className="h-5 w-5" />
                                 Eksik Evrak Numaraları
-                                <span className="ml-auto text-sm font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                <span className="ml-auto text-sm font-normal text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
                                     {missingDocs.length} Adet
                                 </span>
                             </CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="p-0">
                             {missingDocs.length === 0 ? (
-                                <div className="text-center py-6 text-slate-500 text-sm">
+                                <div className="text-center py-10 text-slate-500 text-sm">
                                     Eksik evrak numarası bulunmuyor.
                                 </div>
                             ) : (
-                                <div className="space-y-2">
-                                    <div className="grid md:grid-cols-2 gap-2">
-                                        {missingDocs.slice(0, showAllMissingDocs ? undefined : 4).map((doc: any) => (
-                                            <div
-                                                key={doc.id}
-                                                onClick={() => {
-                                                    setEditCorrespondenceId(doc.id);
-                                                    setEditReferenceNumber(doc.referenceNumber || '');
-                                                    setEditRegistrationNumber(doc.registrationNumber || '');
-                                                    setIsEditCorrespondenceOpen(true);
-                                                }}
-                                                className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100 hover:border-red-200 cursor-pointer transition-all"
-                                            >
-                                                <div className="space-y-1">
-                                                    <div className="font-medium text-slate-900 group-hover:text-red-900 transition-colors">
-                                                        {doc.subject}
-                                                    </div>
-                                                    <div className="text-xs text-slate-500 flex items-center gap-2">
-                                                        <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
-                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                        <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
-                                                    </div>
-                                                    {/* [NEW] Recipient and Text Excerpt */}
-                                                    <div className="text-xs text-slate-600">
-                                                        <span className="font-semibold text-slate-700">Muhatap:</span> {doc.receiver || '-'}
-                                                    </div>
-                                                    {doc.description && (
-                                                        <div className="text-[11px] text-slate-500 italic line-clamp-1 border-l-2 border-slate-200 pl-1">
-                                                            {doc.description}
-                                                        </div>
-                                                    )}
+                                <div className="rounded-md">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b">
+                                                <tr>
+                                                    <th className="px-4 py-3 font-medium">Durum</th>
+                                                    <th className="px-4 py-3 font-medium">Tarih</th>
+                                                    <th className="px-4 py-3 font-medium">Konu</th>
+                                                    <th className="px-4 py-3 font-medium">Muhatap</th>
+                                                    <th className="px-4 py-3 font-medium text-right">İşlem</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {missingDocs.slice(0, showAllMissingDocs ? undefined : 5).map((doc: any) => {
+                                                    // Strip HTML tags helper
+                                                    const cleanText = (html: string) => {
+                                                        const tmp = document.createElement("DIV");
+                                                        tmp.innerHTML = html;
+                                                        return tmp.textContent || tmp.innerText || "";
+                                                    };
+                                                    // Safe Clean (since we are SSR/Client mix, simple regex usually safer if no DOM)
+                                                    // But in 'use client' document is available.
+                                                    // However, better properly handle possible nulls.
+                                                    const stripTags = (str: string) => str ? str.replace(/<[^>]*>/g, '') : '';
 
-                                                    {/* Show missing types explicitly */}
-                                                    <div className="flex gap-2">
-                                                        {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}
-                                                        {(!doc.referenceNumber) && <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">Sayı No Eksik</span>}
-                                                    </div>
-                                                </div>
-                                                <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
-                                                    Numara Gir &rarr;
-                                                </div>
-                                            </div>
-                                        ))}
+                                                    return (
+                                                        <tr key={doc.id} className="bg-white hover:bg-slate-50 transition-colors">
+                                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                                <div className="flex gap-1 flex-col">
+                                                                    {(!doc.registrationNumber) && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 w-fit">
+                                                                            Evrak No Eksik
+                                                                        </span>
+                                                                    )}
+                                                                    {(!doc.referenceNumber) && (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 w-fit">
+                                                                            Sayı No Eksik
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+                                                                {format(new Date(doc.date), 'dd.MM.yyyy')}
+                                                            </td>
+                                                            <td className="px-4 py-3 max-w-[300px]">
+                                                                <div className="truncate font-medium text-slate-900" title={stripTags(doc.subject)}>
+                                                                    {stripTags(doc.subject)}
+                                                                </div>
+                                                                {doc.description && (
+                                                                    <div className="text-xs text-slate-500 truncate" title={stripTags(doc.description)}>
+                                                                        {stripTags(doc.description)}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 max-w-[200px]">
+                                                                <div className="truncate text-slate-700" title={doc.senderReceiver}>
+                                                                    {doc.senderReceiver || '-'}
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-400 truncate">
+                                                                    {companies.find((c: any) => c.id === doc.companyId)?.name}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                                                    onClick={() => {
+                                                                        setEditCorrespondenceId(doc.id);
+                                                                        setEditReferenceNumber(doc.referenceNumber || '');
+                                                                        setEditRegistrationNumber(doc.registrationNumber || '');
+                                                                        setIsEditCorrespondenceOpen(true);
+                                                                    }}
+                                                                >
+                                                                    Numara Gir
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
 
-                                    {missingDocs.length > 4 && (
-                                        <div className="flex justify-center pt-2">
+                                    {missingDocs.length > 5 && (
+                                        <div className="flex justify-center py-3 border-t border-slate-100">
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => setShowAllMissingDocs(!showAllMissingDocs)}
-                                                className="text-slate-500 hover:text-slate-800"
+                                                className="text-xs text-slate-500 hover:text-slate-800 h-8"
                                             >
-                                                {showAllMissingDocs ? 'Daha Az Göster' : `Devamını Göster (+${missingDocs.length - 4})`}
+                                                {showAllMissingDocs ? 'Listeyi Daralt' : `Tümünü Göster (+${missingDocs.length - 5})`}
                                             </Button>
                                         </div>
                                     )}
