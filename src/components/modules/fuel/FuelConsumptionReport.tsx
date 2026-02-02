@@ -708,7 +708,7 @@ export function FuelConsumptionReport() {
                                                 <>
                                                     {row.mileage.toLocaleString()}
                                                     <span className="text-xs text-muted-foreground ml-1">
-                                                        {row.vehicle.meterType === 'HOURS' ? 'Saat' : row.vehicle.meterType}
+                                                        {row.vehicle.meterType === 'HOURS' ? 'Sa' : (row.vehicle.meterType === 'KM' ? 'Km' : row.vehicle.meterType)}
                                                     </span>
                                                 </>
                                             )}

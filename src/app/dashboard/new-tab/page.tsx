@@ -1576,15 +1576,14 @@ export default function NewPage() {
             return [
                 index + 1,
                 trToAscii(p.name),
-                `${stats.remainingLeave} Gun`,
+                formatMoneyAscii(stats.leavePay),
                 formatMoneyAscii(stats.overtimePay),
-                `${stats.overtimeTotal} Saat`,
                 formatMoneyAscii(summaryTotal)
             ];
         });
 
         autoTable(doc, {
-            head: [['Sira No', 'Isim Soyisim', 'Kullanilmayan Izin', 'Mesai Ucreti', 'Toplam Mesai', 'Toplam Ucret']],
+            head: [['Sira No', 'Isim Soyisim', 'Izin Ucreti', 'Mesai Ucreti', 'Toplam Ucret']],
             body: salaryBody,
             startY: 20,
             theme: 'grid',
@@ -1593,8 +1592,9 @@ export default function NewPage() {
             columnStyles: {
                 0: { cellWidth: 20 }, // Sira
                 1: { cellWidth: 80, halign: 'left' }, // Isim
+                2: { halign: 'right' }, // Izin Ucreti
                 3: { halign: 'right' }, // Mesai Ucreti
-                5: { halign: 'right', fontStyle: 'bold' } // Toplam Ucret
+                4: { halign: 'right', fontStyle: 'bold' } // Toplam Ucret
             }
         });
 

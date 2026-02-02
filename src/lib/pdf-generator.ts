@@ -132,7 +132,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // 5. Recipient (Muhatap) - Centered & Bold 12pt
     // Move up 1 line
     doc.setFont(fontName, 'bold');
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     // Increase boldness/visibility by setting line width and rendering as stroke/fill
     doc.setLineWidth(0.4); // Strock effect for extra bold
     doc.setDrawColor(0, 0, 0);
@@ -519,7 +519,8 @@ export const generateFuelConsumptionPDF = (data: any[], dateRange: { start: stri
         if (row.recordType === 'PURCHASE') plate = `Satın Alma: ${row.vehicle.plate}`;
         if (row.recordType === 'BALANCE_START') plate = 'Devreden Stok';
 
-        let meter = (row.recordType === 'LOG' && row.mileage) ? row.mileage.toLocaleString() : '-';
+        const unit = row.vehicle?.meterType === 'HOURS' ? ' Sa' : ' Km';
+        let meter = (row.recordType === 'LOG' && row.mileage) ? `${row.mileage.toLocaleString()}${unit}` : '-';
         let diff = (row.recordType === 'LOG' && row.diffKm > 0) ? `+${row.diffKm}` : '-';
 
         let liters = '';
