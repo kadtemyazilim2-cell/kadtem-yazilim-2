@@ -145,7 +145,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // Best way in jsPDF for "Extra Bold":
     // doc.text(..., { renderingMode: 'fillThenStroke' });
 
-    const recipientText = (item.senderReceiver || '').toUpperCase();
+    const recipientText = (item.senderReceiver || '');
 
     // [FIX] Force Bold Rendering for Recipient
     doc.setFont(fontName, 'bold');
