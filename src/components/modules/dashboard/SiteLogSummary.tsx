@@ -277,41 +277,41 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                                     const isItemLoading = isGenerating === log.id;
 
                                     return (
-                                        <div key={log.id} className="relative pl-3 border-l-2 border-slate-200">
-                                            <div className="text-xs text-slate-500 mb-0.5 flex items-center justify-between">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <button
-                                                            className="flex items-center gap-1 font-medium text-slate-600 hover:text-blue-600 hover:bg-slate-100 px-1.5 py-0.5 rounded transition-all group disabled:opacity-50"
-                                                            disabled={isItemLoading}
-                                                        >
-                                                            {isItemLoading ? <Loader2 className="w-3 h-3 animate-spin text-blue-600" /> : <Calendar className="w-3 h-3 group-hover:text-blue-500" />}
-                                                            {format(new Date(log.date), 'dd MMM', { locale: tr })}
-                                                            <ChevronDown className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                        </button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="start">
-                                                        <DropdownMenuItem onClick={() => handleDownloadPDF(log, true)}>
-                                                            <Eye className="w-4 h-4 mr-2" />
-                                                            Önizle
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => handleDownloadPDF(log, false)}>
-                                                            <FileDown className="w-4 h-4 mr-2" />
-                                                            PDF İndir
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                        <div key={log.id} className="relative pl-3 border-l-2 border-slate-200 py-1">
+                                            {/* Row 1: Date | Preview Icon */}
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center gap-1 font-medium text-slate-700 text-xs">
+                                                    <Calendar className="w-3 h-3 text-blue-500" />
+                                                    {format(new Date(log.date), 'dd MMMM yyyy', { locale: tr })}
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-slate-400 hover:text-blue-600"
+                                                    title="Önizle"
+                                                    onClick={() => handleDownloadPDF(log, true)}
+                                                    disabled={isItemLoading}
+                                                >
+                                                    {isItemLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                                                </Button>
+                                            </div>
 
-                                                {log.weather && (
-                                                    <span className="text-[10px] bg-slate-100 px-1 rounded text-slate-500 max-w-[80px] truncate" title={log.weather}>
+                                            {/* Row 2: Weather */}
+                                            {log.weather && (
+                                                <div className="mb-1.5">
+                                                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded inline-block max-w-full truncate" title={log.weather}>
                                                         {log.weather}
                                                     </span>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed" title={log.content}>
+                                                </div>
+                                            )}
+
+                                            {/* Row 3: Content */}
+                                            <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed mb-1" title={log.content}>
                                                 {log.content}
                                             </p>
-                                            <div className="mt-1 flex items-center gap-1 text-[10px] text-slate-400">
+
+                                            {/* Row 4: Author */}
+                                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
                                                 <User className="w-3 h-3" />
                                                 <span className="truncate">{author?.name || 'Bilinmeyen'}</span>
                                             </div>
