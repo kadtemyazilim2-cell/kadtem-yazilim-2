@@ -295,6 +295,27 @@ model Personnel {
   
   // Relations
   attendance  PersonnelAttendance[]
+  salaryAdjustments SalaryAdjustment[]
+}
+
+model SalaryAdjustment {
+  id          String   @id @default(cuid())
+  personnelId String
+  personnel   Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
+  
+  year        Int
+  month       Int
+  
+  bonus       Float?   // Prim
+  deduction   Float?   // Kesinti / Avans
+  workedDays  Float?   // Override
+  overtimeHours Float? // Override
+  note        String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([personnelId, year, month])
 }
 
 // -----------------------------------------------------------------------------

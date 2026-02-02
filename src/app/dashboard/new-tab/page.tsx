@@ -15,6 +15,7 @@ import { tr } from 'date-fns/locale';
 import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
-import { getPersonnelWithAttendance, upsertPersonnelAttendance, createPersonnel, updatePersonnel, deletePersonnel } from '@/actions/personnel';
+import { getPersonnelWithAttendance, upsertPersonnelAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
 
 
 type AttendanceRecord = {
@@ -343,6 +344,21 @@ export default function NewPage() {
                         };
                     });
 
+                    // [NEW] Map Salary Adjustments
+                    const adjMap: Record<string, any> = {};
+                    if (p.salaryAdjustments) {
+                        p.salaryAdjustments.forEach((adj: any) => {
+                            const k = `${adj.year}-${adj.month.toString().padStart(2, '0')}`;
+                            adjMap[k] = {
+                                bonus: adj.bonus,
+                                deduction: adj.deduction,
+                                workedDays: adj.workedDays,
+                                overtimeHours: adj.overtimeHours,
+                                note: adj.note
+                            };
+                        });
+                    }
+
                     return {
                         id: p.id,
                         siteId: p.siteId || '',
@@ -358,7 +374,7 @@ export default function NewPage() {
                         transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
                         attendance: attendanceMap,
                         salaryHistory: [],
-                        salaryAdjustments: {}
+                        salaryAdjustments: adjMap
                     };
                 });
                 setNames(mapped);
@@ -1065,10 +1081,11 @@ export default function NewPage() {
         };
     };
 
-    const updateSalaryAdjustment = (personId: string, field: 'bonus' | 'deduction', value: string) => {
+    const updateSalaryAdjustment = async (personId: string, field: 'bonus' | 'deduction', value: string) => {
         const dateKey = format(date, 'yyyy-MM');
-        const numValue = value ? parseFloat(value) : undefined;
+        const numValue = value ? parseFloat(value) : null; // Use null for DB
 
+        // Optimistic Update
         setNames(prev => prev.map(p => {
             if (p.id === personId) {
                 const currentAdj = p.salaryAdjustments?.[dateKey] || {};
@@ -1078,13 +1095,16 @@ export default function NewPage() {
                         ...p.salaryAdjustments,
                         [dateKey]: {
                             ...currentAdj,
-                            [field]: numValue
+                            [field]: numValue || 0
                         }
                     }
                 };
             }
             return p;
         }));
+
+        // Server Update
+        await upsertSalaryAdjustment(personId, date, field, numValue);
     };
 
     const handleExportExcel = () => {
@@ -1670,6 +1690,7 @@ export default function NewPage() {
                         <div className="flex justify-between items-center mb-4">
                             <TabsList>
                                 <TabsTrigger value="grid">Puantaj Tablosu</TabsTrigger>
+                                <TabsTrigger value="salary-list">Maaş Tablosu</TabsTrigger>
                                 <TabsTrigger value="site-list">Şantiye Personel Listesi</TabsTrigger>
                                 <TabsTrigger value="all-list">Tüm Personel</TabsTrigger>
                             </TabsList>
@@ -2107,6 +2128,72 @@ export default function NewPage() {
                                 <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-red-50 text-red-500 flex items-center justify-center"><LogOut className="w-3 h-3" /></div> İşten Çıkış</div>
                                 <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded flex items-center justify-center"><LogIn className="w-3 h-3 text-green-600" /></div> İşe Giriş</div>
                             </div>
+                        </TabsContent>
+
+                        {/* SALARY TABLE */}
+                        <TabsContent value="salary-list" className="space-y-4">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardTitle>Maaş Hesaplama Tablosu</CardTitle>
+                                    <Button variant="outline" size="sm" onClick={handleExportSalaryExcel}>
+                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                        Excel İndir
+                                    </Button>
+                                </CardHeader>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">#</TableHead>
+                                            <TableHead>Ad Soyad</TableHead>
+                                            <TableHead>Maaş</TableHead>
+                                            <TableHead className="text-center">Gün</TableHead>
+                                            <TableHead className="text-center">Mesai</TableHead>
+                                            <TableHead className="text-right">Hakediş</TableHead>
+                                            <TableHead className="text-right">Mesai Tutarı</TableHead>
+                                            <TableHead className="text-right bg-green-50/50">Prim</TableHead>
+                                            <TableHead className="text-right bg-red-50/50">Kesinti</TableHead>
+                                            <TableHead className="text-right font-bold">TOPLAM</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredNames.map((person, index) => {
+                                            const stats = calculateStats(person, date);
+                                            const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                            return (
+                                                <TableRow key={person.id}>
+                                                    <TableCell>{index + 1}</TableCell>
+                                                    <TableCell className="font-medium">{person.name}</TableCell>
+                                                    <TableCell>{formatCurrency(person.salary)}</TableCell>
+                                                    <TableCell className="text-center">{stats.workedDays}</TableCell>
+                                                    <TableCell className="text-center">{stats.overtimeTotal || '-'}</TableCell>
+                                                    <TableCell className="text-right">{fmt(stats.basePay)} ₺</TableCell>
+                                                    <TableCell className="text-right">{fmt(stats.overtimePay)} ₺</TableCell>
+                                                    <TableCell className="p-0 bg-green-50/30">
+                                                        <SalaryEditableCell
+                                                            value={stats.bonus}
+                                                            type="Prim"
+                                                            colorClass="text-green-700"
+                                                            onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="p-0 bg-red-50/30">
+                                                        <SalaryEditableCell
+                                                            value={stats.deduction}
+                                                            type="Kesinti"
+                                                            colorClass="text-red-700"
+                                                            onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-bold text-blue-700">
+                                                        {fmt(stats.totalPay)} ₺
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </Card>
                         </TabsContent>
                     </Tabs>
 

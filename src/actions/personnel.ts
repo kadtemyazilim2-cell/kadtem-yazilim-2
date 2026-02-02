@@ -158,6 +158,12 @@ export async function getPersonnelWithAttendance(month: Date, siteId?: string) {
                             lte: new Date(month.getFullYear(), month.getMonth() + 1, 0) // End of Month
                         }
                     }
+                },
+                salaryAdjustments: {
+                    where: {
+                        year: month.getFullYear(),
+                        month: month.getMonth() + 1
+                    }
                 }
             },
             orderBy: { fullName: 'asc' }
@@ -202,5 +208,54 @@ export async function deletePersonnel(id: string) {
     } catch (error) {
         console.error('deletePersonnel Error:', error);
         return { success: false, error: 'Personel silinemedi.' };
+    }
+}
+
+// [NEW] Upsert Salary Adjustment
+export async function upsertSalaryAdjustment(
+    personnelId: string,
+    date: Date,
+    field: 'bonus' | 'deduction',
+    value: number | null
+) {
+    try {
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
+        const existing = await prisma.salaryAdjustment.findUnique({
+            where: {
+                personnelId_year_month: {
+                    personnelId,
+                    year,
+                    month
+                }
+            }
+        });
+
+        if (existing) {
+            await prisma.salaryAdjustment.update({
+                where: { id: existing.id },
+                data: {
+                    [field]: value
+                }
+            });
+        } else {
+            // Create new with default 0s for others
+            await prisma.salaryAdjustment.create({
+                data: {
+                    personnelId,
+                    year,
+                    month,
+                    [field]: value,
+                    // If creating new, other field defaults to null/0 effectively
+                }
+            });
+        }
+
+        revalidatePath('/dashboard/new-tab');
+        return { success: true };
+    } catch (error) {
+        console.error('upsertSalaryAdjustment Error:', error);
+        return { success: false, error: 'Maaş düzeltmesi kaydedilemedi.' };
     }
 }

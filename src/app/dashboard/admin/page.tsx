@@ -1407,21 +1407,11 @@ export default function AdminPage() {
                                                             <div className="flex justify-between items-center">
                                                                 <Label>Modül Erişim İzinleri</Label>
                                                                 <div className="flex gap-2">
-                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('NONE')} className="h-7 text-xs">
-                                                                        Temizle
-                                                                    </Button>
-                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('VIEW')} className="h-7 text-xs">
-                                                                        Tümünü Gör
-                                                                    </Button>
-                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('EDIT')} className="h-7 text-xs">
-                                                                        Tümüne Veri Girişi
-                                                                    </Button>
-                                                                    <Button type="button" variant="outline" size="sm" onClick={() => toggleColumn('EXPORT')} className="h-7 text-xs text-purple-700 hover:text-purple-800 hover:bg-purple-50">
-                                                                        <FileDown className="w-3 h-3 mr-1" />
-                                                                        İndirme İzni
+                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('NONE')} className="h-7 text-xs text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                                        <Trash2 className="w-3 h-3 mr-1" /> Temizle
                                                                     </Button>
                                                                     <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('FULL')} className="h-7 text-xs font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-50">
-                                                                        Tam Yetki
+                                                                        <ShieldCheck className="w-3 h-3 mr-1" /> Tam Yetki
                                                                     </Button>
                                                                 </div>
                                                             </div>
