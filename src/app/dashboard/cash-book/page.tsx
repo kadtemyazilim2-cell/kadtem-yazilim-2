@@ -17,12 +17,7 @@ export default function CashBookPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">Kasa ve Cari Hesaplar</h2>
-                <p className="text-muted-foreground">
-                    Şantiye bazlı gelir ve gider takibi.
-                </p>
-            </div>
+
             <CashBookList />
         </div>
     );
