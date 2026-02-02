@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-    const filePath = path.join('C:\\Users\\Drone\\Desktop\\benzer iş grupları\\mazot.html');
+    const filePath = path.join('C:\\Users\\Drone\\Desktop\\benzer iş grupları\\Yeni klasör\\mazot1.html');
 
     if (!fs.existsSync(filePath)) {
         console.error(`File not found: ${filePath}`);
@@ -59,6 +59,12 @@ async function main() {
             // User said: 2025 T -> 34-00-25-5586
             // Try searching for this plate
             const target = vehicles.find(v => v.plate === '34-00-25-5586' || v.plate.includes('34-00-25-5586'));
+            if (target) return target;
+        }
+
+        if (plateOrName.toLowerCase().includes('fiat hitachi')) {
+            // User Mapping: Fiat Hitachi 200.3 -> DB Vehicle
+            const target = vehicles.find(v => v.brand.toLowerCase().includes('fiat') || v.model.toLowerCase().includes('hitachi'));
             if (target) return target;
         }
 
@@ -179,6 +185,8 @@ async function main() {
                                 description: desc,
                                 fromType: 'TANK',
                                 toType: 'TANK',
+                                fromId: sourceSite.fuelTanks[0]?.id || 'UNKNOWN',
+                                toId: tank.id,
                                 fromTankId: sourceSite.fuelTanks[0]?.id || null,
                                 toTankId: tank.id,
                                 createdByUserId: adminUser.id
