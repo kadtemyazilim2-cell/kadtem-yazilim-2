@@ -45,7 +45,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
             // Center Logo? Or Left? Usually Top Left or Center. 
             // Image example shows Top Left.
             doc.addImage(logoToUse, 'PNG', marginLeft, 10, pdfWidth, pdfHeight);
-            yPos = 10 + pdfHeight + 10;
+            yPos = 10 + pdfHeight + 20; // Increased spacing (Logo -> Line -> Date)
         } catch (e) {
             console.error("Error adding logo", e);
             yPos = 45;
@@ -60,7 +60,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
             doc.text(companyName.toUpperCase(), 105, 30, { align: 'center' });
 
-            yPos = 45; // Set starting Y for content
+            yPos = 55; // Default start if no contact info
 
             // Optional: Address/Phone below header
             doc.setFont(fontName, 'normal');
@@ -73,10 +73,10 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
             if (contactInfo) {
                 doc.text(contactInfo, 105, 37, { align: 'center' });
-                yPos = 45; // Reduced from 50
+                yPos = 55; // Increased spacing
             }
         } else {
-            yPos = 25; // Reduced from 30
+            yPos = 35; // Increased spacing
         }
     }
 
@@ -84,7 +84,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // [NEW] Gray Separator Line
     doc.setDrawColor(200, 200, 200); // Light Gray
     doc.setLineWidth(0.1); // Thin
-    doc.line(marginLeft, yPos - 5, 210 - marginRight, yPos - 5); // Adjusted Y offset (-10 -> -5)
+    doc.line(marginLeft, yPos - 10, 210 - marginRight, yPos - 10); // Placed exactly in middle of 20mm gap
     doc.setDrawColor(0, 0, 0); // Reset to Black
 
     // 2. Date (Right Aligned)
