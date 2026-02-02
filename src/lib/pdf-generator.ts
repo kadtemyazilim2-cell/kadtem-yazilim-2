@@ -73,10 +73,10 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
             if (contactInfo) {
                 doc.text(contactInfo, 105, 37, { align: 'center' });
-                yPos = 50;
+                yPos = 45; // Reduced from 50
             }
         } else {
-            yPos = 30; // Fallback if no company data
+            yPos = 25; // Reduced from 30
         }
     }
 
@@ -84,7 +84,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // [NEW] Gray Separator Line
     doc.setDrawColor(200, 200, 200); // Light Gray
     doc.setLineWidth(0.1); // Thin
-    doc.line(marginLeft, yPos - 10, 210 - marginRight, yPos - 10);
+    doc.line(marginLeft, yPos - 5, 210 - marginRight, yPos - 5); // Adjusted Y offset (-10 -> -5)
     doc.setDrawColor(0, 0, 0); // Reset to Black
 
     // 2. Date (Right Aligned)
@@ -95,7 +95,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // Move Date up even more? User said "sayı ve konuyu 1 satır yukarı alalım"
     // Let's tighten the gap between Date and Number
     doc.text(dateStr, 210 - marginRight, yPos, { align: 'right' });
-    yPos += 10; // Increased spacing after date for new layout
+    yPos += 6; // Reduced spacing (10 -> 6)
 
     // 3. Number (Sayı)
     doc.setFont(fontName, 'bold');
@@ -103,7 +103,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     doc.text('Sayı:', marginLeft, yPos);
     doc.setFont(fontName, 'normal');
     doc.text(item.referenceNumber || '-', marginLeft + 12, yPos);
-    yPos += 8; // Reduced gap from 15 to 8 (Standard line height)
+    yPos += 6; // Reduced gap from 8 to 6 (Compact)
 
 
     // Removed Registration Number (Kayıt No) from PDF as per request
