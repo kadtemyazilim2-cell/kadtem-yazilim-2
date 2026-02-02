@@ -608,16 +608,20 @@ export function FuelConsumptionReport() {
                 </div>
 
                 {/* Site Filter */}
+                {/* Site Filter */}
                 <div className="flex flex-col gap-1">
                     <Label className="text-xs">Şantiye</Label>
-                    <MultiSelect
-                        options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
-                        selected={siteFilter}
-                        onChange={setSiteFilter}
-                        placeholder="Tümü"
-                        searchPlaceholder="Şantiye ara..."
-                        className="h-8 text-xs bg-white"
-                    />
+                    <Select value={siteFilter || 'ALL'} onValueChange={(val) => setSiteFilter(val === 'ALL' ? '' : val)}>
+                        <SelectTrigger className="h-8 text-xs bg-white">
+                            <SelectValue placeholder="Şantiye Seçiniz" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="ALL">Tüm Şantiyeler</SelectItem>
+                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {/* Search Input - Full Width */}

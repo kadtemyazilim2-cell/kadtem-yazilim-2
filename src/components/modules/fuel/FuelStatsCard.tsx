@@ -78,7 +78,7 @@ export function FuelStatsCard({
         transferredOut = relevantTransfersOut.reduce((acc, t) => acc + t.amount, 0);
 
         const relevantLogs = fuelLogs.filter(l =>
-            l.siteId === siteId && l.tankId && siteTankIds.includes(l.tankId) &&
+            l.siteId === siteId &&
             dateFilter(l.date)
         );
         consumed = relevantLogs.reduce((acc, l) => acc + l.liters, 0);
