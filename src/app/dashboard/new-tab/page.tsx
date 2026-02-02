@@ -1002,6 +1002,28 @@ export default function NewPage() {
         };
     };
 
+    const updateSalaryAdjustment = (personId: string, field: 'bonus' | 'deduction', value: string) => {
+        const dateKey = format(date, 'yyyy-MM');
+        const numValue = value ? parseFloat(value) : undefined;
+
+        setNames(prev => prev.map(p => {
+            if (p.id === personId) {
+                const currentAdj = p.salaryAdjustments?.[dateKey] || {};
+                return {
+                    ...p,
+                    salaryAdjustments: {
+                        ...p.salaryAdjustments,
+                        [dateKey]: {
+                            ...currentAdj,
+                            [field]: numValue
+                        }
+                    }
+                };
+            }
+            return p;
+        }));
+    };
+
     const handleExportExcel = () => {
         const wb = XLSX.utils.book_new();
 
@@ -2386,8 +2408,54 @@ export default function NewPage() {
                                                 <TableCell className="text-right font-mono text-muted-foreground">{fmt(stats.overtimePay)}</TableCell>
                                                 <TableCell className="text-center font-bold text-blue-600">{stats.remainingLeave}</TableCell>
                                                 <TableCell className="text-right font-mono text-blue-600">{fmt(stats.leavePay)}</TableCell>
-                                                <TableCell className="text-right font-mono text-green-600">{stats.bonus > 0 ? fmt(stats.bonus) : '-'}</TableCell>
-                                                <TableCell className="text-right font-mono text-red-600">{stats.deduction > 0 ? fmt(stats.deduction) : '-'}</TableCell>
+                                                <TableCell className="text-right font-mono text-green-600 p-0">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" className="w-full h-full text-right font-mono text-green-600 px-2 justify-end hover:bg-green-50 rounded-none h-10">
+                                                                {stats.bonus > 0 ? fmt(stats.bonus) : '-'}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-40 p-2">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-xs">Prim (₺)</Label>
+                                                                <Input
+                                                                    className="h-8"
+                                                                    defaultValue={stats.bonus > 0 ? stats.bonus.toString() : ''}
+                                                                    onBlur={(e) => updateSalaryAdjustment(person.id, 'bonus', e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            updateSalaryAdjustment(person.id, 'bonus', e.currentTarget.value);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </TableCell>
+                                                <TableCell className="text-right font-mono text-red-600 p-0">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" className="w-full h-full text-right font-mono text-red-600 px-2 justify-end hover:bg-red-50 rounded-none h-10">
+                                                                {stats.deduction > 0 ? fmt(stats.deduction) : '-'}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-40 p-2">
+                                                            <div className="space-y-1">
+                                                                <Label className="text-xs">Kesinti (₺)</Label>
+                                                                <Input
+                                                                    className="h-8"
+                                                                    defaultValue={stats.deduction > 0 ? stats.deduction.toString() : ''}
+                                                                    onBlur={(e) => updateSalaryAdjustment(person.id, 'deduction', e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            updateSalaryAdjustment(person.id, 'deduction', e.currentTarget.value);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </TableCell>
                                                 <TableCell className="text-right font-bold font-mono text-green-700 bg-green-50/50">{fmt(stats.totalPay)}</TableCell>
                                                 <TableCell>
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => {

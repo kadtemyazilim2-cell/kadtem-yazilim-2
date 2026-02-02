@@ -129,7 +129,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             if (isValid(start) && isValid(end)) {
                 result = result.filter(t => {
                     if (!t.date) return false;
-                    const date = parseISO(t.date);
+                    const date = new Date(t.date); // Safe for Date obj or ISO string
                     if (!isValid(date)) return false;
                     return isWithinInterval(date, { start, end });
                 });

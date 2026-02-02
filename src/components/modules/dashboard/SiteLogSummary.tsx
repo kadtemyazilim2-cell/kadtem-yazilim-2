@@ -5,6 +5,7 @@ import { tr } from 'date-fns/locale';
 import { FileText, MapPin, Calendar, User, Eye, FileDown, Loader2, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import jsPDF from 'jspdf';
 import { fontBase64 } from '@/lib/pdf-font';
-import Link from 'next/link';
+
 
 interface SiteLogSummaryProps {
     siteLogEntries: any[];

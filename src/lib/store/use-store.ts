@@ -115,7 +115,12 @@ export const useAppStore = create<AppState>()(
             setFuelTransfers: (transfers) => set({ fuelTransfers: transfers }),
 
 
-            addCashTransaction: (transaction) => set((state) => ({ cashTransactions: [transaction, ...state.cashTransactions] })),
+            addCashTransaction: (transaction) => set((state) => ({
+                cashTransactions: [{ ...transaction, date: new Date(transaction.date).toISOString() }, ...state.cashTransactions]
+            })),
+            updateCashTransaction: (id, data) => set((state) => ({
+                cashTransactions: state.cashTransactions.map(t => t.id === id ? { ...t, ...data, date: data.date ? new Date(data.date).toISOString() : t.date } : t)
+            })),
             deleteCashTransaction: (id) => set((state) => ({ cashTransactions: state.cashTransactions.filter(t => t.id !== id) })),
             addPersonnel: (person) => set((state) => ({ personnel: [person, ...state.personnel] })),
             updatePersonnel: (id, data) => set((state) => ({
