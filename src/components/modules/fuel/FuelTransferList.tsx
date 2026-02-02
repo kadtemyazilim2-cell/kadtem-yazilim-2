@@ -39,8 +39,8 @@ export function FuelTransferList() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Tarih</TableHead>
-                            <TableHead>İşlemi Yapan</TableHead>
-                            <TableHead>Çıkış Yeri (Depo)</TableHead>
+                            <TableHead>Yakıtı Veren (Personel)</TableHead>
+                            <TableHead>Çıkış Deposu</TableHead>
                             <TableHead></TableHead>
                             <TableHead>Varış Yeri (Depo)</TableHead>
                             <TableHead className="text-right">Miktar</TableHead>
