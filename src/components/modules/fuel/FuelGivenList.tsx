@@ -1,15 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { FuelForm } from './FuelForm';
 
 export function FuelGivenList() {
     const { fuelLogs, vehicles, sites } = useAppStore();
     const { user } = useAuth();
+    const [editingLog, setEditingLog] = useState<any>(null);
 
     if (!user) return null;
 
@@ -41,12 +46,13 @@ export function FuelGivenList() {
                             <TableHead>Miktar</TableHead>
                             <TableHead>KM</TableHead>
                             <TableHead className="hidden md:table-cell">Not</TableHead>
+                            <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {userLogs.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                                     Henüz yaptığınız bir yakıt işlemi bulunmuyor.
                                 </TableCell>
                             </TableRow>
@@ -65,12 +71,31 @@ export function FuelGivenList() {
                                     <TableCell className="hidden md:table-cell max-w-[200px] truncate" title={log.description}>
                                         {log.description || '-'}
                                     </TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setEditingLog(log)}
+                                            className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))
                         )}
                     </TableBody>
                 </Table>
             </CardContent>
+
+            {editingLog && (
+                <FuelForm
+                    initialData={editingLog}
+                    open={!!editingLog}
+                    onOpenChange={(val) => !val && setEditingLog(null)}
+                    onSuccess={() => setEditingLog(null)}
+                />
+            )}
         </Card>
     );
 }

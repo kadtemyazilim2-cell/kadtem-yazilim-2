@@ -353,9 +353,9 @@ export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]
         revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('bulkAssignVehicles Error:', error);
-        return { success: false, error: 'Toplu atama yapılamadı.' };
+        return { success: false, error: 'Toplu atama yapılamadı: ' + (error.message || error) };
     }
 }
 
