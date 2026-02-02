@@ -43,6 +43,68 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const [content, setContent] = useState('');
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
+    // [NEW] Filtered & Grouped Data
+    const filteredGroups = useAppStore(state => {
+        const entries = state.siteLogEntries;
+        // Group by Site+Date
+        const grouped: Record<string, any> = {};
+
+        entries.filter((entry: any) => {
+            // 1. Site Filter (Prop or State?)
+            // If prop filterSiteId is present, strictly enforce it.
+            if (filterSiteId && entry.siteId !== filterSiteId) return false;
+            // If internal state siteId filter exists (e.g. from UI dropdown we might add?), check it.
+            // For now, let's stick to the prop or "All" if no prop.
+
+            // 2. Date Range
+            if (filterStartDate && new Date(entry.date) < new Date(filterStartDate)) return false;
+            if (filterEndDate && new Date(entry.date) > new Date(filterEndDate)) return false;
+
+            // 3. Search Term (Content, Weather, SiteName, AuthorName)
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                const siteName = (sites.find((s: any) => s.id === entry.siteId)?.name || '').toLowerCase();
+                const authorName = (users.find((u: any) => u.id === entry.authorId)?.name || '').toLowerCase();
+                const contentLower = (entry.content || '').toLowerCase();
+                const weatherLower = (entry.weather || '').toLowerCase();
+
+                if (!contentLower.includes(term) &&
+                    !weatherLower.includes(term) &&
+                    !siteName.includes(term) &&
+                    !authorName.includes(term)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }).forEach((entry: any) => {
+            const key = `${entry.siteId}_${entry.date}`;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    ...entry,
+                    items: []
+                };
+            }
+            grouped[key].items.push(entry);
+        });
+
+        const list = Object.values(grouped);
+
+        // Sort Groups
+        list.sort((a: any, b: any) => {
+            const timeA = new Date(a.date).getTime();
+            const timeB = new Date(b.date).getTime();
+            return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+        });
+
+        return list;
+    });
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -205,7 +267,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                 doc.setFont('Roboto', 'bold');
                 doc.text("SAYFA NO", 137, 25);
                 doc.setFont('Roboto', 'normal');
-                doc.text(`: ${pageNumber} (${currentSheet})`, 155, 25);
+                doc.text(`: ${pageNumber}`, 155, 25); // [MOD] Removed (${currentSheet})
 
                 // Row 2
                 const uniqueWeather = Array.from(new Set(dayEntries.map((e: any) => e.weather).filter(Boolean)));
@@ -404,183 +466,215 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     return (
         <div className="space-y-6">
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Şantiye Defteri Kayıtları</CardTitle>
-                    <div className="flex gap-2">
-                        {canExport && (
-                            <>
-                                <Button variant="outline" size="sm" onClick={exportListPDF} disabled={isGeneratingPDF} title="Listeyi PDF İndir">
-                                    {isGeneratingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2 text-red-600" />}
-                                    Liste PDF
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={exportExcel} title="Listeyi Excel İndir">
-                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                    Liste Excel
-                                </Button>
-                            </>
-                        )}
-                        {canCreate && (
-                            <Dialog open={open} onOpenChange={(val) => {
-                                if (!val) resetForm();
-                                setOpen(val);
-                            }}>
-                                {canCreate && (
-                                    <DialogTrigger asChild>
-                                        <Button className="bg-blue-600 hover:bg-blue-700">
-                                            <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
-                                        </Button>
-                                    </DialogTrigger>
-                                )}
-                                <DialogContent className="sm:max-w-[600px]">
-                                    <DialogHeader>
-                                        <DialogTitle>{editingId ? 'Kaydı Düzenle' : 'Şantiye Defteri Girişi'}</DialogTitle>
-                                    </DialogHeader>
-                                    <form onSubmit={handleSubmit} className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Şantiye</Label>
-                                                <Select value={siteId} onValueChange={setSiteId} required>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Seçiniz" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
+                <CardHeader className="flex flex-col gap-4">
+                    <div className="flex flex-row items-center justify-between">
+                        <CardTitle>Şantiye Defteri Kayıtları</CardTitle>
+                        <div className="flex gap-2">
+                            {canExport && (
+                                <>
+                                    <Button variant="outline" size="sm" onClick={exportListPDF} disabled={isGeneratingPDF} title="Listeyi PDF İndir">
+                                        {isGeneratingPDF ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileText className="w-4 h-4 mr-2 text-red-600" />}
+                                        Liste PDF
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={exportExcel} title="Listeyi Excel İndir">
+                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                        Liste Excel
+                                    </Button>
+                                </>
+                            )}
+                            {canCreate && (
+                                <Dialog open={open} onOpenChange={(val) => {
+                                    if (!val) resetForm();
+                                    setOpen(val);
+                                }}>
+                                    {canCreate && (
+                                        <DialogTrigger asChild>
+                                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                                <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
+                                            </Button>
+                                        </DialogTrigger>
+                                    )}
+                                    <DialogContent className="sm:max-w-[600px]">
+                                        <DialogHeader>
+                                            <DialogTitle>{editingId ? 'Kaydı Düzenle' : 'Şantiye Defteri Girişi'}</DialogTitle>
+                                        </DialogHeader>
+                                        <form onSubmit={handleSubmit} className="space-y-4">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label>Şantiye</Label>
+                                                    <Select value={siteId} onValueChange={setSiteId} required>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Seçiniz" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Tarih</Label>
+                                                    <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                                </div>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label>Tarih</Label>
-                                                <Input type="date" value={date} onChange={e => setDate(e.target.value)} required />
+                                                <Label>Hava Durumu</Label>
+                                                <Input placeholder="Örn: Güneşli, 25°C" value={weather} onChange={e => setWeather(e.target.value)} />
                                             </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Hava Durumu</Label>
-                                            <Input placeholder="Örn: Güneşli, 25°C" value={weather} onChange={e => setWeather(e.target.value)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Günlük Rapor / Notlar</Label>
-                                            <Textarea
-                                                className="h-32"
-                                                placeholder="Bugün yapılan işler, malzemeler, olaylar..."
-                                                value={content}
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setContent(val.charAt(0).toUpperCase() + val.slice(1));
-                                                }}
-                                                required
-                                            />
-                                        </div>
-                                        <DialogFooter>
-                                            <Button type="submit">Kaydet</Button>
-                                        </DialogFooter>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
-                        )}
+                                            <div className="space-y-2">
+                                                <Label>Günlük Rapor / Notlar</Label>
+                                                <Textarea
+                                                    className="h-32"
+                                                    placeholder="Bugün yapılan işler, malzemeler, olaylar..."
+                                                    value={content}
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        setContent(val.charAt(0).toUpperCase() + val.slice(1));
+                                                    }}
+                                                    required
+                                                />
+                                            </div>
+                                            <DialogFooter>
+                                                <Button type="submit">Kaydet</Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 border rounded-lg">
+                        <div className="col-span-1">
+                            <Label className="text-xs text-muted-foreground mb-1 block">Ara</Label>
+                            <Input
+                                placeholder="İçerik, hava durumu..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-white"
+                            />
+                        </div>
+                        <div className="col-span-1">
+                            <Label className="text-xs text-muted-foreground mb-1 block">Başlangıç Tarihi</Label>
+                            <Input
+                                type="date"
+                                value={filterStartDate}
+                                onChange={(e) => setFilterStartDate(e.target.value)}
+                                className="bg-white"
+                            />
+                        </div>
+                        <div className="col-span-1">
+                            <Label className="text-xs text-muted-foreground mb-1 block">Bitiş Tarihi</Label>
+                            <Input
+                                type="date"
+                                value={filterEndDate}
+                                onChange={(e) => setFilterEndDate(e.target.value)}
+                                className="bg-white"
+                            />
+                        </div>
+                        <div className="col-span-1">
+                            <Label className="text-xs text-muted-foreground mb-1 block">Sıralama</Label>
+                            <Select value={sortOrder} onValueChange={(val: any) => setSortOrder(val)}>
+                                <SelectTrigger className="bg-white">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="desc">Yeniden Eskiye</SelectItem>
+                                    <SelectItem value="asc">Eskiden Yeniye</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {siteLogEntries.length === 0 ? (
+                        {filteredGroups.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">Kayıt bulunamadı.</div>
                         ) : (
-                            Object.values(siteLogEntries
-                                .filter((e: any) => !filterSiteId || e.siteId === filterSiteId) // [NEW] Filter
-                                .reduce((acc: any, entry: any) => {
-                                    const key = `${entry.siteId}_${entry.date}`;
-                                    if (!acc[key]) {
-                                        acc[key] = {
-                                            ...entry,
-                                            items: []
-                                        };
-                                    }
-                                    acc[key].items.push(entry);
-                                    return acc;
-                                }, {})).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((group: any) => (
-                                    <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="font-semibold text-blue-900 flex items-center gap-2">
-                                                    <MapPin className="w-4 h-4 text-blue-500" />
-                                                    {getSiteName(group.siteId)}
-                                                </div>
-                                                <span className="text-sm text-slate-400">|</span>
-                                                <div className="text-sm text-slate-600 flex items-center gap-2">
-                                                    <Calendar className="w-4 h-4 text-slate-400" />
-                                                    {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
-                                                </div>
-                                                {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
-                                                {(() => {
-                                                    const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
-                                                    if (uniqueWeather.length > 0) {
-                                                        return (
-                                                            <>
-                                                                <span className="text-sm text-slate-400">|</span>
-                                                                <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
-                                                            </>
-                                                        );
-                                                    }
-                                                    return null;
-                                                })()}
+                            filteredGroups.map((group: any) => (
+                                <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="font-semibold text-blue-900 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4 text-blue-500" />
+                                                {getSiteName(group.siteId)}
                                             </div>
-
-                                            {/* Action Buttons for the Whole Group (PDF) */}
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 text-slate-600 hover:text-blue-600"
-                                                    onClick={() => handleDownloadPDF(group, true)}
-                                                    title="Önizle"
-                                                    disabled={isGeneratingPDF}
-                                                >
-                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                                                    Önizle
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 text-slate-600 hover:text-green-600"
-                                                    onClick={() => handleDownloadPDF(group, false)}
-                                                    title="PDF İndir"
-                                                    disabled={isGeneratingPDF}
-                                                >
-                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
-                                                    PDF İndir
-                                                </Button>
+                                            <span className="text-sm text-slate-400">|</span>
+                                            <div className="text-sm text-slate-600 flex items-center gap-2">
+                                                <Calendar className="w-4 h-4 text-slate-400" />
+                                                {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
                                             </div>
+                                            {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
+                                            {(() => {
+                                                const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
+                                                if (uniqueWeather.length > 0) {
+                                                    return (
+                                                        <>
+                                                            <span className="text-sm text-slate-400">|</span>
+                                                            <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
+                                                        </>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
 
-                                        {/* Scrollable Content Area if too long, or just stacking */}
-                                        <div className="space-y-4">
-                                            {group.items.map((entry: any) => (
-                                                <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
-                                                    <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
-                                                    <div className="mt-2 flex justify-between items-center">
-                                                        <div className="text-xs text-slate-400 flex items-center gap-1">
-                                                            <UserIcon className="w-3 h-3" />
-                                                            {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
-                                                        </div>
-
-                                                        {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
-                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
-                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
-                                                                    <Pencil className="w-3 h-3" />
-                                                                </Button>
-                                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
-                                                                    <Trash2 className="w-3 h-3" />
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        {/* Action Buttons for the Whole Group (PDF) */}
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-slate-600 hover:text-blue-600"
+                                                onClick={() => handleDownloadPDF(group, true)}
+                                                title="Önizle"
+                                                disabled={isGeneratingPDF}
+                                            >
+                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                                                Önizle
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-slate-600 hover:text-green-600"
+                                                onClick={() => handleDownloadPDF(group, false)}
+                                                title="PDF İndir"
+                                                disabled={isGeneratingPDF}
+                                            >
+                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
+                                                PDF İndir
+                                            </Button>
                                         </div>
                                     </div>
-                                ))
+
+                                    {/* Scrollable Content Area if too long, or just stacking */}
+                                    <div className="space-y-4">
+                                        {group.items.map((entry: any) => (
+                                            <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
+                                                <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
+                                                <div className="mt-2 flex justify-between items-center">
+                                                    <div className="text-xs text-slate-400 flex items-center gap-1">
+                                                        <UserIcon className="w-3 h-3" />
+                                                        {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
+                                                    </div>
+
+                                                    {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
+                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
+                                                                <Pencil className="w-3 h-3" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </CardContent>

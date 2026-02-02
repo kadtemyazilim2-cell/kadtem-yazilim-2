@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { createTransaction } from '@/actions/transaction';
+import { createTransaction, updateTransaction } from '@/actions/transaction';
 
 // [NEW] Props for Editing
 interface CashBookFormProps {
@@ -33,7 +33,7 @@ export function CashBookForm({ initialData, open: externalOpen, onOpenChange: ex
     const canCreate = hasPermission('cash-book', 'CREATE');
     const canEdit = hasPermission('cash-book', 'EDIT'); // [NEW]
 
-    const activeSites = sites.filter((s: any) => s.status === 'ACTIVE');
+    const activeSites = (sites || []).filter((s: any) => s.status === 'ACTIVE');
 
     const [formData, setFormData] = useState({
         siteId: '',
@@ -199,8 +199,7 @@ export function CashBookForm({ initialData, open: externalOpen, onOpenChange: ex
 
             if (initialData) {
                 // UPDATE
-                const updateAction = await import('@/actions/transaction').then(m => m.updateTransaction);
-                const res = await updateAction(initialData.id, payload);
+                const res = await updateTransaction(initialData.id, payload);
                 if (res.success && res.data) {
                     // Update Store (Optimistic or Refresh)
                     // Assume updateCashTransaction exists in store
@@ -248,7 +247,7 @@ export function CashBookForm({ initialData, open: externalOpen, onOpenChange: ex
     };
 
     return (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             {canCreate && !initialData && (
                 <DialogTrigger asChild>
                     <Button className="bg-blue-600 hover:bg-blue-700">
@@ -274,7 +273,7 @@ export function CashBookForm({ initialData, open: externalOpen, onOpenChange: ex
                                 <SelectValue placeholder="Personel Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                                {users.map((u: any) => (
+                                {(users || []).map((u: any) => (
                                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                 ))}
                             </SelectContent>

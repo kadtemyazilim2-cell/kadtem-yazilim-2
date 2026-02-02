@@ -47,9 +47,16 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
     // Date Filters
     const currentDate = new Date();
-    // Default to current month start and end
-    const [startDate, setStartDate] = useState<string>(format(startOfMonth(currentDate), 'yyyy-MM-dd'));
-    const [endDate, setEndDate] = useState<string>(format(endOfMonth(currentDate), 'yyyy-MM-dd'));
+    // [FIX] Initialize with empty string to avoid hydration mismatch
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
+
+    useEffect(() => {
+        if (!startDate) {
+            setStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+            setEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+        }
+    }, []);
 
     // Helpers for quick month selection
     // We track the "quick select" state just for the UI of the dropdowns, 
