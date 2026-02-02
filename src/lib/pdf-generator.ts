@@ -148,12 +148,9 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     const recipientText = (item.senderReceiver || '');
 
     // [FIX] Force Bold Rendering for Recipient
+    // [FIX] Standard Bold for Recipient (Removed Stroke Enhancement)
     doc.setFont(fontName, 'bold');
-    doc.setLineWidth(0.2); // Reduced from 0.5 to 0.2 for lighter bold
-    doc.setDrawColor(0, 0, 0); // Black stroke
     doc.setTextColor(0, 0, 0); // Black fill
-    // Use 'fillThenStroke' to mimic bold if font weight isn't enough
-    const renderMode: any = 'fillThenStroke';
 
     const recipientLines = doc.splitTextToSize(recipientText, contentWidth);
 
@@ -163,17 +160,17 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
     if (recipientLines.length > 1) {
         for (let i = 0; i < recipientLines.length - 1; i++) {
-            doc.text(recipientLines[i], 105, yPos, { align: 'center', renderingMode: renderMode });
+            doc.text(recipientLines[i], 105, yPos, { align: 'center' });
             yPos += lineHeightMm;
         }
         const prevLine = recipientLines[recipientLines.length - 2];
         const prevLineWidth = doc.getTextWidth(prevLine);
         const prevLineEndX = 105 + (prevLineWidth / 2);
         const lastLine = recipientLines[recipientLines.length - 1];
-        doc.text(lastLine, prevLineEndX, yPos, { renderingMode: renderMode });
+        doc.text(lastLine, prevLineEndX, yPos);
         yPos += lineHeightMm;
     } else {
-        doc.text(recipientLines, 105, yPos, { align: 'center', renderingMode: renderMode });
+        doc.text(recipientLines, 105, yPos, { align: 'center' });
         yPos += lineHeightMm;
     }
 
