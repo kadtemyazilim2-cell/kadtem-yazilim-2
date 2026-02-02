@@ -304,6 +304,7 @@ export interface Institution {
   mobile?: string;
   contactPerson?: string;
   shortName?: string; // [NEW]
+  status?: 'ACTIVE' | 'PASSIVE';
 }
 
 // Re-opening Vehicle interface to add new fields (or just editing the existing one if I had the full file context in one go, but here I'm appending/editing the end of file? No, I need to edit the Vehicle interface earlier in the file. Wait, I should edit the Vehicle interface block directly. I will use a separate tool call for that or just do it here if possible. Actually, I can't edit non-contiguous blocks with this tool. I will only update Institution here and use another call for Vehicle.)

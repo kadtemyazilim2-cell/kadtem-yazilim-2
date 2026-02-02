@@ -255,7 +255,7 @@ export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
 
             {/* Dialog for Full List */}
             <Dialog open={isFullListOpen} onOpenChange={setIsFullListOpen}>
-                <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-y-auto p-6">
+                <DialogContent className="max-w-[98vw] w-[98vw] sm:max-w-[98vw] max-h-[95vh] h-[95vh] overflow-y-auto p-6">
                     <FuelPurchaseList isWidget={false} />
                 </DialogContent>
             </Dialog>
