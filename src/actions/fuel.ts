@@ -265,9 +265,7 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
         return { success: true, data: transfer };
     } catch (error) {
         console.error('createFuelTransfer Error:', error);
-        return { success: false, error: 'Transfer yapılamadı.' };
     }
-}
 }
 
 export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>) {

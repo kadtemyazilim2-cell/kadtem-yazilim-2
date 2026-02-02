@@ -94,7 +94,7 @@ export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess
                 createdByUserId: transfer.createdByUserId
             };
 
-            const result = await updateFuelTransfer(transfer.id, payload);
+            const result = await updateFuelTransfer(transfer.id, payload as any);
 
             if (result.success && result.data) {
                 toast.success('Kayıt güncellendi.');
