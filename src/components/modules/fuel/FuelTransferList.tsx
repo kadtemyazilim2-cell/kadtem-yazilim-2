@@ -39,16 +39,17 @@ export function FuelTransferList() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Tarih</TableHead>
-                            <TableHead>İşlemi Yapan (Veren)</TableHead>
+                            <TableHead>İşlemi Yapan</TableHead>
+                            <TableHead>Çıkış Yeri (Depo)</TableHead>
                             <TableHead></TableHead>
-                            <TableHead>Varış (Depo)</TableHead>
+                            <TableHead>Varış Yeri (Depo)</TableHead>
                             <TableHead className="text-right">Miktar</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {transfers.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                                     Henüz virman kaydı bulunmamaktadır.
                                 </TableCell>
                             </TableRow>
@@ -58,6 +59,9 @@ export function FuelTransferList() {
                                     <TableCell>{format(new Date(t.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                     <TableCell className="font-medium text-slate-700">
                                         {getAuthorName(t.createdByUserId)}
+                                    </TableCell>
+                                    <TableCell className="font-medium text-slate-600">
+                                        {getEntityName(t.fromType, t.fromId)}
                                     </TableCell>
                                     <TableCell>
                                         <ArrowRight className="w-4 h-4 text-slate-400" />

@@ -21,9 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard';
-import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
-import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList'; // [NEW]
+
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
@@ -278,89 +276,7 @@ export default function DashboardPage() {
 
 
 
-    // 5. Incoming Fuel Purchases (Last 30 Days)
-    const incomingFuelPurchases = useMemo(() => {
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
 
-        // 1. Get External Fuel Transfers (Purchase via Transfer)
-        const transfers = fuelTransfers
-            .filter((t: any) => t.fromType === 'EXTERNAL' && new Date(t.date) >= thirtyDaysAgo)
-            .map((t: any) => {
-                let siteName = '-';
-                // Resolve To Entity Name
-                if (t.toType === 'TANK') {
-                    const tank = fuelTanks.find((tank: any) => tank.id === t.toId);
-                    const site = sites.find((s: any) => s.id === tank?.siteId);
-                    siteName = site?.name || tank?.name || 'Bilinmeyen Depo';
-                } else if (t.toType === 'VEHICLE') {
-                    const vehicle = vehicles.find((v: any) => v.id === t.toId);
-                    const site = sites.find((s: any) => s.id === vehicle?.assignedSiteId);
-                    siteName = `${vehicle?.plate} (${site?.name || '-'})`;
-                }
-
-                // Calculate Price/Cost robustly
-                const amount = Number(t.amount) || 0;
-                const unitPrice = Number(t.unitPrice) || 0;
-                const explicitCost = Number(t.totalCost) || 0;
-
-                let finalCost = explicitCost;
-                if (finalCost === 0 && amount > 0 && unitPrice > 0) {
-                    finalCost = amount * unitPrice;
-                }
-
-                let finalUnitPrice = unitPrice;
-                if (finalUnitPrice === 0 && amount > 0 && finalCost > 0) {
-                    finalUnitPrice = finalCost / amount;
-                }
-
-                return {
-                    id: t.id,
-                    date: t.date,
-                    supplier: t.fromId, // Contains company name for EXTERNAL
-                    target: siteName,
-                    amount: t.amount,
-                    unitPrice: finalUnitPrice,
-                    cost: finalCost,
-                    type: 'TRANSFER' // For debugging/icon potentially
-                };
-            });
-
-        // 2. Get External Fuel Logs (Direct Purchase to Vehicle)
-        // If tankId is missing, it implies external purchase or unknown source. 
-        // We assume logs without tankId are external purchases in this context.
-        const directPurchases = fuelLogs
-            .filter((l: any) => !l.tankId && new Date(l.date) >= thirtyDaysAgo)
-            .map((l: any) => {
-                const vehicle = vehicles.find((v: any) => v.id === l.vehicleId);
-                const site = sites.find((s: any) => s.id === l.siteId);
-                const siteName = `${vehicle?.plate} (${site?.name || '-'})`;
-
-                // Calculate Unit Price if missing
-                let finalUnitPrice = l.unitPrice || 0;
-                // FuelLog always has cost, but just in case check for unitPrice fallback
-                if (finalUnitPrice === 0 && l.cost > 0 && l.liters > 0) {
-                    finalUnitPrice = l.cost / l.liters;
-                }
-
-                return {
-                    id: l.id,
-                    date: l.date,
-                    supplier: 'Dış Kaynak', // Logs don't strictly have supplier name field yet, defaulting
-                    target: siteName,
-                    amount: l.liters,
-                    unitPrice: finalUnitPrice,
-                    cost: l.cost,
-                    type: 'LOG'
-                };
-            });
-
-        // 3. Merge and Sort
-        return [...transfers, ...directPurchases]
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    }, [fuelTransfers, fuelLogs, fuelTanks, sites, vehicles]);
 
     const [selectedAlertForMail, setSelectedAlertForMail] = useState<any>(null);
 
@@ -495,121 +411,9 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Incoming Fuel Purchases Widget */}
-            {/* --- FUEL DASHBOARD SECTION --- */}
-            <div className="space-y-4 mt-8">
-                <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Yakıt & Depo Durumları</h3>
 
-                {/* Filters */}
-                <div className="flex flex-wrap gap-4 items-end bg-white p-4 rounded-lg border shadow-sm">
-                    <div className="w-full md:w-64 space-y-2">
-                        <Label>Şantiye Seçimi</Label>
-                        <Select value={selectedFuelSiteId} onValueChange={setSelectedFuelSiteId}>
-                            <SelectTrigger className="bg-slate-50">
-                                <SelectValue placeholder="Şantiye Seçiniz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Başlangıç</Label>
-                        <Input type="date" className="bg-slate-50" value={fuelDateRange.start} onChange={e => setFuelDateRange(prev => ({ ...prev, start: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Bitiş</Label>
-                        <Input type="date" className="bg-slate-50" value={fuelDateRange.end} onChange={e => setFuelDateRange(prev => ({ ...prev, end: e.target.value }))} />
-                    </div>
-                    {selectedFuelSiteId && (
-                        <Button variant="ghost" className="text-red-500" onClick={() => { setSelectedFuelSiteId(''); setFuelDateRange({ start: '', end: '' }); }}>
-                            Filtreleri Temizle
-                        </Button>
-                    )}
-                </div>
 
-                {/* Info: Select site to see stats */}
-                {!selectedFuelSiteId && (
-                    <div className="text-center p-8 bg-slate-50 border border-dashed rounded-lg text-slate-500">
-                        Detaylı depo stokları için lütfen bir şantiye seçiniz.
-                    </div>
-                )}
 
-                {selectedFuelSiteId && (
-                    <FuelStatsCard
-                        siteId={selectedFuelSiteId}
-                        startDate={fuelDateRange.start}
-                        endDate={fuelDateRange.end}
-                        fuelTransfers={fuelTransfers}
-                        fuelLogs={fuelLogs}
-                        fuelTanks={fuelTanks}
-                        sites={sites}
-                    />
-                )}
-
-                {/* Fuel Purchase List */}
-                <div className="grid grid-cols-1 gap-4">
-                    <FuelPurchaseList />
-                    <FuelTransferList />
-                </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-                <Card className="col-span-2 border-emerald-100 shadow-sm">
-                    <CardHeader className="pb-3 border-b border-emerald-50 bg-emerald-50/30">
-                        <CardTitle className="flex items-center gap-2 text-emerald-800">
-                            <Droplet className="h-5 w-5 text-emerald-600" />
-                            Gelen Yakıt Hareketleri (Son 30 Gün)
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        {incomingFuelPurchases.length === 0 ? (
-                            <div className="text-center py-6 text-slate-500 text-sm">
-                                Son 30 günde dışarıdan yakıt alımı bulunmuyor.
-                            </div>
-                        ) : (
-                            <div className="relative w-full overflow-auto">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-slate-500 font-medium">
-                                        <tr>
-                                            <th className="p-3">Tarih</th>
-                                            <th className="p-3">Tedarikçi Firma</th>
-                                            <th className="p-3">Gelen Yer / Şantiye</th>
-                                            <th className="p-3 text-right">Miktar</th>
-                                            <th className="p-3 text-right">Birim Fiyat</th> {/* [NEW] */}
-                                            <th className="p-3 text-right">Tutar</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {incomingFuelPurchases.map((item) => (
-                                            <tr key={item.id} className="hover:bg-slate-50/50">
-                                                <td className="p-3 font-medium text-slate-700">
-                                                    {format(new Date(item.date), 'dd MMM yyyy', { locale: tr })}
-                                                </td>
-                                                <td className="p-3 text-slate-600 font-semibold">{item.supplier}</td>
-                                                <td className="p-3 text-slate-600 max-w-[200px] truncate" title={item.target}>
-                                                    {item.target}
-                                                </td>
-                                                <td className="p-3 text-right font-mono font-bold text-amber-600">
-                                                    {item.amount.toLocaleString('tr-TR')} Lt
-                                                </td>
-                                                <td className="p-3 text-right font-mono font-medium text-slate-600">
-                                                    {item.unitPrice !== undefined ? `${item.unitPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}
-                                                </td>
-                                                <td className="p-3 text-right font-mono font-bold text-emerald-600">
-                                                    {item.cost !== undefined ? `${item.cost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
