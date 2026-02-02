@@ -552,32 +552,130 @@ export function VehicleList() {
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
         doc.setFont('Roboto');
 
-        doc.setFontSize(16);
-        doc.text("Araç Listesi", 14, 15);
-        doc.setFontSize(10);
+        const activeVehicles = filteredVehicles.filter(v => v.status !== 'PASSIVE');
+        const passiveVehicles = filteredVehicles.filter(v => v.status === 'PASSIVE');
 
-        // Use filteredVehicles directly to respect all filters (including Active/Passive)
         const tableColumn = ["Plaka", "Firma", "Mülkiyet", "Marka", "Model", "Yıl", "Tip", "Durum"];
 
-        const rows = filteredVehicles.map(v => [
-            v.plate,
-            getCompanyName(v),
-            v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
-            v.brand,
-            v.model,
-            v.year,
-            typeMap[v.type] || v.type,
-            statusMap[v.status] || v.status
-        ]);
+        let currentY = 15;
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: rows,
-            styles: { font: 'Roboto', fontSize: 8 },
-            headStyles: { fillColor: [41, 128, 185] },
-            startY: 20,
-            margin: { top: 20 }
-        });
+        // Helper to add table
+        const addTable = (title: string, data: typeof vehicles) => {
+            if (data.length === 0) return;
+
+            // Check if we need a page break before title
+            if (currentY > 250) {
+                doc.addPage();
+                currentY = 15;
+            }
+
+            doc.setFontSize(14);
+            doc.text(`${title} (${data.length})`, 14, currentY);
+            doc.setFontSize(10);
+            currentY += 5;
+
+            const rows = data.map(v => [
+                v.plate,
+                getCompanyName(v),
+                v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
+                v.brand,
+                v.model,
+                v.year,
+                typeMap[v.type] || v.type,
+                statusMap[v.status] || v.status
+            ]);
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: rows,
+                styles: { font: 'Roboto', fontSize: 8 },
+                headStyles: { fillColor: title.includes('Pasif') ? [108, 117, 125] : [41, 128, 185] }, // Grey for Passive, Blue for Active
+                startY: currentY,
+                margin: { top: 20 },
+                didDrawPage: (data) => {
+                    // Update currentY to end of table for next iteration
+                    currentY = data.cursor?.y ? data.cursor.y + 10 : 0;
+                }
+            });
+        };
+
+        // 1. Active Vehicles Table
+        if (activeVehicles.length > 0) {
+            addTable("Aktif Araçlar", activeVehicles);
+        }
+
+        // 2. Passive Vehicles Table
+        if (passiveVehicles.length > 0) {
+            // Ensure spacing or page break if needed exists handled by addTable logic somewhat, 
+            // but autoTable handles pagination. We need to respect the FINAL Y position.
+            // The `didDrawPage` hook or return value of autoTable helps. 
+            // `autoTable` modifies the doc. But we need to update `currentY` correctly.
+            // Actually `lastAutoTable.finalY` is standard property.
+
+            // Re-implementing simplified flow using sequential calls and autoTable's return state
+            // NOTE: `autoTable` is attached to `doc` in some versions, or imported.
+            // We used `autoTable(doc, ...)`
+        }
+
+        // RE-WRITING LOGIC TO BE SAFER with `lastAutoTable` pattern:
+
+        // -- Active Table --
+        if (activeVehicles.length > 0) {
+            doc.setFontSize(14);
+            doc.text(`Aktif Araçlar (${activeVehicles.length})`, 14, currentY);
+            currentY += 5;
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: activeVehicles.map(v => [
+                    v.plate,
+                    getCompanyName(v),
+                    v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
+                    v.brand,
+                    v.model,
+                    v.year,
+                    typeMap[v.type] || v.type,
+                    statusMap[v.status] || v.status
+                ]),
+                styles: { font: 'Roboto', fontSize: 8 },
+                headStyles: { fillColor: [41, 128, 185] },
+                startY: currentY,
+                margin: { top: 20 },
+            });
+
+            // @ts-ignore
+            currentY = doc.lastAutoTable.finalY + 15;
+        }
+
+        // -- Passive Table --
+        if (passiveVehicles.length > 0) {
+            if (activeVehicles.length > 0 && currentY > 250) { // Check if space is tight
+                doc.addPage();
+                currentY = 15;
+            }
+
+            doc.setFontSize(14);
+            doc.text(`Pasif Araçlar (${passiveVehicles.length})`, 14, currentY);
+            currentY += 5;
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: passiveVehicles.map(v => [
+                    v.plate,
+                    getCompanyName(v),
+                    v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
+                    v.brand,
+                    v.model,
+                    v.year,
+                    typeMap[v.type] || v.type,
+                    statusMap[v.status] || v.status
+                ]),
+                styles: { font: 'Roboto', fontSize: 8 },
+                headStyles: { fillColor: [108, 117, 125] }, // Grey
+                startY: currentY,
+                margin: { top: 20 },
+            });
+        }
 
         doc.save(`arac-listesi-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         toast.success('PDF başarıyla oluşturuldu.');

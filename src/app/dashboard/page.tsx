@@ -20,7 +20,8 @@ import { updateCorrespondence as updateCorrespondenceAction } from '@/actions/co
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // Ensure these are imported
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
+import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList';
 
 import { toast } from 'sonner';
 
@@ -415,6 +416,12 @@ export default function DashboardPage() {
 
 
 
+            {/* Fuel Tables Section */}
+            <div className="grid gap-4 md:grid-cols-2">
+                <FuelPurchaseList />
+                <FuelTransferList />
+            </div>
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
             </div>
@@ -592,14 +599,7 @@ export default function DashboardPage() {
                                 placeholder="Örn: 2024/123"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label>Evrak Sayı Numarası</Label>
-                            <Input
-                                value={editReferenceNumber}
-                                onChange={(e) => setEditReferenceNumber(e.target.value)}
-                                placeholder="Örn: 98765432-123.45-E.123456"
-                            />
-                        </div>
+
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsEditCorrespondenceOpen(false)}>İptal</Button>
