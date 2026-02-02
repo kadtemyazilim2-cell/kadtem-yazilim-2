@@ -84,7 +84,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // [NEW] Gray Separator Line
     doc.setDrawColor(200, 200, 200); // Light Gray
     doc.setLineWidth(0.1); // Thin
-    doc.line(marginLeft, yPos - 8, 210 - marginRight, yPos - 8);
+    doc.line(marginLeft, yPos - 10, 210 - marginRight, yPos - 10);
     doc.setDrawColor(0, 0, 0); // Reset to Black
 
     // 2. Date (Right Aligned)
@@ -94,8 +94,8 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     doc.setFont(fontName, 'normal');
     // Move Date up even more? User said "sayı ve konuyu 1 satır yukarı alalım"
     // Let's tighten the gap between Date and Number
-    doc.text(dateStr, 210 - marginRight, yPos - 5, { align: 'right' });
-    yPos += 5; // Reduced gap from 10 to 5
+    doc.text(dateStr, 210 - marginRight, yPos, { align: 'right' });
+    yPos += 10; // Increased spacing after date for new layout
 
     // 3. Number (Sayı)
     doc.setFont(fontName, 'bold');
