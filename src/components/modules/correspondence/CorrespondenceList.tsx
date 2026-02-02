@@ -69,7 +69,7 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 import * as XLSX from 'xlsx';
 import autoTable from 'jspdf-autotable';
 import { fontBase64 } from '@/lib/pdf-font'; // Assume this exists as used in other files
-import { createInstitution as createInstitutionAction, updateInstitution as updateInstitutionAction } from '@/actions/institution';
+import { createInstitution as createInstitutionAction, updateInstitution as updateInstitutionAction, deleteInstitution as deleteInstitutionAction } from '@/actions/institution';
 
 export function CorrespondenceList() {
     const { correspondences, companies, updateCorrespondence, users, deleteCorrespondence, restoreCorrespondence, institutions, deleteInstitution, updateInstitution, addInstitution, addCorrespondence, sites } = useAppStore();
@@ -763,8 +763,16 @@ export function CorrespondenceList() {
                                                             <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
                                                                 <Edit className="w-4 h-4 text-blue-600" />
                                                             </Button>
-                                                            <Button variant="ghost" size="sm" className="text-red-600" onClick={() => {
-                                                                if (confirm('Silmek (Pasife almak) istediğinize emin misiniz?')) deleteInstitution(inst.id);
+                                                            <Button variant="ghost" size="sm" className="text-red-600" onClick={async () => {
+                                                                if (confirm('Silmek (Pasife almak) istediğinize emin misiniz?')) {
+                                                                    const result = await deleteInstitutionAction(inst.id);
+                                                                    if (result.success) {
+                                                                        deleteInstitution(inst.id);
+                                                                        toast.success('Muhatap pasife alındı.');
+                                                                    } else {
+                                                                        toast.error('Silme başarısız.');
+                                                                    }
+                                                                }
                                                             }}>
                                                                 <Trash2 className="w-4 h-4" />
                                                             </Button>

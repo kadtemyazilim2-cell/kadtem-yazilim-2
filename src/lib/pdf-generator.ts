@@ -84,7 +84,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // [NEW] Gray Separator Line
     doc.setDrawColor(200, 200, 200); // Light Gray
     doc.setLineWidth(0.1); // Thin
-    doc.line(marginLeft, yPos - 3, 210 - marginRight, yPos - 3); // Line at -3mm from Content Start
+    doc.line(marginLeft, yPos - 5, 210 - marginRight, yPos - 5); // Raised 2mm (yPos-3 -> yPos-5)
     doc.setDrawColor(0, 0, 0); // Reset to Black
 
     // 2. Date (Right Aligned)

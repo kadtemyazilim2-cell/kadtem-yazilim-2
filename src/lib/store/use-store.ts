@@ -231,7 +231,9 @@ export const useAppStore = create<AppState>()(
             updateInstitution: (id, data) => set((state) => ({
                 institutions: state.institutions.map((i) => (i.id === id ? { ...i, ...data } : i)),
             })),
-            deleteInstitution: (id) => set((state) => ({ institutions: state.institutions.filter((i) => i.id !== id) })),
+            deleteInstitution: (id) => set((state) => ({
+                institutions: state.institutions.map((i) => (i.id === id ? { ...i, status: 'PASSIVE' } : i))
+            })),
 
             // Initialization
             resetData: () => {
