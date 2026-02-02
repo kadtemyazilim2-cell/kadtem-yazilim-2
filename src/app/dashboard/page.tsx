@@ -461,7 +461,6 @@ export default function DashboardPage() {
                                         <table className="w-full text-sm text-left">
                                             <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b">
                                                 <tr>
-                                                    <th className="px-4 py-3 font-medium">Durum</th>
                                                     <th className="px-4 py-3 font-medium">Tarih</th>
                                                     <th className="px-4 py-3 font-medium">Konu</th>
                                                     <th className="px-4 py-3 font-medium">Muhatap</th>
@@ -483,20 +482,6 @@ export default function DashboardPage() {
 
                                                     return (
                                                         <tr key={doc.id} className="bg-white hover:bg-slate-50 transition-colors">
-                                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                                <div className="flex gap-1 flex-col">
-                                                                    {(!doc.registrationNumber) && (
-                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 w-fit">
-                                                                            Evrak No Eksik
-                                                                        </span>
-                                                                    )}
-                                                                    {(!doc.referenceNumber) && (
-                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 w-fit">
-                                                                            Sayı No Eksik
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </td>
                                                             <td className="px-4 py-3 whitespace-nowrap text-slate-600">
                                                                 {format(new Date(doc.date), 'dd.MM.yyyy')}
                                                             </td>

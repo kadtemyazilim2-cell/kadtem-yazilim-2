@@ -311,12 +311,13 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                         <Select
                             value={formData.responsibleUserId}
                             onValueChange={(v) => setFormData({ ...formData, responsibleUserId: v })}
+                            disabled={user?.role !== 'ADMIN'}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Personel Seçiniz" />
                             </SelectTrigger>
                             <SelectContent>
-                                {(users || []).map((u: any) => (
+                                {(user?.role === 'ADMIN' ? (users || []) : (users || []).filter((u: any) => u.id === user?.id)).map((u: any) => (
                                     <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                 ))}
                             </SelectContent>
