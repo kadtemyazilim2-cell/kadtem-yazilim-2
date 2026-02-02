@@ -16,16 +16,18 @@ import { InsuranceProposalDialog } from '@/components/modules/dashboard/Insuranc
 import { cn } from '@/lib/utils';
 
 import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
+import { updateCorrespondence as updateCorrespondenceAction } from '@/actions/correspondence'; // [NEW]
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'; // Ensure these are imported
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard';
 import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
+import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList'; // [NEW]
 import { toast } from 'sonner';
 
 export default function DashboardPage() {
-    const { companies, vehicles, correspondences, yiUfeRates, cashTransactions, personnel, fuelLogs, fuelTransfers, sites, fuelTanks, siteLogEntries, updateVehicle: updateVehicleStore } = useAppStore();
+    const { companies, vehicles, correspondences, yiUfeRates, cashTransactions, personnel, fuelLogs, fuelTransfers, sites, fuelTanks, siteLogEntries, updateVehicle: updateVehicleStore, updateCorrespondence: updateCorrespondenceStore } = useAppStore();
     const userSites = useUserSites();
     const { user, hasPermission } = useAuth(); // To check if admin for other things if needed
     const router = useRouter();
@@ -38,6 +40,12 @@ export default function DashboardPage() {
     // [NEW] Fuel Dashboard States
     const [selectedFuelSiteId, setSelectedFuelSiteId] = useState('');
     const [fuelDateRange, setFuelDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
+
+    // [NEW] Missing Number Update Dialog States
+    const [isEditCorrespondenceOpen, setIsEditCorrespondenceOpen] = useState(false);
+    const [editCorrespondenceId, setEditCorrespondenceId] = useState('');
+    const [editReferenceNumber, setEditReferenceNumber] = useState('');
+    const [editRegistrationNumber, setEditRegistrationNumber] = useState('');
 
     const handleAlertClick = (item: any) => {
         if (item.type === 'Muayene') {
@@ -61,6 +69,31 @@ export default function DashboardPage() {
                 toast.success('Muayene tarihi güncellendi.');
                 updateVehicleStore(selectedInspection.vehicleId, { inspectionExpiry: new Date(inspectionDate).toISOString() });
                 setInspectionModalOpen(false);
+            } else {
+                toast.error(res.error || 'Güncelleme başarısız.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Bir hata oluştu.');
+        }
+    };
+
+    const handleUpdateCorrespondence = async () => {
+        if (!editCorrespondenceId) return;
+
+        try {
+            const res = await updateCorrespondenceAction(editCorrespondenceId, {
+                referenceNumber: editReferenceNumber,
+                registrationNumber: editRegistrationNumber
+            });
+
+            if (res.success) {
+                toast.success('Evrak numaraları güncellendi.');
+                updateCorrespondenceStore(editCorrespondenceId, {
+                    referenceNumber: editReferenceNumber,
+                    registrationNumber: editRegistrationNumber
+                });
+                setIsEditCorrespondenceOpen(false);
             } else {
                 toast.error(res.error || 'Güncelleme başarısız.');
             }
@@ -519,6 +552,7 @@ export default function DashboardPage() {
                 {/* Fuel Purchase List */}
                 <div className="grid grid-cols-1 gap-4">
                     <FuelPurchaseList />
+                    <FuelTransferList />
                 </div>
             </div>
 
@@ -602,7 +636,12 @@ export default function DashboardPage() {
                                 {missingDocs.map((doc: any) => (
                                     <div
                                         key={doc.id}
-                                        onClick={() => router.push('/dashboard/correspondence')}
+                                        onClick={() => {
+                                            setEditCorrespondenceId(doc.id);
+                                            setEditReferenceNumber(doc.referenceNumber || '');
+                                            setEditRegistrationNumber(doc.registrationNumber || '');
+                                            setIsEditCorrespondenceOpen(true);
+                                        }}
                                         className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100 hover:border-red-200 cursor-pointer transition-all"
                                     >
                                         <div className="space-y-1">
@@ -613,6 +652,11 @@ export default function DashboardPage() {
                                                 <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
                                                 <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                                 <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
+                                            </div>
+                                            {/* Show missing types explicitly */}
+                                            <div className="flex gap-2">
+                                                {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}
+                                                {(!doc.referenceNumber) && <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">Sayı No Eksik</span>}
                                             </div>
                                         </div>
                                         <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
@@ -722,6 +766,40 @@ export default function DashboardPage() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setInspectionModalOpen(false)}>İptal</Button>
                         <Button onClick={handleSaveInspectionDate} disabled={!inspectionDate}>Kaydet</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Correspondence Update Dialog */}
+            <Dialog open={isEditCorrespondenceOpen} onOpenChange={setIsEditCorrespondenceOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Evrak Numaralarını Gir</DialogTitle>
+                        <DialogDescription>
+                            Eksik olan numaraları tamamlayınız.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Evrak Kayıt (Karar) Numarası</Label>
+                            <Input
+                                value={editRegistrationNumber}
+                                onChange={(e) => setEditRegistrationNumber(e.target.value)}
+                                placeholder="Örn: 2024/123"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Evrak Sayı Numarası</Label>
+                            <Input
+                                value={editReferenceNumber}
+                                onChange={(e) => setEditReferenceNumber(e.target.value)}
+                                placeholder="Örn: 98765432-123.45-E.123456"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditCorrespondenceOpen(false)}>İptal</Button>
+                        <Button onClick={handleUpdateCorrespondence}>Kaydet</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

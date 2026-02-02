@@ -93,11 +93,9 @@ export default function FuelPage() {
 
 
 
-            {/* [NEW] Fuel Purchase List (Alımlar) */}
-            <FuelPurchaseList />
 
-            {/* [NEW] Fuel Transfer List */}
-            <FuelTransferList />
+
+
 
             {canViewConsumption && <FuelConsumptionReport />}
         </div>

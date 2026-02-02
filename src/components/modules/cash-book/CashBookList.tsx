@@ -126,10 +126,14 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             const end = new Date(parseISO(endDate));
             end.setHours(23, 59, 59, 999);
 
-            result = result.filter(t => {
-                const date = parseISO(t.date);
-                return isWithinInterval(date, { start, end });
-            });
+            if (isValid(start) && isValid(end)) {
+                result = result.filter(t => {
+                    if (!t.date) return false;
+                    const date = parseISO(t.date);
+                    if (!isValid(date)) return false;
+                    return isWithinInterval(date, { start, end });
+                });
+            }
         }
 
         if (selectedType !== 'ALL') {
@@ -150,7 +154,14 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
         // [NEW] Sort by Date Ascending (Oldest First) for chronological order
         result.sort((a: any, b: any) => {
-            const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+
+            // Handle invalid dates in sort
+            if (isNaN(dateA)) return 1;
+            if (isNaN(dateB)) return -1;
+
+            const dateDiff = dateA - dateB;
             if (dateDiff !== 0) return dateDiff;
 
             // If same date, sort by creation time (entry order)
@@ -170,10 +181,16 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         if (!startDate) return 0;
 
         const start = parseISO(startDate);
+        if (!isValid(start)) return 0;
 
         // Filter transactions strictly BEFORE the start date calculate total balance until then
         // Apply SAME user/site filters as the main list
-        let preTransactions = (cashTransactions || []).filter((t: any) => new Date(t.date) < start);
+        let preTransactions = (cashTransactions || []).filter((t: any) => {
+            if (!t.date) return false;
+            const d = new Date(t.date);
+            if (isNaN(d.getTime())) return false;
+            return d < start;
+        });
 
         if (user && user.role !== 'ADMIN') {
             preTransactions = preTransactions.filter((t: any) => t.responsibleUserId === user.id);
@@ -206,8 +223,19 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             return { ...t, balance: runningBalance };
         });
 
-        // [NEW] Add "Previous Balance" Row
+        // [NEW] Add "Previous Balance Row"
         // This is added as the "first" item chronologically (so it will be last when reversed)
+
+        let validStartDateIso = new Date().toISOString();
+        try {
+            if (startDate) {
+                const d = new Date(startDate);
+                if (!isNaN(d.getTime())) validStartDateIso = d.toISOString();
+            }
+        } catch (e) {
+            console.error("Invalid start date for row creation", e);
+        }
+
         const previousBalanceRow = {
             id: 'previous-balance-row',
             date: startDate, // Start of the period
@@ -218,7 +246,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             description: 'DEVREDEN BAKİYE',
             amount: Math.abs(previousBalance),
             balance: previousBalance,
-            createdAt: new Date(startDate).toISOString(), // Ensure it sorts correctly if needed
+            createdAt: validStartDateIso, // Ensure it sorts correctly if needed
             createdByUserId: ''
         };
 
