@@ -158,28 +158,10 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
             setIsGeneratingPDF(true);
             const doc = new jsPDF('p', 'mm', 'a4');
 
-            // 1. Load Custom Font (Roboto) for Turkish Character Support
-            const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf';
-            const fontUrlBold = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf';
-
-            const loadFont = async (url: string, name: string, style: string) => {
-                const response = await fetch(url);
-                const buffer = await response.arrayBuffer();
-                const binary = new Uint8Array(buffer);
-                let binaryString = "";
-                for (let i = 0; i < binary.length; i++) {
-                    binaryString += String.fromCharCode(binary[i]);
-                }
-                const base64 = window.btoa(binaryString);
-
-                doc.addFileToVFS(`${name}.ttf`, base64);
-                doc.addFont(`${name}.ttf`, name, style);
-            };
-
-            await Promise.all([
-                loadFont(fontUrl, 'Roboto', 'normal'),
-                loadFont(fontUrlBold, 'Roboto', 'bold')
-            ]);
+            // 1. Load Custom Font (Roboto) from Base64 (Reliable & Offline)
+            doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold'); // Use same font for bold to prevent network errors
 
             doc.setFont('Roboto', 'bold');
 
