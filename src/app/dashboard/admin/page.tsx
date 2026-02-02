@@ -13,6 +13,7 @@ import {
     syncYiUfeRates
 } from '@/actions/yiufe';
 import { createSite, deleteSite as deleteSiteAction, getSites, updateSite as updateSiteAction } from '@/actions/site';
+import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel'; // [NEW]
 import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company'; // [NEW]
 import { resetDatabase } from '@/actions/system';
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
@@ -125,7 +126,7 @@ export default function AdminPage() {
         sites, addSite, updateSite, deleteSite,
         assignVehiclesToSite, vehicles,
         yiUfeRates, setYiUfeRates, addYiUfeRates,
-        personnel, personnelAttendance, vehicleAttendance, fuelTanks,
+        personnel, personnelAttendance, vehicleAttendance, fuelTanks, addFuelTank, deleteFuelTank, // [NEW]
         correspondences // [FIX] Added correspondences for delete logic
     } = useAppStore();
     const { user } = useAuth();
@@ -782,6 +783,60 @@ export default function AdminPage() {
 
         similarWorks: [] // [NEW] Multiple Similar Work Groups
     });
+
+    // Tank Form State [NEW]
+    const [newTankName, setNewTankName] = useState('');
+    const [newTankCapacity, setNewTankCapacity] = useState('');
+    const [newTankLevel, setNewTankLevel] = useState('0');
+
+    const handleAddTank = async () => {
+        if (!selectedSiteId) {
+            toast.error('Lütfen önce şantiyeyi kaydedin.');
+            return;
+        }
+        if (!newTankName || !newTankCapacity) {
+            toast.error('Depo adı ve kapasitesi zorunludur.');
+            return;
+        }
+
+        try {
+            const res = await createFuelTank({
+                siteId: selectedSiteId,
+                name: newTankName,
+                capacity: Number(newTankCapacity),
+                currentLevel: Number(newTankLevel)
+            });
+
+            if (res.success && res.data) {
+                addFuelTank(res.data);
+                toast.success('Depo eklendi.');
+                setNewTankName('');
+                setNewTankCapacity('');
+                setNewTankLevel('0');
+            } else {
+                toast.error(res.error || 'Depo eklenemedi.');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Bir hata oluştu.');
+        }
+    };
+
+    const handleDeleteTank = async (id: string) => {
+        if (!confirm('Bu depoyu silmek istediğinize emin misiniz?')) return;
+        try {
+            // Basic dependency check handled by server usually, but here we just try delete
+            const res = await deleteFuelTankAction(id);
+            if (res.success) {
+                deleteFuelTank(id);
+                toast.success('Depo silindi.');
+            } else {
+                toast.error(res.error || 'Silinemedi.');
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const handleDeleteSite = async () => {
         if (!selectedSiteId) return;
@@ -2198,10 +2253,11 @@ export default function AdminPage() {
                                             </DialogHeader>
                                             <form onSubmit={handleAddSite} className="space-y-6">
                                                 <Tabs defaultValue="general" className="w-full">
-                                                    <TabsList className="w-full grid grid-cols-3">
+                                                    <TabsList className="w-full grid grid-cols-4">
                                                         <TabsTrigger value="general">Genel Bilgiler</TabsTrigger>
                                                         <TabsTrigger value="financial">Sözleşme ve Mali</TabsTrigger>
                                                         <TabsTrigger value="acceptance">Kabul</TabsTrigger>
+                                                        <TabsTrigger value="tanks">Depo / Tank</TabsTrigger>
                                                     </TabsList>
 
                                                     {/* General Info Tab */}
@@ -2681,6 +2737,82 @@ export default function AdminPage() {
                                                             ))}
                                                         </div>
 
+                                                    </TabsContent>
+                                                    <TabsContent value="tanks" className="space-y-4 pt-4">
+                                                        {!isEditingSite || !selectedSiteId ? (
+                                                            <div className="text-center py-8 text-slate-500 bg-slate-50 rounded border border-dashed">
+                                                                Depo eklemek için önce şantiyeyi kaydediniz.
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-6">
+                                                                {/* Add New Tank */}
+                                                                <div className="grid grid-cols-4 gap-4 items-end bg-slate-50 p-4 rounded border">
+                                                                    <div className="space-y-2 col-span-2">
+                                                                        <Label>Depo Adı</Label>
+                                                                        <Input
+                                                                            value={newTankName}
+                                                                            onChange={e => setNewTankName(e.target.value)}
+                                                                            placeholder="Örn: Ana Depo"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        <Label>Kapasite (Lt)</Label>
+                                                                        <Input
+                                                                            type="number"
+                                                                            value={newTankCapacity}
+                                                                            onChange={e => setNewTankCapacity(e.target.value)}
+                                                                            placeholder="0"
+                                                                        />
+                                                                    </div>
+                                                                    <div className="space-y-2">
+                                                                        <Button type="button" onClick={handleAddTank} className="w-full">
+                                                                            <Plus className="w-4 h-4 mr-2" /> Ekle
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Tank List */}
+                                                                <div className="border rounded-md overflow-hidden">
+                                                                    <Table>
+                                                                        <TableHeader>
+                                                                            <TableRow className="bg-slate-100">
+                                                                                <TableHead>Depo Adı</TableHead>
+                                                                                <TableHead>Kapasite</TableHead>
+                                                                                <TableHead>Mevcut Stok</TableHead>
+                                                                                <TableHead className="w-20"></TableHead>
+                                                                            </TableRow>
+                                                                        </TableHeader>
+                                                                        <TableBody>
+                                                                            {fuelTanks.filter(t => t.siteId === selectedSiteId).map(tank => (
+                                                                                <TableRow key={tank.id}>
+                                                                                    <TableCell className="font-medium">{tank.name}</TableCell>
+                                                                                    <TableCell>{tank.capacity} Lt</TableCell>
+                                                                                    <TableCell>{tank.currentLevel} Lt</TableCell>
+                                                                                    <TableCell>
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            variant="ghost"
+                                                                                            size="sm"
+                                                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                                            onClick={() => handleDeleteTank(tank.id)}
+                                                                                        >
+                                                                                            <Trash2 className="w-4 h-4" />
+                                                                                        </Button>
+                                                                                    </TableCell>
+                                                                                </TableRow>
+                                                                            ))}
+                                                                            {fuelTanks.filter(t => t.siteId === selectedSiteId).length === 0 && (
+                                                                                <TableRow>
+                                                                                    <TableCell colSpan={4} className="text-center text-slate-500 py-4">
+                                                                                        Henüz depo eklenmemiş.
+                                                                                    </TableCell>
+                                                                                </TableRow>
+                                                                            )}
+                                                                        </TableBody>
+                                                                    </Table>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </TabsContent>
                                                 </Tabs>
 
