@@ -293,8 +293,12 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                 doc.setTextColor(0, 0, 0);
 
                 // [FIX] Reduced width from 165 to 158 to prevent right-overflow
-                const splitText = doc.splitTextToSize(contentText, 158);
-                const lineSpacing = 4.5;
+                // [FIX] Match background line height (7mm)
+                const lineSpacing = 7;
+
+                doc.setFont('Roboto', 'normal');
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
 
                 for (let i = 0; i < splitText.length; i++) {
                     const line = splitText[i];
@@ -304,7 +308,14 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                         drawTemplate(currentSheet);
                         currentY = contentBoxTop + 6;
                     }
-                    doc.text(line, 22, currentY);
+
+                    // [FIX] Justify alignment for all lines except the last one
+                    if (i < splitText.length - 1) {
+                        doc.text(line, 22, currentY, { align: 'justify', maxWidth: 158 });
+                    } else {
+                        doc.text(line, 22, currentY);
+                    }
+
                     currentY += lineSpacing;
                 }
 
