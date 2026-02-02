@@ -167,7 +167,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
         const prevLineWidth = doc.getTextWidth(prevLine);
         const prevLineEndX = 105 + (prevLineWidth / 2);
         const lastLine = recipientLines[recipientLines.length - 1];
-        doc.text(lastLine, prevLineEndX, yPos);
+        doc.text(lastLine, prevLineEndX, yPos, { align: 'center' });
         yPos += lineHeightMm;
     } else {
         doc.text(recipientLines, 105, yPos, { align: 'center' });
