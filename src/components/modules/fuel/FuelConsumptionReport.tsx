@@ -20,8 +20,9 @@ import { useState } from 'react';
 import { normalizeSearchText, cn } from '@/lib/utils';
 import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction } from '@/actions/fuel';
 
+import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
+
 export function FuelConsumptionReport() {
-    // [UPDATED] Include fuelTransfers and tanks
     // [UPDATED] Include fuelTransfers and tanks
     const {
         fuelLogs, vehicles, deleteFuelLog, updateFuelLog,
@@ -39,7 +40,7 @@ export function FuelConsumptionReport() {
 
     // Filters
     const [plateFilter, setPlateFilter] = useState<string[]>([]);
-    const [siteFilter, setSiteFilter] = useState<string[]>([]);
+    const [siteFilter, setSiteFilter] = useState<string>(''); // [UPDATED] Single Site
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -645,210 +646,226 @@ export function FuelConsumptionReport() {
     );
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Detaylı Yakıt Tüketim Raporu</CardTitle>
-                <div className="space-y-4">
-                    {renderFilters()}
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tarih</TableHead>
-                                <TableHead>Plaka / Araç</TableHead>
-                                <TableHead>Sayaç</TableHead>
-                                <TableHead>Fark</TableHead>
-                                <TableHead>Alınan</TableHead>
-                                <TableHead>Ort Tüketim</TableHead>
-                                <TableHead>Genel Ort</TableHead>
-                                <TableHead>Kümülatif Toplam</TableHead>
-                                <TableHead>Not</TableHead> {/* [NEW] */}
-                                <TableHead>Yakıt Veren</TableHead>
-                                <TableHead className="w-[80px]">İşlemler</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {reportData.map((row) => (
-                                <TableRow key={row.id} className={cn(
-                                    row.recordType === 'BALANCE_START' && "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200",
-                                    (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100"
-                                )}>
-                                    <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
-                                    <TableCell className="max-w-[120px]">
-                                        <div className="font-medium truncate" title={row.vehicle.plate}>{row.vehicle.plate}</div>
-                                        <div className="text-xs text-muted-foreground truncate" title={row.vehicle.brand}>{row.vehicle.brand}</div>
-                                    </TableCell>
+        <div className="space-y-6">
+            {/* Summary Card Integrated */}
+            {siteFilter && (
+                <FuelStatsCard
+                    siteId={siteFilter}
+                    startDate={dateRange.start}
+                    endDate={dateRange.end}
+                    fuelTransfers={fuelTransfers}
+                    fuelLogs={fuelLogs}
+                    fuelTanks={fuelTanks}
+                    sites={sites}
+                />
+            )}
 
-                                    {/* CONDITIONAL RENDERING FOR VIRMAN */}
-                                    {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
-                                        <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
-                                                {row.recordType === 'VIRMAN_OUT' ? (
-                                                    <ArrowLeft className="h-4 w-4 text-muted-foreground" /> // User requested reversed arrow for exit
-                                                ) : (
-                                                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                                )}
-                                                <span>Virman</span>
-                                            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Detaylı Yakıt Tüketim Raporu</CardTitle>
+                    <div className="space-y-4">
+                        {renderFilters()}
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Tarih</TableHead>
+                                    <TableHead>Plaka / Araç</TableHead>
+                                    <TableHead>Sayaç</TableHead>
+                                    <TableHead>Fark</TableHead>
+                                    <TableHead>Alınan</TableHead>
+                                    <TableHead>Ort Tüketim</TableHead>
+                                    <TableHead>Genel Ort</TableHead>
+                                    <TableHead>Kümülatif Toplam</TableHead>
+                                    <TableHead>Not</TableHead>
+                                    <TableHead>Yakıt Veren</TableHead>
+                                    <TableHead className="w-[80px]">İşlemler</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reportData.map((row) => (
+                                    <TableRow key={row.id} className={cn(
+                                        row.recordType === 'BALANCE_START' && "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200",
+                                        (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100"
+                                    )}>
+                                        <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
+                                        <TableCell className="max-w-[120px]">
+                                            <div className="font-medium truncate" title={row.vehicle.plate}>{row.vehicle.plate}</div>
+                                            <div className="text-xs text-muted-foreground truncate" title={row.vehicle.brand}>{row.vehicle.brand}</div>
                                         </TableCell>
-                                    ) : (
-                                        <>
-                                            <TableCell>
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    <>
-                                                        {row.mileage.toLocaleString()}
-                                                        <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
-                                                    </>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    row.diffKm > 0 ? `+${row.diffKm}` : '-'
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className={cn("font-bold",
-                                                        row.recordType === 'BALANCE_START' ? 'text-blue-700' :
-                                                            (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
-                                                    )}>
-                                                        {row.recordType === 'BALANCE_START' ? (
-                                                            `Devir: ${row.liters.toLocaleString()} Lt`
-                                                        ) : (
-                                                            <>
-                                                                {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                    {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
-                                                    {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+
+                                        {/* CONDITIONAL RENDERING FOR VIRMAN */}
+                                        {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
+                                            <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
+                                                    {row.recordType === 'VIRMAN_OUT' ? (
+                                                        <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+                                                    ) : (
+                                                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                                    )}
+                                                    <span>Virman</span>
                                                 </div>
                                             </TableCell>
-                                            <TableCell>
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    row.consumption > 0 ? (
-                                                        <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                            {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                        </Badge>
-                                                    ) : '-'
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                    row.lifetimeAvg > 0 ? (
-                                                        <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
-                                                    ) : '-'
-                                                )}
-                                            </TableCell>
-                                        </>
-                                    )}
-
-                                    <TableCell className={cn("font-semibold",
-                                        row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
-                                            (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
-                                    )}>
-                                        {row.cumulativeTotal?.toLocaleString()} Lt
-                                    </TableCell>
-                                    <TableCell className="max-w-[150px] truncate" title={row.description}>
-                                        {row.description || '-'}
-                                    </TableCell>
-                                    <TableCell className="max-w-[100px] truncate text-sm text-muted-foreground" title={row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}>
-                                        {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
-                                    </TableCell>
-                                    <TableCell>
-                                        {canEditFuel && row.recordType !== 'BALANCE_START' && (
-                                            <div className="flex items-center gap-1">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
-                                                    <Pencil className="w-4 h-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </div>
+                                        ) : (
+                                            <>
+                                                <TableCell>
+                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                        <>
+                                                            {row.mileage.toLocaleString()}
+                                                            <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
+                                                        </>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                        row.diffKm > 0 ? `+${row.diffKm}` : '-'
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="min-w-[110px]">
+                                                    <div className="flex flex-col">
+                                                        <span className={cn("font-bold whitespace-nowrap",
+                                                            row.recordType === 'BALANCE_START' ? 'text-blue-700' :
+                                                                (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
+                                                        )}>
+                                                            {row.recordType === 'BALANCE_START' ? (
+                                                                `Devir: ${row.liters.toLocaleString()} Lt`
+                                                            ) : (
+                                                                <>
+                                                                    {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
+                                                                </>
+                                                            )}
+                                                        </span>
+                                                        {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
+                                                        {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                        row.consumption > 0 ? (
+                                                            <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
+                                                                {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                            </Badge>
+                                                        ) : '-'
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground">
+                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
+                                                        row.lifetimeAvg > 0 ? (
+                                                            <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
+                                                        ) : '-'
+                                                    )}
+                                                </TableCell>
+                                            </>
                                         )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
 
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
-                    </DialogHeader>
-                    {editingLog && (
-                        <div className="grid gap-4 py-4">
-                            {isReadOnly && (
-                                <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
-                                    Bu kayıt başka bir kullanıcı tarafından oluşturulmuştur. Düzenleyemezsiniz.
+                                        <TableCell className={cn("font-semibold",
+                                            row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
+                                                (row.cumulativeTotal > 0 ? "text-green-600 font-bold" : "text-slate-700")
+                                        )}>
+                                            {row.cumulativeTotal?.toLocaleString()} Lt
+                                        </TableCell>
+                                        <TableCell className="max-w-[150px] truncate" title={row.description}>
+                                            {row.description || '-'}
+                                        </TableCell>
+                                        <TableCell className="max-w-[100px] truncate text-sm text-muted-foreground" title={row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}>
+                                            {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
+                                        </TableCell>
+                                        <TableCell>
+                                            {canEditFuel && row.recordType !== 'BALANCE_START' && (
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50" onClick={() => openEdit(row)}>
+                                                        <Pencil className="w-4 h-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(row.id)}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+
+                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
+                        </DialogHeader>
+                        {editingLog && (
+                            <div className="grid gap-4 py-4">
+                                {isReadOnly && (
+                                    <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
+                                        Bu kayıt başka bir kullanıcı tarafından oluşturulmuştur. Düzenleyemezsiniz.
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Tarih</Label>
+                                        <Input
+                                            type="date"
+                                            value={editForm.date}
+                                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Şantiye</Label>
+                                        <Select
+                                            value={editForm.siteId}
+                                            onValueChange={(v) => setEditForm({ ...editForm, siteId: v })}
+                                            disabled={isReadOnly}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seçiniz" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Tarih</Label>
-                                    <Input
-                                        type="date"
-                                        value={editForm.date}
-                                        onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                                        disabled={isReadOnly}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Şantiye</Label>
-                                    <Select
-                                        value={editForm.siteId}
-                                        onValueChange={(v) => setEditForm({ ...editForm, siteId: v })}
-                                        disabled={isReadOnly}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Seçiniz" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                {(editingLog as any)?.recordType !== 'TRANSFER' && (
+                                    <div className="space-y-2">
+                                        <Label>KM / Saat</Label>
+                                        <Input
+                                            type="number"
+                                            value={editForm.mileage}
+                                            onChange={(e) => setEditForm({ ...editForm, mileage: Number(e.target.value) })}
+                                            disabled={isReadOnly}
+                                        />
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Litre</Label>
+                                        <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={editForm.liters}
+                                            onChange={(e) => setEditForm({ ...editForm, liters: Number(e.target.value) })}
+                                        />
+                                    </div>
+                                    {/* Cost Field Removed as per request */}
                                 </div>
                             </div>
-                            {(editingLog as any)?.recordType !== 'TRANSFER' && (
-                                <div className="space-y-2">
-                                    <Label>KM / Saat</Label>
-                                    <Input
-                                        type="number"
-                                        value={editForm.mileage}
-                                        onChange={(e) => setEditForm({ ...editForm, mileage: Number(e.target.value) })}
-                                        disabled={isReadOnly}
-                                    />
-                                </div>
-                            )}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Litre</Label>
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        value={editForm.liters}
-                                        onChange={(e) => setEditForm({ ...editForm, liters: Number(e.target.value) })}
-                                    />
-                                </div>
-                                {/* Cost Field Removed as per request */}
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
-                        <Button onClick={handleUpdate}>Güncelle</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </Card >
+                        )}
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
+                            <Button onClick={handleUpdate}>Güncelle</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </Card>
+        </div>
     );
 }

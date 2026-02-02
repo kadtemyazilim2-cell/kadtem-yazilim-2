@@ -47,58 +47,6 @@ export default function FuelPage() {
                 </Button>
             </div>
 
-            {/* [NEW] Dashboard Filters & Stats */}
-            <div className="space-y-4">
-                <div className="flex flex-wrap gap-4 items-end bg-slate-50 p-4 rounded-lg border">
-                    <div className="w-full md:w-64 space-y-2">
-                        <Label>Şantiye Seçimi</Label>
-                        <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                            <SelectTrigger className="bg-white">
-                                <SelectValue placeholder="Şantiye Seçiniz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Başlangıç</Label>
-                        <Input type="date" className="bg-white" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Bitiş</Label>
-                        <Input type="date" className="bg-white" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
-                    </div>
-                    {selectedSiteId && (
-                        <Button variant="ghost" className="text-red-500" onClick={() => { setSelectedSiteId(''); setDateRange({ start: '', end: '' }); }}>
-                            Filtreleri Temizle
-                        </Button>
-                    )}
-                </div>
-
-                {selectedSiteId && (
-                    <FuelStatsCard
-                        siteId={selectedSiteId}
-                        startDate={dateRange.start}
-                        endDate={dateRange.end}
-                        fuelTransfers={fuelTransfers}
-                        fuelLogs={fuelLogs}
-                        fuelTanks={fuelTanks}
-                        sites={sites}
-                    />
-                )}
-            </div>
-
-
-
-
-
-
-
-
-
             {canViewConsumption && <FuelConsumptionReport />}
         </div>
     );

@@ -80,8 +80,8 @@ export function MultiSelect({
                             selected.map((val) => {
                                 const label = options.find(o => o.value === val)?.label || val;
                                 return (
-                                    <Badge key={val} variant="secondary" className="mr-1 mb-0.5 text-[10px] px-1 py-0 h-5">
-                                        {label}
+                                    <Badge key={val} variant="secondary" className="mr-1 mb-0.5 text-[10px] px-1 py-0 h-5 inline-flex items-center max-w-[100px]">
+                                        <span className="truncate">{label}</span>
                                         <span
                                             className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
                                             onMouseDown={(e) => {
