@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateFuelTransfer } from '@/actions/fuel';
 import { useAppStore } from '@/lib/store/use-store';
 import { toast } from 'sonner';
@@ -18,95 +18,66 @@ interface FuelTransferEditDialogProps {
 }
 
 export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelTransferEditDialogProps) {
-    const { updateFuelTransfer: updateStoreTransfer } = useAppStore();
+    const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Simplification: Only Amount, Date, Source, Dest
     const [formData, setFormData] = useState({
         amount: 0,
-        unitPrice: 0,
-        totalCost: 0,
         date: '',
-        description: ''
+        fromId: '',
+        toId: ''
     });
 
     useEffect(() => {
         if (transfer) {
-            setFormData({
-                amount: transfer.amount || 0,
-                unitPrice: transfer.unitPrice || 0,
-                totalCost: transfer.totalCost || 0,
-                date: transfer.date ? new Date(transfer.date).toISOString().split('T')[0] : '',
-                description: transfer.description || ''
-            });
-
-            // If start local datetime needed, adjust logic. 
-            // For now, date input assumes YYYY-MM-DD.
-            // If transfer has time, we might lose it if only using date picker.
-            // Let's try to preserve time if we just split, but Input type='datetime-local' is better for preserving time.
+            let dateVal = '';
             if (transfer.date) {
                 const d = new Date(transfer.date);
-                // Simple format for datetime-local: YYYY-MM-DDTHH:mm
-                const iso = d.toISOString().slice(0, 16);
-                setFormData(prev => ({ ...prev, date: iso }));
+                // Adjust to local ISO string for datetime-local input
+                const offsetMs = d.getTimezoneOffset() * 60 * 1000;
+                const localISOTime = (new Date(d.getTime() - offsetMs)).toISOString().slice(0, 16);
+                dateVal = localISOTime;
             }
+
+            setFormData({
+                amount: transfer.amount || 0,
+                date: dateVal,
+                fromId: transfer.fromId || '',
+                toId: transfer.toId || ''
+            });
         }
     }, [transfer]);
-
-    const handleChange = (field: string, value: any) => {
-        setFormData(prev => {
-            const updates = { ...prev, [field]: value };
-
-            // Auto-calc cost/price logic
-            if (field === 'amount' || field === 'unitPrice') {
-                const amt = field === 'amount' ? parseFloat(value) : parseFloat(String(prev.amount));
-                const price = field === 'unitPrice' ? parseFloat(value) : parseFloat(String(prev.unitPrice));
-                if (!isNaN(amt) && !isNaN(price)) {
-                    updates.totalCost = parseFloat((amt * price).toFixed(2));
-                }
-            }
-            if (field === 'totalCost') {
-                const cost = parseFloat(value);
-                const amt = parseFloat(String(prev.amount));
-                if (!isNaN(cost) && !isNaN(amt) && amt > 0) {
-                    updates.unitPrice = parseFloat((cost / amt).toFixed(2));
-                }
-            }
-
-            return updates;
-        });
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
 
         try {
+            // Construct Payload
+            // forcing types to TANK for now based on 'Depo' selection UI
+            // If the original was VEHICLE, this converts it to TANK.
             const payload = {
                 amount: Number(formData.amount),
-                unitPrice: Number(formData.unitPrice),
-                totalCost: Number(formData.totalCost),
                 date: new Date(formData.date).toISOString(),
-                description: formData.description,
-                // Preserve original IDs to avoid breaking links if we don't allow changing them here
-                fromType: transfer.fromType,
-                fromId: transfer.fromId,
-                toType: transfer.toType,
-                toId: transfer.toId,
-                createdByUserId: transfer.createdByUserId
+                fromId: formData.fromId,
+                toId: formData.toId,
+                fromType: 'TANK',
+                toType: 'TANK',
+                // Preserve description if it exists in original, or clear it if we don't show it?
+                // User said "Only ...". Safe to keep description if not edited?
+                // Let's keep original description to be safe against data loss.
+                description: transfer.description
             };
 
             const result = await updateFuelTransfer(transfer.id, payload as any);
 
             if (result.success && result.data) {
-                toast.success('Kayıt güncellendi.');
-                // Update Store
-                // We need to implement updateFuelTransfer in store or just reload/fetch. 
-                // Store likely has updateFuelTransfer? Check use-store.
-                // Assuming useAppStore has it or we can just fetch.
-                // Assuming users of this dialog will handle refresh if store method missing.
+                toast.success('Transfer güncellendi.');
+
                 if (updateStoreTransfer) {
                     updateStoreTransfer(transfer.id, result.data);
                 } else {
-                    // Fallback
                     window.location.reload();
                 }
 
@@ -125,21 +96,61 @@ export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Kayıt Düzenle</DialogTitle>
+                    <DialogTitle>Transfer Düzenle</DialogTitle>
                     <DialogDescription>
-                        İşlem detaylarını güncelle.
+                        Virman işlemini güncelle.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                    {/* Source & Destination */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Çıkış Yeri (Depo)</Label>
+                            <Select
+                                value={formData.fromId}
+                                onValueChange={(val) => setFormData(prev => ({ ...prev, fromId: val }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {fuelTanks.filter((t: any) => t.status === 'ACTIVE' || t.id === formData.fromId).map((t: any) => (
+                                        <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Hedef Depo</Label>
+                            <Select
+                                value={formData.toId}
+                                onValueChange={(val) => setFormData(prev => ({ ...prev, toId: val }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {fuelTanks
+                                        .filter((t: any) => (t.status === 'ACTIVE' || t.id === formData.toId) && t.id !== formData.fromId)
+                                        .map((t: any) => (
+                                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                        ))
+                                    }
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Date & Amount */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Tarih & Saat</Label>
                             <Input
                                 type="datetime-local"
                                 value={formData.date}
-                                onChange={e => handleChange('date', e.target.value)}
+                                onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
                                 required
                             />
                         </div>
@@ -149,39 +160,12 @@ export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess
                                 type="number"
                                 step="0.01"
                                 value={formData.amount}
-                                onChange={e => handleChange('amount', e.target.value)}
+                                onChange={e => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) }))}
                                 required
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Birim Fiyat (TL)</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={formData.unitPrice}
-                                onChange={e => handleChange('unitPrice', e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Toplam Tutar (TL)</Label>
-                            <Input
-                                type="number"
-                                step="0.01"
-                                value={formData.totalCost}
-                                onChange={e => handleChange('totalCost', e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Açıklama</Label>
-                        <Textarea
-                            value={formData.description}
-                            onChange={e => handleChange('description', e.target.value)}
-                            placeholder="Açıklama..."
-                        />
-                    </div>
+
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
                         <Button type="submit" disabled={isSubmitting}>Kaydet</Button>

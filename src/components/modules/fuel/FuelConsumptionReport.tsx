@@ -350,7 +350,7 @@ export function FuelConsumptionReport() {
                     fullTank: false,
                     siteId: toEnt.siteId || '',
                     filledByUserId: t.createdByUserId,
-                    sourceName: fromEnt.name, // [FIX] Added source name for display
+                    sourceName: undefined, // Show User Name instead of Source Tank
                     description: t.description // [NEW] Note
                 });
             }
