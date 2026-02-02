@@ -323,7 +323,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                         </Select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className={defaultValues?.type ? "space-y-2" : "grid grid-cols-2 gap-4"}>
                         <div className="space-y-2">
                             <Label>Şantiye <span className="text-red-500">*</span></Label>
                             <Select
@@ -341,21 +341,31 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="space-y-2">
-                            <Label>İşlem Tipi</Label>
-                            <Select
-                                value={formData.type}
-                                onValueChange={handleTypeChange}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="INCOME">Gelir / Tahsilat</SelectItem>
-                                    <SelectItem value="EXPENSE">Gider / Harcama</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* Only show Type Selector if not locked by defaultValues */}
+                        {!defaultValues?.type && (
+                            <div className="space-y-2">
+                                <Label>İşlem Tipi</Label>
+                                <Select
+                                    value={formData.type}
+                                    onValueChange={handleTypeChange}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="INCOME">Gelir / Tahsilat</SelectItem>
+                                        <SelectItem value="EXPENSE">Gider / Harcama</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                        {/* Layout fix if Type is hidden: make Site full width? Or keep grid?
+                            If hidden, Site is col-span-1.
+                            We should probably let Site expand or keep blank space.
+                            Grid has 2 cols. If hidden, site takes 1 arg.
+                            Let's keep it consistent or make Site full width if locked?
+                            Re-rendering the container div to adjust grid cols.
+                         */}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
