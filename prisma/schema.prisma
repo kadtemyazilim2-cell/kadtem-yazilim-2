@@ -505,6 +505,7 @@ model Institution {
   mobile      String?
   contactPerson String?
   shortName     String? // [NEW]
+  status        Status   @default(ACTIVE)
 }
 
 model SitePartner {

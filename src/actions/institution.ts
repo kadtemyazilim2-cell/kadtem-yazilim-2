@@ -93,38 +93,24 @@ export async function deleteInstitution(id: string) {
             }
         }
 
-        const institution = await prisma.institution.findUnique({ where: { id } });
-        if (!institution) {
-            return { success: false, error: 'Muhatap bulunamadı.' };
-        }
-
-        // Check for existing usages in Correspondence
-        const usageCount = await prisma.correspondence.count({
-            where: {
-                senderReceiver: {
-                    equals: institution.name,
-                    mode: 'insensitive' // Optional: Match case-insensitively to be safe
-                },
-                status: 'ACTIVE' // Only check active ones? Or all? Usually all.
-            }
+        // Soft Delete: Set status to PASSIVE
+        await prisma.institution.update({
+            where: { id },
+            data: { status: 'PASSIVE' }
         });
 
-        if (usageCount > 0) {
-            return { success: false, error: 'Bu muhatap ile yapılmış yazışmalar mevcut. Silinemez.' };
-        }
-
-        await prisma.institution.delete({ where: { id } });
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
         console.error('deleteInstitution Error:', error);
-        return { success: false, error: 'Kurum silinemedi.' };
+        return { success: false, error: 'Kurum silinemedi (Pasife alınamadı).' };
     }
 }
 
 export async function getInstitutions() {
     try {
         const list = await prisma.institution.findMany({
+            where: { status: 'ACTIVE' },
             orderBy: { name: 'asc' }
         });
         return { success: true, data: list };
