@@ -1559,6 +1559,41 @@ export default function NewPage() {
             });
         }
 
+        // --- NEW PAGE: Salary & Overtime Summary ---
+        doc.addPage();
+        doc.setFontSize(14);
+        doc.setFont("helvetica", "bold");
+        doc.text(trToAscii("Mesai ve Izin Ozeti"), 14, 15);
+
+        const formatMoneyAscii = (val: number) => {
+            return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
+        };
+
+        const salaryBody = filteredNames.map((p, index) => {
+            const stats = calculateStats(p, date);
+            return [
+                index + 1,
+                trToAscii(p.name),
+                `${stats.remainingLeave} Gun`,
+                formatMoneyAscii(stats.overtimePay),
+                `${stats.overtimeTotal} Saat`
+            ];
+        });
+
+        autoTable(doc, {
+            head: [['Sira No', 'Isim Soyisim', 'Kullanilmayan Izin', 'Mesai Ucreti', 'Toplam Mesai']],
+            body: salaryBody,
+            startY: 20,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+            styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
+            columnStyles: {
+                0: { cellWidth: 20 }, // Sira
+                1: { cellWidth: 80, halign: 'left' }, // Isim
+                3: { halign: 'right' } // Ucret
+            }
+        });
+
         doc.save(`Puantaj_${format(date, 'yyyy_MM')}.pdf`);
     };
 
@@ -1575,9 +1610,7 @@ export default function NewPage() {
             <Tabs defaultValue="attendance" className="w-full space-y-6">
                 <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
                     <TabsTrigger value="attendance" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj</TabsTrigger>
-                    {canViewSalary && (
-                        <TabsTrigger value="salary" className="px-6 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700">Maaş Hesabı</TabsTrigger>
-                    )}
+
                 </TabsList>
 
                 <TabsContent value="attendance" className="space-y-6">
@@ -2422,98 +2455,7 @@ export default function NewPage() {
                     </Dialog>
                 </TabsContent>
 
-                {(user?.role === 'ADMIN' || user?.username === 'mehmet') && (
-                    <TabsContent value="salary" className="space-y-6">
-                        <div className="flex justify-end bg-white p-4 rounded-lg border shadow-sm">
-                            <Button variant="outline" onClick={handleExportSalaryExcel} className="hover:bg-green-50 text-green-700 border-green-200">
-                                <FileSpreadsheet className="w-4 h-4 mr-2" />
-                                Maaş Listesi (Excel)
-                            </Button>
-                            <Button variant="outline" onClick={handleExportSalaryPDF} className="hover:bg-red-50 text-red-700 border-red-200 ml-2">
-                                <Download className="w-4 h-4 mr-2" />
-                                Maaş Listesi (PDF)
-                            </Button>
-                        </div>
 
-                        <div className="rounded-md border bg-white">
-                            <Table className="w-full text-xs [&_th]:h-10 [&_th]:p-2 [&_td]:p-2">
-                                <TableHeader>
-                                    <TableRow className="bg-slate-50">
-                                        <TableHead>TC Kimlik</TableHead>
-                                        <TableHead>Ad Soyad</TableHead>
-                                        <TableHead className="text-right">Maaş</TableHead>
-                                        <TableHead className="text-center">Toplam Gün</TableHead>
-                                        <TableHead className="text-center">Mesai (Saat)</TableHead>
-                                        <TableHead className="text-right">Hakediş</TableHead>
-                                        <TableHead className="text-right">Mesai Tutarı</TableHead>
-                                        <TableHead className="text-center">Kalan İzin</TableHead>
-                                        <TableHead className="text-right">İzin Ücreti</TableHead>
-                                        <TableHead className="text-right text-green-600">Prim</TableHead>
-                                        <TableHead className="text-right text-red-600">Kesinti</TableHead>
-                                        <TableHead className="text-right font-bold text-slate-900">Toplam Ödeme</TableHead>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredNames.length === 0 ? (
-                                        <TableRow><TableCell colSpan={12} className="text-center h-24 text-muted-foreground">Kayıt Yok</TableCell></TableRow>
-                                    ) : filteredNames.map(person => {
-                                        const stats = calculateStats(person, date);
-                                        const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
-                                        return (
-                                            <TableRow key={person.id}>
-                                                <TableCell className="font-mono text-xs">{person.tc}</TableCell>
-                                                <TableCell className="font-medium">{person.name}</TableCell>
-                                                <TableCell className="text-right font-mono text-slate-600">{formatCurrency(person.salary)}</TableCell>
-                                                <TableCell className="text-center font-bold text-slate-700">{stats.workedDays}</TableCell>
-                                                <TableCell className="text-center">{stats.overtimeTotal > 0 ? stats.overtimeTotal : '-'}</TableCell>
-                                                <TableCell className="text-right font-mono text-slate-600">{fmt(stats.basePay)}</TableCell>
-                                                <TableCell className="text-right font-mono text-muted-foreground">{fmt(stats.overtimePay)}</TableCell>
-                                                <TableCell className="text-center font-bold text-blue-600">{stats.remainingLeave}</TableCell>
-                                                <TableCell className="text-right font-mono text-blue-600">{fmt(stats.leavePay)}</TableCell>
-                                                <TableCell className="text-right font-mono text-green-600 p-0">
-                                                    <SalaryEditableCell
-                                                        value={stats.bonus}
-                                                        type="Prim"
-                                                        colorClass="text-green-600"
-                                                        onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono text-red-600 p-0">
-                                                    <SalaryEditableCell
-                                                        value={stats.deduction}
-                                                        type="Kesinti"
-                                                        colorClass="text-red-600"
-                                                        onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-right font-bold font-mono text-green-700 bg-green-50/50">{fmt(stats.totalPay)}</TableCell>
-                                                <TableCell>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => {
-                                                        const key = format(date, 'yyyy-MM');
-                                                        const adjustment = person.salaryAdjustments?.[key] || {};
-                                                        setSalaryAdjustmentForm({
-                                                            personId: person.id,
-                                                            dateKey: key,
-                                                            workedDays: adjustment.workedDays?.toString() || stats.workedDays.toString(),
-                                                            overtimeHours: adjustment.overtimeHours?.toString() || (stats.overtimeTotal > 0 ? stats.overtimeTotal.toString() : ''),
-                                                            bonus: adjustment.bonus?.toString() || '',
-                                                            deduction: adjustment.deduction?.toString() || '',
-                                                            note: adjustment.note || ''
-                                                        });
-                                                        setIsSalaryAdjustmentOpen(true);
-                                                    }}>
-                                                        <Pencil className="w-4 h-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </TabsContent>
-                )}
             </Tabs>
 
             {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}

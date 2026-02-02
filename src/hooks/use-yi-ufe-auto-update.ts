@@ -44,8 +44,8 @@ export function useYiUfeAutoUpdate() {
             const hour = now.getHours();
             const minute = now.getMinutes();
 
-            // Condition: 3rd of month, Time >= 10:05.
-            if (day === 3 && (hour > 10 || (hour === 10 && minute >= 5))) {
+            // Condition: Month >= 3 (Yi-UFE released around 3rd or 4th)
+            if (day >= 3) {
                 // Check if we already have data for the *previous* month
                 const prevDate = new Date();
                 prevDate.setMonth(prevDate.getMonth() - 1);
@@ -55,16 +55,13 @@ export function useYiUfeAutoUpdate() {
                 const hasData = yiUfeRates.some((r: any) => r.year === targetYear && r.month === targetMonth);
 
                 if (hasData) {
-                    console.log('YI-UFE: Data for previous month already exists. Skipping auto-fetch.');
+                    // console.log('YI-UFE: Data for previous month already exists. Skipping auto-fetch.');
                     return;
                 }
 
                 if (updating) return;
 
-                console.log('YI-UFE: Auto-fetch triggered (Client Side Condition Met).');
-                // We use the new Server Action which does the real scraping
-                // We can reuse the same function `fetchYiUfeFromApi` if we update it, or call here directly.
-                // Let's rely on the updated fetchYiUfeFromApi below which we should update to use Server Action.
+                console.log('YI-UFE: Data missing for last month. Triggering auto-fetch...');
                 await fetchYiUfeFromApi();
             }
         };

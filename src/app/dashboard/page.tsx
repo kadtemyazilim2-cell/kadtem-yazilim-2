@@ -524,6 +524,16 @@ export default function DashboardPage() {
                                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                                     <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
                                                 </div>
+                                                {/* [NEW] Recipient and Text Excerpt */}
+                                                <div className="text-xs text-slate-600">
+                                                    <span className="font-semibold text-slate-700">Muhatap:</span> {doc.receiver || '-'}
+                                                </div>
+                                                {doc.description && (
+                                                    <div className="text-[11px] text-slate-500 italic line-clamp-1 border-l-2 border-slate-200 pl-1">
+                                                        {doc.description}
+                                                    </div>
+                                                )}
+
                                                 {/* Show missing types explicitly */}
                                                 <div className="flex gap-2">
                                                     {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}

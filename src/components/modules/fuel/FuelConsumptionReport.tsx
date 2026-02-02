@@ -730,17 +730,18 @@ export function FuelConsumptionReport() {
                                                         </>
                                                     )}
                                                 </span>
-                                                {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
-                                                {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
                                             </div>
                                         </TableCell>
                                         <TableCell>
                                             {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
-                                                row.consumption > 0 ? (
-                                                    <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                        {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                    </Badge>
-                                                ) : '-'
+                                                <div className="flex flex-col items-center">
+                                                    {row.consumption > 0 ? (
+                                                        <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
+                                                            {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                        </Badge>
+                                                    ) : '-'}
+                                                    {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[9px] mt-1 w-fit border-amber-500 text-amber-600 bg-amber-50">Full Değil</Badge>}
+                                                </div>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground">
@@ -865,6 +866,6 @@ export function FuelConsumptionReport() {
                     </DialogContent>
                 </Dialog>
             </Card>
-        </div>
+        </div >
     );
 }
