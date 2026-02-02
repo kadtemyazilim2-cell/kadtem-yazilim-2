@@ -430,7 +430,7 @@ export default function DashboardPage() {
             {hasPermission('fuel', 'VIEW') && (
                 <>
                     <div className="grid gap-4 md:grid-cols-1">
-                        <FuelPurchaseList />
+                        <FuelPurchaseList isWidget={true} />
                     </div>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                         <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
