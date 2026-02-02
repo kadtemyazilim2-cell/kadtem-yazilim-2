@@ -65,13 +65,6 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                     updates.totalCost = parseFloat((amt * price).toFixed(2));
                 }
             }
-            if (field === 'totalCost') {
-                const cost = parseFloat(value);
-                const amt = parseFloat(String(prev.amount));
-                if (!isNaN(cost) && !isNaN(amt) && amt > 0) {
-                    updates.unitPrice = parseFloat((cost / amt).toFixed(2));
-                }
-            }
 
             return updates;
         });
@@ -197,7 +190,8 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                                 type="number"
                                 step="0.01"
                                 value={formData.totalCost}
-                                onChange={e => handleChange('totalCost', e.target.value)}
+                                readOnly
+                                className="bg-slate-100"
                             />
                         </div>
                     </div>
