@@ -287,123 +287,75 @@ export default function DashboardPage() {
         <div className="space-y-6">
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Genel Bakış</h1>
 
+
             {/* Top Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 {/* Financial Status List Card */}
-                <Card className="bg-emerald-50 border-emerald-100 border shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600">
-                            Şantiye Kasaları (Personel)
-                        </CardTitle>
-                        <Wallet className="h-4 w-4 text-emerald-600" />
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        {userBalances.length === 0 ? (
-                            <div className="text-sm text-slate-500">Bakiye yok.</div>
-                        ) : (
-                            <div className="space-y-2">
-                                {userBalances.map((u) => (
-                                    <div key={u.id} className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100">
-                                        <span className="font-medium text-slate-700">{u.name}</span>
-                                        <span className={cn("font-bold font-mono", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
-                                            {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Fuel Consumption List Card */}
-                {/* Fuel Consumption Card Removed */}
-                {/* <Card className="bg-amber-50 border-amber-100 border shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600">
-                            Yakıt Tüketimi (Bu Ay)
-                        </CardTitle>
-                        <Droplet className="h-4 w-4 text-amber-600" />
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        {siteConsumption.length === 0 ? (
-                            <div className="text-sm text-slate-500">Bu ay tüketim yok.</div>
-                        ) : (
-                            <div className="space-y-2">
-                                {siteConsumption.map((s) => (
-                                    <div key={s.id} className="flex items-center justify-between text-sm">
-                                        <span className="font-medium text-slate-700 line-clamp-1 mr-2" title={s.name}>{s.name}</span>
-                                        <span className="font-bold font-mono text-amber-700 whitespace-nowrap">
-                                            {s.liters.toLocaleString('tr-TR')} Lt
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card> */}
-                {/* Personnel Count List Card */}
-                {/* Personnel Count Card Removed */}
-                {/* <Card className="bg-blue-50 border-blue-100 border shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600">
-                            Personel Sayısı (Bu Ay)
-                        </CardTitle>
-                        <Users className="h-4 w-4 text-blue-600" />
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        {sitePersonnelCounts.length === 0 ? (
-                            <div className="text-sm text-slate-500">Bu ay çalışan kaydı yok.</div>
-                        ) : (
-                            <div className="space-y-2">
-                                {sitePersonnelCounts.map((s) => (
-                                    <div key={s.id} className="flex items-center justify-between text-sm">
-                                        <span className="font-medium text-slate-700">{s.name}</span>
-                                        <span className="font-bold font-mono text-blue-700">
-                                            {s.count} Kişi
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card> */}
+                {hasPermission('cash-book', 'VIEW') && (
+                    <Card className="bg-emerald-50 border-emerald-100 border shadow-sm col-span-1">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-600">
+                                Şantiye Kasaları (Personel)
+                            </CardTitle>
+                            <Wallet className="h-4 w-4 text-emerald-600" />
+                        </CardHeader>
+                        <CardContent className="pt-2">
+                            {userBalances.length === 0 ? (
+                                <div className="text-sm text-slate-500">Bakiye yok.</div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {userBalances.map((u) => (
+                                        <div key={u.id} className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100">
+                                            <span className="font-medium text-slate-700">{u.name}</span>
+                                            <span className={cn("font-bold font-mono", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
+                                                {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Insurance Alerts Card */}
-                <Card className="bg-red-50 border-red-100 border shadow-sm col-span-2">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600">
-                            Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
-                        </CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-red-600" />
-                    </CardHeader>
-                    <CardContent className="pt-2">
-                        {upcomingExpirations.length === 0 ? (
-                            <div className="text-sm text-slate-500">Yaklaşan ödeme bulunmuyor.</div>
-                        ) : (
-                            <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                                {upcomingExpirations.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-100 cursor-pointer transition-colors border border-transparent hover:border-slate-200"
-                                        onClick={() => handleAlertClick(item)}
-                                        title={item.type === 'Muayene' ? "Tarihi Güncelle" : "Acenteye Mail Gönder"}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span className="font-bold font-mono text-slate-800">{item.plate}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-slate-500">{item.type}</span>
-                                                <span className="text-[10px] text-slate-400">• {item.agencyName || 'Acente Yok'}</span>
+                {hasPermission('vehicle', 'VIEW') && (
+                    <Card className="bg-red-50 border-red-100 border shadow-sm col-span-2">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-600">
+                                Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
+                            </CardTitle>
+                            <AlertTriangle className="h-4 w-4 text-red-600" />
+                        </CardHeader>
+                        <CardContent className="pt-2">
+                            {upcomingExpirations.length === 0 ? (
+                                <div className="text-sm text-slate-500">Yaklaşan ödeme bulunmuyor.</div>
+                            ) : (
+                                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                                    {upcomingExpirations.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-100 cursor-pointer transition-colors border border-transparent hover:border-slate-200"
+                                            onClick={() => handleAlertClick(item)}
+                                            title={item.type === 'Muayene' ? "Tarihi Güncelle" : "Acenteye Mail Gönder"}
+                                        >
+                                            <div className="flex flex-col">
+                                                <span className="font-bold font-mono text-slate-800">{item.plate}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-slate-500">{item.type}</span>
+                                                    <span className="text-[10px] text-slate-400">• {item.agencyName || 'Acente Yok'}</span>
+                                                </div>
                                             </div>
+                                            <span className={`font-bold ${item.days <= 7 ? 'text-red-700 animate-pulse' : 'text-orange-600'}`}>
+                                                {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti!` : `${item.days} Gün Kaldı`}
+                                            </span>
                                         </div>
-                                        <span className={`font-bold ${item.days <= 7 ? 'text-red-700 animate-pulse' : 'text-orange-600'}`}>
-                                            {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti!` : `${item.days} Gün Kaldı`}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Quick Actions & Info Card (Moved Here) */}
                 <Card className="col-span-1 shadow-sm border-slate-200">
@@ -465,105 +417,108 @@ export default function DashboardPage() {
             </div>
 
             {/* Site Fuel Stocks */}
-            <div className="space-y-4 mt-8">
-                <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Aktif Şantiye Depo Stokları</h3>
-                <div className="grid gap-4" >
-                    <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
+            {hasPermission('fuel', 'VIEW') && (
+                <div className="space-y-4 mt-8">
+                    <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Aktif Şantiye Depo Stokları</h3>
+                    <div className="grid gap-4" >
+                        <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
+                    </div>
                 </div>
-            </div>
-
-
-
-
+            )}
 
             {/* Fuel Tables Section */}
-            <div className="grid gap-4 md:grid-cols-1">
-                <FuelPurchaseList />
-            </div>
+            {hasPermission('fuel', 'VIEW') && (
+                <>
+                    <div className="grid gap-4 md:grid-cols-1">
+                        <FuelPurchaseList />
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                        <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
+                    </div>
+                </>
+            )}
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-7 border-red-200 shadow-sm">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-red-700">
-                            <FileText className="h-5 w-5" />
-                            Eksik Evrak Numaraları
-                            <span className="ml-auto text-sm font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-                                {missingDocs.length} Adet
-                            </span>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {missingDocs.length === 0 ? (
-                            <div className="text-center py-6 text-slate-500 text-sm">
-                                Eksik evrak numarası bulunmuyor.
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <div className="grid md:grid-cols-2 gap-2">
-                                    {missingDocs.slice(0, showAllMissingDocs ? undefined : 4).map((doc: any) => (
-                                        <div
-                                            key={doc.id}
-                                            onClick={() => {
-                                                setEditCorrespondenceId(doc.id);
-                                                setEditReferenceNumber(doc.referenceNumber || '');
-                                                setEditRegistrationNumber(doc.registrationNumber || '');
-                                                setIsEditCorrespondenceOpen(true);
-                                            }}
-                                            className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100 hover:border-red-200 cursor-pointer transition-all"
-                                        >
-                                            <div className="space-y-1">
-                                                <div className="font-medium text-slate-900 group-hover:text-red-900 transition-colors">
-                                                    {doc.subject}
-                                                </div>
-                                                <div className="text-xs text-slate-500 flex items-center gap-2">
-                                                    <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                    <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
-                                                </div>
-                                                {/* [NEW] Recipient and Text Excerpt */}
-                                                <div className="text-xs text-slate-600">
-                                                    <span className="font-semibold text-slate-700">Muhatap:</span> {doc.receiver || '-'}
-                                                </div>
-                                                {doc.description && (
-                                                    <div className="text-[11px] text-slate-500 italic line-clamp-1 border-l-2 border-slate-200 pl-1">
-                                                        {doc.description}
-                                                    </div>
-                                                )}
-
-                                                {/* Show missing types explicitly */}
-                                                <div className="flex gap-2">
-                                                    {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}
-                                                    {(!doc.referenceNumber) && <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">Sayı No Eksik</span>}
-                                                </div>
-                                            </div>
-                                            <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
-                                                Numara Gir &rarr;
-                                            </div>
-                                        </div>
-                                    ))}
+            {hasPermission('correspondence', 'VIEW') && (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                    <Card className="col-span-7 border-red-200 shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-red-700">
+                                <FileText className="h-5 w-5" />
+                                Eksik Evrak Numaraları
+                                <span className="ml-auto text-sm font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
+                                    {missingDocs.length} Adet
+                                </span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {missingDocs.length === 0 ? (
+                                <div className="text-center py-6 text-slate-500 text-sm">
+                                    Eksik evrak numarası bulunmuyor.
                                 </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="grid md:grid-cols-2 gap-2">
+                                        {missingDocs.slice(0, showAllMissingDocs ? undefined : 4).map((doc: any) => (
+                                            <div
+                                                key={doc.id}
+                                                onClick={() => {
+                                                    setEditCorrespondenceId(doc.id);
+                                                    setEditReferenceNumber(doc.referenceNumber || '');
+                                                    setEditRegistrationNumber(doc.registrationNumber || '');
+                                                    setIsEditCorrespondenceOpen(true);
+                                                }}
+                                                className="group flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100 hover:border-red-200 cursor-pointer transition-all"
+                                            >
+                                                <div className="space-y-1">
+                                                    <div className="font-medium text-slate-900 group-hover:text-red-900 transition-colors">
+                                                        {doc.subject}
+                                                    </div>
+                                                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                                                        <span>{format(new Date(doc.date), 'dd MMMM yyyy', { locale: tr })}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                        <span>{companies.find((c: any) => c.id === doc.companyId)?.name}</span>
+                                                    </div>
+                                                    {/* [NEW] Recipient and Text Excerpt */}
+                                                    <div className="text-xs text-slate-600">
+                                                        <span className="font-semibold text-slate-700">Muhatap:</span> {doc.receiver || '-'}
+                                                    </div>
+                                                    {doc.description && (
+                                                        <div className="text-[11px] text-slate-500 italic line-clamp-1 border-l-2 border-slate-200 pl-1">
+                                                            {doc.description}
+                                                        </div>
+                                                    )}
 
-                                {missingDocs.length > 4 && (
-                                    <div className="flex justify-center pt-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setShowAllMissingDocs(!showAllMissingDocs)}
-                                            className="text-slate-500 hover:text-slate-800"
-                                        >
-                                            {showAllMissingDocs ? 'Daha Az Göster' : `Devamını Göster (+${missingDocs.length - 4})`}
-                                        </Button>
+                                                    {/* Show missing types explicitly */}
+                                                    <div className="flex gap-2">
+                                                        {(!doc.registrationNumber) && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">Karar No Eksik</span>}
+                                                        {(!doc.referenceNumber) && <span className="text-[10px] bg-orange-100 text-orange-700 px-1 rounded">Sayı No Eksik</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-2 sm:mt-0 text-xs font-medium text-red-600 bg-white px-2 py-1 rounded border border-red-100 shadow-sm">
+                                                    Numara Gir &rarr;
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                )}
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+
+                                    {missingDocs.length > 4 && (
+                                        <div className="flex justify-center pt-2">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setShowAllMissingDocs(!showAllMissingDocs)}
+                                                className="text-slate-500 hover:text-slate-800"
+                                            >
+                                                {showAllMissingDocs ? 'Daha Az Göster' : `Devamını Göster (+${missingDocs.length - 4})`}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             {/* SITE LOG SUMMARY */}
             {hasPermission('site-log', 'VIEW') && (
