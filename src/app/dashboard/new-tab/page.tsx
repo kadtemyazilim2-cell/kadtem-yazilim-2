@@ -1571,13 +1571,15 @@ export default function NewPage() {
 
         const salaryBody = filteredNames.map((p, index) => {
             const stats = calculateStats(p, date);
+            // Summary should only show Overtime + Unused Leave Pay
+            const summaryTotal = stats.overtimePay + stats.leavePay;
             return [
                 index + 1,
                 trToAscii(p.name),
                 `${stats.remainingLeave} Gun`,
                 formatMoneyAscii(stats.overtimePay),
                 `${stats.overtimeTotal} Saat`,
-                formatMoneyAscii(stats.totalPay)
+                formatMoneyAscii(summaryTotal)
             ];
         });
 
