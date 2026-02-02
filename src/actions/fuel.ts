@@ -340,59 +340,60 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
         console.error('updateFuelTransfer Error:', error);
         return { success: false, error: 'Güncelleme yapılamadı.' };
     }
+}
 
-    export async function deleteFuelLog(id: string) {
-        try {
-            const log = await prisma.fuelLog.findUnique({ where: { id } });
-            if (!log) return { success: false, error: 'Kayıt bulunamadı.' };
+export async function deleteFuelLog(id: string) {
+    try {
+        const log = await prisma.fuelLog.findUnique({ where: { id } });
+        if (!log) return { success: false, error: 'Kayıt bulunamadı.' };
 
-            // Revert Tank Level
-            if (log.tankId) {
-                await prisma.fuelTank.update({
-                    where: { id: log.tankId },
-                    data: { currentLevel: { increment: log.liters } }
-                });
-            }
-
-            await prisma.fuelLog.delete({ where: { id } });
-            revalidateTag('fuel-logs');
-            revalidateTag('fuel-tanks');
-            revalidatePath('/dashboard/fuel');
-            return { success: true };
-        } catch (error) {
-            console.error('deleteFuelLog Error:', error);
-            return { success: false, error: 'Silme işlemi başarısız.' };
+        // Revert Tank Level
+        if (log.tankId) {
+            await prisma.fuelTank.update({
+                where: { id: log.tankId },
+                data: { currentLevel: { increment: log.liters } }
+            });
         }
+
+        await prisma.fuelLog.delete({ where: { id } });
+        revalidateTag('fuel-logs');
+        revalidateTag('fuel-tanks');
+        revalidatePath('/dashboard/fuel');
+        return { success: true };
+    } catch (error) {
+        console.error('deleteFuelLog Error:', error);
+        return { success: false, error: 'Silme işlemi başarısız.' };
     }
+}
 
-    export async function deleteFuelTransfer(id: string) {
-        try {
-            const transfer = await prisma.fuelTransfer.findUnique({ where: { id } });
-            if (!transfer) return { success: false, error: 'Transfer bulunamadı.' };
+export async function deleteFuelTransfer(id: string) {
+    try {
+        const transfer = await prisma.fuelTransfer.findUnique({ where: { id } });
+        if (!transfer) return { success: false, error: 'Transfer bulunamadı.' };
 
-            // Revert From Tank (It was decremented, so increment back)
-            if (transfer.fromType === 'TANK') {
-                await prisma.fuelTank.update({
-                    where: { id: transfer.fromId },
-                    data: { currentLevel: { increment: transfer.amount } }
-                });
-            }
-
-            // Revert To Tank (It was incremented, so decrement back)
-            if (transfer.toType === 'TANK') {
-                await prisma.fuelTank.update({
-                    where: { id: transfer.toId },
-                    data: { currentLevel: { decrement: transfer.amount } }
-                });
-            }
-
-            await prisma.fuelTransfer.delete({ where: { id } });
-            revalidateTag('fuel-transfers');
-            revalidateTag('fuel-tanks');
-            revalidatePath('/dashboard/fuel');
-            return { success: true };
-        } catch (error) {
-            console.error('deleteFuelTransfer Error:', error);
-            return { success: false, error: 'Transfer silinemedi.' };
+        // Revert From Tank (It was decremented, so increment back)
+        if (transfer.fromType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: transfer.fromId },
+                data: { currentLevel: { increment: transfer.amount } }
+            });
         }
+
+        // Revert To Tank (It was incremented, so decrement back)
+        if (transfer.toType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: transfer.toId },
+                data: { currentLevel: { decrement: transfer.amount } }
+            });
+        }
+
+        await prisma.fuelTransfer.delete({ where: { id } });
+        revalidateTag('fuel-transfers');
+        revalidateTag('fuel-tanks');
+        revalidatePath('/dashboard/fuel');
+        return { success: true };
+    } catch (error) {
+        console.error('deleteFuelTransfer Error:', error);
+        return { success: false, error: 'Transfer silinemedi.' };
     }
+}
