@@ -45,10 +45,10 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
             // Center Logo? Or Left? Usually Top Left or Center. 
             // Image example shows Top Left.
             doc.addImage(logoToUse, 'PNG', marginLeft, 10, pdfWidth, pdfHeight);
-            yPos = 10 + pdfHeight + 20; // Increased spacing (Logo -> Line -> Date)
+            yPos = 10 + pdfHeight + 6; // 3mm gap + Line + 3mm gap
         } catch (e) {
             console.error("Error adding logo", e);
-            yPos = 45;
+            yPos = 44;
         }
     } else {
         // [NEW] Text Header Fallback
@@ -60,7 +60,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
             doc.text(companyName.toUpperCase(), 105, 30, { align: 'center' });
 
-            yPos = 55; // Default start if no contact info
+            yPos = 44; // Default start if no contact info
 
             // Optional: Address/Phone below header
             doc.setFont(fontName, 'normal');
@@ -73,10 +73,10 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
             if (contactInfo) {
                 doc.text(contactInfo, 105, 37, { align: 'center' });
-                yPos = 55; // Increased spacing
+                yPos = 44; // Adjusted for 3mm spacing
             }
         } else {
-            yPos = 35; // Increased spacing
+            yPos = 36; // Adjusted for 3mm spacing
         }
     }
 
@@ -84,7 +84,7 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     // [NEW] Gray Separator Line
     doc.setDrawColor(200, 200, 200); // Light Gray
     doc.setLineWidth(0.1); // Thin
-    doc.line(marginLeft, yPos - 10, 210 - marginRight, yPos - 10); // Placed exactly in middle of 20mm gap
+    doc.line(marginLeft, yPos - 3, 210 - marginRight, yPos - 3); // Line at -3mm from Content Start
     doc.setDrawColor(0, 0, 0); // Reset to Black
 
     // 2. Date (Right Aligned)
