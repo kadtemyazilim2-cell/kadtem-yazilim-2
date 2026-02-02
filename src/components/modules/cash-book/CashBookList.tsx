@@ -301,7 +301,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
     const exportExcel = () => {
         // Main Data
         const data: any[] = filteredTransactionsWithBalance.map((t: any) => ({
-            'Tarih': format(new Date(t.date), 'dd.MM.yyyy', { locale: tr }),
+            'Tarih': safeFormat(t.date, 'dd.MM.yyyy'),
             'Personel': t.type === 'BALANCE_START' ? '-' : getUserName(t.responsibleUserId || t.createdByUserId),
             'Kategori': t.category,
             'Açıklama': t.description,
@@ -425,7 +425,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                 else if (t.type === 'BALANCE_START') typeLabel = 'Devir';
 
                 return [
-                    format(new Date(t.date), 'dd.MM.yyyy'),
+                    safeFormat(t.date, 'dd.MM.yyyy'),
                     t.category,
                     t.description,
                     // Borç (Gelir)

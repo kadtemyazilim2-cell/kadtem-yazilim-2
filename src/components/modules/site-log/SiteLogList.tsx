@@ -282,6 +282,8 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
 
+                const splitText = doc.splitTextToSize(contentText, 158);
+
                 for (let i = 0; i < splitText.length; i++) {
                     const line = splitText[i];
                     if (currentY + lineSpacing > endContentY - 2) {
