@@ -45,7 +45,26 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         description: '',
         documentNo: '',
         responsibleUserId: '',
+        paymentMethod: 'CASH',
+        imageUrl: '',
     });
+
+    const [file, setFile] = useState<File | null>(null);
+
+    const convertToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
 
     const [displayAmount, setDisplayAmount] = useState('0');
 
@@ -61,14 +80,26 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                 description: initialData.description || '',
                 documentNo: initialData.documentNo || '',
                 responsibleUserId: initialData.responsibleUserId || '',
+                paymentMethod: initialData.paymentMethod || 'CASH',
+                imageUrl: initialData.imageUrl || '',
             });
+            // If existing image, we show it (logic below) - file input remains null unless changed
             setDisplayAmount(initialData.amount ? initialData.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0');
         } else if (isOpen) {
             // Reset if opening new
             if (!externalOpen) resetForm();
             // Apply defaults if provided
             if (defaultValues) {
-                setFormData(prev => ({ ...prev, ...defaultValues }));
+                const isIncome = defaultValues.type === 'INCOME';
+                const autoCategory = isIncome ? 'Şantiye Harcaması İçin Gönderilen' : '';
+
+                setFormData(prev => ({
+                    ...prev,
+                    ...defaultValues,
+                    category: defaultValues.category || (isIncome ? autoCategory : prev.category),
+                    // Only auto-generate description if not provided in defaultValues
+                    description: defaultValues.description || (isIncome ? generateDescription(prev.date, autoCategory) : prev.description)
+                }));
             }
         }
     }, [initialData, isOpen, defaultValues]);
@@ -84,7 +115,10 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
             description: '',
             documentNo: '',
             responsibleUserId: user?.id || '',
+            paymentMethod: 'CASH',
+            imageUrl: '',
         });
+        setFile(null);
         setDisplayAmount('0');
     };
 
@@ -196,11 +230,15 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                 type: formData.type as 'INCOME' | 'EXPENSE',
                 category: formData.category,
                 amount: Number(formData.amount),
-                description: formData.description,
-                documentNo: formData.documentNo,
                 createdByUserId: user.id,
-                responsibleUserId: formData.responsibleUserId || user.id
+                responsibleUserId: formData.responsibleUserId || user.id,
+                paymentMethod: formData.paymentMethod as any,
+                imageUrl: formData.imageUrl
             };
+
+            if (file) {
+                payload.imageUrl = await convertToBase64(file);
+            }
 
             if (initialData) {
                 // UPDATE
@@ -401,6 +439,24 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                             placeholder="Fatura No / Fiş No"
                             value={formData.documentNo}
                             onChange={(e) => setFormData({ ...formData, documentNo: e.target.value })}
+                        />
+                    </div>
+
+                    {/* File Upload for Slip */}
+                    <div className="space-y-2 border-t pt-4">
+                        <Label>Belge / Fiş Görseli {formData.paymentMethod === 'CREDIT_CARD' && <span className="text-sm text-muted-foreground">(Kredi Kartı Slibi)</span>}</Label>
+                        {formData.imageUrl ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <div className="text-green-600 text-sm flex items-center gap-1">
+                                    <span>✓ Görsel Yüklü</span>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setFormData({ ...formData, imageUrl: '' })} className="h-6 px-2 text-red-500">Sil</Button>
+                                </div>
+                            </div>
+                        ) : null}
+                        <Input
+                            type="file"
+                            accept="image/*,.pdf"
+                            onChange={handleFileChange}
                         />
                     </div>
 

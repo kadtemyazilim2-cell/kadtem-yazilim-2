@@ -229,6 +229,8 @@ export interface CashTransaction { // Kasa Defteri
   createdByUserId: string;
   responsibleUserId?: string; // [NEW] Who spent/received the money
   createdAt?: string; // Entry timestamp
+  paymentMethod?: 'CASH' | 'CREDIT_CARD'; // [NEW]
+  imageUrl?: string; // [NEW] Base64
 }
 
 export interface Personnel {

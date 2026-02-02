@@ -45,6 +45,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
     const [formDefaultValues, setFormDefaultValues] = useState<any>(undefined); // [NEW] Default values for form
+    const [showReport, setShowReport] = useState(false); // [NEW] Toggle report view for restricted users
 
     // Date Filters
     const currentDate = new Date();
@@ -669,7 +670,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     className="h-12 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
-                                        setFormDefaultValues({ type: 'EXPENSE', description: 'Nakit Ödeme' });
+                                        setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CASH', description: 'Nakit Ödeme' });
                                         setIsFormOpen(true);
                                     }}
                                 >
@@ -682,7 +683,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     className="h-12 border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 hover:border-yellow-500 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
-                                        setFormDefaultValues({ type: 'EXPENSE', description: 'Kredi Kartı ile Ödeme' }); // Pre-fill desc?
+                                        setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CREDIT_CARD', description: 'Kredi Kartı Gideri' });
                                         setIsFormOpen(true);
                                     }}
                                 >
@@ -695,7 +696,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     className="h-12 border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
-                                        setFormDefaultValues({ type: 'INCOME', description: 'Nakit Tahsilat' });
+                                        setFormDefaultValues({ type: 'INCOME', paymentMethod: 'CASH', description: 'Nakit Tahsilat' });
                                         setIsFormOpen(true);
                                     }}
                                 >
@@ -704,11 +705,11 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                 </Button>
 
                                 <Button
-                                    className="h-12 bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                                    onClick={exportPDF} // Restricted user mainly needs PDF report
+                                    className={cn("h-12 text-white shadow-sm", showReport ? "bg-slate-700 hover:bg-slate-800" : "bg-blue-600 hover:bg-blue-700")}
+                                    onClick={() => setShowReport(!showReport)}
                                 >
                                     <BarChart className="mr-2 h-5 w-5" />
-                                    Kasa Raporu
+                                    {showReport ? 'Raporu Gizle' : 'Kasa Raporu'}
                                 </Button>
                             </div>
                         )}
@@ -716,182 +717,187 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                 </div>
 
                 {/* Filter Row: Grid Layout */}
-                <div className="bg-slate-50 p-4 rounded-lg border">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                        {/* Search - Col 3 */}
-                        <div className={cn("col-span-12 relative", canExport ? "md:col-span-3" : "md:col-span-10")}>
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Ara..."
-                                className="pl-8 bg-white"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
+                {(user?.role === 'ADMIN' || showReport) && (
+                    <div className="bg-slate-50 p-4 rounded-lg border">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                            {/* Search - Col 3 */}
+                            <div className={cn("col-span-12 relative", canExport ? "md:col-span-3" : "md:col-span-10")}>
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Ara..."
+                                    className="pl-8 bg-white"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
 
-                        {/* Site Filter - Col 2 */}
-                        <div className="col-span-12 md:col-span-2">
-                            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                                <SelectTrigger className="w-full bg-white">
-                                    <SelectValue placeholder="Şantiye Seçiniz" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Tüm Şantiyeler</SelectItem>
-                                    {sites?.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* User Filter (Admin Only) - Col 2 */}
-                        {user?.role === 'ADMIN' && (
+                            {/* Site Filter - Col 2 */}
                             <div className="col-span-12 md:col-span-2">
-                                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                                <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
                                     <SelectTrigger className="w-full bg-white">
-                                        <SelectValue placeholder="Personel Seçiniz" />
+                                        <SelectValue placeholder="Şantiye Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Tüm Personel</SelectItem>
-                                        {users?.map((u: any) => (
-                                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                        <SelectItem value="all">Tüm Şantiyeler</SelectItem>
+                                        {sites?.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-                        )}
 
-                        {/* Date Range - Col 3 */}
-                        {canExport && (
-                            <div className={cn("col-span-12 flex gap-2 items-center", user?.role === 'ADMIN' ? "md:col-span-3" : "md:col-span-5")}>
-                                <Input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="bg-white"
-                                />
-                                <span className="text-muted-foreground font-bold">-</span>
-                                <Input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="bg-white"
-                                />
-                            </div>
-                        )}
+                            {/* User Filter (Admin Only) - Col 2 */}
+                            {user?.role === 'ADMIN' && (
+                                <div className="col-span-12 md:col-span-2">
+                                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                                        <SelectTrigger className="w-full bg-white">
+                                            <SelectValue placeholder="Personel Seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tüm Personel</SelectItem>
+                                            {users?.map((u: any) => (
+                                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
-                        {/* Month/Year Shortcuts - Col 2 */}
-                        {canExport && (
-                            <div className="col-span-12 md:col-span-2 flex gap-2">
-                                <Select value={quickMonth} onValueChange={(m) => handleQuickDateChange(m, quickYear)}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Ay" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {months.map(m => (
-                                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Select value={quickYear} onValueChange={(y) => handleQuickDateChange(quickMonth, y)}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Yıl" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {years.map(y => (
-                                            <SelectItem key={y} value={y}>{y}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                            {/* Date Range - Col 3 */}
+                            {canExport && (
+                                <div className={cn("col-span-12 flex gap-2 items-center", user?.role === 'ADMIN' ? "md:col-span-3" : "md:col-span-5")}>
+                                    <Input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="bg-white"
+                                    />
+                                    <span className="text-muted-foreground font-bold">-</span>
+                                    <Input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="bg-white"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Month/Year Shortcuts - Col 2 */}
+                            {canExport && (
+                                <div className="col-span-12 md:col-span-2 flex gap-2">
+                                    <Select value={quickMonth} onValueChange={(m) => handleQuickDateChange(m, quickYear)}>
+                                        <SelectTrigger className="bg-white">
+                                            <SelectValue placeholder="Ay" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {months.map(m => (
+                                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={quickYear} onValueChange={(y) => handleQuickDateChange(quickMonth, y)}>
+                                        <SelectTrigger className="bg-white">
+                                            <SelectValue placeholder="Yıl" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {years.map(y => (
+                                                <SelectItem key={y} value={y}>{y}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </CardHeader>
-            <CardContent>
-                <div className="mb-4 p-2 bg-slate-50 border rounded text-xs text-muted-foreground">
-                    <span className="font-semibold">Devreden Bakiye: </span>
-                    {previousBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                </div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Tarih</TableHead>
-                            <TableHead>Personel</TableHead>
-                            <TableHead>Kategori</TableHead>
-                            <TableHead>Açıklama</TableHead>
-                            <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
-                            <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
-                            <TableHead className="text-right text-slate-700">Tutar (+/-)</TableHead>
-                            <TableHead>Bakiye</TableHead>
-                            <TableHead className="w-10"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {filteredTransactionsWithBalance?.length === 0 ? (
+            {/* Only show Table Content if Admin or showReport is true */}
+            {(user?.role === 'ADMIN' || showReport) && (
+                <CardContent>
+                    <div className="mb-4 p-2 bg-slate-50 border rounded text-xs text-muted-foreground">
+                        <span className="font-semibold">Devreden Bakiye: </span>
+                        {previousBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    </div>
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={9} className="text-center text-slate-500 py-8">
-                                    {selectedUserId === 'all' ? 'Henüz kayıtlı işlem yok.' : 'Seçili personel için işlem bulunamadı.'}
-                                </TableCell>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Personel</TableHead>
+                                <TableHead>Kategori</TableHead>
+                                <TableHead>Açıklama</TableHead>
+                                <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
+                                <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
+                                <TableHead className="text-right text-slate-700">Tutar (+/-)</TableHead>
+                                <TableHead>Bakiye</TableHead>
+                                <TableHead className="w-10"></TableHead>
                             </TableRow>
-                        ) : (
-                            filteredTransactionsWithBalance.map((item) => (
-                                <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
-                                    <TableCell>{safeFormat(item.date, 'dd MMM yyyy')}</TableCell>
-                                    <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>
-                                    <TableCell>{item.category}</TableCell>
-                                    <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
-
-                                    {/* Borç (Income) */}
-                                    <TableCell className="text-right font-mono text-green-600 font-bold">
-                                        {(item.type === 'INCOME' || item.type === 'BALANCE_START') ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
-                                    </TableCell>
-
-                                    {/* Alacak (Expense) */}
-                                    <TableCell className="text-right font-mono text-red-600 font-bold">
-                                        {item.type === 'EXPENSE' ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
-                                    </TableCell>
-
-                                    {/* Tutar (Signed) */}
-                                    <TableCell className="text-right font-mono font-bold text-slate-900">
-                                        {item.type === 'BALANCE_START' ? (item.amount > 0 ? '' : '-') : (item.type === 'EXPENSE' ? '-' : '')}
-                                        {Number(item.amount || 0).toLocaleString('tr-TR')} TL
-                                    </TableCell>
-
-                                    <TableCell className="font-mono font-medium">
-                                        {Number(item.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                                    </TableCell>
-                                    <TableCell>
-                                        {item.type !== 'BALANCE_START' && (
-                                            <div className="flex items-center gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                                    onClick={() => {
-                                                        setEditingTransaction(item);
-                                                        setIsFormOpen(true);
-                                                    }}
-                                                >
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleDelete(item.id)}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        )}
+                        </TableHeader>
+                        <TableBody>
+                            {filteredTransactionsWithBalance?.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={9} className="text-center text-slate-500 py-8">
+                                        {selectedUserId === 'all' ? 'Henüz kayıtlı işlem yok.' : 'Seçili personel için işlem bulunamadı.'}
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </CardContent>
+                            ) : (
+                                filteredTransactionsWithBalance.map((item) => (
+                                    <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
+                                        <TableCell>{safeFormat(item.date, 'dd MMM yyyy')}</TableCell>
+                                        <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>
+                                        <TableCell>{item.category}</TableCell>
+                                        <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
+
+                                        {/* Borç (Income) */}
+                                        <TableCell className="text-right font-mono text-green-600 font-bold">
+                                            {(item.type === 'INCOME' || item.type === 'BALANCE_START') ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
+                                        </TableCell>
+
+                                        {/* Alacak (Expense) */}
+                                        <TableCell className="text-right font-mono text-red-600 font-bold">
+                                            {item.type === 'EXPENSE' ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
+                                        </TableCell>
+
+                                        {/* Tutar (Signed) */}
+                                        <TableCell className="text-right font-mono font-bold text-slate-900">
+                                            {item.type === 'BALANCE_START' ? (item.amount > 0 ? '' : '-') : (item.type === 'EXPENSE' ? '-' : '')}
+                                            {Number(item.amount || 0).toLocaleString('tr-TR')} TL
+                                        </TableCell>
+
+                                        <TableCell className="font-mono font-medium">
+                                            {Number(item.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                        </TableCell>
+                                        <TableCell>
+                                            {item.type !== 'BALANCE_START' && (
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                        onClick={() => {
+                                                            setEditingTransaction(item);
+                                                            setIsFormOpen(true);
+                                                        }}
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleDelete(item.id)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            )}
 
             <CashBookForm
                 open={isFormOpen}

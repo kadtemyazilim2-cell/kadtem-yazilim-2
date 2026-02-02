@@ -51,7 +51,9 @@ export async function createTransaction(data: Partial<CashTransaction>) {
                 description: data.description!,
                 documentNo: data.documentNo,
                 createdByUserId: data.createdByUserId!,
-                responsibleUserId: data.responsibleUserId
+                responsibleUserId: data.responsibleUserId,
+                paymentMethod: data.paymentMethod,
+                imageUrl: data.imageUrl
             }
         });
         revalidatePath('/dashboard/cash-book');
@@ -74,7 +76,9 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
                 amount: data.amount,
                 description: data.description,
                 documentNo: data.documentNo,
-                responsibleUserId: data.responsibleUserId
+                responsibleUserId: data.responsibleUserId,
+                paymentMethod: data.paymentMethod,
+                imageUrl: data.imageUrl
             }
         });
         revalidatePath('/dashboard/cash-book');
