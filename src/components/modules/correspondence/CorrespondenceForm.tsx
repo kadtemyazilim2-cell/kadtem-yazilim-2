@@ -464,7 +464,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         setFormData({ ...formData, referenceNumber: e.target.value });
                                         setIsRefManual(true);
                                     }}
-                                // Removed readOnly and className logic to allow editing
+                                    readOnly={formData.direction === 'OUTGOING'}
+                                    className={formData.direction === 'OUTGOING' ? 'bg-slate-50 text-slate-500 font-mono' : ''}
                                 />
                             </div>
 
