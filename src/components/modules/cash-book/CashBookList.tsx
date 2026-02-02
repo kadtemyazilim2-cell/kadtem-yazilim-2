@@ -670,7 +670,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     className="h-12 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
-                                        setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CASH', description: 'Nakit Ödeme' });
+                                        setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CASH', description: '' });
                                         setIsFormOpen(true);
                                     }}
                                 >
@@ -683,7 +683,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     className="h-12 border-yellow-400 text-yellow-700 hover:bg-yellow-50 hover:text-yellow-800 hover:border-yellow-500 shadow-sm"
                                     onClick={() => {
                                         setEditingTransaction(null);
-                                        setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CREDIT_CARD', description: 'Kredi Kartı Gideri' });
+                                        setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CREDIT_CARD', description: '' });
                                         setIsFormOpen(true);
                                     }}
                                 >
@@ -695,8 +695,15 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     variant="outline"
                                     className="h-12 border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-300 shadow-sm"
                                     onClick={() => {
+                                        const currentMonthName = format(new Date(), 'MMMM', { locale: tr });
+                                        // Capitalize first letter of month
+                                        const monthCap = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
                                         setEditingTransaction(null);
-                                        setFormDefaultValues({ type: 'INCOME', paymentMethod: 'CASH', description: 'Nakit Tahsilat' });
+                                        setFormDefaultValues({
+                                            type: 'INCOME',
+                                            paymentMethod: 'CASH',
+                                            description: `${monthCap} Ayı Şantiye Harcaması İçin Gönderilen`
+                                        });
                                         setIsFormOpen(true);
                                     }}
                                 >
