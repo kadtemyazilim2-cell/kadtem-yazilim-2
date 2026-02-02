@@ -325,8 +325,9 @@ export function FuelConsumptionReport() {
                     siteId: fromEnt.siteId || '',
                     filledByUserId: t.createdByUserId,
                     sourceName: undefined,
-                    targetName: toEnt.name, // [FIX] Added target name for display
-                    description: t.description // [NEW] Note
+                    targetName: toEnt.name,
+                    counterpartSiteName: toEnt.name, // [NEW] Destination Name for Report
+                    description: t.description
                 });
 
                 // 2. IN Record (Target)
@@ -337,7 +338,7 @@ export function FuelConsumptionReport() {
                     date: t.date,
                     vehicle: {
                         id: 'VIR_IN_' + t.id,
-                        plate: toEnt.name, // [FIX] "Giriş" record belongs to Target
+                        plate: toEnt.name,
                         brand: 'Giriş',
                         meterType: 'Lt',
                         type: 'OTHER'
@@ -350,8 +351,9 @@ export function FuelConsumptionReport() {
                     fullTank: false,
                     siteId: toEnt.siteId || '',
                     filledByUserId: t.createdByUserId,
-                    sourceName: undefined, // Show User Name instead of Source Tank
-                    description: t.description // [NEW] Note
+                    sourceName: undefined,
+                    counterpartSiteName: fromEnt.name, // [NEW] Source Name for Report
+                    description: t.description
                 });
             }
         });
@@ -701,70 +703,53 @@ export function FuelConsumptionReport() {
                                             <div className="text-xs text-muted-foreground truncate" title={row.vehicle.brand}>{row.vehicle.brand}</div>
                                         </TableCell>
 
-                                        {/* CONDITIONAL RENDERING FOR VIRMAN */}
-                                        {(row.recordType === 'VIRMAN_OUT' || row.recordType === 'VIRMAN_IN') ? (
-                                            <TableCell colSpan={5} className="text-center font-bold text-slate-600 bg-slate-50/50">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <span>{row.recordType === 'VIRMAN_OUT' ? '-' : '+'}{Math.abs(row.liters).toLocaleString()} Lt</span>
-                                                    {row.recordType === 'VIRMAN_OUT' ? (
-                                                        <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+                                        <TableCell>
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
+                                                <>
+                                                    {row.mileage.toLocaleString()}
+                                                    <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
+                                                </>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
+                                                row.diffKm > 0 ? `+${row.diffKm}` : '-'
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="min-w-[110px]">
+                                            <div className="flex flex-col">
+                                                <span className={cn("font-bold whitespace-nowrap",
+                                                    row.recordType === 'BALANCE_START' ? 'text-blue-700' :
+                                                        (row.recordType === 'PURCHASE' || (row.recordType === 'VIRMAN_IN') ? 'text-green-600' : 'text-red-600')
+                                                )}>
+                                                    {row.recordType === 'BALANCE_START' ? (
+                                                        `Devir: ${row.liters.toLocaleString()} Lt`
                                                     ) : (
-                                                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                                                    )}
-                                                    <span>Virman</span>
-                                                </div>
-                                            </TableCell>
-                                        ) : (
-                                            <>
-                                                <TableCell>
-                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
                                                         <>
-                                                            {row.mileage.toLocaleString()}
-                                                            <span className="text-xs text-muted-foreground ml-1">{row.vehicle.meterType}</span>
+                                                            {(row.recordType === 'PURCHASE' || row.recordType === 'VIRMAN_IN') ? '+' : ''}{row.liters.toLocaleString()} Lt
                                                         </>
                                                     )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                        row.diffKm > 0 ? `+${row.diffKm}` : '-'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="min-w-[110px]">
-                                                    <div className="flex flex-col">
-                                                        <span className={cn("font-bold whitespace-nowrap",
-                                                            row.recordType === 'BALANCE_START' ? 'text-blue-700' :
-                                                                (row.recordType === 'PURCHASE' ? 'text-green-600' : 'text-red-600')
-                                                        )}>
-                                                            {row.recordType === 'BALANCE_START' ? (
-                                                                `Devir: ${row.liters.toLocaleString()} Lt`
-                                                            ) : (
-                                                                <>
-                                                                    {row.recordType === 'PURCHASE' ? '+' : '-'}{Math.abs(row.liters).toLocaleString()} Lt
-                                                                </>
-                                                            )}
-                                                        </span>
-                                                        {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
-                                                        {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                        row.consumption > 0 ? (
-                                                            <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                                {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                            </Badge>
-                                                        ) : '-'
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground">
-                                                    {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START') ? '-' : (
-                                                        row.lifetimeAvg > 0 ? (
-                                                            <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
-                                                        ) : '-'
-                                                    )}
-                                                </TableCell>
-                                            </>
-                                        )}
+                                                </span>
+                                                {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[10px] w-fit">Full Değil</Badge>}
+                                                {row.recordType === 'PURCHASE' && <Badge variant="default" className="text-[10px] w-fit bg-green-600 hover:bg-green-700">Satın Alma</Badge>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
+                                                row.consumption > 0 ? (
+                                                    <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
+                                                        {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                    </Badge>
+                                                ) : '-'
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
+                                                row.lifetimeAvg > 0 ? (
+                                                    <span>{row.lifetimeAvg.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}</span>
+                                                ) : '-'
+                                            )}
+                                        </TableCell>
 
                                         <TableCell className={cn("font-semibold",
                                             row.cumulativeTotal < 0 ? "text-red-600 font-bold" :
@@ -772,8 +757,18 @@ export function FuelConsumptionReport() {
                                         )}>
                                             {row.cumulativeTotal?.toLocaleString()} Lt
                                         </TableCell>
-                                        <TableCell className="max-w-[150px] truncate" title={row.description}>
-                                            {row.description || '-'}
+                                        <TableCell className="max-w-[200px]" title={row.description}>
+                                            {row.recordType.startsWith('VIRMAN') ? (
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-slate-800">{row.counterpartSiteName}</span>
+                                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                        <span>Virman</span>
+                                                        {row.description && <span>- {row.description}</span>}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <span className="truncate block">{row.description || '-'}</span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="max-w-[100px] truncate text-sm text-muted-foreground" title={row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}>
                                             {row.sourceName || (users.find((u: any) => u.id === row.filledByUserId)?.name || '-')}
