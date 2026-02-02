@@ -59,6 +59,69 @@ type IndependentPerson = {
     }>;
 };
 
+
+const SalaryEditableCell = ({
+    value,
+    type,
+    onSave,
+    colorClass
+}: {
+    value: number,
+    type: 'Prim' | 'Kesinti',
+    onSave: (val: string) => void,
+    colorClass: string
+}) => {
+    const [open, setOpen] = useState(false);
+    const [tempVal, setTempVal] = useState('');
+
+    useEffect(() => {
+        if (open) {
+            // Convert dot to comma for display editing if needed, but simple string is fine.
+            // If value is 0, start empty or 0? user logic had empty string if 0 in some places.
+            // But here let's show value if > 0.
+            setTempVal(value > 0 ? value.toString().replace('.', ',') : '');
+        }
+    }, [open, value]);
+
+    const handleSave = () => {
+        // Convert comma to dot for saving
+        const toSave = tempVal.replace(',', '.');
+        onSave(toSave);
+        setOpen(false);
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="ghost" className={cn("w-full h-full text-right font-mono px-2 justify-end hover:bg-slate-50 rounded-none h-10", colorClass)}>
+                    {value > 0 ? value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-48 p-3">
+                <div className="space-y-2">
+                    <Label className="text-xs font-semibold">{type} (₺)</Label>
+                    <Input
+                        className="h-8"
+                        placeholder="0,00"
+                        value={tempVal}
+                        onChange={(e) => {
+                            // Allow only digits and comma/dot
+                            const v = e.target.value.replace(/[^0-9,.]/g, '');
+                            setTempVal(v);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSave();
+                        }}
+                    />
+                    <Button size="sm" className="w-full h-7 text-xs bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
+                        Kaydet
+                    </Button>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+};
+
 export default function NewPage() {
     const { user, getAccessibleSites } = useAuth();
     const { sites } = useAppStore();
@@ -2409,52 +2472,20 @@ export default function NewPage() {
                                                 <TableCell className="text-center font-bold text-blue-600">{stats.remainingLeave}</TableCell>
                                                 <TableCell className="text-right font-mono text-blue-600">{fmt(stats.leavePay)}</TableCell>
                                                 <TableCell className="text-right font-mono text-green-600 p-0">
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="ghost" className="w-full h-full text-right font-mono text-green-600 px-2 justify-end hover:bg-green-50 rounded-none h-10">
-                                                                {stats.bonus > 0 ? fmt(stats.bonus) : '-'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-40 p-2">
-                                                            <div className="space-y-1">
-                                                                <Label className="text-xs">Prim (₺)</Label>
-                                                                <Input
-                                                                    className="h-8"
-                                                                    defaultValue={stats.bonus > 0 ? stats.bonus.toString() : ''}
-                                                                    onBlur={(e) => updateSalaryAdjustment(person.id, 'bonus', e.target.value)}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            updateSalaryAdjustment(person.id, 'bonus', e.currentTarget.value);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <SalaryEditableCell
+                                                        value={stats.bonus}
+                                                        type="Prim"
+                                                        colorClass="text-green-600"
+                                                        onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
+                                                    />
                                                 </TableCell>
                                                 <TableCell className="text-right font-mono text-red-600 p-0">
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="ghost" className="w-full h-full text-right font-mono text-red-600 px-2 justify-end hover:bg-red-50 rounded-none h-10">
-                                                                {stats.deduction > 0 ? fmt(stats.deduction) : '-'}
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-40 p-2">
-                                                            <div className="space-y-1">
-                                                                <Label className="text-xs">Kesinti (₺)</Label>
-                                                                <Input
-                                                                    className="h-8"
-                                                                    defaultValue={stats.deduction > 0 ? stats.deduction.toString() : ''}
-                                                                    onBlur={(e) => updateSalaryAdjustment(person.id, 'deduction', e.target.value)}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            updateSalaryAdjustment(person.id, 'deduction', e.currentTarget.value);
-                                                                        }
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </PopoverContent>
-                                                    </Popover>
+                                                    <SalaryEditableCell
+                                                        value={stats.deduction}
+                                                        type="Kesinti"
+                                                        colorClass="text-red-600"
+                                                        onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
+                                                    />
                                                 </TableCell>
                                                 <TableCell className="text-right font-bold font-mono text-green-700 bg-green-50/50">{fmt(stats.totalPay)}</TableCell>
                                                 <TableCell>
