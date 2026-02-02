@@ -287,12 +287,14 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                 const rawContent = dayEntry.content || '';
                 const contentText = bullet + rawContent;
 
-                const splitText = doc.splitTextToSize(contentText, 165);
-                const lineSpacing = 4.5;
-
+                // [FIX] Set font/size BEFORE calculating split to ensure correct metrics
                 doc.setFont('Roboto', 'normal');
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
+
+                // [FIX] Reduced width from 165 to 158 to prevent right-overflow
+                const splitText = doc.splitTextToSize(contentText, 158);
+                const lineSpacing = 4.5;
 
                 for (let i = 0; i < splitText.length; i++) {
                     const line = splitText[i];

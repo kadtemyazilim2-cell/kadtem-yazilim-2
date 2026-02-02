@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
-import { FuelTransferEditDialog } from './FuelTransferEditDialog'; // [NEW]
+import { FuelPurchaseEditDialog } from './FuelPurchaseEditDialog'; // [NEW]
 
 export function FuelPurchaseList() {
     const { fuelTransfers, fuelTanks } = useAppStore();
@@ -93,7 +93,7 @@ export function FuelPurchaseList() {
             </CardContent>
 
             {selectedTransfer && (
-                <FuelTransferEditDialog
+                <FuelPurchaseEditDialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                     transfer={selectedTransfer}
