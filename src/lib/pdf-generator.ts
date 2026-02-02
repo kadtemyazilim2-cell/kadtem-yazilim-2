@@ -148,29 +148,32 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
     const recipientText = (item.senderReceiver || '');
 
     // [FIX] Force Bold Rendering for Recipient
-    // [FIX] Standard Bold for Recipient (Removed Stroke Enhancement)
+    // [FIX] Slight Bold for Recipient (LineWidth 0.1)
     doc.setFont(fontName, 'bold');
-    doc.setTextColor(0, 0, 0); // Black fill
+    doc.setLineWidth(0.1);
+    doc.setDrawColor(0, 0, 0);
+    doc.setTextColor(0, 0, 0);
 
     const recipientLines = doc.splitTextToSize(recipientText, contentWidth);
 
     // Calculate line height in mm (approximate for layout)
     const lineHeightPt = doc.getFontSize() * 1.15;
     const lineHeightMm = lineHeightPt * 0.352778;
+    const renderMode: any = 'fillThenStroke';
 
     if (recipientLines.length > 1) {
         for (let i = 0; i < recipientLines.length - 1; i++) {
-            doc.text(recipientLines[i], 105, yPos, { align: 'center' });
+            doc.text(recipientLines[i], 105, yPos, { align: 'center', renderingMode: renderMode });
             yPos += lineHeightMm;
         }
         const prevLine = recipientLines[recipientLines.length - 2];
         const prevLineWidth = doc.getTextWidth(prevLine);
         const prevLineEndX = 105 + (prevLineWidth / 2);
         const lastLine = recipientLines[recipientLines.length - 1];
-        doc.text(lastLine, prevLineEndX, yPos, { align: 'center' });
+        doc.text(lastLine, prevLineEndX, yPos, { align: 'center', renderingMode: renderMode });
         yPos += lineHeightMm;
     } else {
-        doc.text(recipientLines, 105, yPos, { align: 'center' });
+        doc.text(recipientLines, 105, yPos, { align: 'center', renderingMode: renderMode });
         yPos += lineHeightMm;
     }
 
