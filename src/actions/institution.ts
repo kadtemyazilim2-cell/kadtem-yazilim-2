@@ -85,11 +85,32 @@ export async function deleteInstitution(id: string) {
 
         // Permission Check
         const user = session.user;
+        // Check DELETE permission if it exists or fallback to EDIT
         if (user.role !== 'ADMIN') {
             const perms = user.permissions?.['correspondence.contacts'] || [];
-            if (!perms.includes('EDIT')) { // Edit implies Delete per request logic
+            if (!perms.includes('DELETE') && !perms.includes('EDIT')) {
                 return { success: false, error: 'Muhatap silme yetkiniz bulunmamaktadır.' };
             }
+        }
+
+        const institution = await prisma.institution.findUnique({ where: { id } });
+        if (!institution) {
+            return { success: false, error: 'Muhatap bulunamadı.' };
+        }
+
+        // Check for existing usages in Correspondence
+        const usageCount = await prisma.correspondence.count({
+            where: {
+                senderReceiver: {
+                    equals: institution.name,
+                    mode: 'insensitive' // Optional: Match case-insensitively to be safe
+                },
+                status: 'ACTIVE' // Only check active ones? Or all? Usually all.
+            }
+        });
+
+        if (usageCount > 0) {
+            return { success: false, error: 'Bu muhatap ile yapılmış yazışmalar mevcut. Silinemez.' };
         }
 
         await prisma.institution.delete({ where: { id } });

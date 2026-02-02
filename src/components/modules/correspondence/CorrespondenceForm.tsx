@@ -471,10 +471,13 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
                             {initialType !== 'BANK' && (
                                 <div className="space-y-2">
-                                    <Label>Konu</Label>
+                                    <Label>
+                                        Konu
+                                        {formData.direction === 'OUTGOING' && <span className="text-red-500 ml-1">*</span>}
+                                    </Label>
                                     <Input
                                         placeholder="Yazışma konusu"
-                                        required
+                                        required // Already required
                                         value={formData.subject}
                                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     />
