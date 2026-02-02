@@ -907,6 +907,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             )}
 
             <CashBookForm
+                hideTrigger={true}
                 open={isFormOpen}
                 onOpenChange={(open) => {
                     setIsFormOpen(open);

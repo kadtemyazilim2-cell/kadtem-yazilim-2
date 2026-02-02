@@ -14,16 +14,17 @@ import { tr } from 'date-fns/locale';
 import { createTransaction, updateTransaction } from '@/actions/transaction';
 
 // [NEW] Props for Editing
+// [MOD] Add hideTrigger
 interface CashBookFormProps {
     initialData?: any;
-    defaultValues?: any; // [NEW] For pre-filling new records
+    defaultValues?: any;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
     onSuccess?: () => void;
+    hideTrigger?: boolean; // [NEW]
 }
 
-// [MOD] Export with Props
-export function CashBookForm({ initialData, defaultValues, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess }: CashBookFormProps) {
+export function CashBookForm({ initialData, defaultValues, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess, hideTrigger }: CashBookFormProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
     const setOpen = externalOnOpenChange || setInternalOpen;
@@ -50,6 +51,9 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
     });
 
     const [file, setFile] = useState<File | null>(null);
+
+
+
 
     const convertToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
@@ -291,7 +295,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            {canCreate && !initialData && (
+            {!hideTrigger && canCreate && !initialData && (
                 <DialogTrigger asChild>
                     <Button className="bg-blue-600 hover:bg-blue-700">
                         <Plus className="w-4 h-4 mr-2" /> İşlem Ekle
