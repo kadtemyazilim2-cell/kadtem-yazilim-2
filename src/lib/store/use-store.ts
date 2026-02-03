@@ -178,12 +178,60 @@ export const useAppStore = create<AppState>()(
                     fuelTanks: newTanks
                 };
             }),
-            updateFuelTransfer: (id, data) => set((state) => ({
-                fuelTransfers: state.fuelTransfers.map(t => t.id === id ? { ...t, ...data } : t)
-            })),
-            deleteFuelTransfer: (id) => set((state) => ({
-                fuelTransfers: state.fuelTransfers.filter(t => t.id !== id)
-            })),
+            updateFuelTransfer: (id, data) => set((state) => {
+                const oldTransfer = state.fuelTransfers.find(t => t.id === id);
+                if (!oldTransfer) return {};
+
+                let newTanks = [...state.fuelTanks];
+
+                // 1. Revert Old Transfer
+                if (oldTransfer.fromType === 'TANK') {
+                    newTanks = newTanks.map(t => t.id === oldTransfer.fromId ? { ...t, currentLevel: t.currentLevel + oldTransfer.amount } : t);
+                }
+                if (oldTransfer.toType === 'TANK') {
+                    newTanks = newTanks.map(t => t.id === oldTransfer.toId ? { ...t, currentLevel: t.currentLevel - oldTransfer.amount } : t);
+                }
+
+                // 2. Prepare New Data (Merge)
+                const newAmount = data.amount !== undefined ? Number(data.amount) : oldTransfer.amount;
+                // Complex fields like fromId/toId might change, but simpler to use data or fallback
+                const newFromType = data.fromType || oldTransfer.fromType;
+                const newFromId = data.fromId || oldTransfer.fromId;
+                const newToType = data.toType || oldTransfer.toType;
+                const newToId = data.toId || oldTransfer.toId;
+
+                // 3. Apply New Transfer
+                if (newFromType === 'TANK') {
+                    newTanks = newTanks.map(t => t.id === newFromId ? { ...t, currentLevel: t.currentLevel - newAmount } : t);
+                }
+                if (newToType === 'TANK') {
+                    newTanks = newTanks.map(t => t.id === newToId ? { ...t, currentLevel: t.currentLevel + newAmount } : t);
+                }
+
+                return {
+                    fuelTransfers: state.fuelTransfers.map(t => t.id === id ? { ...t, ...data, amount: newAmount } : t),
+                    fuelTanks: newTanks
+                };
+            }),
+            deleteFuelTransfer: (id) => set((state) => {
+                const transfer = state.fuelTransfers.find(t => t.id === id);
+                if (!transfer) return {};
+
+                let newTanks = [...state.fuelTanks];
+
+                // Revert Effects
+                if (transfer.fromType === 'TANK') {
+                    newTanks = newTanks.map(t => t.id === transfer.fromId ? { ...t, currentLevel: t.currentLevel + transfer.amount } : t);
+                }
+                if (transfer.toType === 'TANK') {
+                    newTanks = newTanks.map(t => t.id === transfer.toId ? { ...t, currentLevel: t.currentLevel - transfer.amount } : t);
+                }
+
+                return {
+                    fuelTransfers: state.fuelTransfers.filter(t => t.id !== id),
+                    fuelTanks: newTanks
+                };
+            }),
             updateSmtpConfig: (config) => set(() => ({
                 smtpConfig: config
             })),
