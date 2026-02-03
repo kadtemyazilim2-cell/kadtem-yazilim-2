@@ -42,22 +42,21 @@ async function main() {
 
     console.log(`Loaded ${importData.length} site-month blocks.`);
 
-    const allVehicles = await prisma.vehicle.findMany({ select: { id: true, plate: true } });
+    // [NEW] Fetch all vehicles with assignedSiteId
+    const allVehicles = await prisma.vehicle.findMany({ select: { id: true, plate: true, assignedSiteId: true } });
     const vehicleMap = new Map();
     allVehicles.forEach(v => {
-        // Normalize: Remove spaces, specific chars? Just remove spaces for now.
-        // Also handle "34 ABC 123" vs "34-ABC-123" if needed.
         const norm = v.plate.replace(/[\s-]/g, '').toUpperCase();
-        if (norm.length < 2) return; // Skip empty or invalid plates like '-'
-        vehicleMap.set(norm, v.id);
+        if (norm.length < 2) return;
+        vehicleMap.set(norm, { id: v.id, assignedSiteId: v.assignedSiteId });
     });
     console.log(`Loaded ${allVehicles.length} vehicles from DB.`);
 
     let totalImported = 0;
 
     for (const block of importData) {
-        const siteId = SITE_MAP[block.siteVal];
-        if (!siteId) continue;
+        const importSiteId = SITE_MAP[block.siteVal];
+        if (!importSiteId) continue;
 
         const year = parseInt(block.year);
         const month = parseInt(block.month);
@@ -66,23 +65,36 @@ async function main() {
 
         for (const row of block.rows) {
             let vehicleId = null;
-            // Row info e.g. "06-00-10-1096 - Caterpillar..."
-            // Normalization: Remove spaces and dashes.
+            let targetSiteId = importSiteId; // Default to the site we are scraping from
+
             const normRow = row.vehicleInfo.replace(/[\s-]/g, '').toUpperCase();
 
-            // Try direct map
-            // Need to match potential substring if plate is "06ABC123" and row has "06ABC123CATERPILLAR..."
-
-            for (const [vPlate, vId] of vehicleMap.entries()) {
+            // Find Vehicle
+            for (const [vPlate, vData] of vehicleMap.entries()) {
                 if (normRow.includes(vPlate)) {
-                    // Ambiguity check? Likely fine for plates.
-                    vehicleId = vId;
+                    vehicleId = vData.id;
+
+                    // [LOGIC CHANGE]
+                    if (!vData.assignedSiteId) {
+                        // 1. Vehicle has NO site -> Assign to this import site
+                        // We update the DB and our local map to avoid repeated updates
+                        console.log(`Assigning orphan vehicle ${vData.id} (${vPlate}) to site ${importSiteId}`);
+                        await prisma.vehicle.update({
+                            where: { id: vehicleId },
+                            data: { assignedSiteId: importSiteId }
+                        });
+                        vData.assignedSiteId = importSiteId; // Update local map
+                        targetSiteId = importSiteId;
+                    } else {
+                        // 2. Vehicle HAS site -> Use ITS assigned site (even if we scraped from another list - unlikely but keeps data consistent)
+                        // Actually, if we scrape from Zile list but car belongs to Aydin, we want to log it to Aydin.
+                        targetSiteId = vData.assignedSiteId;
+                    }
                     break;
                 }
             }
 
             if (!vehicleId) {
-                // console.warn(`  Vehicle not found for: ${row.vehicleInfo} (Skipping)`);
                 continue;
             }
 
@@ -90,17 +102,11 @@ async function main() {
             for (let i = 0; i < days.length; i++) {
                 let cell = days[i].trim();
                 if (!cell) continue;
-
-                // Handle newlines (fuel info)
-                // e.g. "✔️\n200 L" -> "✔️"
                 cell = cell.split('\n')[0].trim();
-
                 if (cell === '-' || cell === '') continue;
 
-                // Determine mapped status
                 let mapped = STATUS_MAP[cell];
 
-                // Fallback: Check if cell contains emoji?
                 if (!mapped) {
                     if (cell.includes('✔️')) mapped = STATUS_MAP['✔️'];
                     else if (cell.includes('🌓')) mapped = STATUS_MAP['🌓'];
@@ -108,51 +114,16 @@ async function main() {
                     else if (cell.includes('⛔')) mapped = STATUS_MAP['⛔'];
                 }
 
-                if (!mapped) {
-                    // Check numeric? "198 L" -> Maybe just fuel, no work status?
-                    // If it's just fuel e.g. "198 L", does it mean WORK?
-                    // Probably means WORK if not stated otherwise, OR just Fuel Log.
-                    // IMPORTANT: If "198 L" is the string, and no status, maybe it implicitly means WORK?
-                    // Inspecting JSON: 
-                    // Month 8 Zile: "198 L"
-                    // Month 9: "✔️\n207 L"
-                    // This implies "198 L" alone MIGHT be just fuel without explicit status emoji.
-                    // But usually, machines working consume fuel.
-                    // I will assume if it has Fuel, it worked? 
-                    // Or maybe I should skip if no explicit status.
-                    // Let's assume SKIP if unknown for now to avoid bad data.
-                    // console.log(`  Unknown code '${cell}'`);
-                    continue;
-                }
+                if (!mapped) continue;
 
-                // Date
                 const day = i + 1;
                 const d = new Date(year, month - 1, day);
-                // Correct for timezone if needed (DB stores DateTime). Local midnight is safely stored as UTC usually.
-                // Better to set UTC explicitly to avoid shift? 
-                // Prisma DateTime is ISO.
-                // Setting hours to 12:00 to avoid midnight boundary issues.
                 d.setHours(12, 0, 0, 0);
 
                 if (d.getMonth() !== month - 1) continue;
 
-                await prisma.vehicleAttendance.upsert({
-                    where: {
-                        // Composite unique constraint might not exist.
-                        // We need to find by vehicleId + date.
-                        // Wait, prisma `upsert` needs `where` on unique field.
-                        // Does `VehicleAttendance` have unique [vehicleId, date]?
-                        // Schema says NO unique index on [vehicleId, date].
-                        // Schema just has `id`.
-                        // So we cannot use `upsert` directly unless there is a unique key.
-                        // We must findFirst then update/create.
-                        id: 'dummy_id' // Will fail upsert logic.
-                    },
-                    update: {}, // Dummy
-                    create: { vehicleId: 'dummy', siteId: 'dummy', date: d, status: 'dummy', hours: 0 } // Dummy
-                }).catch(() => { }); // Using custom logic below
-
-                // Custom Upsert Logic
+                // Use custom upsert logic
+                // Check existing with correct targetSiteId
                 const existing = await prisma.vehicleAttendance.findFirst({
                     where: {
                         vehicleId: vehicleId,
@@ -166,7 +137,7 @@ async function main() {
                         data: {
                             status: mapped.status,
                             hours: mapped.hours,
-                            siteId: siteId,
+                            siteId: targetSiteId, // Use the resolved site ID
                             note: 'Otomatik Import (Güncelleme)'
                         }
                     });
@@ -174,7 +145,7 @@ async function main() {
                     await prisma.vehicleAttendance.create({
                         data: {
                             vehicleId: vehicleId,
-                            siteId: siteId,
+                            siteId: targetSiteId, // Use the resolved site
                             date: d,
                             status: mapped.status,
                             hours: mapped.hours,

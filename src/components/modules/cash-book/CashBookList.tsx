@@ -449,28 +449,28 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         doc.setTextColor(150, 150, 150); // Gray
         doc.text(`Oluşturulma Tarihi: ${reportGenDate}`, 200, 10, { align: 'right' });
 
-        // [NEW] 2. Centered Header Hierarchy
+        // [NEW] 2. Left Aligned Header Hierarchy
         // Date Range
         const dateStr = `${format(parseISO(startDate), 'dd.MM.yyyy')} - ${format(parseISO(endDate), 'dd.MM.yyyy')}`;
 
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0); // Black
         // Title with Date
-        doc.text(`KASA HAREKETLERİ RAPORU (${dateStr})`, 105, 20, { align: 'center' });
+        doc.text(`KASA HAREKETLERİ RAPORU (${dateStr})`, 14, 20, { align: 'left' });
 
         let currentY = 28;
 
         // Personnel Name
         if (selectedUserId !== 'all') {
             doc.setFontSize(12);
-            doc.text(`Personel: ${getUserName(selectedUserId)}`, 105, currentY, { align: 'center' });
+            doc.text(`Personel: ${getUserName(selectedUserId)}`, 14, currentY, { align: 'left' });
             currentY += 7;
         }
 
         // Site Name
         if (selectedSiteId !== 'all') {
             doc.setFontSize(12);
-            doc.text(`Şantiye: ${getSiteName(selectedSiteId)}`, 105, currentY, { align: 'center' });
+            doc.text(`Şantiye: ${getSiteName(selectedSiteId)}`, 14, currentY, { align: 'left' });
             currentY += 7;
         }
 
@@ -497,14 +497,10 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
             // Only show subheading if we are listing ALL users, otherwise header covers it
             if (selectedUserId === 'all') {
                 if (yPos > 270) { doc.addPage(); yPos = 20; }
-                doc.text(`${userName} - Devreden: ${previousBalance.toLocaleString('tr-TR', { currency: 'TRY', style: 'currency' })}`, 14, yPos);
-                yPos += 5;
-            } else {
-                // Show devreden explicitly if not shown in header
-                doc.setFontSize(10);
-                doc.text(`Devreden Bakiye: ${previousBalance.toLocaleString('tr-TR', { currency: 'TRY', style: 'currency' })}`, 14, yPos);
+                doc.text(`${userName}`, 14, yPos);
                 yPos += 5;
             }
+            // Removed "Devreden Bakiye" text by user request
 
             const tableData = transactions.map(t => {
                 return [
@@ -520,10 +516,19 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
 
             autoTable(doc, {
                 startY: yPos + 4,
-                head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Tutar', 'Bakiye']], // Removed 'Personel' from col as it's typically singular report
+                head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Tutar', 'Bakiye']],
                 body: tableData,
-                styles: { font: 'Roboto', fontSize: 8 },
-                headStyles: { fillColor: [71, 85, 105] },
+                styles: { font: 'Roboto', fontSize: 8, textColor: 0 },
+                headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+                columnStyles: {
+                    0: { cellWidth: 22 }, // Tarih
+                    1: { cellWidth: 25 }, // Kategori
+                    2: { cellWidth: 'auto' }, // Açıklama
+                    3: { cellWidth: 25, halign: 'right' }, // Borç
+                    4: { cellWidth: 28, halign: 'right' }, // Alacak
+                    5: { cellWidth: 28, halign: 'right' }, // Tutar
+                    6: { cellWidth: 32, halign: 'right' }  // Bakiye
+                },
                 theme: 'grid',
                 didParseCell: (data) => {
                     const rowIndex = data.row.index;
@@ -597,6 +602,68 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), yPos, { align: 'center' });
         doc.rect(rightX, yPos + 2, boxWidth, boxHeight); // Box
         // doc.text("(İmza)", rightX + (boxWidth / 2), yPos + 20, { align: 'center' });
+
+        // [NEW] 4. Site Summary Section (Restored)
+        const siteBalances = getSiteBalances();
+        if (siteBalances.length > 0) {
+            doc.addPage();
+            yPos = 20;
+
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Şantiyeler Bakiye Özeti", 14, yPos);
+
+            let totalPrev = 0;
+            let totalInc = 0;
+            let totalExp = 0;
+            let totalBal = 0;
+
+            const summaryData = siteBalances.map(sb => {
+                const total = sb.previousBalance + sb.income - sb.expense;
+                totalPrev += sb.previousBalance;
+                totalInc += sb.income;
+                totalExp += sb.expense;
+                totalBal += total;
+
+                return [
+                    sb.name,
+                    sb.previousBalance.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                    sb.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                    sb.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                    total.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
+                ];
+            });
+
+            summaryData.push([
+                'GENEL TOPLAM',
+                totalPrev.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                totalInc.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                totalExp.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                totalBal.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
+            ]);
+
+            autoTable(doc, {
+                startY: yPos + 5,
+                head: [['Şantiye', 'Devreden', 'Dönem Gelir', 'Dönem Gider', 'Son Bakiye']],
+                body: summaryData,
+                styles: { font: 'Roboto', fontSize: 10, textColor: 0 },
+                headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+                theme: 'striped',
+                columnStyles: {
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 35, halign: 'right' },
+                    2: { cellWidth: 35, halign: 'right' },
+                    3: { cellWidth: 35, halign: 'right' },
+                    4: { cellWidth: 40, halign: 'right' }
+                },
+                didParseCell: (data) => {
+                    if (data.section === 'body' && data.row.index === summaryData.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [200, 200, 200];
+                    }
+                }
+            });
+        }
 
         doc.save(`Kasa_Raporu_${dateStr}.pdf`);
     };
