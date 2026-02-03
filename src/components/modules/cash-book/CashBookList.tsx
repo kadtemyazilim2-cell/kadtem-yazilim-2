@@ -370,7 +370,6 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
             'Açıklama': t.description,
             'Borç': t.type === 'INCOME' ? t.amount : (t.type === 'BALANCE_START' ? t.amount : 0),
             'Alacak': t.type === 'EXPENSE' ? t.amount : 0,
-            'Tutar': t.type === 'BALANCE_START' ? t.amount : (t.type === 'INCOME' ? t.amount : -t.amount), // [NEW] Signed Amount
             'Kümülatif Toplam': t.balance
         }));
 
@@ -385,8 +384,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                 'Kategori': 'Dönem Gelir',
                 'Açıklama': 'Dönem Gider',
                 'Borç': 'SON BAKİYE',
-                'Alacak': '', // Spacer
-                'Tutar': ''   // Spacer
+                'Alacak': '' // Spacer
             });
 
             let totalPrev = 0;
@@ -413,8 +411,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                     'Kategori': sb.income,
                     'Açıklama': sb.expense,
                     'Borç': total,
-                    'Alacak': '',
-                    'Tutar': ''
+                    'Alacak': ''
                 });
             });
 
@@ -426,8 +423,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                 'Kategori': totalInc,
                 'Açıklama': totalExp,
                 'Borç': totalBal,
-                'Alacak': '',
-                'Tutar': totalNet
+                'Alacak': ''
             });
         }
 
@@ -508,14 +504,13 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                     t.description,
                     t.type === 'INCOME' || t.type === 'BALANCE_START' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
                     t.type === 'EXPENSE' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
-                    `${(t.type === 'BALANCE_START' ? t.amount : (t.type === 'INCOME' ? t.amount : -t.amount)).toLocaleString('tr-TR')} TL`,
                     `${t.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
                 ]
             });
 
             autoTable(doc, {
                 startY: yPos + 4,
-                head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Tutar', 'Bakiye']],
+                head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Bakiye']],
                 body: tableData,
                 styles: { font: 'Roboto', fontSize: 8, textColor: 0 },
                 headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
@@ -525,8 +520,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                     2: { cellWidth: 'auto' }, // Açıklama
                     3: { cellWidth: 25, halign: 'right' }, // Borç
                     4: { cellWidth: 28, halign: 'right' }, // Alacak
-                    5: { cellWidth: 28, halign: 'right' }, // Tutar
-                    6: { cellWidth: 32, halign: 'right' }  // Bakiye
+                    5: { cellWidth: 32, halign: 'right' }  // Bakiye
                 },
                 theme: 'grid',
                 didParseCell: (data) => {
@@ -539,13 +533,10 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                                 data.cell.styles.textColor = [22, 163, 74];
                             } else if (data.column.index === 4 && transaction.type === 'EXPENSE') {
                                 data.cell.styles.textColor = [220, 38, 38];
-                            } else if (data.column.index === 5) {
-                                if (transaction.type === 'INCOME' || transaction.type === 'BALANCE_START') data.cell.styles.textColor = [22, 163, 74];
-                                else data.cell.styles.textColor = [220, 38, 38];
                             }
                             if (transaction.type === 'BALANCE_START') {
                                 data.cell.styles.fontStyle = 'bold';
-                                if (data.column.index === 3 || data.column.index === 5) data.cell.styles.textColor = [59, 130, 246];
+                                if (data.column.index === 3) data.cell.styles.textColor = [59, 130, 246];
                             }
                         }
                     }
@@ -603,9 +594,9 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                 startY: yPos,
                 head: [['Şantiye', 'Devreden', 'Dönem Gelir', 'Dönem Gider', 'Son Bakiye']],
                 body: summaryData,
-                styles: { font: 'Roboto', fontSize: 10, textColor: 0 },
-                headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
-                theme: 'striped',
+                styles: { font: 'Roboto', fontSize: 7, textColor: 50, cellPadding: 1 },
+                headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
+                theme: 'grid',
                 columnStyles: {
                     0: { cellWidth: 'auto' },
                     1: { cellWidth: 35, halign: 'right' },
@@ -923,7 +914,6 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                                 <TableHead>Açıklama</TableHead>
                                 <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
                                 <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
-                                <TableHead className="text-right text-slate-700">Tutar (+/-)</TableHead>
                                 <TableHead>Bakiye</TableHead>
                                 <TableHead className="w-10"></TableHead>
                             </TableRow>
@@ -951,12 +941,6 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                                         {/* Alacak (Expense) */}
                                         <TableCell className="text-right font-mono text-red-600 font-bold">
                                             {item.type === 'EXPENSE' ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
-                                        </TableCell>
-
-                                        {/* Tutar (Signed) */}
-                                        <TableCell className="text-right font-mono font-bold text-slate-900">
-                                            {item.type === 'BALANCE_START' ? (item.amount > 0 ? '' : '-') : (item.type === 'EXPENSE' ? '-' : '')}
-                                            {Number(item.amount || 0).toLocaleString('tr-TR')} TL
                                         </TableCell>
 
                                         <TableCell className="font-mono font-medium">
