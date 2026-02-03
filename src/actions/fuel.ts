@@ -274,75 +274,70 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
 
 export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>) {
     try {
-        const existing = await prisma.fuelTransfer.findUnique({ where: { id } });
-        if (!existing) return { success: false, error: 'Transfer bulunamadı.' };
+        return await prisma.$transaction(async (tx) => {
+            const existing = await tx.fuelTransfer.findUnique({ where: { id } });
+            if (!existing) throw new Error('Transfer bulunamadı.');
 
-        // 1. Revert Old Tank Levels
-        // Revert From (Increment back what was taken)
-        if (existing.fromType === 'TANK') {
-            await prisma.fuelTank.update({
-                where: { id: existing.fromId },
-                data: { currentLevel: { increment: existing.amount } }
-            });
-        }
-        // Revert To (Decrement back what was added)
-        if (existing.toType === 'TANK') {
-            await prisma.fuelTank.update({
-                where: { id: existing.toId },
-                data: { currentLevel: { decrement: existing.amount } }
-            });
-        }
-
-        // 2. Update Transfer
-        const transfer = await prisma.fuelTransfer.update({
-            where: { id },
-            data: {
-                // Allow updating these fields
-                amount: data.amount,
-                date: data.date ? new Date(data.date) : undefined,
-                unitPrice: data.unitPrice,
-                totalCost: data.totalCost,
-                description: data.description,
-                // We typically don't allow changing From/To entities easily in a simple edit to avoid complexity, 
-                // but if data contains them, we use them. Assuming logic handles IDs correctly.
-                fromType: data.fromType,
-                fromId: data.fromId,
-                fromTankId: data.fromType === 'TANK' ? data.fromId : null,
-                fromVehicleId: data.fromType === 'VEHICLE' ? data.fromId : null,
-
-                toType: data.toType,
-                toId: data.toId,
-                toTankId: data.toType === 'TANK' ? data.toId : null,
-                toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
+            // 1. Revert Old Tank Levels
+            // Revert From (Increment back what was taken)
+            if (existing.fromType === 'TANK') {
+                await tx.fuelTank.update({
+                    where: { id: existing.fromId },
+                    data: { currentLevel: { increment: existing.amount } }
+                });
             }
+            // Revert To (Decrement back what was added)
+            if (existing.toType === 'TANK') {
+                await tx.fuelTank.update({
+                    where: { id: existing.toId },
+                    data: { currentLevel: { decrement: existing.amount } }
+                });
+            }
+
+            // 2. Update Transfer
+            const transfer = await tx.fuelTransfer.update({
+                where: { id },
+                data: {
+                    amount: data.amount,
+                    date: data.date ? new Date(data.date) : undefined,
+                    unitPrice: data.unitPrice,
+                    totalCost: data.totalCost,
+                    description: data.description,
+                    fromType: data.fromType,
+                    fromId: data.fromId,
+                    fromTankId: data.fromType === 'TANK' ? data.fromId : null,
+                    fromVehicleId: data.fromType === 'VEHICLE' ? data.fromId : null,
+                    toType: data.toType,
+                    toId: data.toId,
+                    toTankId: data.toType === 'TANK' ? data.toId : null,
+                    toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
+                }
+            });
+
+            // 3. Apply New Tank Levels
+            if (transfer.fromType === 'TANK') {
+                await tx.fuelTank.update({
+                    where: { id: transfer.fromId },
+                    data: { currentLevel: { decrement: transfer.amount } }
+                });
+            }
+
+            if (transfer.toType === 'TANK') {
+                await tx.fuelTank.update({
+                    where: { id: transfer.toId },
+                    data: { currentLevel: { increment: transfer.amount } }
+                });
+            }
+
+            return { success: true, data: transfer };
         });
-
-        // 3. Apply New Tank Levels (Use new data or fallback to existing if not changed, but usually we pass full object or relevant parts)
-        // Note: 'data' might be partial. If amount is changing but fromId isn't, we need to know the 'current' fromId.
-        // The 'transfer' object returned by update() has the final state. Use that.
-
-        if (transfer.fromType === 'TANK') {
-            await prisma.fuelTank.update({
-                where: { id: transfer.fromId },
-                data: { currentLevel: { decrement: transfer.amount } }
-            });
-        }
-
-        if (transfer.toType === 'TANK') {
-            await prisma.fuelTank.update({
-                where: { id: transfer.toId },
-                data: { currentLevel: { increment: transfer.amount } }
-            });
-        }
-
+    } catch (error: any) {
+        console.error('updateFuelTransfer Error:', error);
+        return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
+    } finally {
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel');
-        return { success: true, data: transfer };
-
-    } catch (error) {
-        console.error('updateFuelTransfer Error:', error);
-        return { success: false, error: 'Güncelleme yapılamadı.' };
     }
 }
 
