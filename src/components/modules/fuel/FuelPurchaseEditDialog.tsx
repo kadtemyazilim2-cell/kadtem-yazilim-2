@@ -18,9 +18,13 @@ interface FuelPurchaseEditDialogProps {
     onSuccess?: () => void;
 }
 
+}
+import { Loader2 } from 'lucide-react';
+
 export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelPurchaseEditDialogProps) {
     const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         amount: 0,
         unitPrice: 0,
@@ -32,6 +36,7 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
     });
 
     useEffect(() => {
+        setError(null); // Reset error on open/change
         if (transfer) {
             let dateVal = '';
             if (transfer.date) {
@@ -51,7 +56,7 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                 description: transfer.description || ''
             });
         }
-    }, [transfer]);
+    }, [transfer, open]);
 
     const handleChange = (field: string, value: any) => {
         setFormData(prev => {
@@ -81,22 +86,31 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
 
         // Validation
         if (!formData.supplierName.trim()) {
-            toast.warning('Lütfen tedarikçi firma giriniz.');
+            const msg = 'Lütfen tedarikçi firma giriniz.';
+            toast.warning(msg);
+            setError(msg);
             return;
         }
         if (!formData.tankId) {
-            toast.warning('Lütfen bir depo seçiniz.');
+            const msg = 'Lütfen bir depo seçiniz.';
+            toast.warning(msg);
+            setError(msg);
             return;
         }
         if (!formData.date) {
-            toast.warning('Lütfen tarih seçiniz.');
+            const msg = 'Lütfen tarih seçiniz.';
+            toast.warning(msg);
+            setError(msg);
             return;
         }
-        if (formData.amount <= 0) {
-            toast.warning('Miktar 0\'dan büyük olmalıdır.');
+        if (Number(formData.amount) <= 0) {
+            const msg = 'Miktar 0\'dan büyük olmalıdır.';
+            toast.warning(msg);
+            setError(msg);
             return;
         }
 
@@ -130,11 +144,15 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                 onOpenChange(false);
                 if (onSuccess) onSuccess();
             } else {
-                toast.error(result.error || 'Güncelleme yapılamadı.');
+                const msg = result.error || 'Güncelleme yapılamadı.';
+                toast.error(msg);
+                setError(msg);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast.error('Bir hata oluştu.');
+            const msg = 'Bir hata oluştu: ' + (error.message || 'Bilinmeyen hata');
+            toast.error(msg);
+            setError(msg);
         } finally {
             setIsSubmitting(false);
             // Force close if it was a reload scenario to prevent stuck state
@@ -238,9 +256,18 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                         />
                     </div>
 
+                    {error && (
+                        <div className="text-sm font-medium text-destructive bg-destructive/10 p-2 rounded">
+                            {error}
+                        </div>
+                    )}
+
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-                        <Button type="submit" disabled={isSubmitting}>Kaydet</Button>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>İptal</Button>
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
