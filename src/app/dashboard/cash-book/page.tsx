@@ -1,12 +1,16 @@
-'use client';
-
 import { CashBookList } from '@/components/modules/cash-book/CashBookList';
 import { useAuth } from '@/lib/store/use-auth';
+import { useSearchParams } from 'next/navigation'; // [NEW]
 
 export default function CashBookPage() {
-    const { user, hasPermission } = useAuth(); // [FIX] Destructure
-    const isAdmin = user?.role === 'ADMIN';
-    const canView = isAdmin ||
+    const { user, hasPermission } = useAuth();
+    const isSuperAdmin = user?.role === 'ADMIN'; // Changed var name for clarity
+
+    // [NEW] Read URL Params
+    const searchParams = useSearchParams();
+    const userId = searchParams.get('userId') || undefined;
+
+    const canView = isSuperAdmin ||
         hasPermission('cash-book', 'VIEW') ||
         hasPermission('cash-book.reports', 'VIEW') ||
         hasPermission('cash-book.reports', 'EDIT');
@@ -17,8 +21,7 @@ export default function CashBookPage() {
 
     return (
         <div className="space-y-6">
-
-            <CashBookList />
+            <CashBookList userId={userId} />
         </div>
     );
 }

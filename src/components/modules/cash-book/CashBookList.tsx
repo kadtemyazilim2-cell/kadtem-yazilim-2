@@ -24,13 +24,14 @@ import { deleteTransaction } from '@/actions/transaction';
 
 interface CashBookListProps {
     siteId?: string;
+    userId?: string; // [NEW]
     type?: 'INCOME' | 'EXPENSE' | 'ALL';
 }
 
-export function CashBookList({ siteId, type }: CashBookListProps) {
+export function CashBookList({ siteId, userId, type }: CashBookListProps) {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
     const { user, hasPermission } = useAuth();
-    const [selectedUserId, setSelectedUserId] = useState<string>('all');
+    const [selectedUserId, setSelectedUserId] = useState<string>(userId || 'all');
     const [selectedSiteId, setSelectedSiteId] = useState<string>(siteId || 'all');
     const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>(type || 'ALL');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ALL' | 'CASH' | 'CREDIT_CARD'>('ALL'); // [NEW]
@@ -40,7 +41,9 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
     useEffect(() => {
         if (siteId) setSelectedSiteId(siteId);
         if (type) setSelectedType(type);
-    }, [siteId, type]);
+        // [NEW]
+        if (userId) setSelectedUserId(userId);
+    }, [siteId, type, userId]);
 
     // [NEW] Edit State
     const [isFormOpen, setIsFormOpen] = useState(false);

@@ -13,6 +13,7 @@ import { format, isSameMonth, differenceInDays, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useMemo, useState } from 'react';
 import { InsuranceProposalDialog } from '@/components/modules/dashboard/InsuranceProposalDialog';
+import Link from 'next/link'; // [NEW]
 import { cn } from '@/lib/utils';
 
 import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
@@ -306,12 +307,16 @@ export default function DashboardPage() {
                             ) : (
                                 <div className="space-y-2">
                                     {userBalances.map((u) => (
-                                        <div key={u.id} className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100">
+                                        <Link
+                                            key={u.id}
+                                            href={`/dashboard/cash-book?userId=${u.id}`}
+                                            className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                                        >
                                             <span className="font-medium text-slate-700">{u.name}</span>
                                             <span className={cn("font-bold font-mono", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
                                                 {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                             </span>
-                                        </div>
+                                        </Link>
                                     ))}
                                 </div>
                             )}
