@@ -18,9 +18,10 @@ interface InsurancePolicyDialogProps {
     onOpenChange: (open: boolean) => void;
     mode?: 'ADD' | 'EDIT';
     policy?: any; // InsuranceRecord but loosely typed due to UI aggregations
+    defaultType?: 'TRAFFIC' | 'KASKO' | ''; // [NEW] Pre-select type
 }
 
-export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD', policy }: InsurancePolicyDialogProps) {
+export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD', policy, defaultType = '' }: InsurancePolicyDialogProps) {
     const { updateVehicle, institutions } = useAppStore();
 
     const companies = institutions.filter((i: any) => i.category === 'INSURANCE_COMPANY');
@@ -82,11 +83,11 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 setFile(null); // Reset file input on edit open
             } else {
                 // RESET for ADD
-                const defaultType = '';
-                // Try to guess default type if only one is missing? No, user requested empty.
+                // Use defaultType if provided
+                const initialType = defaultType || '';
 
                 setFormData({
-                    type: defaultType as any,
+                    type: initialType as any,
                     company: '',
                     agency: '',
                     startDate: new Date().toISOString().split('T')[0],

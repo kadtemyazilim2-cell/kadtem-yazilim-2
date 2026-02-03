@@ -35,47 +35,60 @@ export function SiteStockOverview({ tanks, sites }: SiteStockOverviewProps) {
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {Object.entries(tanksBySite).map(([siteId, siteTanks]) => {
-                            const site = sites.find(s => s.id === siteId);
-                            if (!site || site.status !== 'ACTIVE') return null;
+                        {Object.entries(tanksBySite)
+                            .sort(([siteIdA], [siteIdB]) => {
+                                const siteA = sites.find(s => s.id === siteIdA);
+                                const siteB = sites.find(s => s.id === siteIdB);
+                                const nameA = siteA?.name || '';
+                                const nameB = siteB?.name || '';
 
-                            return (
-                                <div key={siteId} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
-                                    <div className="font-medium text-slate-700 mb-2 border-b border-slate-200 pb-1">
-                                        {site.name}
-                                    </div>
-                                    <div className="space-y-3">
-                                        {siteTanks.map(tank => {
-                                            const percentage = (tank.currentLevel / tank.capacity) * 100;
-                                            let colorClass = 'bg-emerald-500';
-                                            if (percentage <= 20) colorClass = 'bg-red-500';
-                                            else if (percentage <= 50) colorClass = 'bg-amber-500';
+                                // Priority for "Doğanlı"
+                                if (nameA.toLowerCase().includes('doğanlı')) return -1;
+                                if (nameB.toLowerCase().includes('doğanlı')) return 1;
 
-                                            return (
-                                                <Link
-                                                    key={tank.id}
-                                                    href={{ pathname: '/dashboard/fuel', query: { siteId: site.id } }}
-                                                    className="block space-y-1 p-2 rounded hover:bg-slate-100 transition-colors cursor-pointer"
-                                                >
-                                                    <div className="flex justify-between text-xs">
-                                                        <span className="text-slate-600 font-medium">{tank.name}</span>
-                                                        <span className="text-slate-500 font-mono">
-                                                            {tank.currentLevel.toLocaleString()} / {tank.capacity.toLocaleString()} Lt
-                                                        </span>
-                                                    </div>
-                                                    <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                                                        <div
-                                                            className={`h-full ${colorClass} transition-all duration-500`}
-                                                            style={{ width: `${Math.min(percentage, 100)}%` }}
-                                                        />
-                                                    </div>
-                                                </Link>
-                                            );
-                                        })}
+                                return nameA.localeCompare(nameB);
+                            })
+                            .map(([siteId, siteTanks]) => {
+                                const site = sites.find(s => s.id === siteId);
+                                if (!site || site.status !== 'ACTIVE') return null;
+
+                                return (
+                                    <div key={siteId} className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                        <div className="font-medium text-slate-700 mb-2 border-b border-slate-200 pb-1">
+                                            {site.name}
+                                        </div>
+                                        <div className="space-y-3">
+                                            {siteTanks.map(tank => {
+                                                const percentage = (tank.currentLevel / tank.capacity) * 100;
+                                                let colorClass = 'bg-emerald-500';
+                                                if (percentage <= 20) colorClass = 'bg-red-500';
+                                                else if (percentage <= 50) colorClass = 'bg-amber-500';
+
+                                                return (
+                                                    <Link
+                                                        key={tank.id}
+                                                        href={{ pathname: '/dashboard/fuel', query: { siteId: site.id } }}
+                                                        className="block space-y-1 p-2 rounded hover:bg-slate-100 transition-colors cursor-pointer"
+                                                    >
+                                                        <div className="flex justify-between text-xs">
+                                                            <span className="text-slate-600 font-medium">{tank.name}</span>
+                                                            <span className="text-slate-500 font-mono">
+                                                                {tank.currentLevel.toLocaleString()} / {tank.capacity.toLocaleString()} Lt
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                                                            <div
+                                                                className={`h-full ${colorClass} transition-all duration-500`}
+                                                                style={{ width: `${Math.min(percentage, 100)}%` }}
+                                                            />
+                                                        </div>
+                                                    </Link>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
                     </div>
                 )}
             </CardContent>

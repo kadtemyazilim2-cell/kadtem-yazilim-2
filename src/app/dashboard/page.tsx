@@ -13,6 +13,7 @@ import { format, isSameMonth, differenceInDays, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useMemo, useState } from 'react';
 import { InsuranceProposalDialog } from '@/components/modules/dashboard/InsuranceProposalDialog';
+import { InsurancePolicyDialog } from '@/components/modules/vehicles/InsurancePolicyDialog';
 import Link from 'next/link'; // [NEW]
 import { cn } from '@/lib/utils';
 
@@ -223,7 +224,7 @@ export default function DashboardPage() {
             if (v.insuranceExpiry) {
                 const date = parseISO(v.insuranceExpiry);
                 const days = differenceInDays(date, today);
-                if (days <= 15) {
+                if (days <= 30) {
                     alerts.push({
                         id: v.id + '-ins',
                         vehicleId: v.id, // [NEW] for lookup
@@ -241,7 +242,7 @@ export default function DashboardPage() {
             if (v.kaskoExpiry) {
                 const date = parseISO(v.kaskoExpiry);
                 const days = differenceInDays(date, today);
-                if (days <= 15) {
+                if (days <= 30) {
                     alerts.push({
                         id: v.id + '-kas',
                         vehicleId: v.id,
@@ -260,7 +261,7 @@ export default function DashboardPage() {
             if (v.inspectionExpiry) {
                 const date = parseISO(v.inspectionExpiry);
                 const days = differenceInDays(date, today);
-                if (days <= 15) {
+                if (days <= 30) {
                     alerts.push({
                         id: v.id + '-insp',
                         vehicleId: v.id,
@@ -284,6 +285,14 @@ export default function DashboardPage() {
 
 
     const [selectedAlertForMail, setSelectedAlertForMail] = useState<any>(null);
+    const [selectedAlertForPolicy, setSelectedAlertForPolicy] = useState<any>(null);
+
+    const handlePolicyClick = (item: any) => {
+        setSelectedAlertForPolicy({
+            vehicleId: item.vehicleId,
+            type: item.type === 'Trafik Sigortası' ? 'TRAFIK' : (item.type === 'Kasko' ? 'KASKO' : '')
+        });
+    };
 
     return (
         <div className="space-y-6">
@@ -338,25 +347,71 @@ export default function DashboardPage() {
                                 <div className="text-sm text-slate-500">Yaklaşan ödeme bulunmuyor.</div>
                             ) : (
                                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                                    {upcomingExpirations.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="flex items-center justify-between text-sm p-2 rounded hover:bg-slate-100 cursor-pointer transition-colors border border-transparent hover:border-slate-200"
-                                            onClick={() => handleAlertClick(item)}
-                                            title={item.type === 'Muayene' ? "Tarihi Güncelle" : "Acenteye Mail Gönder"}
-                                        >
-                                            <div className="flex flex-col">
-                                                <span className="font-bold font-mono text-slate-800">{item.plate}</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-slate-500">{item.type}</span>
-                                                    <span className="text-[10px] text-slate-400">• {item.agencyName || 'Acente Yok'}</span>
+                                    {upcomingExpirations.map((item) => {
+                                        // Find vehicle to show history
+                                        const vehicle = vehicles.find((v: any) => v.id === item.vehicleId);
+
+                                        // Determine History Text based on type
+                                        let historyText: string | null = null;
+                                        if (item.type === 'Trafik Sigortası' && vehicle?.lastTrafficProposalDate) {
+                                            const date = new Date(vehicle.lastTrafficProposalDate).toLocaleDateString('tr-TR');
+                                            const agencies = vehicle.lastTrafficProposalAgencies?.join(', ') || '';
+                                            historyText = `Son Teklif: ${date} (${agencies})`;
+                                        } else if (item.type === 'Kasko' && vehicle?.lastKaskoProposalDate) {
+                                            const date = new Date(vehicle.lastKaskoProposalDate).toLocaleDateString('tr-TR');
+                                            const agencies = vehicle.lastKaskoProposalAgencies?.join(', ') || '';
+                                            historyText = `Son Teklif: ${date} (${agencies})`;
+                                        }
+
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between text-sm p-3 rounded hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200 gap-3"
+                                            >
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold font-mono text-slate-800 text-base">{item.plate}</span>
+                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${item.days <= 7 ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-orange-100 text-orange-700'}`}>
+                                                            {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti` : `${item.days} Gün Kaldı`}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xs font-medium text-slate-600">{item.type}</span>
+                                                        <span className="text-[10px] text-slate-400 border-l pl-2 border-slate-300">
+                                                            {item.vehicleBrand} {item.vehicleModel}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 border-l pl-2 border-slate-300">
+                                                            Mevcut: {item.agencyName || '-'}
+                                                        </span>
+                                                    </div>
+                                                    {/* History Display */}
+                                                    {historyText && (
+                                                        <div className="text-[10px] text-blue-600 font-medium mt-0.5 bg-blue-50 px-2 py-0.5 rounded w-fit">
+                                                            {historyText}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Action Buttons */}
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {item.type === 'Muayene' ? (
+                                                        <Button variant="outline" size="sm" className="h-8 text-xs bg-white" onClick={() => handleAlertClick(item)}>
+                                                            Tarih Güncelle
+                                                        </Button>
+                                                    ) : (
+                                                        <>
+                                                            <Button variant="outline" size="sm" className="h-8 text-xs bg-white text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => handleAlertClick(item)}>
+                                                                Mail Gönder
+                                                            </Button>
+                                                            <Button variant="outline" size="sm" className="h-8 text-xs bg-white text-green-700 border-green-200 hover:bg-green-50" onClick={() => handlePolicyClick(item)}>
+                                                                Poliçe Gir
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <span className={`font-bold ${item.days <= 7 ? 'text-red-700 animate-pulse' : 'text-orange-600'}`}>
-                                                {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti!` : `${item.days} Gün Kaldı`}
-                                            </span>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
                                 </div>
                             )}
                         </CardContent>
@@ -561,6 +616,15 @@ export default function DashboardPage() {
                 onOpenChange={(v) => !v && setSelectedAlertForMail(null)}
                 item={selectedAlertForMail}
             />
+
+            {selectedAlertForPolicy && (
+                <InsurancePolicyDialog
+                    open={!!selectedAlertForPolicy}
+                    onOpenChange={(v) => !v && setSelectedAlertForPolicy(null)}
+                    vehicle={vehicles.find((v: any) => v.id === selectedAlertForPolicy.vehicleId) as any}
+                    defaultType={selectedAlertForPolicy.type}
+                />
+            )}
 
             {/* Inspection Update Dialog */}
             <Dialog open={inspectionModalOpen} onOpenChange={setInspectionModalOpen}>

@@ -27,7 +27,7 @@ interface InsuranceProposalDialogProps {
 }
 
 export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceProposalDialogProps) {
-    const { institutions, vehicles, companies, smtpConfig: globalSmtpConfig } = useAppStore();
+    const { institutions, vehicles, companies, smtpConfig: globalSmtpConfig, updateVehicle } = useAppStore();
     const [sending, setSending] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [selectedAgencyIds, setSelectedAgencyIds] = useState<string[]>([]);
@@ -179,6 +179,26 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
         setProgress(null);
 
         if (failCount === 0) {
+            // [NEW] Update Vehicle History on Success
+            const now = new Date().toISOString();
+            const agencyNames = agencies
+                .filter((a: any) => selectedAgencyIds.includes(a.id))
+                .map((a: any) => a.name);
+
+            if (policyType.toLowerCase().includes('trafik')) {
+                updateVehicle(item.vehicleId, {
+                    lastTrafficProposalDate: now,
+                    lastTrafficProposalAgencies: agencyNames,
+                    // trafficProposalCount: (vehicle.trafficProposalCount || 0) + 1 // Add this if you want to increment count
+                });
+            } else if (policyType.toLowerCase().includes('kasko')) {
+                updateVehicle(item.vehicleId, {
+                    lastKaskoProposalDate: now,
+                    lastKaskoProposalAgencies: agencyNames,
+                    // kaskoProposalCount: (vehicle.kaskoProposalCount || 0) + 1
+                });
+            }
+
             alert(`Başarıyla ${successCount} acenteye teklif isteği gönderildi.`);
             onOpenChange(false);
         } else {

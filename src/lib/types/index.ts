@@ -137,7 +137,16 @@ export interface Vehicle {
   chassisNumber?: string; // [NEW] Şase No
   fuelType?: 'DIESEL' | 'GASOLINE' | 'LPG' | 'ELECTRIC' | 'HYBRID'; // [NEW] Yakıt Tipi
   lastInspectionDate?: string; // [NEW] Son Muayane Tarihi
+
   licenseFile?: string; // [NEW] Ruhsat (PDF Base64)
+
+  // Proposal History
+  lastTrafficProposalDate?: string; // [NEW]
+  lastTrafficProposalAgencies?: string[]; // [NEW]
+  trafficProposalCount?: number; // [NEW]
+  lastKaskoProposalDate?: string; // [NEW]
+  lastKaskoProposalAgencies?: string[]; // [NEW]
+  kaskoProposalCount?: number; // [NEW]
 }
 
 // [NEW] Fuel Stock Management
