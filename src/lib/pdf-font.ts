@@ -2,7 +2,7 @@ import { jsPDF } from 'jspdf';
 
 export const addTurkishFont = (doc: jsPDF) => {
     doc.addFileToVFS("Roboto-Regular.ttf", fontBase64);
-    doc.addFont("Roboto-Regular.ttf", "Roboto", "normal");
+    doc.addFont("Roboto-Regular.ttf", "Roboto", "normal", "Identity-H");
     return "Roboto";
 };
 

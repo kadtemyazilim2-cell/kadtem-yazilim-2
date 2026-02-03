@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,9 +18,6 @@ interface FuelPurchaseEditDialogProps {
     transfer: any;
     onSuccess?: () => void;
 }
-
-}
-import { Loader2 } from 'lucide-react';
 
 export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelPurchaseEditDialogProps) {
     const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();

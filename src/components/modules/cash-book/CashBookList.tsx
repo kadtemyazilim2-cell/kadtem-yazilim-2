@@ -16,7 +16,7 @@ import { toTurkishLower, cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { fontBase64 } from '@/lib/pdf-font';
+import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
@@ -439,8 +439,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
 
     const exportPDF = () => {
         const doc = new jsPDF();
-        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
-        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        addTurkishFont(doc);
         doc.setFont('Roboto');
 
         // [NEW] 1. Report Generation Date (Top Right, Gray)
