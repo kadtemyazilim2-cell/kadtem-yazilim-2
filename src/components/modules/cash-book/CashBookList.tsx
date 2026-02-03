@@ -33,6 +33,7 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     const [selectedSiteId, setSelectedSiteId] = useState<string>(siteId || 'all');
     const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>(type || 'ALL');
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ALL' | 'CASH' | 'CREDIT_CARD'>('ALL'); // [NEW]
     const [searchTerm, setSearchTerm] = useState('');
 
     // Update state if props change
@@ -162,6 +163,11 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             result = result.filter(t => t.type === selectedType);
         }
 
+        // [NEW] Payment Method Filter
+        if (selectedPaymentMethod !== 'ALL') {
+            result = result.filter(t => t.paymentMethod === selectedPaymentMethod);
+        }
+
         if (searchTerm) {
             const search = toTurkishLower(searchTerm);
             result = result.filter(t => {
@@ -223,6 +229,11 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         // [NEW] Site Filter for Pre-Transactions
         if (selectedSiteId !== 'all') {
             preTransactions = preTransactions.filter((t: any) => t.siteId === selectedSiteId);
+        }
+
+        // [NEW] Payment Method Filter for Previous Balance
+        if (selectedPaymentMethod !== 'ALL') {
+            preTransactions = preTransactions.filter((t: any) => t.paymentMethod === selectedPaymentMethod);
         }
 
         const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
@@ -769,6 +780,20 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                                     </Select>
                                 </div>
                             )}
+
+                            {/* Payment Method Filter - Col 2 */}
+                            <div className="col-span-12 md:col-span-2">
+                                <Select value={selectedPaymentMethod} onValueChange={(val: any) => setSelectedPaymentMethod(val)}>
+                                    <SelectTrigger className="w-full bg-white">
+                                        <SelectValue placeholder="Ödeme Tipi" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ALL">Tüm Ödemeler</SelectItem>
+                                        <SelectItem value="CASH">Nakit</SelectItem>
+                                        <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
                             {/* Date Range - Col 3 */}
                             {canExport && (
