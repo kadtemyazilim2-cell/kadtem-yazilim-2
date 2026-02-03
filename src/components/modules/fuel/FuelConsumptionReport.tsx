@@ -22,7 +22,11 @@ import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelT
 
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
 
-export function FuelConsumptionReport() {
+interface FuelConsumptionReportProps {
+    initialSiteId?: string;
+}
+
+export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportProps = {}) {
     // [UPDATED] Include fuelTransfers and tanks
     const {
         fuelLogs, vehicles, deleteFuelLog, updateFuelLog,
@@ -40,7 +44,7 @@ export function FuelConsumptionReport() {
 
     // Filters
     const [plateFilter, setPlateFilter] = useState<string[]>([]);
-    const [siteFilter, setSiteFilter] = useState<string>(''); // [UPDATED] Single Site
+    const [siteFilter, setSiteFilter] = useState<string>(initialSiteId || ''); // [UPDATED] Single Site
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
     const [searchTerm, setSearchTerm] = useState('');
 

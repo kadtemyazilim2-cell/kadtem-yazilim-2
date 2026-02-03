@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FuelTank, Site } from '@/lib/types';
 import { Fuel } from 'lucide-react';
+import Link from 'next/link';
 
 interface SiteStockOverviewProps {
     tanks: FuelTank[];
@@ -51,7 +52,11 @@ export function SiteStockOverview({ tanks, sites }: SiteStockOverviewProps) {
                                             else if (percentage <= 50) colorClass = 'bg-amber-500';
 
                                             return (
-                                                <div key={tank.id} className="space-y-1">
+                                                <Link
+                                                    key={tank.id}
+                                                    href={{ pathname: '/dashboard/fuel', query: { siteId: site.id } }}
+                                                    className="block space-y-1 p-2 rounded hover:bg-slate-100 transition-colors cursor-pointer"
+                                                >
                                                     <div className="flex justify-between text-xs">
                                                         <span className="text-slate-600 font-medium">{tank.name}</span>
                                                         <span className="text-slate-500 font-mono">
@@ -64,7 +69,7 @@ export function SiteStockOverview({ tanks, sites }: SiteStockOverviewProps) {
                                                             style={{ width: `${Math.min(percentage, 100)}%` }}
                                                         />
                                                     </div>
-                                                </div>
+                                                </Link>
                                             );
                                         })}
                                     </div>

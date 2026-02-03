@@ -14,6 +14,8 @@ import { useState } from 'react'; // [NEW]
 import { ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store/use-auth';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function FuelPage() {
     const { user, hasPermission } = useAuth(); // [FIX] Destructure
@@ -28,8 +30,16 @@ export default function FuelPage() {
     } = useAppStore();
 
     // [NEW] Filter States
-    const [selectedSiteId, setSelectedSiteId] = useState('');
+    const searchParams = useSearchParams();
+    const urlSiteId = searchParams.get('siteId');
+
+    const [selectedSiteId, setSelectedSiteId] = useState(urlSiteId || '');
     const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
+
+    // Update state if URL changes (optional, but good for navigation)
+    useEffect(() => {
+        if (urlSiteId) setSelectedSiteId(urlSiteId);
+    }, [urlSiteId]);
 
     return (
         <div className="space-y-6">
@@ -47,7 +57,7 @@ export default function FuelPage() {
                 </Button>
             </div>
 
-            {canViewConsumption && <FuelConsumptionReport />}
+            {canViewConsumption && <FuelConsumptionReport initialSiteId={selectedSiteId} />}
         </div>
     );
 }

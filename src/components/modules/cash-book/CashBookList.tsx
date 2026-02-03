@@ -245,11 +245,16 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             }
         }
 
+        // [MOD] Ensure CREDIT_CARD is excluded from Balance Calculation if no specific filter is set or even if set?
+        // User Requirement: "sadece nakit olan kümülatif toplamı göster"
+        // This usually implies the "Balance" column should reflect Cash-Flow only.
+        preTransactions = preTransactions.filter((t: any) => t.paymentMethod !== 'CREDIT_CARD');
+
         const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
         const expense = preTransactions.filter((t: any) => t.type === 'EXPENSE').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
 
         return income - expense;
-    }, [cashTransactions, selectedUserId, selectedSiteId, startDate, user]);
+    }, [cashTransactions, selectedUserId, selectedSiteId, startDate, user, selectedPaymentMethod]);
 
 
     const filteredTransactionsWithBalance = useMemo(() => {
@@ -259,6 +264,15 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         // Since filteredTransactions is ALREADY sorted by Date Ascending, we can just map
         const calculated = result.map((t: any) => {
             if (!t) return t;
+
+            // [MOD] If Credit Card, do NOT update balance, but keep valid balance for display? 
+            // Or just keep previous balance?
+            // If we don't update runningBalance, the balance remains same as previous row.
+
+            if (t.paymentMethod === 'CREDIT_CARD') {
+                return { ...t, balance: runningBalance };
+            }
+
             const amt = Number(t.amount || 0);
             if (t.type === 'INCOME') runningBalance += amt;
             else runningBalance -= amt;

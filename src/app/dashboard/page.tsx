@@ -133,6 +133,7 @@ export default function DashboardPage() {
         const balances: Record<string, number> = {};
 
         cashTransactions.forEach((t: any) => {
+            if (t.paymentMethod === 'CREDIT_CARD') return; // [NEW] Exclude credit card
             const amount = t.type === 'INCOME' ? t.amount : -t.amount;
             const targetUser = t.responsibleUserId || t.createdByUserId;
             balances[targetUser] = (balances[targetUser] || 0) + amount;
