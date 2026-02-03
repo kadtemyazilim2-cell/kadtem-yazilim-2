@@ -240,6 +240,12 @@ model Vehicle {
   fuelType        String?
   licenseFile     String? // Base64
   
+  // Proposal History
+  lastTrafficProposalDate DateTime?
+  lastTrafficProposalAgencies String[]
+  lastKaskoProposalDate DateTime?
+  lastKaskoProposalAgencies String[]
+  
   // Assignment
   assignedSiteId  String?
   assignedSite    Site?   @relation("PrimarySite", fields: [assignedSiteId], references: [id])

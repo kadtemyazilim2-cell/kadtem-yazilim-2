@@ -272,6 +272,7 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
 
 export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>) {
     try {
+        console.log('updateFuelTransfer: Starting transaction for ID:', id);
         return await prisma.$transaction(async (tx) => {
             const existing = await tx.fuelTransfer.findUnique({ where: { id } });
             if (!existing) throw new Error('Transfer bulunamadı.');
@@ -311,6 +312,8 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
                     toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
                 }
             });
+
+            console.log('updateFuelTransfer: Transfer record updated', transfer.id);
 
             // 3. Apply New Tank Levels
             if (transfer.fromType === 'TANK') {
