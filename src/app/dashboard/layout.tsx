@@ -9,6 +9,7 @@ import { getFuelTanks, getFuelLogs, getFuelTransfers } from '@/actions/fuel';
 import { getSiteLogEntries } from '@/actions/site-log'; // [NEW]
 import { getAllTransactions } from '@/actions/transaction'; // [NEW]
 import { getYiUfeRates } from '@/actions/yiufe'; // [NEW]
+import { getVehicleAttendanceList } from '@/actions/vehicle-attendance'; // [NEW]
 import { StoreInitializer } from '@/components/store-initializer';
 import { serializeData } from '@/lib/serializer';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -22,10 +23,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/login');
     }
 
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [];
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [], vehicleAttendance = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes, vehicleAttendanceRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
@@ -38,7 +39,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getFuelTransfers(),
             getSiteLogEntries(),
             getAllTransactions(),
-            getYiUfeRates()
+            getYiUfeRates(),
+            getVehicleAttendanceList()
         ]);
 
         companies = serializeData(companiesRes?.data || []);
@@ -54,6 +56,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         siteLogEntries = serializeData(siteLogsRes?.data || []);
         cashTransactions = serializeData(transactionsRes?.data || []);
         yiUfeRates = serializeData(yiUfeRes?.data || []);
+        vehicleAttendance = serializeData(vehicleAttendanceRes?.data || []);
 
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
@@ -75,6 +78,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 siteLogEntries={siteLogEntries}
                 cashTransactions={cashTransactions}
                 yiUfeRates={yiUfeRates}
+                vehicleAttendance={vehicleAttendance}
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>

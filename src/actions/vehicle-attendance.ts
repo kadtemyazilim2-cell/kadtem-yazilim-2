@@ -82,3 +82,21 @@ export async function deleteVehicleAttendance(vehicleId: string, date: string) {
         return { success: false, error: 'Silme işlemi başarısız: ' + error.message };
     }
 }
+
+export async function getVehicleAttendanceList() {
+    try {
+        // [PERFORMANCE] Limit to recent years (2025+) to avoid huge payload
+        const cutoffDate = new Date('2025-01-01');
+
+        const records = await prisma.vehicleAttendance.findMany({
+            where: {
+                date: { gte: cutoffDate }
+            },
+            orderBy: { date: 'desc' }
+        });
+        return { success: true, data: records };
+    } catch (error: any) {
+        console.error('getVehicleAttendanceList Error:', error);
+        return { success: false, error: 'Araç puantaj listesi alınamadı.' };
+    }
+}
