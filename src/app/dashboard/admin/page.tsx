@@ -532,27 +532,49 @@ export default function AdminPage() {
     };
 
     const openEditUserModal = (user: any) => {
-        setIsEditing(true);
-        setSelectedUserId(user.id);
-        setUserName(user.name);
-        setUserUsername(user.username || '');
-        // Password usually left blank on edit unless changing
-        setUserPassword('');
-        // setUserEmail(user.email);
-        setUserRole(user.role);
-        setUserPermissions(user.permissions || {});
-        // Fix: Map objects to IDs if the flat array doesn't exist
-        const siteIds = user.assignedSiteIds || user.assignedSites?.map((s: any) => s.id) || [];
-        setAssignedSiteIds(siteIds);
-        setEditLookbackDays(user.editLookbackDays !== undefined ? user.editLookbackDays : '');
-        setUserModalOpen(true);
+        try {
+            setIsEditing(true);
+            setSelectedUserId(user.id);
+            setUserName(user.name);
+            setUserUsername(user.username || '');
+            setUserPassword('');
+            setUserRole(user.role);
+            setUserPermissions(user.permissions || {});
+
+            // Safe Array Extraction
+            let siteIds: string[] = [];
+            if (Array.isArray(user.assignedSiteIds)) {
+                siteIds = user.assignedSiteIds;
+            } else if (Array.isArray(user.assignedSites)) {
+                siteIds = user.assignedSites.map((s: any) => s.id).filter(Boolean);
+            }
+
+            setAssignedSiteIds(siteIds);
+            setEditLookbackDays(user.editLookbackDays !== undefined ? user.editLookbackDays : '');
+            setUserModalOpen(true);
+        } catch (error) {
+            console.error('Error opening user modal:', error);
+            alert('Kullanıcı düzenleme penceresi açılırken hata oluştu: ' + error);
+        }
     };
 
     const handleSaveUser = async (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('handleSaveUser triggered');
 
         try {
+            // Validate required fields explicitly to catch browser issues or edge cases
+            if (!userName || !userUsername) {
+                alert('Lütfen ad ve kullanıcı adı alanlarını doldurunuz.');
+                return;
+            }
+            if (!isEditing && !userPassword) {
+                alert('Lütfen şifre belirleyiniz.');
+                return;
+            }
+
             let result;
+            // ... existing logic ...
             if (isEditing && selectedUserId) {
                 result = await updateUserAction(selectedUserId, {
                     username: userUsername,
@@ -574,6 +596,8 @@ export default function AdminPage() {
                 });
             }
 
+            console.log('Result:', result);
+
             if (result && result.success) {
                 toast.success(isEditing ? 'Kullanıcı güncellendi.' : 'Kullanıcı oluşturuldu.');
                 // Force refresh to update list
@@ -584,14 +608,13 @@ export default function AdminPage() {
                 return;
             }
 
-        } catch (error) {
-            console.error(error);
-            alert('Bir hata oluştu.');
+        } catch (error: any) {
+            console.error('Save User Error:', error);
+            alert('Bir hata oluştu: ' + (error.message || error));
             return;
         }
 
         // Only reached if successful (but reload happens above)
-        // setUserModalOpen(false);
         setUserName('');
         setUserUsername('');
         setUserPassword('');
