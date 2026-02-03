@@ -552,8 +552,9 @@ export default function AdminPage() {
         e.preventDefault();
 
         try {
+            let result;
             if (isEditing && selectedUserId) {
-                await updateUserAction(selectedUserId, {
+                result = await updateUserAction(selectedUserId, {
                     username: userUsername,
                     password: userPassword || undefined,
                     role: userRole,
@@ -562,7 +563,7 @@ export default function AdminPage() {
                     editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
                 });
             } else {
-                await createUser({
+                result = await createUser({
                     name: userName,
                     username: userUsername,
                     password: userPassword,
@@ -572,14 +573,25 @@ export default function AdminPage() {
                     editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
                 });
             }
-            // Force refresh to update list
-            location.reload();
+
+            if (result && result.success) {
+                toast.success(isEditing ? 'Kullanıcı güncellendi.' : 'Kullanıcı oluşturuldu.');
+                // Force refresh to update list
+                location.reload();
+            } else {
+                alert('İşlem başarısız: ' + (result?.error || 'Bilinmeyen hata'));
+                // Keep modal open
+                return;
+            }
+
         } catch (error) {
             console.error(error);
-            alert('İşlem başarısız.');
+            alert('Bir hata oluştu.');
+            return;
         }
 
-        setUserModalOpen(false);
+        // Only reached if successful (but reload happens above)
+        // setUserModalOpen(false);
         setUserName('');
         setUserUsername('');
         setUserPassword('');
@@ -1448,11 +1460,8 @@ export default function AdminPage() {
                                                                                 onClick={() => toggleColumn('VIEW')}
                                                                                 className="font-bold flex items-center gap-1 mx-auto"
                                                                             >
-                                                                                Modül Durumu
+                                                                                İzleme
                                                                             </Button>
-                                                                        </TableHead>
-                                                                        <TableHead className="text-center">
-                                                                            <span className="text-muted-foreground text-xs">Erişim</span>
                                                                         </TableHead>
                                                                         <TableHead className="text-center">
                                                                             <Button
