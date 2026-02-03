@@ -112,13 +112,14 @@ export function FuelList() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Tarih</TableHead>
-                            <TableHead>Plaka</TableHead>
-                            <TableHead>Plaka</TableHead>
+                            <TableHead className="w-[100px]">Tarih</TableHead>
+                            <TableHead className="w-[120px]">Plaka</TableHead>
+                            <TableHead className="w-[150px]">Şantiye</TableHead>
                             <TableHead>Litre</TableHead>
                             <TableHead>Tutar</TableHead>
                             <TableHead>KM</TableHead>
                             <TableHead>Yakıt Veren</TableHead>
+                            <TableHead className="w-[100px]">İşlemler</TableHead>
                         </TableRow>
                         <TableRow>
                             <TableHead className="p-1">-</TableHead>
@@ -144,25 +145,27 @@ export function FuelList() {
                             <TableHead className="p-1">-</TableHead>
                             <TableHead className="p-1">-</TableHead>
                             <TableHead className="p-1">-</TableHead>
+                            <TableHead className="p-1">-</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredLogs.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center text-slate-500 py-8">
+                                <TableCell colSpan={8} className="text-center text-slate-500 py-8">
                                     Kayıt bulunamadı.
                                 </TableCell>
                             </TableRow>
                         ) : (
                             filteredLogs.map((log: any) => (
                                 <TableRow key={log.id}>
-                                    <TableCell>{format(new Date(log.date), 'dd MMM yyyy', { locale: tr })}</TableCell>
-                                    <TableCell className="font-bold">{getVehiclePlate(log.vehicleId)}</TableCell>
+                                    <TableCell className="whitespace-nowrap">{format(new Date(log.date), 'dd MMM yyyy', { locale: tr })}</TableCell>
+                                    <TableCell className="font-bold whitespace-nowrap">{getVehiclePlate(log.vehicleId)}</TableCell>
+                                    <TableCell className="text-sm">{getSiteName(log.siteId)}</TableCell>
                                     <TableCell>{log.liters.toFixed(2)} Lt</TableCell>
                                     <TableCell>{log.cost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
                                     <TableCell>{log.mileage.toLocaleString()} km</TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{users.find((u: any) => u.id === log.filledByUserId)?.name || '-'}</TableCell>
-                                    <TableCell className="p-1 w-20">
+                                    <TableCell className="p-1">
                                         <div className="flex items-center gap-1">
                                             <Button
                                                 variant="ghost"

@@ -6,7 +6,7 @@ const CONFIG = {
     // Target page
     url: 'https://ikikat.com.tr/AracPuantaj.aspx',
     creds: { user: 'ahmetcan', pass: 'canahmet' },
-    targetYears: ['2026'] // Targeted
+    targetYears: ['2025', '2026'] // Full Range
 };
 
 const SITES = [
@@ -16,7 +16,8 @@ const SITES = [
 ];
 
 const TARGET_MONTHS: Record<string, number[]> = {
-    '2026': [1] // Jan
+    '2025': [8, 9, 10, 11, 12],
+    '2026': [1]
 };
 
 interface ExtractedRow {
@@ -33,13 +34,16 @@ interface SiteMonthData {
 }
 
 async function main() {
-    console.log("Starting Targeted Scraping...");
+    console.log("Starting Bulk Scraping (Aug 2025 - Jan 2026)...");
     const browser = await puppeteer.launch({ headless: false });
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 768 });
 
     // Enable console logging from browser
-    page.on('console', msg => console.log('[BROWSER log]:', msg.text()));
+    page.on('console', msg => {
+        if (msg.type() === 'error') return; // Ignore errors to reduce noise
+        // console.log('[BROWSER log]:', msg.text())
+    });
 
     const allData: SiteMonthData[] = [];
 
@@ -47,13 +51,11 @@ async function main() {
         // 1. Discovery & Login
         console.log("Navigating to Root for Discovery...");
         await page.goto('https://ikikat.com.tr/', { waitUntil: 'networkidle2' });
-        console.log(`[DEBUG] Root Redirected to: ${await page.url()}`);
 
         let loginInputs = await page.evaluate(() => Array.from(document.querySelectorAll('input')).map(i => ({ name: i.name, type: i.type })));
 
-        // If no inputs at root/redirect, try /Giris.aspx
         if (!loginInputs.some(i => i.type === 'password')) {
-            console.log("Login inputs NOT found at detected URL. Trying /Giris.aspx...");
+            console.log("Login inputs NOT found. Trying /Giris.aspx...");
             await page.goto('https://ikikat.com.tr/Giris.aspx', { waitUntil: 'networkidle2' });
             loginInputs = await page.evaluate(() => Array.from(document.querySelectorAll('input')).map(i => ({ name: i.name, type: i.type })));
         }
@@ -75,125 +77,132 @@ async function main() {
                 page.click('input[type="submit"]'),
                 page.waitForNavigation()
             ]);
+            console.log("Logged In.");
         }
 
         // 2. Navigate to Target
         await page.goto(CONFIG.url, { waitUntil: 'networkidle2' });
         console.log(`[DEBUG] Target URL: ${await page.url()}`);
 
-        if (await page.$('select[name*="ddlYil"]')) {
-            console.log('[DEBUG] Year dropdown found.');
-        } else {
-            console.log('[DEBUG] Year dropdown NOT found. Dumping body sample...');
-            fs.writeFileSync('debug_dump.html', await page.content());
+        if (!await page.$('select[name*="ddlYil"]')) {
+            console.log('[CRITICAL] Year dropdown NOT found. Aborting.');
+            return;
         }
 
-        // 3. Process
-        const targetYear = '2026';
-        console.log(`Switching to Year ${targetYear}...`);
+        // 3. Process Loops
+        for (const targetYear of CONFIG.targetYears) {
+            console.log(`Switching to Year ${targetYear}...`);
 
-        try {
-            await page.waitForSelector('select[name*="ddlYil"]', { timeout: 10000 });
-            await page.select('select[name*="ddlYil"]', targetYear);
-            await new Promise(r => setTimeout(r, 2000));
-        } catch (e) {
-            console.error('[CRITICAL] Failed to select Year.');
-        }
+            try {
+                await page.waitForSelector('select[name*="ddlYil"]', { timeout: 10000 });
+                await page.select('select[name*="ddlYil"]', targetYear);
+                await new Promise(r => setTimeout(r, 2000));
+            } catch (e) {
+                console.error(`[CRITICAL] Failed to select Year ${targetYear}. Skipping.`);
+                continue;
+            }
 
-        const months = [1];
-        const sites = [SITES[0]]; // Only Aydin Nazilli
+            const months = TARGET_MONTHS[targetYear];
+            if (!months) continue;
 
-        for (const site of sites) {
-            console.log(`  Processing Site ${site.name} (${targetYear})...`);
-            await page.select('select[name*="ddlSantiye"]', site.val);
-            await new Promise(r => setTimeout(r, 1000));
-
-            for (const m of months) {
-                const month = m.toString();
-                console.log(`    Month ${month}...`);
-
-                await page.select('select[name*="ddlAy"]', month);
+            for (const site of SITES) {
+                console.log(`  Processing Site ${site.name} (${targetYear})...`);
+                await page.select('select[name*="ddlSantiye"]', site.val);
                 await new Promise(r => setTimeout(r, 1000));
 
-                const btnGetir = await page.$('input[name*="btnGetir"]');
-                if (btnGetir) {
-                    await Promise.all([
-                        btnGetir.click(),
-                        new Promise(r => setTimeout(r, 5000))
-                    ]);
+                for (const m of months) {
+                    const month = m.toString();
+                    console.log(`    Month ${month}...`);
 
-                    // Extract
-                    const pageData = await page.evaluate(() => {
-                        const rows = Array.from(document.querySelectorAll('table#ContentPlaceHolder1_grdAracPuantaj tr'));
-                        const fallbackRows = Array.from(document.querySelectorAll('table tr'));
-                        const actualRows = rows.length > 1 ? rows : fallbackRows;
+                    try {
+                        await page.select('select[name*="ddlAy"]', month);
+                        await new Promise(r => setTimeout(r, 1000));
 
-                        console.log(`Total Rows Found: ${actualRows.length}`);
-
-                        if (actualRows.length < 2) return [];
-
-                        const parsedRows: any[] = [];
-
-                        // Debug first row
-                        if (actualRows.length > 2) {
-                            const debugCells = Array.from(actualRows[2].querySelectorAll('td'));
-                            console.log('Sample Data Row Cells:', debugCells.length);
-                            if (debugCells.length > 1) {
-                                console.log('Cell 1 Text:', (debugCells[1] as HTMLElement).innerText);
+                        // Uncheck "Sadece Yakıt"
+                        const chk = await page.$('input[name*="chkSadeceYakit"]');
+                        if (chk) {
+                            const isChecked = await (await chk.getProperty('checked')).jsonValue();
+                            if (isChecked) {
+                                await chk.click();
+                                await new Promise(r => setTimeout(r, 500));
                             }
                         }
 
-                        for (let i = 1; i < actualRows.length; i++) {
-                            const cells = Array.from(actualRows[i].querySelectorAll('td'));
-                            if (cells.length < 5) continue;
+                        const btnGetir = await page.$('input[name*="btnGetir"]');
+                        if (btnGetir) {
+                            await Promise.all([
+                                btnGetir.click(),
+                                new Promise(r => setTimeout(r, 5000))
+                            ]);
 
-                            const vehicleInfo = (cells[1] as HTMLElement).innerText.trim();
-                            if (!vehicleInfo) continue;
+                            // Extract
+                            const pageData = await page.evaluate(() => {
+                                const rows = Array.from(document.querySelectorAll('table#ContentPlaceHolder1_grdAracPuantaj tr'));
+                                const fallbackRows = Array.from(document.querySelectorAll('table tr'));
+                                const actualRows = rows.length > 1 ? rows : fallbackRows;
 
-                            const days = cells.slice(2, 33).map(c => {
-                                const img = c.querySelector('img');
-                                if (img) {
-                                    const src = img.src.toLowerCase();
-                                    if (src.includes('ok.png') || src.includes('tam') || src.includes('tick')) return 'WORK';
-                                    if (src.includes('delete') || src.includes('cross') || src.includes('calismadi') || src.includes('cancel')) return 'ABSENT';
-                                    if (src.includes('yarim') || src.includes('half')) return 'HALF';
-                                    if (src.includes('ariza') || src.includes('repair') || src.includes('wrench')) return 'REPAIR';
-                                    return 'UNKNOWN_IMG_' + src;
+                                if (actualRows.length < 2) return [];
+
+                                const parsedRows: any[] = [];
+
+                                for (let i = 1; i < actualRows.length; i++) {
+                                    const cells = Array.from(actualRows[i].querySelectorAll('td'));
+                                    if (cells.length < 5) continue;
+
+                                    const vehicleInfo = (cells[1] as HTMLElement).innerText.trim();
+                                    if (!vehicleInfo) continue;
+
+                                    const days = cells.slice(2, 33).map(c => {
+                                        const img = c.querySelector('img');
+                                        if (img) {
+                                            const src = img.src.toLowerCase();
+                                            if (src.includes('ok.png') || src.includes('tam') || src.includes('tick')) return 'WORK';
+                                            if (src.includes('delete') || src.includes('cross') || src.includes('calismadi') || src.includes('cancel')) return 'ABSENT';
+                                            if (src.includes('yarim') || src.includes('half')) return 'HALF';
+                                            if (src.includes('ariza') || src.includes('repair') || src.includes('wrench')) return 'REPAIR';
+                                            return 'UNKNOWN_IMG_' + src;
+                                        }
+                                        return (c as HTMLElement).innerText.trim();
+                                    });
+
+                                    parsedRows.push({
+                                        vehicleInfo,
+                                        days
+                                    });
                                 }
-                                return (c as HTMLElement).innerText.trim();
+                                return parsedRows;
                             });
 
-                            parsedRows.push({
-                                vehicleInfo,
-                                days
-                            });
+                            if (pageData.length > 0) {
+                                console.log(`      Found ${pageData.length} records.`);
+                                allData.push({
+                                    siteName: site.name,
+                                    siteVal: site.val,
+                                    year: targetYear,
+                                    month: month,
+                                    rows: pageData
+                                });
+                                // Save Individual Month File (Safety)
+                                const safeSiteName = site.name.replace(/\s+/g, '_');
+                                fs.writeFileSync(`scraped_attendance_${targetYear}_${month}_${safeSiteName}.json`, JSON.stringify(allData[allData.length - 1], null, 2));
+                            } else {
+                                console.log(`      No records found.`);
+                            }
                         }
-                        return parsedRows;
-                    });
-
-                    if (pageData.length > 0) {
-                        console.log(`      Found ${pageData.length} records.`);
-                        allData.push({
-                            siteName: site.name,
-                            siteVal: site.val,
-                            year: targetYear,
-                            month: month,
-                            rows: pageData
-                        });
-                        fs.writeFileSync(`scraped_attendance_${targetYear}_${site.val}_${month}.json`, JSON.stringify(allData, null, 2));
-                    } else {
-                        console.log(`      No records found. Dumping results page...`);
-                        fs.writeFileSync('debug_results_dump.html', await page.content());
+                    } catch (err) {
+                        console.error(`Error processing ${site.name} ${targetYear}/${month}:`, err);
                     }
                 }
             }
         }
+
         console.log(`Scraping Completed. Total Batches: ${allData.length}`);
+        fs.writeFileSync('scraped_attendance_FULL_6_MONTHS.json', JSON.stringify(allData, null, 2));
+
     } catch (e) {
         console.error("Global Scrape Error:", e);
     } finally {
         await browser.close();
     }
 }
-
 main();
