@@ -66,6 +66,15 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                 }
             }
 
+            // [NEW] Reverse Calc: If Total Cost changes, update Unit Price
+            if (field === 'totalCost') {
+                const total = parseFloat(value);
+                const amt = parseFloat(String(prev.amount));
+                if (!isNaN(total) && !isNaN(amt) && amt > 0) {
+                    updates.unitPrice = parseFloat((total / amt).toFixed(2));
+                }
+            }
+
             return updates;
         });
     };
@@ -195,8 +204,8 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                                 type="number"
                                 step="0.01"
                                 value={formData.totalCost}
-                                readOnly
-                                className="bg-slate-100"
+                                onChange={e => handleChange('totalCost', e.target.value)}
+                                className="bg-white"
                             />
                         </div>
                     </div>
