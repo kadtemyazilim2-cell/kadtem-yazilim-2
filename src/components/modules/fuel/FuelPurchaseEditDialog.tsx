@@ -81,6 +81,25 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validation
+        if (!formData.supplierName.trim()) {
+            toast.warning('Lütfen tedarikçi firma giriniz.');
+            return;
+        }
+        if (!formData.tankId) {
+            toast.warning('Lütfen bir depo seçiniz.');
+            return;
+        }
+        if (!formData.date) {
+            toast.warning('Lütfen tarih seçiniz.');
+            return;
+        }
+        if (formData.amount <= 0) {
+            toast.warning('Miktar 0\'dan büyük olmalıdır.');
+            return;
+        }
+
         setIsSubmitting(true);
         let result;
 
