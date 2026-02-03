@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8"><title>
+	Yetkin Yok
+</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8d7da;
+            color: #842029;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .yetki-kart {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            box-shadow: 0px 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .yetki-kart h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+        .yetki-kart p {
+            font-size: 18px;
+            margin-bottom: 25px;
+        }
+        .yetki-kart img {
+            width: 80px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <form method="post" action="./YetkinYok.aspx" id="ctl01">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="eoEIsXDc+cQU8JtGZWV6IgfoN6BBidg0X1u5NsTt6rbEG/l+YTJB06vg4cyiy9Y2rrCq/fl02BRdg4OZu7vVniWHbi7swdIgXM6OO+H6s/4=">
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="A08D19DA">
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="yuE5NwuArGcxfRszr5ufT0Uz5fiQhTaIo/8deSR7vP5+RIst/U7PFJTrt4YffO54YgUibnzYqR2jVN2qhsBsc4HmgAQvsBSRGA/fQ4vSr2bUKTBeQLFYqs50/dTyIm6a">
+</div>
+    <div class="yetki-kart">
+        <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png" alt="Yasak">
+        <h1>Erişim Reddedildi</h1>
+        <p>Bu sayfaya erişim yetkin bulunmamaktadır.</p>
+        <a href="ana.aspx" class="btn btn-outline-danger">Ana Sayfaya Dön</a>
+
+    </div>
+    <input type="submit" name="btnLogout" value="Çıkış Yap" id="btnLogout" class="btn btn-danger mt-3">
+        </form>
+
+
+</body></html>
