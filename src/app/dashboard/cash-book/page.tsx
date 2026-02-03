@@ -1,3 +1,5 @@
+'use client';
+
 import { CashBookList } from '@/components/modules/cash-book/CashBookList';
 import { useAuth } from '@/lib/store/use-auth';
 import { useSearchParams } from 'next/navigation'; // [NEW]

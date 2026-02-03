@@ -73,6 +73,7 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        let result;
 
         try {
             const payload = {
@@ -81,14 +82,14 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                 totalCost: Number(formData.totalCost),
                 date: new Date(formData.date).toISOString(),
                 description: formData.description,
-                fromType: 'EXTERNAL',
-                fromId: formData.supplierName, // Supplier Name
-                toType: 'TANK',
-                toId: formData.tankId, // Target Tank
+                fromType: 'EXTERNAL', // Fixed type
+                fromId: formData.supplierName,
+                toType: 'TANK', // Fixed type
+                toId: formData.tankId,
                 createdByUserId: transfer.createdByUserId
             };
 
-            const result = await updateFuelTransfer(transfer.id, payload as any);
+            result = await updateFuelTransfer(transfer.id, payload as any);
 
             if (result.success && result.data) {
                 toast.success('Satın alma kaydı güncellendi.');
@@ -108,6 +109,10 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
             toast.error('Bir hata oluştu.');
         } finally {
             setIsSubmitting(false);
+            // Force close if it was a reload scenario to prevent stuck state
+            if (!updateStoreTransfer && result?.success) {
+                onOpenChange(false);
+            }
         }
     };
 
