@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'; // [NEW]
 import { deleteFuelLog } from '@/actions/fuel'; // [NEW]
 
 export function FuelList() {
-    const { fuelLogs, vehicles, users, deleteFuelLog: deleteLocal } = useAppStore(); // [FIX] Added deleteLocal
+    const { fuelLogs, vehicles, users, deleteFuelLog: deleteLocal, fuelTanks } = useAppStore(); // [FIX] Added deleteLocal, fuelTanks
     const availableSites = useUserSites();
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
@@ -51,10 +51,15 @@ export function FuelList() {
         // Let's intersect availableSites with log sites.
         const logSiteIds = new Set(fuelLogs.map((l: any) => l.siteId));
         return availableSites
-            .filter((s: any) => logSiteIds.has(s.id))
+            .filter((s: any) => {
+                // [NEW] Show site if it has logs OR has a tank
+                const hasLogs = logSiteIds.has(s.id);
+                const hasTank = fuelTanks.some((t: any) => t.siteId === s.id);
+                return hasLogs || hasTank;
+            })
             .map((s: any) => ({ label: s.name, value: s.id }))
             .sort((a: any, b: any) => a.label.localeCompare(b.label));
-    }, [fuelLogs, availableSites]);
+    }, [fuelLogs, availableSites, fuelTanks]);
 
     const uniqueVehicles = useMemo(() => {
         const relevantVehicleIds = Array.from(new Set(fuelLogs.map((l: any) => l.vehicleId)));

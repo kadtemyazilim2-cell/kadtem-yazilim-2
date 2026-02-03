@@ -619,9 +619,12 @@ export function FuelConsumptionReport() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="ALL">Tüm Şantiyeler</SelectItem>
-                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                            ))}
+                            {sites
+                                .filter((s: any) => s.status === 'ACTIVE' && fuelTanks.some((t: any) => t.siteId === s.id))
+                                .map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))
+                            }
                         </SelectContent>
                     </Select>
                 </div>
