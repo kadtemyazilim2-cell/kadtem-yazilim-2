@@ -448,25 +448,25 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         // Date Range
         const dateStr = `${format(parseISO(startDate), 'dd.MM.yyyy')} - ${format(parseISO(endDate), 'dd.MM.yyyy')}`;
 
-        doc.setFontSize(14);
+        doc.setFontSize(11); // [MOD] Reduced from 14
         doc.setTextColor(0, 0, 0); // Black
         // Title with Date
         doc.text(`KASA HAREKETLERİ RAPORU (${dateStr})`, 14, 20, { align: 'left' });
 
-        let currentY = 28;
+        let currentY = 26; // [MOD] Reduced gap (was 28)
 
         // Personnel Name
         if (selectedUserId !== 'all') {
-            doc.setFontSize(12);
+            doc.setFontSize(10); // [MOD] Reduced from 12
             doc.text(`Personel: ${getUserName(selectedUserId)}`, 14, currentY, { align: 'left' });
-            currentY += 7;
+            currentY += 5; // [MOD] Reduced gap (was 7)
         }
 
         // Site Name
         if (selectedSiteId !== 'all') {
-            doc.setFontSize(12);
+            doc.setFontSize(10); // [MOD] Reduced from 12
             doc.text(`Şantiye: ${getSiteName(selectedSiteId)}`, 14, currentY, { align: 'left' });
-            currentY += 7;
+            currentY += 5; // [MOD] Reduced gap (was 7)
         }
 
         const groupedData: Record<string, typeof filteredTransactionsWithBalance> = {};
@@ -556,7 +556,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                 yPos = 20;
             }
 
-            doc.setFontSize(14);
+            doc.setFontSize(11); // [MOD] Reduced from 14
             doc.setTextColor(0, 0, 0);
             doc.text("Şantiyeler Bakiye Özeti", 14, yPos);
             yPos += 5; // Space for title

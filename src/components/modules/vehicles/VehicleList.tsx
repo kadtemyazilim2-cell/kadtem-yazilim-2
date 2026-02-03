@@ -1468,7 +1468,7 @@ export function VehicleList() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Plaka</TableHead>
-                                            <TableHead className="w-[200px]">Şantiye</TableHead> {/* [NEW] Width constraint */}
+                                            <TableHead className="w-[200px]">Şantiye</TableHead>
                                             <TableHead>Kiralama Şirketi / Firma</TableHead>
                                             <TableHead>Aylık Kira Bedeli</TableHead>
                                             <TableHead>Son Güncelleme</TableHead>
@@ -1482,7 +1482,7 @@ export function VehicleList() {
                                                 <TableCell className="font-mono font-bold">{vehicle.plate}</TableCell>
                                                 <TableCell className="text-sm text-slate-700 max-w-[200px] truncate" title={getVehicleSiteName(vehicle)}>
                                                     {getVehicleSiteName(vehicle)}
-                                                </TableCell> {/* [NEW] Truncate */}
+                                                </TableCell>
                                                 <TableCell>{vehicle.rentalCompanyName || getCompanyName(vehicle)}</TableCell>
                                                 <TableCell>{vehicle.monthlyRentalFee ? `${vehicle.monthlyRentalFee.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}</TableCell>
                                                 <TableCell>{formatDateSafe(vehicle.rentalLastUpdate)}</TableCell>

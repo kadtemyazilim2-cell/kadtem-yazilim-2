@@ -5,14 +5,45 @@ import { Vehicle } from '@prisma/client';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
 // [PERFORMANCE] Cached vehicles query
+// [PERFORMANCE] Cached vehicles query
 const getVehiclesFromDb = unstable_cache(
     async () => {
         return await prisma.vehicle.findMany({
             orderBy: { plate: 'asc' },
-            include: {
+            select: {
+                id: true,
+                companyId: true,
+                plate: true,
+                brand: true,
+                model: true,
+                year: true,
+                type: true,
+                ownership: true,
+                status: true,
+                meterType: true,
+                currentKm: true,
+                insuranceExpiry: true,
+                kaskoExpiry: true,
+                vehicleCardExpiry: true,
+                assignedSiteId: true,
+                rentalCompanyName: true,
+                rentalContact: true,
+                engineNumber: true,
+                chassisNumber: true,
+                fuelType: true,
+                lastInspectionDate: true,
+                // licenseFile: false, // EXCLUDED to prevent 2MB cache limit error
+
+                // Relations
                 company: true,
                 assignedSite: true,
-                assignedSites: { select: { id: true } }
+                assignedSites: { select: { id: true } },
+
+                // History fields (if they exist in schema and act as scalars/small json)
+                // Assuming these are not huge if they exist as separate columns or are small
+                // If they are not in schema, this select will fail.
+                // Based on types/index.ts, these seem to be possibly computed or separate.
+                // Let's stick to what was in 'createVehicle' + relations.
             }
         });
     },
