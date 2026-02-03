@@ -160,7 +160,8 @@ model Site {
   partners        SitePartner[]
 
   users           User[]
-  personnel       Personnel[]
+  personnel       Personnel[] @relation("PersonnelPrimarySite")
+  assignedPersonnel Personnel[] @relation("PersonnelAssignedSites")
   vehicles        Vehicle[]   @relation("PrimarySite")
   activeVehicles  Vehicle[]   @relation("AssignedSites") // Many-to-Many for multi-assignment
   
@@ -283,7 +284,8 @@ model Personnel {
   status      Status   @default(ACTIVE)
   
   siteId      String?
-  site        Site?    @relation(fields: [siteId], references: [id])
+  site        Site?    @relation("PersonnelPrimarySite", fields: [siteId], references: [id])
+  assignedSites Site[] @relation("PersonnelAssignedSites")
   
   leftDate    DateTime?
   startDate   DateTime?

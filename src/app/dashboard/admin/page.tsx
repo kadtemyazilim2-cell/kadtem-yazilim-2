@@ -600,6 +600,7 @@ export default function AdminPage() {
 
             if (result && result.success) {
                 toast.success(isEditing ? 'Kullanıcı güncellendi.' : 'Kullanıcı oluşturuldu.');
+                setUserModalOpen(false);
                 // Force refresh to update list
                 location.reload();
             } else {

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Personnel } from '@/lib/types';
 import { useAuth } from '@/lib/store/use-auth';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MultiSelect } from '@/components/ui/multi-select'; // [NEW]
 import { createPersonnel, updatePersonnel as updatePersonnelServer, deletePersonnel as deletePersonnelServer } from '@/actions/personnel';
 
 interface PersonnelFormProps {
@@ -40,6 +41,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
     const [role, setRole] = useState('');
     const [salary, setSalary] = useState('');
     const [siteId, setSiteId] = useState(defaultSiteId || '');
+    const [assignedSiteIds, setAssignedSiteIds] = useState<string[]>([]); // [NEW]
     const [category, setCategory] = useState<'TECHNICAL' | 'FIELD'>('FIELD');
     const [monthlyLeaveAllowance, setMonthlyLeaveAllowance] = useState('');
     const [isOvertimeAllowed, setIsOvertimeAllowed] = useState(false);
@@ -64,6 +66,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             setRole(personnelToEdit.role || '');
             setSalary(personnelToEdit.salary?.toString() || '');
             setSiteId(personnelToEdit.siteId || '');
+            setAssignedSiteIds(personnelToEdit.assignedSites?.map((s: any) => s.id) || []); // [NEW]
             setCategory(personnelToEdit.category || 'FIELD');
             setMonthlyLeaveAllowance(personnelToEdit.monthlyLeaveAllowance?.toString() || '');
             setIsOvertimeAllowed(!!personnelToEdit.isOvertimeAllowed);
@@ -121,6 +124,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             // Don't clear siteId if it was passed or set via other means (not visible here, but safer to respect if logic exists elsewhere)
             // But standard reset usually clears it. The earlier code cleared it.
             setSiteId(defaultSiteId || '');
+            setAssignedSiteIds([]); // [NEW]
             setCategory('FIELD');
             setMonthlyLeaveAllowance('');
             setIsOvertimeAllowed(false);
@@ -341,6 +345,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             role,
             salary: Number(salary),
             siteId,
+            assignedSiteIds, // [NEW]
             category,
             monthlyLeaveAllowance: monthlyLeaveAllowance ? Number(monthlyLeaveAllowance) : undefined,
             isOvertimeAllowed,
@@ -589,6 +594,23 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                             </SelectContent>
                         </Select>
                         {formErrors.siteId && <span className="text-xs text-red-500">{formErrors.siteId}</span>}
+                    </div>
+
+                    {/* [NEW] Ek Şantiyeler (MultiSelect) */}
+                    <div className="space-y-1">
+                        <Label>Ek Atanan Şantiyeler</Label>
+                        <MultiSelect
+                            options={sites.filter((s: any) => s.status === 'ACTIVE' && s.id !== siteId).map((s: any) => ({
+                                label: s.name,
+                                value: s.id
+                            }))}
+                            selected={assignedSiteIds}
+                            onChange={setAssignedSiteIds}
+                            placeholder="Ek şantiyeler seçiniz..."
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                            Personelin ana şantiyesi dışında görev aldığı diğer şantiyeleri seçiniz.
+                        </p>
                     </div>
 
                     {/* [NEW] Aylık İzin Hakkı & Mesai Hakkı */}

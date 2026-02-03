@@ -9,7 +9,7 @@ const getPersonnelFromDb = unstable_cache(
     async () => {
         return await prisma.personnel.findMany({
             orderBy: { fullName: 'asc' },
-            include: { site: true }
+            include: { site: true, assignedSites: true }
         });
     },
     ['get-personnel-data'],
@@ -41,7 +41,10 @@ export async function createPersonnel(data: Partial<Personnel>) {
                 startDate: data.startDate,
                 note: data.note,
                 leaveAllowance: data.leaveAllowance,
-                hasOvertime: data.hasOvertime || false
+                hasOvertime: data.hasOvertime || false,
+                assignedSites: (data as any).assignedSiteIds ? {
+                    connect: (data as any).assignedSiteIds.map((id: string) => ({ id }))
+                } : undefined
             }
         });
         // Check if start date is provided to auto-create 'WORK' attendance
@@ -180,7 +183,12 @@ export async function updatePersonnel(id: string, data: Partial<Personnel>) {
     try {
         const person = await prisma.personnel.update({
             where: { id },
-            data: { ...data }
+            data: {
+                ...data,
+                assignedSites: (data as any).assignedSiteIds ? {
+                    set: (data as any).assignedSiteIds.map((id: string) => ({ id }))
+                } : undefined
+            }
         });
         revalidateTag('personnel');
         revalidateTag('personnel');
