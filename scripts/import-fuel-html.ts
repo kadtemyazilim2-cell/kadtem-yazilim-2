@@ -44,7 +44,11 @@ async function main() {
         if (!site) {
             if (cleanName.includes('Nazilli')) site = sites.find(s => s.name.includes('Nazilli'));
             if (cleanName.includes('Vezirköprü')) site = sites.find(s => s.name.includes('Vezirköprü'));
-            if (cleanName.includes('Zile')) site = sites.find(s => s.name.includes('Zile'));
+
+            // Specific Zile checks
+            if (cleanName.includes('Zile 1') || cleanName.includes('1 Kısım')) site = sites.find(s => s.name.includes('Zile Ovası 1') || s.name.includes('1 Kısım'));
+            else if (cleanName.includes('Zile')) site = sites.find(s => s.name.includes('Zile'));
+
             if (cleanName.includes('Doğanlı')) site = sites.find(s => s.name.includes('Doğanlı'));
         }
         return site;
@@ -152,7 +156,7 @@ async function main() {
         const rawLiters = parseFloat(litersStr) || 0;
 
         // Col 10: Description
-        const desc = $(cols[9]).text().trim();
+        const desc = $(cols[10]).text().trim();
 
         // LOGIC
         try {
