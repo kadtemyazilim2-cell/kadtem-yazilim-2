@@ -575,28 +575,32 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         });
 
         // [NEW] 3. Signature Boxes (Harcama Yapan & Harcama Yetkilisi)
-        // Check if we have space on current page
-        // Need approx 40-50 units height
-        if (yPos > 240) {
+        // Position at the bottom of the page
+        const pageHeight = doc.internal.pageSize.height || 297;
+        const signatureHeight = 40;
+        const signatureY = pageHeight - signatureHeight - 10; // 10px padding from bottom
+
+        // Check if content overlaps with signature area
+        if (yPos > signatureY - 10) {
             doc.addPage();
-            yPos = 30;
-        } else {
-            yPos += 10; // Spacing from content
         }
 
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-
-        // Define Box Dimensions
+        // Draw at predefined bottom position
         const boxWidth = 70;
         const boxHeight = 25;
         const leftX = 20;
         const rightX = 120;
 
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+
         // Left Box - Harcama Yapan
-        doc.text("Harcama Yapan", leftX + (boxWidth / 2), yPos, { align: 'center' });
-        doc.rect(leftX, yPos + 2, boxWidth, boxHeight); // Box
-        // doc.text("(İmza)", leftX + (boxWidth / 2), yPos + 20, { align: 'center' }); // Optional hint inside
+        doc.text("Harcama Yapan", leftX + (boxWidth / 2), signatureY, { align: 'center' });
+        doc.rect(leftX, signatureY + 2, boxWidth, boxHeight); // Box
+
+        // Right Box - Harcama Yetkilisi
+        doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), signatureY, { align: 'center' });
+        doc.rect(rightX, signatureY + 2, boxWidth, boxHeight); // Box
 
         // Right Box - Harcama Yetkilisi
         doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), yPos, { align: 'center' });
