@@ -440,34 +440,50 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
         doc.setFont('Roboto');
 
-        const dateStr = `${format(parseISO(startDate), 'dd.MM.yyyy')} - ${format(parseISO(endDate), 'dd.MM.yyyy')}`;
-        doc.setFontSize(14);
-        doc.text(`Kasa Hareketleri Raporu - ${dateStr}`, 14, 15);
+        // [NEW] 1. Report Generation Date (Top Right, Gray)
+        const reportGenDate = format(new Date(), 'dd.MM.yyyy HH:mm', { locale: tr });
+        doc.setFontSize(9);
+        doc.setTextColor(150, 150, 150); // Gray
+        doc.text(`Oluşturulma Tarihi: ${reportGenDate}`, 200, 10, { align: 'right' });
 
+        // [NEW] 2. Centered Header Hierarchy
+        // Date Range
+        const dateStr = `${format(parseISO(startDate), 'dd.MM.yyyy')} - ${format(parseISO(endDate), 'dd.MM.yyyy')}`;
+
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0); // Black
+        // Title with Date
+        doc.text(`KASA HAREKETLERİ RAPORU (${dateStr})`, 105, 20, { align: 'center' });
+
+        let currentY = 28;
+
+        // Personnel Name
         if (selectedUserId !== 'all') {
-            doc.setFontSize(11);
-            doc.text(`Personel: ${getUserName(selectedUserId)}`, 14, 22);
-            doc.text(`Devreden Bakiye: ${previousBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}`, 14, 28);
+            doc.setFontSize(12);
+            doc.text(`Personel: ${getUserName(selectedUserId)}`, 105, currentY, { align: 'center' });
+            currentY += 7;
+        }
+
+        // Site Name
+        if (selectedSiteId !== 'all') {
+            doc.setFontSize(12);
+            doc.text(`Şantiye: ${getSiteName(selectedSiteId)}`, 105, currentY, { align: 'center' });
+            currentY += 7;
         }
 
         const groupedData: Record<string, typeof filteredTransactionsWithBalance> = {};
 
         if (selectedUserId === 'all') {
-            // [CHANGED] Do not separate by user, keep as single list to match screen
             groupedData['all'] = [...filteredTransactionsWithBalance];
         } else {
             groupedData[selectedUserId] = [...filteredTransactionsWithBalance];
         }
 
-        let yPos = selectedUserId !== 'all' ? 35 : 30;
+        let yPos = currentY + 10;
 
-        // 1. Transaction Tables
+        // Transaction Tables
         Object.keys(groupedData).forEach((key) => {
             const transactions = groupedData[key];
-
-            // [CHANGED] Use EXACT list from screen (Newest First), do not re-sort
-            // Balances are ALREADY calculated in 'transactions' (which are filteredTransactionsWithBalance)
-
             const userName = key === 'all' ? 'Tüm Personel' : getUserName(key);
             const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
             const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
@@ -475,24 +491,25 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             doc.setFontSize(12);
             doc.setTextColor(0, 0, 0);
 
-            if (yPos > 270) { doc.addPage(); yPos = 20; }
-            doc.text(`${userName} (Devreden: ${previousBalance.toLocaleString('tr-TR', { currency: 'TRY', style: 'currency' })})`, 14, yPos);
-            yPos += 5;
+            // Only show subheading if we are listing ALL users, otherwise header covers it
+            if (selectedUserId === 'all') {
+                if (yPos > 270) { doc.addPage(); yPos = 20; }
+                doc.text(`${userName} - Devreden: ${previousBalance.toLocaleString('tr-TR', { currency: 'TRY', style: 'currency' })}`, 14, yPos);
+                yPos += 5;
+            } else {
+                // Show devreden explicitly if not shown in header
+                doc.setFontSize(10);
+                doc.text(`Devreden Bakiye: ${previousBalance.toLocaleString('tr-TR', { currency: 'TRY', style: 'currency' })}`, 14, yPos);
+                yPos += 5;
+            }
 
             const tableData = transactions.map(t => {
-                let typeLabel = 'Gider';
-                if (t.type === 'INCOME') typeLabel = 'Gelir';
-                else if (t.type === 'BALANCE_START') typeLabel = 'Devir';
-
                 return [
                     safeFormat(t.date, 'dd.MM.yyyy'),
                     t.category,
                     t.description,
-                    // Borç (Gelir)
                     t.type === 'INCOME' || t.type === 'BALANCE_START' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
-                    // Alacak (Gider)
                     t.type === 'EXPENSE' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
-                    // Tutar (Signed) [NEW]
                     `${(t.type === 'BALANCE_START' ? t.amount : (t.type === 'INCOME' ? t.amount : -t.amount)).toLocaleString('tr-TR')} TL`,
                     `${t.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
                 ]
@@ -500,10 +517,10 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
             autoTable(doc, {
                 startY: yPos + 4,
-                head: [['Tarih', 'Personel', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Tutar', 'Bakiye']], // Added Tutar
+                head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Tutar', 'Bakiye']], // Removed 'Personel' from col as it's typically singular report
                 body: tableData,
-                styles: { font: 'Roboto', fontSize: 8 }, // Slightly smaller font to fit
-                headStyles: { fillColor: [71, 85, 105] }, // Match Blue-Gray
+                styles: { font: 'Roboto', fontSize: 8 },
+                headStyles: { fillColor: [71, 85, 105] },
                 theme: 'grid',
                 didParseCell: (data) => {
                     const rowIndex = data.row.index;
@@ -511,21 +528,17 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
                     if (section === 'body') {
                         const transaction = transactions[rowIndex];
                         if (transaction) {
-                            // Amount coloring
-                            if (data.column.index === 4 && (transaction.type === 'INCOME' || transaction.type === 'BALANCE_START')) {
+                            if (data.column.index === 3 && (transaction.type === 'INCOME' || transaction.type === 'BALANCE_START')) {
                                 data.cell.styles.textColor = [22, 163, 74];
-                            } else if (data.column.index === 5 && transaction.type === 'EXPENSE') {
+                            } else if (data.column.index === 4 && transaction.type === 'EXPENSE') {
                                 data.cell.styles.textColor = [220, 38, 38];
-                            } else if (data.column.index === 6) { // Tutar Column
+                            } else if (data.column.index === 5) {
                                 if (transaction.type === 'INCOME' || transaction.type === 'BALANCE_START') data.cell.styles.textColor = [22, 163, 74];
                                 else data.cell.styles.textColor = [220, 38, 38];
                             }
-
-                            // Style Devir row
                             if (transaction.type === 'BALANCE_START') {
                                 data.cell.styles.fontStyle = 'bold';
-                                if (data.column.index === 4) data.cell.styles.textColor = [59, 130, 246]; // Blue for Devir
-                                if (data.column.index === 6) data.cell.styles.textColor = [59, 130, 246]; // Blue for Devir Tutar
+                                if (data.column.index === 3 || data.column.index === 5) data.cell.styles.textColor = [59, 130, 246];
                             }
                         }
                     }
@@ -542,7 +555,6 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
             doc.text(`Dönem Gelir: ${totalIncome.toLocaleString('tr-TR')} TL`, 14, yPos);
             doc.text(`Dönem Gider: ${totalExpense.toLocaleString('tr-TR')} TL`, 70, yPos);
 
-            // [FIXED] Calculate final balance from the newest transaction (top of list) or previous balance
             const finalBalance = transactions.length > 0 ? transactions[0].balance : previousBalance;
             const totalBalanceText = `Son Bakiye: ${finalBalance.toLocaleString('tr-TR')} TL`;
 
@@ -551,73 +563,37 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
             doc.text(totalBalanceText, 130, yPos);
 
-            yPos += 15;
-
-            if (yPos > 250) {
-                doc.addPage();
-                yPos = 20;
-            }
+            yPos += 20;
         });
 
-
-        // 2. Site Summary Section
-        const siteBalances = getSiteBalances();
-        // Only show if there's more than one active site in the report to avoid redundancy, 
-        // OR as user requested "birden fazla şantiyede" - but safest to show if any data exists.
-        if (siteBalances.length > 0) {
-            if (yPos > 240) { doc.addPage(); yPos = 20; }
-            else yPos += 10;
-
-            doc.setFontSize(14);
-            doc.setTextColor(0, 0, 0);
-            doc.text("Şantiye Bazlı Bakiye Özeti", 14, yPos);
-
-            let totalPrev = 0;
-            let totalInc = 0;
-            let totalExp = 0;
-            let totalBal = 0;
-
-            const summaryData = siteBalances.map(sb => {
-                const total = sb.previousBalance + sb.income - sb.expense;
-                totalPrev += sb.previousBalance;
-                totalInc += sb.income;
-                totalExp += sb.expense;
-                totalBal += total;
-
-                return [
-                    sb.name,
-                    sb.previousBalance.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                    sb.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                    sb.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                    total.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
-                ];
-            });
-
-            // [NEW] General Total Row
-            summaryData.push([
-                'GENEL TOPLAM',
-                totalPrev.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                totalInc.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                totalExp.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                totalBal.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
-            ]);
-
-            autoTable(doc, {
-                startY: yPos + 5,
-                head: [['Şantiye', 'Devreden', 'Dönem Gelir', 'Dönem Gider', 'Son Bakiye']],
-                body: summaryData,
-                styles: { font: 'Roboto', fontSize: 10 },
-                headStyles: { fillColor: [30, 41, 59] }, // Darker header for summary
-                theme: 'striped',
-                didParseCell: (data) => {
-                    // Make last row bold (General Total)
-                    if (data.section === 'body' && data.row.index === summaryData.length - 1) {
-                        data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.fillColor = [200, 200, 200];
-                    }
-                }
-            });
+        // [NEW] 3. Signature Boxes (Harcama Yapan & Harcama Yetkilisi)
+        // Check if we have space on current page
+        // Need approx 40-50 units height
+        if (yPos > 240) {
+            doc.addPage();
+            yPos = 30;
+        } else {
+            yPos += 10; // Spacing from content
         }
+
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+
+        // Define Box Dimensions
+        const boxWidth = 70;
+        const boxHeight = 25;
+        const leftX = 20;
+        const rightX = 120;
+
+        // Left Box - Harcama Yapan
+        doc.text("Harcama Yapan", leftX + (boxWidth / 2), yPos, { align: 'center' });
+        doc.rect(leftX, yPos + 2, boxWidth, boxHeight); // Box
+        // doc.text("(İmza)", leftX + (boxWidth / 2), yPos + 20, { align: 'center' }); // Optional hint inside
+
+        // Right Box - Harcama Yetkilisi
+        doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), yPos, { align: 'center' });
+        doc.rect(rightX, yPos + 2, boxWidth, boxHeight); // Box
+        // doc.text("(İmza)", rightX + (boxWidth / 2), yPos + 20, { align: 'center' });
 
         doc.save(`Kasa_Raporu_${dateStr}.pdf`);
     };
