@@ -553,68 +553,22 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
             });
 
             // @ts-ignore
-            yPos = doc.lastAutoTable.finalY + 5;
-
-            if (yPos > 270) { doc.addPage(); yPos = 20; }
-
-            doc.setFontSize(10);
-            doc.setTextColor(0, 0, 0);
-            doc.text(`Dönem Gelir: ${totalIncome.toLocaleString('tr-TR')} TL`, 14, yPos);
-            doc.text(`Dönem Gider: ${totalExpense.toLocaleString('tr-TR')} TL`, 70, yPos);
-
-            const finalBalance = transactions.length > 0 ? transactions[0].balance : previousBalance;
-            const totalBalanceText = `Son Bakiye: ${finalBalance.toLocaleString('tr-TR')} TL`;
-
-            if (finalBalance >= 0) doc.setTextColor(0, 128, 0);
-            else doc.setTextColor(200, 0, 0);
-
-            doc.text(totalBalanceText, 130, yPos);
-
-            yPos += 20;
+            yPos = doc.lastAutoTable.finalY + 10;
         });
 
-        // [NEW] 3. Signature Boxes (Harcama Yapan & Harcama Yetkilisi)
-        // Position at the bottom of the page
-        const pageHeight = doc.internal.pageSize.height || 297;
-        const signatureHeight = 40;
-        const signatureY = pageHeight - signatureHeight - 10; // 10px padding from bottom
-
-        // Check if content overlaps with signature area
-        if (yPos > signatureY - 10) {
-            doc.addPage();
-        }
-
-        // Draw at predefined bottom position
-        const boxWidth = 70;
-        const boxHeight = 25;
-        const leftX = 20;
-        const rightX = 120;
-
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-
-        // Left Box - Harcama Yapan
-        doc.text("Harcama Yapan", leftX + (boxWidth / 2), signatureY, { align: 'center' });
-        doc.rect(leftX, signatureY + 2, boxWidth, boxHeight); // Box
-
-        // Right Box - Harcama Yetkilisi
-        doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), signatureY, { align: 'center' });
-        doc.rect(rightX, signatureY + 2, boxWidth, boxHeight); // Box
-
-        // Right Box - Harcama Yetkilisi
-        doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), yPos, { align: 'center' });
-        doc.rect(rightX, yPos + 2, boxWidth, boxHeight); // Box
-        // doc.text("(İmza)", rightX + (boxWidth / 2), yPos + 20, { align: 'center' });
-
-        // [NEW] 4. Site Summary Section (Restored)
+        // [NEW] 3. Site Summary Section (Moved before Signatures)
         const siteBalances = getSiteBalances();
         if (siteBalances.length > 0) {
-            doc.addPage();
-            yPos = 20;
+            // Check urgency for page break
+            if (yPos > 250) {
+                doc.addPage();
+                yPos = 20;
+            }
 
             doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
             doc.text("Şantiyeler Bakiye Özeti", 14, yPos);
+            yPos += 5; // Space for title
 
             let totalPrev = 0;
             let totalInc = 0;
@@ -646,7 +600,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
             ]);
 
             autoTable(doc, {
-                startY: yPos + 5,
+                startY: yPos,
                 head: [['Şantiye', 'Devreden', 'Dönem Gelir', 'Dönem Gider', 'Son Bakiye']],
                 body: summaryData,
                 styles: { font: 'Roboto', fontSize: 10, textColor: 0 },
@@ -666,7 +620,45 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                     }
                 }
             });
+
+            // Update yPos after summary table
+            // @ts-ignore
+            yPos = doc.lastAutoTable.finalY + 20;
+        } else {
+            yPos += 20; // Margin if no summary
         }
+
+        // [NEW] 4. Signature Boxes (Harcama Yapan & Harcama Yetkilisi)
+        // Position at the bottom of the page
+        const pageHeight = doc.internal.pageSize.height || 297;
+        const signatureHeight = 40;
+        // Check if content overlaps with signature area (leave 50px buffer)
+        // If current yPos is too far down, add a page to put signatures on a clean page bottom (or top)
+        // The user wants them at the BOTTOM.
+
+        let signatureY = pageHeight - signatureHeight - 20;
+
+        if (yPos > signatureY) {
+            doc.addPage();
+            // On new page, signatureY remains at bottom
+        }
+
+        // Draw at predefined bottom position
+        const boxWidth = 70;
+        const boxHeight = 25;
+        const leftX = 20;
+        const rightX = 120;
+
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+
+        // Left Box - Harcama Yapan
+        doc.text("Harcama Yapan", leftX + (boxWidth / 2), signatureY - 5, { align: 'center' });
+        doc.rect(leftX, signatureY, boxWidth, boxHeight); // Box
+
+        // Right Box - Harcama Yetkilisi
+        doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), signatureY - 5, { align: 'center' });
+        doc.rect(rightX, signatureY, boxWidth, boxHeight); // Box
 
         doc.save(`Kasa_Raporu_${dateStr}.pdf`);
     };
