@@ -405,6 +405,24 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                 onChange={handleDateChange}
                             />
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Ödeme Yöntemi</Label>
+                            <Select
+                                value={formData.paymentMethod}
+                                onValueChange={(v) => setFormData({ ...formData, paymentMethod: v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="CASH">Nakit</SelectItem>
+                                    <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <div className="space-y-2">
                             <Label>Tutar (TL)</Label>
                             <Input

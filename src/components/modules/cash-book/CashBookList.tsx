@@ -165,7 +165,12 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
         // [NEW] Payment Method Filter
         if (selectedPaymentMethod !== 'ALL') {
-            result = result.filter(t => t.paymentMethod === selectedPaymentMethod);
+            if (selectedPaymentMethod === 'CASH') {
+                // Include CASH and NULL (legacy)
+                result = result.filter(t => t.paymentMethod === 'CASH' || !t.paymentMethod);
+            } else {
+                result = result.filter(t => t.paymentMethod === selectedPaymentMethod);
+            }
         }
 
         if (searchTerm) {
@@ -233,7 +238,11 @@ export function CashBookList({ siteId, type }: CashBookListProps) {
 
         // [NEW] Payment Method Filter for Previous Balance
         if (selectedPaymentMethod !== 'ALL') {
-            preTransactions = preTransactions.filter((t: any) => t.paymentMethod === selectedPaymentMethod);
+            if (selectedPaymentMethod === 'CASH') {
+                preTransactions = preTransactions.filter((t: any) => t.paymentMethod === 'CASH' || !t.paymentMethod);
+            } else {
+                preTransactions = preTransactions.filter((t: any) => t.paymentMethod === selectedPaymentMethod);
+            }
         }
 
         const income = preTransactions.filter((t: any) => t.type === 'INCOME').reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
