@@ -71,7 +71,7 @@ export async function createFuelLog(data: Partial<FuelLog>) {
 
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks'); // Tank level changed
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
         return { success: true, data: log };
     } catch (error) {
         console.error('createFuelLog Error:', error);
@@ -122,8 +122,8 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel');
-        revalidatePath('/dashboard'); // Further ensure layout updates
+        revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard', 'page'); // Further ensure layout updates
         revalidatePath('/', 'layout'); // Global layout reset to force fetch
         return { success: true, data: log };
 
@@ -166,7 +166,7 @@ export async function createFuelTank(data: Partial<FuelTank>) {
             }
         });
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
         return { success: true, data: tank };
     } catch (error: any) {
         console.error('createFuelTank Error:', error);
@@ -178,7 +178,7 @@ export async function deleteFuelTank(id: string) {
     try {
         await prisma.fuelTank.delete({ where: { id } });
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
         return { success: true };
     } catch (error) {
         console.error('deleteFuelTank Error:', error);
@@ -263,7 +263,7 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
 
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks'); // Levels changed
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
         return { success: true, data: transfer };
     } catch (error) {
         console.error('createFuelTransfer Error:', error);
@@ -338,7 +338,7 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
     } finally {
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
     }
 }
 
@@ -358,13 +358,14 @@ export async function deleteFuelLog(id: string) {
         await prisma.fuelLog.delete({ where: { id } });
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
         return { success: true };
     } catch (error) {
         console.error('deleteFuelLog Error:', error);
         return { success: false, error: 'Silme işlemi başarısız.' };
     }
 }
+
 
 export async function deleteFuelTransfer(id: string) {
     try {
@@ -390,10 +391,34 @@ export async function deleteFuelTransfer(id: string) {
         await prisma.fuelTransfer.delete({ where: { id } });
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel');
+        revalidatePath('/dashboard/fuel', 'page');
         return { success: true };
     } catch (error) {
         console.error('deleteFuelTransfer Error:', error);
         return { success: false, error: 'Transfer silinemedi.' };
     }
 }
+
+export async function markFuelLogsAsFull(ids: string[]) {
+    try {
+        if (!ids || ids.length === 0) return { success: false, error: 'Kayıt seçilmedi.' };
+
+        await prisma.fuelLog.updateMany({
+            where: {
+                id: { in: ids }
+            },
+            data: {
+                fullTank: true
+            }
+        });
+
+
+        revalidateTag('fuel-logs');
+        revalidatePath('/dashboard/fuel', 'page');
+        return { success: true, count: ids.length };
+    } catch (error) {
+        console.error('markFuelLogsAsFull Error:', error);
+        return { success: false, error: 'İşlem başarısız.' };
+    }
+}
+

@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useState } from 'react';
 import { normalizeSearchText, cn } from '@/lib/utils';
-import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction } from '@/actions/fuel';
+import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction, markFuelLogsAsFull } from '@/actions/fuel';
 
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
 
@@ -148,6 +148,34 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         }
         setIsEditOpen(false);
         setEditingLog(null);
+    };
+
+    const handleMarkAllFull = async () => {
+        const visibleLogIds = reportData
+            .filter((row: any) => row.recordType === 'LOG' && !row.fullTank)
+            .map((row: any) => row.id);
+
+        if (visibleLogIds.length === 0) {
+            return alert('Listede "Full Olmayan" ve düzenlenebilir yakıt kaydı bulunamadı.');
+        }
+
+        if (!confirm(`${visibleLogIds.length} adet kaydı "Full" olarak işaretlemek ve ortalama tüketim hesaplamasına dahil etmek istediğinize emin misiniz?`)) return;
+
+        try {
+            const res = await markFuelLogsAsFull(visibleLogIds);
+            if (res.success) {
+                // Optimistic Update
+                visibleLogIds.forEach(id => {
+                    updateFuelLog(id, { fullTank: true });
+                });
+                alert('İşlem başarılı.');
+            } else {
+                alert(res.error || 'İşlem başarısız.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Hata oluştu.');
+        }
     };
 
     // Group logs by vehicle
@@ -648,6 +676,11 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
             {/* [NEW] Export Buttons */}
             <div className="flex justify-end gap-2">
+                {canEditFuel && (
+                    <Button variant="secondary" size="sm" onClick={handleMarkAllFull} className="gap-2 bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200">
+                        Listeyi Full İşaretle
+                    </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
                     <FileSpreadsheet className="w-4 h-4 text-green-600" /> Excel İndir
                 </Button>
