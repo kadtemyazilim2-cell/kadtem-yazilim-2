@@ -624,7 +624,7 @@ export default function AdminPage() {
         setEditLookbackDays('');
     };
 
-    const handleDeleteUser = (userToDelete: User) => {
+    const handleDeleteUser = async (userToDelete: User) => {
         if (user?.role !== 'ADMIN') { // [Check] Only Admin can delete
             alert('Bu işlem için yetkiniz yok.');
             return;
@@ -636,9 +636,18 @@ export default function AdminPage() {
         }
 
         if (confirm(`${userToDelete.name} kullanıcısını silmek istediğinize emin misiniz?`)) {
-            // Also consider checking if user has related data (like cash transactions) but store handles that or simple deletion.
-            // For now, allow deletion.
-            deleteUser(userToDelete.id);
+            try {
+                const res = await deleteUserAction(userToDelete.id);
+                if (res.success) {
+                    deleteUser(userToDelete.id); // Update Store
+                    toast.success('Kullanıcı silindi.');
+                } else {
+                    toast.error(res.error || 'Silinemedi.');
+                }
+            } catch (error) {
+                console.error(error);
+                toast.error('Geriye dönük hata oluştu.');
+            }
         }
     };
 
