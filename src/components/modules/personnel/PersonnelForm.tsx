@@ -163,7 +163,13 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
         if (!category) { errors.category = "Personel grubu seçimi zorunludur"; isValid = false; }
         if (!profession) { errors.profession = "Meslek bilgisi zorunludur"; isValid = false; }
         if (!role) { errors.role = "Görev bilgisi zorunludur"; isValid = false; }
-        if (!salary || Number(salary) <= 0) { errors.salary = "Maaş bilgisi zorunludur"; isValid = false; }
+
+        // [FIX] If updating salary, validate the NEW salary, otherwise validate the EXISTING salary
+        const salaryToValidate = showSalaryUpdate ? newSalary : salary;
+        if (!salaryToValidate || Number(salaryToValidate) <= 0) {
+            errors.salary = "Maaş bilgisi zorunludur";
+            isValid = false;
+        }
         if (!siteId) { errors.siteId = "Şantiye seçimi zorunludur"; isValid = false; }
 
         if (!isValid) {
