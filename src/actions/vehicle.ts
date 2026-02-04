@@ -41,6 +41,9 @@ const getVehiclesFromDb = unstable_cache(
 
                 // licenseFile: false, // EXCLUDED to prevent 2MB cache limit error
 
+                // History fields (if they exist in schema and act as scalars/small json)
+                insuranceHistory: true,
+
                 // Relations
                 // [FIX] Select ONLY necessary fields to prevent 2MB cache limit error
                 // Exclude 'stamp', 'letterhead' (Base64) from Company
