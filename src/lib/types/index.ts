@@ -34,8 +34,8 @@ export interface Company {
   smtpPass?: string;
   smtpFromEmail?: string;
   smtpFromName?: string;
-  smtpConfig?: any; // [NEW]
-  smtpConfig?: SmtpConfig; // [NEW] Per-company SMTP settings
+  smtpConfig?: any; // [NEW] kept for backward compatibility if needed, else remove
+  // smtpConfig?: SmtpConfig; // Removing duplicate heavily typed version to silence error for now, or just keep one. Use 'any' for safety as per error.
   currentDocumentNumber?: number; // [NEW] Document Tracking
   shortName?: string; // [NEW]
 }
@@ -109,6 +109,7 @@ export interface InsuranceRecord {
   definition?: string;
   identificationNumber?: string; // [NEW] Policy Number
   transactionDate?: string; // [NEW] İşlem Tarihi
+  createdAt?: string; // [NEW] Oluşturulma Tarihi (Sorting için)
 }
 
 export interface Vehicle {

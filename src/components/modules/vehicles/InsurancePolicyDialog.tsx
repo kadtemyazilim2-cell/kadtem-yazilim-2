@@ -85,7 +85,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     transactionDate: policy.transactionDate || policy.startDate, // Fallback
                     attachments: policy.attachments || [] // Keep existing attachments
                 });
-                setCostInput(policy.cost ? policy.cost.toString().replace('.', ',') : '');
+                setCostInput(policy.cost ? policy.cost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '');
                 setFile(null); // Reset file input on edit open
             } else {
                 // RESET for ADD
@@ -237,7 +237,8 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 attachments: attachments,
                 definition: formData.definition || '',
                 identificationNumber: formData.identificationNumber,
-                transactionDate: formData.transactionDate || new Date().toISOString().split('T')[0]
+                transactionDate: formData.transactionDate || new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString() // [NEW] Capture creation time for sorting
             };
 
             // [LOGIC FIX] Calculate ACTIVE Policy based on Max End Date from ALL history
@@ -351,12 +352,30 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                                         inputMode="decimal"
                                         value={costInput}
                                         onChange={(e) => {
-                                            const val = e.target.value.replace('.', ','); // Normalize dot to comma
-                                            // Allow only digits and max one comma
-                                            if (/^\d*,?\d*$/.test(val)) {
-                                                setCostInput(val);
-                                                const numericVal = val === '' ? 0 : Number(val.replace(',', '.'));
-                                                setFormData(prev => ({ ...prev, cost: numericVal }));
+                                            // Allow raw input but filter invalid chars
+                                            let val = e.target.value;
+
+                                            // Allow digits, dots, commas
+                                            if (!/^[\d.,]*$/.test(val)) return;
+
+                                            setCostInput(val);
+
+                                            // Parse for internal numeric state
+                                            // Remove thousands separators (dots) and replace decimal separator (comma) with dot
+                                            const cleanVal = val.replace(/\./g, '').replace(',', '.');
+                                            const numVal = parseFloat(cleanVal);
+
+                                            if (!isNaN(numVal)) {
+                                                setFormData(prev => ({ ...prev, cost: numVal }));
+                                            } else if (val === '') {
+                                                setFormData(prev => ({ ...prev, cost: 0 }));
+                                            }
+                                        }}
+                                        onBlur={() => {
+                                            // Format on blur to standardized TR format
+                                            if (formData.cost !== undefined && formData.cost !== 0) {
+                                                const formatted = formData.cost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                setCostInput(formatted);
                                             }
                                         }}
                                         placeholder="0,00"

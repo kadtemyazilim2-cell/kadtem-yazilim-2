@@ -354,7 +354,12 @@ export function VehicleList() {
         }
 
         return policies;
-    }).sort((a, b) => { // Sort Newest First by TRANSACTION DATE
+    }).sort((a, b) => { // Sort Newest First by CREATED AT (Last Uploaded)
+        // 1. Try sorting by Creation Time (Real upload order)
+        if (a.createdAt && b.createdAt) {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        // 2. Fallback to Transaction Date if createdAt missing (legacy)
         const dateA = a.transactionDate ? new Date(a.transactionDate).getTime() : 0;
         const dateB = b.transactionDate ? new Date(b.transactionDate).getTime() : 0;
         return dateB - dateA;
