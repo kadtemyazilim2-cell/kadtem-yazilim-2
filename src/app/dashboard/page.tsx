@@ -290,7 +290,7 @@ export default function DashboardPage() {
     const handlePolicyClick = (item: any) => {
         setSelectedAlertForPolicy({
             vehicleId: item.vehicleId,
-            type: item.type === 'Trafik Sigortası' ? 'TRAFIK' : (item.type === 'Kasko' ? 'KASKO' : '')
+            type: item.type === 'Trafik Sigortası' ? 'TRAFFIC' : (item.type === 'Kasko' ? 'KASKO' : '')
         });
     };
 
