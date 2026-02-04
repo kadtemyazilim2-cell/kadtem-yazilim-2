@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GlobalPersonnelList } from '@/components/modules/personnel/GlobalPersonnelList';
 import { PersonnelForm } from '@/components/modules/personnel/PersonnelForm';
 import { PersonnelList } from '@/components/modules/personnel/PersonnelList'; // Keeping for 'Puantaj' tab
+import PersonnelAssignment from '@/components/modules/personnel-attendance/PersonnelAssignment';
 
 export default function PersonnelPage() {
     return (
@@ -18,10 +19,15 @@ export default function PersonnelPage() {
             </div>
 
             <Tabs defaultValue="all-personnel" className="w-full">
-                <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                <TabsList className="grid w-full max-w-[600px] grid-cols-3">
                     <TabsTrigger value="attendance">Puantaj</TabsTrigger>
+                    <TabsTrigger value="assignments">Atamalar</TabsTrigger>
                     <TabsTrigger value="all-personnel">Tüm Personeller</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="assignments" className="mt-4">
+                    <PersonnelAssignment />
+                </TabsContent>
 
                 <TabsContent value="attendance" className="mt-4">
                     <PersonnelList />

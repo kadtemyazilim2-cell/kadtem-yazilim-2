@@ -249,7 +249,8 @@ export interface Personnel {
   tcNumber: string; // [NEW] 11 digits
   profession: string; // [NEW] Mesleği
   salary: number; // [NEW] Maaş
-  siteId: string; // [NEW] Şantiye
+  assignedSiteIds?: string[]; // [NEW] Multi-site support
+  siteId: string | null; // [MODIFIED] Allow null
   category: 'TECHNICAL' | 'FIELD'; // [NEW] Personel Grubu: Teknik veya Saha
   status?: 'ACTIVE' | 'LEFT'; // [NEW] Durum: Çalışıyor veya Ayrıldı
   leftDate?: string; // [NEW] İşten ayrılma tarihi (ISO)
@@ -359,6 +360,8 @@ export interface AppState {
   addCashTransaction: (item: CashTransaction) => void;
   deleteCashTransaction: (id: string) => void;
   updateCashTransaction: (id: string, updates: Partial<CashTransaction>) => void;
+  addPersonnelToSite: (personnelIds: string[], siteId: string) => void;
+  removePersonnelFromSite: (personnelIds: string[], siteId: string) => void;
   addPersonnel: (p: Personnel) => void;
   updatePersonnel: (id: string, updates: Partial<Personnel>) => void;
   deletePersonnel: (id: string) => void;

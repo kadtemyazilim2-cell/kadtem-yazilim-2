@@ -122,6 +122,21 @@ export const useAppStore = create<AppState>()(
                 cashTransactions: state.cashTransactions.map(t => t.id === id ? { ...t, ...data, date: data.date ? new Date(data.date).toISOString() : t.date } : t)
             })),
             deleteCashTransaction: (id) => set((state) => ({ cashTransactions: state.cashTransactions.filter(t => t.id !== id) })),
+            addPersonnelToSite: (personnelIds, siteId) => set((state) => ({
+                personnel: state.personnel.map(p => personnelIds.includes(p.id) ? {
+                    ...p,
+                    assignedSiteIds: Array.from(new Set([...(p.assignedSiteIds || []), siteId])),
+                    siteId: siteId // Update primary site for display focus
+                } : p)
+            })),
+            removePersonnelFromSite: (personnelIds, siteId) => set((state) => ({
+                personnel: state.personnel.map(p => personnelIds.includes(p.id) ? {
+                    ...p,
+                    assignedSiteIds: (p.assignedSiteIds || []).filter(id => id !== siteId),
+                    // If removing from primary site, unset primary? or keep logic simple
+                    siteId: p.siteId === siteId ? null : p.siteId
+                } : p)
+            })),
             addPersonnel: (person) => set((state) => ({ personnel: [person, ...state.personnel] })),
             updatePersonnel: (id, data) => set((state) => ({
                 personnel: state.personnel.map((p) => (p.id === id ? { ...p, ...data } : p)),

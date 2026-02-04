@@ -267,3 +267,62 @@ export async function upsertSalaryAdjustment(
         return { success: false, error: 'Maaş düzeltmesi kaydedilemedi.' };
     }
 }
+
+// [NEW] Add Personnel to Site (Additive)
+export async function addPersonnelToSite(personnelIds: string[], siteId: string) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            for (const pId of personnelIds) {
+                const person = await tx.personnel.findUnique({
+                    where: { id: pId },
+                    select: { assignedSites: { select: { id: true } } }
+                });
+
+                if (!person) continue;
+
+                const currentSiteIds = person.assignedSites.map(s => s.id);
+                if (currentSiteIds.includes(siteId)) continue; // Already assigned
+
+                await tx.personnel.update({
+                    where: { id: pId },
+                    data: {
+                        assignedSites: {
+                            connect: { id: siteId }
+                        },
+                        // Optionally update primary siteId if it's the first one or logic dictates
+                        // siteId: siteId 
+                    }
+                });
+            }
+        });
+        revalidateTag('personnel');
+        revalidatePath('/dashboard/personnel');
+        return { success: true };
+    } catch (error: any) {
+        console.error('addPersonnelToSite Error:', error);
+        return { success: false, error: 'Ekleme işlemi yapılamadı: ' + (error.message || error) };
+    }
+}
+
+export async function removePersonnelFromSite(personnelIds: string[], siteId: string) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            for (const pId of personnelIds) {
+                await tx.personnel.update({
+                    where: { id: pId },
+                    data: {
+                        assignedSites: {
+                            disconnect: { id: siteId }
+                        }
+                    }
+                });
+            }
+        });
+        revalidateTag('personnel');
+        revalidatePath('/dashboard/personnel');
+        return { success: true };
+    } catch (error: any) {
+        console.error('removePersonnelFromSite Error:', error);
+        return { success: false, error: 'Çıkarma işlemi yapılamadı: ' + (error.message || error) };
+    }
+}
