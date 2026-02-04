@@ -315,7 +315,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                                     <Select
                                         value={formData.type}
                                         onValueChange={handleTypeChange}
-                                        disabled={mode === 'EDIT'} // Usually avoid changing type on edit to prevent confusion
+                                        disabled={mode === 'EDIT' || !!defaultType} // Disable if editing or if type is pre-selected (auto-detected)
                                     >
                                         <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                         <SelectContent>

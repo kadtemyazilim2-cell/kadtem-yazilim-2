@@ -34,7 +34,7 @@ interface VehicleFormData {
     type: 'CAR' | 'TRUCK' | 'LORRY' | 'EXCAVATOR' | 'TRACTOR' | 'MOTORCYCLE' | 'PICKUP' | 'OTHER';
     ownership: 'OWNED' | 'RENTAL';
     meterType: 'KM' | 'HOURS';
-    currentKm: number;
+    currentKm: number | ''; // [MODIFIED] Allow empty string for UI
     status: 'ACTIVE' | 'PASSIVE' | 'SOLD' | 'PERT';
 
     // Dates as strings for Input type="date"
@@ -103,7 +103,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         year: vehicleToEdit?.year,
         type: (vehicleToEdit?.type as any) || 'CAR',
         meterType: (vehicleToEdit?.meterType as any) || 'KM',
-        currentKm: vehicleToEdit?.currentKm || 0,
+        currentKm: vehicleToEdit?.currentKm ?? '', // [MODIFIED] Use nullish coalescing to allow 0 but default to empty if null/undefined
         status: (vehicleToEdit?.status as any) || 'ACTIVE',
         ownership: (vehicleToEdit?.ownership as any) || initialOwnership,
 
@@ -146,7 +146,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 year: vehicleToEdit?.year,
                 type: (vehicleToEdit?.type as any) || 'CAR',
                 meterType: (vehicleToEdit?.meterType as any) || 'KM',
-                currentKm: vehicleToEdit?.currentKm || 0,
+                currentKm: vehicleToEdit?.currentKm ?? '', // [MODIFIED] Reset logic too
                 status: (vehicleToEdit?.status as any) || 'ACTIVE',
                 ownership: (vehicleToEdit?.ownership as any) || initialOwnership,
 
@@ -191,7 +191,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
             if (!formData.year) errors.year = "Yıl zorunludur";
             if (!formData.type) errors.type = "Cinsi zorunludur";
             if (!formData.meterType) errors.meterType = "Sayaç tipi zorunludur";
-            if (formData.currentKm === undefined) errors.currentKm = "Güncel gösterge zorunludur";
+            if (formData.currentKm === '' || formData.currentKm === undefined) errors.currentKm = "Güncel gösterge zorunludur"; // [MODIFIED]
 
             if (Object.keys(errors).length > 0) isValid = false;
         }
@@ -204,7 +204,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
             if (!formData.year) errors.year = "Yıl zorunludur";
             if (!formData.type) errors.type = "Cinsi zorunludur";
             if (!formData.meterType) errors.meterType = "Sayaç tipi zorunludur";
-            if (formData.currentKm === undefined) errors.currentKm = "Güncel gösterge zorunludur";
+            if (formData.currentKm === '' || formData.currentKm === undefined) errors.currentKm = "Güncel gösterge zorunludur"; // [MODIFIED]
             if (!formData.assignedSiteId) errors.assignedSiteId = "Şantiye seçimi zorunludur";
 
             if (Object.keys(errors).length > 0) isValid = false;
@@ -229,7 +229,9 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
 
 
         if (payload.year) payload.year = parseInt(payload.year as any);
-        if (payload.currentKm) payload.currentKm = parseInt(payload.currentKm as any);
+        // [MODIFIED] Payload conversion
+        payload.currentKm = Number(payload.currentKm);
+
         if (payload.insuranceCost) payload.insuranceCost = parseFloat(payload.insuranceCost as any);
         if (payload.kaskoCost) payload.kaskoCost = parseFloat(payload.kaskoCost as any);
 
@@ -484,8 +486,9 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                 type="number"
                                 required
                                 value={formData.currentKm}
-                                onChange={(e) => setFormData({ ...formData, currentKm: parseInt(e.target.value) })}
+                                onChange={(e) => setFormData({ ...formData, currentKm: e.target.value === '' ? '' : parseInt(e.target.value) })}
                                 className={formErrors.currentKm ? "border-red-500" : ""}
+                                placeholder="0"
                             />
                             {formErrors.currentKm && <span className="text-xs text-red-500">{formErrors.currentKm}</span>}
                         </div>
