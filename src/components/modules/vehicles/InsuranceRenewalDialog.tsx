@@ -120,10 +120,36 @@ export function InsuranceRenewalDialog({ vehicle, open, onOpenChange, mode = 'RE
         }
 
         // 2. Update Vehicle with NEW values and updated History
-        updateVehicle(vehicle.id, {
-            ...formData,
-            insuranceHistory: newHistory
-        });
+        // [FIX] Chronological Check: Ensure we don't overwrite a future date with a past date
+        const updates: any = { ...formData, insuranceHistory: newHistory };
+
+        // Traffic Insurance Check
+        if (vehicle.insuranceExpiry && formData.insuranceExpiry && new Date(formData.insuranceExpiry) < new Date(vehicle.insuranceExpiry)) {
+            // If new date is older, keep the old one (assuming user entered past data but wants to keep current active)
+            // OR: If purpose is to Correct Mistake, we should allow. BUT user asked for "Latest Date Logic".
+            // Implementing "Latest Wins" logic:
+            updates.insuranceStartDate = vehicle.insuranceStartDate;
+            updates.insuranceExpiry = vehicle.insuranceExpiry;
+            updates.insuranceCost = vehicle.insuranceCost;
+            updates.insuranceCompany = vehicle.insuranceCompany;
+            updates.insuranceAgency = vehicle.insuranceAgency;
+        }
+
+        // Kasko Check
+        if (vehicle.kaskoExpiry && formData.kaskoExpiry && new Date(formData.kaskoExpiry) < new Date(vehicle.kaskoExpiry)) {
+            updates.kaskoStartDate = vehicle.kaskoStartDate;
+            updates.kaskoExpiry = vehicle.kaskoExpiry;
+            updates.kaskoCost = vehicle.kaskoCost;
+            updates.kaskoCompany = vehicle.kaskoCompany;
+            updates.kaskoAgency = vehicle.kaskoAgency;
+        }
+
+        // Inspection Check
+        if (vehicle.inspectionExpiry && formData.inspectionExpiry && new Date(formData.inspectionExpiry) < new Date(vehicle.inspectionExpiry)) {
+            updates.inspectionExpiry = vehicle.inspectionExpiry;
+        }
+
+        updateVehicle(vehicle.id, updates);
 
         onOpenChange(false);
     };

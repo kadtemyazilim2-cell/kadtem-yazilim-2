@@ -208,9 +208,13 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                             const cons = (liters / dist) * (vehicle.meterType === 'HOURS' ? 1 : 100);
                             consumptionMap[logs[i].id] = cons;
 
-                            // Add to lifetime totals
-                            totalValidLiters += liters;
-                            totalValidDist += dist;
+                            // Add to lifetime totals (Respect dynamic Site Filter)
+                            // If Site Selected: Only include logs filled at that site in the Average.
+                            // If No Site: Include all.
+                            if (!siteFilter || logs[i].siteId === siteFilter) {
+                                totalValidLiters += liters;
+                                totalValidDist += dist;
+                            }
                         }
                     }
                 }

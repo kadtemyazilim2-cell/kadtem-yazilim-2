@@ -248,21 +248,25 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 updates.insuranceHistory = newHistory; // Enabled
 
                 // UPDATE CURRENT VEHICLE STATUS (Smart Sync)
-                // If we added a Traffic Policy, update vehicle.insuranceExpiry etc.
+                // [FIX] Only update if the new policy is NEWER than the current one (Chronological Check)
                 if (newRecord.type === 'TRAFFIC') {
-                    // Check if this new policy is "newer" than current or we just overwrite
-                    // Usually adding a policy means it's the valid one.
-                    updates.insuranceCompany = newRecord.company;
-                    updates.insuranceAgency = newRecord.agency;
-                    updates.insuranceStartDate = newRecord.startDate;
-                    updates.insuranceExpiry = newRecord.endDate;
-                    updates.insuranceCost = newRecord.cost;
+                    const currentExpiry = vehicle.insuranceExpiry;
+                    if (!currentExpiry || new Date(newRecord.endDate) > new Date(currentExpiry)) {
+                        updates.insuranceCompany = newRecord.company;
+                        updates.insuranceAgency = newRecord.agency;
+                        updates.insuranceStartDate = newRecord.startDate;
+                        updates.insuranceExpiry = newRecord.endDate;
+                        updates.insuranceCost = newRecord.cost;
+                    }
                 } else if (newRecord.type === 'KASKO') {
-                    updates.kaskoCompany = newRecord.company;
-                    updates.kaskoAgency = newRecord.agency;
-                    updates.kaskoStartDate = newRecord.startDate;
-                    updates.kaskoExpiry = newRecord.endDate;
-                    updates.kaskoCost = newRecord.cost;
+                    const currentExpiry = vehicle.kaskoExpiry;
+                    if (!currentExpiry || new Date(newRecord.endDate) > new Date(currentExpiry)) {
+                        updates.kaskoCompany = newRecord.company;
+                        updates.kaskoAgency = newRecord.agency;
+                        updates.kaskoStartDate = newRecord.startDate;
+                        updates.kaskoExpiry = newRecord.endDate;
+                        updates.kaskoCost = newRecord.cost;
+                    }
                 }
 
             } else {
@@ -272,21 +276,26 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 updates.insuranceHistory = newHistory; // Enabled
 
                 // 2. If this was the "active" or displayed policy logic, we might need to sync vehicle props too
-                // Simplified: If the dates match the vehicle's current props, update them too.
+                // Check if this edited policy acts as the "Main" one based on chronological order
+                const currentExpiry = newRecord.type === 'TRAFFIC' ? vehicle.insuranceExpiry : vehicle.kaskoExpiry;
+                const newExpiry = newRecord.endDate;
 
-                // Check if this edited policy matches the current "Main" fields
-                if (newRecord.type === 'TRAFFIC' && vehicle.insuranceExpiry === policy.endDate) {
-                    updates.insuranceCompany = newRecord.company;
-                    updates.insuranceAgency = newRecord.agency;
-                    updates.insuranceStartDate = newRecord.startDate;
-                    updates.insuranceExpiry = newRecord.endDate;
-                    updates.insuranceCost = newRecord.cost;
-                } else if (newRecord.type === 'KASKO' && vehicle.kaskoExpiry === policy.endDate) {
-                    updates.kaskoCompany = newRecord.company;
-                    updates.kaskoAgency = newRecord.agency;
-                    updates.kaskoStartDate = newRecord.startDate;
-                    updates.kaskoExpiry = newRecord.endDate;
-                    updates.kaskoCost = newRecord.cost;
+                // If the new date is NEWER than current vehicle date, OR if the current vehicle date matches the OLD policy date (sync fix)
+                // We default to "Update if Newer".
+                if (!currentExpiry || new Date(newExpiry) >= new Date(currentExpiry)) {
+                    if (newRecord.type === 'TRAFFIC') {
+                        updates.insuranceCompany = newRecord.company;
+                        updates.insuranceAgency = newRecord.agency;
+                        updates.insuranceStartDate = newRecord.startDate;
+                        updates.insuranceExpiry = newRecord.endDate;
+                        updates.insuranceCost = newRecord.cost;
+                    } else if (newRecord.type === 'KASKO') {
+                        updates.kaskoCompany = newRecord.company;
+                        updates.kaskoAgency = newRecord.agency;
+                        updates.kaskoStartDate = newRecord.startDate;
+                        updates.kaskoExpiry = newRecord.endDate;
+                        updates.kaskoCost = newRecord.cost;
+                    }
                 }
             }
 

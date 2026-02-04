@@ -335,7 +335,7 @@ export default function DashboardPage() {
 
                 {/* Insurance Alerts Card */}
                 {hasPermission('vehicle', 'VIEW') && (
-                    <Card className="bg-red-50 border-red-100 border shadow-sm col-span-2">
+                    <Card className="bg-red-50 border-red-100 border shadow-sm col-span-2 lg:col-span-4">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600">
                                 Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
