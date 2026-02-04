@@ -22,12 +22,35 @@ import {
 import { Search, MoreVertical, Edit, Trash2, Building2 } from 'lucide-react';
 import { PersonnelForm } from './PersonnelForm';
 import { Badge } from '@/components/ui/badge';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+    DialogDescription,
+} from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ArrowRightLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function GlobalPersonnelList() {
-    const { personnel, sites, deletePersonnel, personnelAttendance } = useAppStore();
+    const { personnel, sites, deletePersonnel, personnelAttendance, updatePersonnel } = useAppStore();
     const { hasPermission } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [editingPersonnelId, setEditingPersonnelId] = useState<string | null>(null);
+
+    // Transfer State
+    const [transferModalOpen, setTransferModalOpen] = useState(false);
+    const [personnelToTransfer, setPersonnelToTransfer] = useState<typeof personnel[0] | null>(null);
+    const [targetSiteId, setTargetSiteId] = useState('');
 
     // Permission Check
     const canEdit = hasPermission('personnel.list', 'EDIT') || hasPermission('personnel', 'EDIT');
@@ -63,6 +86,40 @@ export function GlobalPersonnelList() {
         if (confirm(`${p.fullName} isimli personeli kalıcı olarak silmek istediğinize emin misiniz?`)) {
             deletePersonnel(p.id);
         }
+    };
+
+    const openTransferModal = (p: typeof personnel[0]) => {
+        setPersonnelToTransfer(p);
+        setTargetSiteId(p.siteId || ''); // Pre-select current if any
+        setTransferModalOpen(true);
+    };
+
+    const handleTransfer = () => {
+        if (!personnelToTransfer || !targetSiteId) return;
+
+        if (targetSiteId === personnelToTransfer.siteId) {
+            toast.info('Personel zaten bu şantiyede.');
+            setTransferModalOpen(false);
+            return;
+        }
+
+        const newHistory = [
+            ...(personnelToTransfer.transferHistory || []),
+            {
+                fromSiteId: personnelToTransfer.siteId || '',
+                toSiteId: targetSiteId,
+                date: new Date().toISOString()
+            }
+        ];
+
+        updatePersonnel(personnelToTransfer.id, {
+            siteId: targetSiteId,
+            transferHistory: newHistory
+        });
+
+        toast.success('Personel şantiyesi güncellendi.');
+        setTransferModalOpen(false);
+        setPersonnelToTransfer(null);
     };
 
     return (
@@ -135,10 +192,16 @@ export function GlobalPersonnelList() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
                                                         {canEdit && (
-                                                            <DropdownMenuItem onClick={() => setEditingPersonnelId(p.id)}>
-                                                                <Edit className="w-4 h-4 mr-2" />
-                                                                Düzenle
-                                                            </DropdownMenuItem>
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => setEditingPersonnelId(p.id)}>
+                                                                    <Edit className="w-4 h-4 mr-2" />
+                                                                    Düzenle
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => openTransferModal(p)}>
+                                                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                                                    Şantiye Ata
+                                                                </DropdownMenuItem>
+                                                            </>
                                                         )}
                                                         {canDelete && (
                                                             <DropdownMenuItem onClick={() => handleDelete(p)} className="text-red-600 focus:text-red-600">
@@ -164,6 +227,35 @@ export function GlobalPersonnelList() {
                 open={!!editingPersonnelId}
                 onOpenChange={(open) => !open && setEditingPersonnelId(null)}
             />
+
+            {/* Transfer Modal */}
+            <Dialog open={transferModalOpen} onOpenChange={setTransferModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Şantiye Ata / Transfer Et</DialogTitle>
+                        <DialogDescription>
+                            {personnelToTransfer?.fullName} isimli personeli başka bir şantiyeye atamak üzeresiniz.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label className="mb-2 block">Yeni Şantiye Seçiniz</Label>
+                        <Select value={targetSiteId} onValueChange={setTargetSiteId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Şantiye Seç..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setTransferModalOpen(false)}>İptal</Button>
+                        <Button onClick={handleTransfer}>Kaydet</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
