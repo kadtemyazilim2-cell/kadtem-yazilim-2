@@ -42,6 +42,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
     });
 
     const [file, setFile] = useState<File | null>(null);
+    const [costInput, setCostInput] = useState('');
     const [definitionDialog, setDefinitionDialog] = useState<{ open: boolean; type: 'INSURANCE_COMPANY' | 'INSURANCE_AGENCY' }>({ open: false, type: 'INSURANCE_COMPANY' });
 
     const getLastExpiry = (type: string) => {
@@ -81,6 +82,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     transactionDate: policy.transactionDate || policy.startDate, // Fallback
                     attachments: policy.attachments || [] // Keep existing attachments
                 });
+                setCostInput(policy.cost ? policy.cost.toString().replace('.', ',') : '');
                 setFile(null); // Reset file input on edit open
             } else {
                 // RESET for ADD
@@ -115,6 +117,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     transactionDate: new Date().toISOString().split('T')[0],
                     attachments: []
                 });
+                setCostInput('');
                 setFile(null);
             }
         }
@@ -327,12 +330,19 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                                 <div className="space-y-2">
                                     <Label>Tutar (TL) <span className="text-red-500">*</span></Label>
                                     <Input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.cost || ''}
-                                        onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
-                                        placeholder="0.00"
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={costInput}
+                                        onChange={(e) => {
+                                            const val = e.target.value.replace('.', ','); // Normalize dot to comma
+                                            // Allow only digits and max one comma
+                                            if (/^\d*,?\d*$/.test(val)) {
+                                                setCostInput(val);
+                                                const numericVal = val === '' ? 0 : Number(val.replace(',', '.'));
+                                                setFormData(prev => ({ ...prev, cost: numericVal }));
+                                            }
+                                        }}
+                                        placeholder="0,00"
                                     />
                                 </div>
                             </div>
