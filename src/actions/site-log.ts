@@ -30,17 +30,54 @@ export async function createSiteLogEntry(data: Partial<SiteLogEntry>) {
             return { success: false, error: 'Eksik bilgi: Şantiye, Tarih, İçerik ve Yazar zorunludur.' };
         }
 
-        const entry = await prisma.siteLogEntry.create({
-            data: {
+        const inputDate = new Date(data.date);
+        const startOfDay = new Date(inputDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(inputDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Check for existing entry
+        const existingEntry = await prisma.siteLogEntry.findFirst({
+            where: {
                 siteId: data.siteId,
-                date: new Date(data.date),
-                weather: data.weather,
-                content: data.content,
                 authorId: data.authorId,
-                tags: data.tags || [],
-                images: data.images || []
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
             }
         });
+
+        let entry;
+
+        if (existingEntry) {
+            // Append content
+            const newContent = `${existingEntry.content}\n\n${data.content}`;
+            const mergedTags = Array.from(new Set([...(existingEntry.tags || []), ...(data.tags || [])]));
+            const mergedImages = Array.from(new Set([...(existingEntry.images || []), ...(data.images || [])]));
+
+            entry = await prisma.siteLogEntry.update({
+                where: { id: existingEntry.id },
+                data: {
+                    content: newContent,
+                    tags: mergedTags,
+                    images: mergedImages
+                }
+            });
+        } else {
+            // Create new
+            entry = await prisma.siteLogEntry.create({
+                data: {
+                    siteId: data.siteId,
+                    date: inputDate,
+                    weather: data.weather,
+                    content: data.content,
+                    authorId: data.authorId,
+                    tags: data.tags || [],
+                    images: data.images || []
+                }
+            });
+        }
 
         revalidateTag('site-logs');
         revalidatePath('/dashboard/site-log');
