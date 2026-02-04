@@ -343,6 +343,8 @@ export interface AppState {
   updateSite: (id: string, updates: Partial<Site>) => void;
   deleteSite: (id: string) => void;
   assignVehiclesToSite: (vehicleIds: string[], siteIds: string[]) => void;
+  addVehiclesToSite: (vehicleIds: string[], siteId: string) => void; // [NEW] Additive
+  removeVehiclesFromSite: (vehicleIds: string[], siteId: string) => void; // [NEW] Subtractive
   setYiUfeRates: (rates: YiUfeRate[]) => void;
   addUser: (user: User) => void;
   updateUser: (id: string, updates: Partial<User>) => void;

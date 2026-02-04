@@ -260,11 +260,17 @@ export const useAppStore = create<AppState>()(
             deleteSite: (id) => set((state) => ({
                 sites: state.sites.filter(s => s.id !== id)
             })),
-            assignVehiclesToSite: (vehicleIds, siteIds) => set((state) => ({
+            addVehiclesToSite: (vehicleIds, siteId) => set((state) => ({
                 vehicles: state.vehicles.map(v => vehicleIds.includes(v.id) ? {
                     ...v,
-                    assignedSiteIds: siteIds,
-                    assignedSiteId: siteIds.length > 0 ? siteIds[0] : undefined
+                    assignedSiteIds: Array.from(new Set([...(v.assignedSiteIds || []), siteId])), // Additive + Unique
+                    assignedSiteId: siteId // Update primary ref mostly for legacy or UI focus
+                } : v)
+            })),
+            removeVehiclesFromSite: (vehicleIds, siteId) => set((state) => ({
+                vehicles: state.vehicles.map(v => vehicleIds.includes(v.id) ? {
+                    ...v,
+                    assignedSiteIds: (v.assignedSiteIds || []).filter(id => id !== siteId)
                 } : v)
             })),
             setYiUfeRates: (rates) => set({ yiUfeRates: rates }),

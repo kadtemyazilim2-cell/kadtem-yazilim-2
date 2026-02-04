@@ -498,3 +498,51 @@ export async function deleteVehicle(id: string) {
         return { success: false, error: 'Araç silinemedi.' };
     }
 }
+
+// [NEW] Additive Assignment Action (Multi-Site Friendly)
+export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
+    try {
+        await prisma.$transaction(async (tx) => {
+            for (const vId of vehicleIds) {
+                const vehicle = await tx.vehicle.findUnique({
+                    where: { id: vId },
+                    include: { assignedSites: true }
+                });
+
+                if (!vehicle) continue;
+
+                const currentSiteIds = vehicle.assignedSites.map(s => s.id);
+
+                // If already assigned, skip
+                if (currentSiteIds.includes(siteId)) continue;
+
+                // 1. Update Relation (Connect)
+                await tx.vehicle.update({
+                    where: { id: vId },
+                    data: {
+                        assignedSites: {
+                            connect: { id: siteId }
+                        }
+                    }
+                });
+
+                // 2. Handle History (Create new open history)
+                await tx.vehicleAssignmentHistory.create({
+                    data: {
+                        vehicleId: vId,
+                        siteId: siteId,
+                        startDate: new Date(),
+                        endDate: null
+                    }
+                });
+            }
+        });
+
+        revalidateTag('vehicles');
+        revalidatePath('/dashboard/vehicles');
+        return { success: true };
+    } catch (error: any) {
+        console.error('addVehiclesToSite Error:', error);
+        return { success: false, error: 'Ekleme işlemi yapılamadı: ' + (error.message || error) };
+    }
+}

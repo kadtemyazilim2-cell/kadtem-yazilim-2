@@ -10,13 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { toTurkishLower } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
-import { bulkAssignVehicles, bulkUnassignVehicles } from '@/actions/vehicle';
+import { bulkAssignVehicles, bulkUnassignVehicles, addVehiclesToSite as addVehiclesToSiteAction } from '@/actions/vehicle';
 import { toast } from 'sonner';
 import { Loader2, Plus, X } from 'lucide-react';
-import { Input } from '@/components/ui/input'; // Added Input import
+import { Input } from '@/components/ui/input';
 
 export function VehicleAssignment() {
-    const { vehicles, sites, assignVehiclesToSite } = useAppStore();
+    const { vehicles, sites, assignVehiclesToSite, addVehiclesToSite, removeVehiclesFromSite } = useAppStore();
     const { hasPermission } = useAuth();
 
     // Permission Check
@@ -25,7 +25,7 @@ export function VehicleAssignment() {
     const [selectedSiteId, setSelectedSiteId] = useState<string>('');
     const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
 
-    // [New] Search States
+    // Search States
     const [assignedSearch, setAssignedSearch] = useState('');
     const [availableSearch, setAvailableSearch] = useState('');
 
@@ -37,30 +37,41 @@ export function VehicleAssignment() {
                 if (!assignedSearch) return true;
                 const search = toTurkishLower(assignedSearch);
                 return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
+            })
+            .sort((a: any, b: any) => {
+                // Sort by Ownership (RENTAL first)
+                if (a.ownership !== b.ownership) return a.ownership === 'RENTAL' ? -1 : 1;
+                return a.plate.localeCompare(b.plate);
             });
     }, [vehicles, selectedSiteId, assignedSearch]);
 
-    // 2. Available Vehicles (Idle - Not assigned to ANY site)
+    // 2. Available Vehicles (Not in THIS site)
     const availableVehicles = useMemo(() => {
+        if (!selectedSiteId) return [];
         return vehicles.filter((v: any) => {
             if (v.status === 'PASSIVE') return false;
-            // Strict check: Must not be assigned to ANY site
-            return !v.assignedSiteIds || v.assignedSiteIds.length === 0;
+            // Available if NOT assigned to CURRENT site
+            return !v.assignedSiteIds?.includes(selectedSiteId);
         }).filter((v: any) => {
             if (!availableSearch) return true;
             const search = toTurkishLower(availableSearch);
             return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
-        });
-    }, [vehicles, availableSearch]);
+        })
+            .sort((a: any, b: any) => {
+                // Sort by Ownership (RENTAL first)
+                if (a.ownership !== b.ownership) return a.ownership === 'RENTAL' ? -1 : 1;
+                return a.plate.localeCompare(b.plate);
+            });
+    }, [vehicles, availableSearch, selectedSiteId]);
 
 
     const handleAdd = async (vehicleId: string) => {
         if (!selectedSiteId) return;
         setLoadingIds(prev => ({ ...prev, [vehicleId]: true }));
         try {
-            const res = await bulkAssignVehicles([vehicleId], [selectedSiteId]);
+            const res = await addVehiclesToSiteAction([vehicleId], selectedSiteId);
             if (res.success) {
-                assignVehiclesToSite([vehicleId], [selectedSiteId]); // Update local store
+                addVehiclesToSite([vehicleId], selectedSiteId); // Update local store (Additive)
                 toast.success('Araç şantiyeye eklendi.');
             } else {
                 toast.error(res.error || 'Ekleme başarısız.');
@@ -81,11 +92,8 @@ export function VehicleAssignment() {
         try {
             const res = await bulkUnassignVehicles([vehicleId], [selectedSiteId]);
             if (res.success) {
-                // Since store doesn't have explicit unassign helper, we reload entirely OR update local logic if we had one.
-                // Assuming assignVehiclesToSite merges. We need a way to unmerge or just re-fetch.
-                // For now, let's force a reload or implement remove in store.
-                // Quick fix: Page reload is safe but slow. Better:
-                window.location.reload();
+                removeVehiclesFromSite([vehicleId], selectedSiteId); // Local update
+                toast.success('Araç şantiyeden çıkarıldı.');
             } else {
                 toast.error(res.error || 'Çıkarma başarısız.');
             }
@@ -198,7 +206,7 @@ function AssignTable({
     }
 
     return (
-        <div className="max-h-[600px] overflow-y-auto">
+        <div className="">
             <Table>
                 <TableHeader className="bg-slate-50 sticky top-0">
                     <TableRow>
