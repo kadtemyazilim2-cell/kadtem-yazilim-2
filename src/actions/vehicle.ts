@@ -556,3 +556,64 @@ export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
         return { success: false, error: 'Ekleme işlemi yapılamadı: ' + (error.message || error) };
     }
 }
+// [NEW] Optimized Insurance Save Action (Avoids Payload Too Large)
+export async function saveInsurancePolicy(
+    vehicleId: string,
+    policy: any, // Using 'any' to avoid strict type import issues, essentially InsuranceRecord
+    mode: 'ADD' | 'EDIT',
+    flatUpdates: Partial<Vehicle> // Updates to columns like insuranceExpiry, insuranceCompany etc.
+) {
+    try {
+        // [FIX] Convert date strings to Date objects for flatUpdates
+        const dateFields = [
+            'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
+            'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
+        ];
+
+        dateFields.forEach(field => {
+            if ((flatUpdates as any)[field] && typeof (flatUpdates as any)[field] === 'string') {
+                (flatUpdates as any)[field] = new Date((flatUpdates as any)[field]);
+            }
+        });
+
+        await prisma.$transaction(async (tx) => {
+            // 1. Fetch current history strictly from DB (Server Side)
+            const vehicle = await tx.vehicle.findUnique({
+                where: { id: vehicleId },
+                select: { insuranceHistory: true }
+            });
+
+            if (!vehicle) throw new Error('Araç bulunamadı.');
+
+            // 2. Parse and Modify History
+            let history: any[] = [];
+            if (vehicle.insuranceHistory && Array.isArray(vehicle.insuranceHistory)) {
+                history = [...(vehicle.insuranceHistory as any[])];
+            }
+
+            if (mode === 'ADD') {
+                history.push(policy);
+            } else {
+                // EDIT
+                history = history.map((record: any) => record.id === policy.id ? policy : record);
+            }
+
+            // 3. Update DB
+            await tx.vehicle.update({
+                where: { id: vehicleId },
+                data: {
+                    ...flatUpdates,         // Update flat fields (expiry, etc.)
+                    insuranceHistory: history // Update complex JSON history
+                }
+            });
+        });
+
+        revalidateTag('vehicles');
+        revalidatePath('/dashboard/vehicles');
+        return { success: true };
+
+    } catch (error: any) {
+        console.error('saveInsurancePolicy Error:', error);
+        return { success: false, error: 'Poliçe kaydedilemedi: ' + (error.message || error) };
+    }
+}

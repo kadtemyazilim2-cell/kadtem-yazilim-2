@@ -211,8 +211,8 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
             return toast.error("Lütfen geçerli bir tutar giriniz.");
         }
 
-        setIsSubmitting(true); // START LOADING
-        const toastId = toast.loading("İşlem yapılıyor, lütfen bekleyiniz..."); // SHOW LOADING TOAST
+        setIsSubmitting(true);
+        const toastId = toast.loading("Poliçe kaydediliyor, lütfen bekleyiniz...");
 
         try {
             let attachments = formData.attachments || [];
@@ -223,6 +223,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 attachments = [base64];
             }
 
+            // Create Only the NEW or EDITED Record
             const newRecord: InsuranceRecord = {
                 id: mode === 'EDIT' ? policy.id : crypto.randomUUID(),
                 type: formData.type as 'TRAFFIC' | 'KASKO',
@@ -238,67 +239,60 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 transactionDate: formData.transactionDate || new Date().toISOString().split('T')[0]
             };
 
-            const currentHistory = Array.isArray(vehicle.insuranceHistory) ? [...vehicle.insuranceHistory] : [];
-            let newHistory = [...currentHistory];
-            const updates: any = {};
+            // [LOGIC FIX] Calculate ACTIVE Policy based on Max End Date from ALL history
+            let potentialHistory = Array.isArray(vehicle.insuranceHistory) ? [...vehicle.insuranceHistory] : [];
 
             if (mode === 'ADD') {
-                newHistory.push(newRecord);
-                updates.insuranceHistory = newHistory;
-
-                // UPDATE CURRENT VEHICLE STATUS (Smart Sync - Chronological Check)
-                if (newRecord.type === 'TRAFFIC') {
-                    const currentExpiry = vehicle.insuranceExpiry;
-                    if (!currentExpiry || new Date(newRecord.endDate) > new Date(currentExpiry)) {
-                        updates.insuranceCompany = newRecord.company;
-                        updates.insuranceAgency = newRecord.agency;
-                        updates.insuranceStartDate = newRecord.startDate;
-                        updates.insuranceExpiry = newRecord.endDate;
-                        updates.insuranceCost = newRecord.cost;
-                    }
-                } else if (newRecord.type === 'KASKO') {
-                    const currentExpiry = vehicle.kaskoExpiry;
-                    if (!currentExpiry || new Date(newRecord.endDate) > new Date(currentExpiry)) {
-                        updates.kaskoCompany = newRecord.company;
-                        updates.kaskoAgency = newRecord.agency;
-                        updates.kaskoStartDate = newRecord.startDate;
-                        updates.kaskoExpiry = newRecord.endDate;
-                        updates.kaskoCost = newRecord.cost;
-                    }
-                }
-
+                potentialHistory.push(newRecord);
             } else {
-                // EDIT MODE
-                newHistory = newHistory.map((r: any) => r.id === policy.id ? newRecord : r);
-                updates.insuranceHistory = newHistory;
-
-                const currentExpiry = newRecord.type === 'TRAFFIC' ? vehicle.insuranceExpiry : vehicle.kaskoExpiry;
-                const newExpiry = newRecord.endDate;
-
-                if (!currentExpiry || new Date(newExpiry) >= new Date(currentExpiry)) {
-                    if (newRecord.type === 'TRAFFIC') {
-                        updates.insuranceCompany = newRecord.company;
-                        updates.insuranceAgency = newRecord.agency;
-                        updates.insuranceStartDate = newRecord.startDate;
-                        updates.insuranceExpiry = newRecord.endDate;
-                        updates.insuranceCost = newRecord.cost;
-                    } else if (newRecord.type === 'KASKO') {
-                        updates.kaskoCompany = newRecord.company;
-                        updates.kaskoAgency = newRecord.agency;
-                        updates.kaskoStartDate = newRecord.startDate;
-                        updates.kaskoExpiry = newRecord.endDate;
-                        updates.kaskoCost = newRecord.cost;
-                    }
-                }
+                potentialHistory = potentialHistory.map((r: any) => r.id === newRecord.id ? newRecord : r);
             }
 
-            console.log("Submitting updates to vehicle:", vehicle.id, updates);
+            // Helper to find the "Best" policy for a type
+            const findBestPolicy = (type: 'TRAFFIC' | 'KASKO') => {
+                const relevant = potentialHistory.filter((p: any) =>
+                    (type === 'TRAFFIC' && (p.type === 'TRAFFIC' || (p.type as any) === 'Trafik Sigortası')) ||
+                    (type === 'KASKO' && (p.type === 'KASKO' || (p.type as any) === 'Kasko'))
+                );
+                if (relevant.length === 0) return null;
+                // Sort descending by End Date
+                return relevant.sort((a, b) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime())[0];
+            };
 
-            // PERSISTENCE FIX: Call Server Action
-            const res = await updateVehicleAction(vehicle.id, updates);
+            const bestTraffic = findBestPolicy('TRAFFIC');
+            const bestKasko = findBestPolicy('KASKO');
+
+            const flatUpdates: any = {};
+
+            // If we have a Traffic policy (existing or new), perform update based on the BEST one.
+            if (bestTraffic) {
+                flatUpdates.insuranceCompany = bestTraffic.company;
+                flatUpdates.insuranceAgency = bestTraffic.agency;
+                flatUpdates.insuranceStartDate = bestTraffic.startDate;
+                flatUpdates.insuranceExpiry = bestTraffic.endDate;
+                flatUpdates.insuranceCost = bestTraffic.cost;
+            }
+
+            // If we have a Kasko policy (existing or new), perform update based on the BEST one.
+            if (bestKasko) {
+                flatUpdates.kaskoCompany = bestKasko.company;
+                flatUpdates.kaskoAgency = bestKasko.agency;
+                flatUpdates.kaskoStartDate = bestKasko.startDate;
+                flatUpdates.kaskoExpiry = bestKasko.endDate;
+                flatUpdates.kaskoCost = bestKasko.cost;
+            }
+
+            console.log("Saving policy via optimized action. Best Traffic:", bestTraffic?.endDate, "Best Kasko:", bestKasko?.endDate);
+
+            // Dynamically import to ensure we use the new action
+            const { saveInsurancePolicy } = await import('@/actions/vehicle');
+
+            const res = await saveInsurancePolicy(vehicle.id, newRecord, mode, flatUpdates);
 
             if (res.success) {
-                updateVehicle(vehicle.id, updates); // Update Store locally for consistency
+                // Manual store update (Optimistic UI)
+                updateVehicle(vehicle.id, { ...flatUpdates, insuranceHistory: potentialHistory });
+
                 toast.dismiss(toastId);
                 toast.success(mode === 'ADD' ? 'Poliçe başarıyla eklendi.' : 'Poliçe güncellendi.');
                 onOpenChange(false);
