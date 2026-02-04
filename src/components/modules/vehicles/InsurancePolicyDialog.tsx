@@ -105,10 +105,21 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     } catch (e) { }
                 }
 
+                let initialCompany = '';
+                let initialAgency = '';
+
+                if (initialType === 'TRAFFIC') {
+                    initialCompany = vehicle?.insuranceCompany || '';
+                    initialAgency = vehicle?.insuranceAgency || '';
+                } else if (initialType === 'KASKO') {
+                    initialCompany = vehicle?.kaskoCompany || '';
+                    initialAgency = vehicle?.kaskoAgency || '';
+                }
+
                 setFormData({
                     type: initialType as any,
-                    company: '',
-                    agency: '',
+                    company: initialCompany,
+                    agency: initialAgency,
                     startDate: initialStartDate,
                     endDate: initialEndDate,
                     cost: 0,
