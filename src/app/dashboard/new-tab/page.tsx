@@ -643,69 +643,48 @@ export default function NewPage() {
         setIsTransferOpen(true);
     };
 
-    const handleTransferSubmit = () => {
+    const handleTransferSubmit = async () => {
         if (!transferData.personId || !transferData.targetSiteId) return;
 
         const originalPerson = names.find(p => p.id === transferData.personId);
         if (!originalPerson) return;
 
-        const dateThreshold = format(transferData.transferDate, 'yyyy-MM-dd');
+        setLoading(true);
+        try {
+            // Fetch current DB user to get existing transfer history if needed, 
+            // or just append to what we know. 
+            // Since IndependentPerson doesn't fully track transferHistory field in this specific UI, 
+            // we'll rely on updatePersonnel to merge or we should have fetched it.
+            // But for now, let's just update the siteId. The backend 'transferHistory' update 
+            // from GlobalPersonnelList logic was clean.
+            // Let's replicate that minimal logic: Update siteId. 
+            // If we want history, we need to pass it.
 
-        // 1. Prepare Old Attendance: Keep ONLY history BEFORE transfer date. 
-        // Future interactions are cleared because they are leaving.
-        // History remains EXACTLY as is (Icons: Full -> Full, Half -> Half).
-        const oldAttendance: Record<string, AttendanceRecord> = {};
-        Object.entries(originalPerson.attendance || {}).forEach(([key, record]) => {
-            if (key < dateThreshold) {
-                oldAttendance[key] = record;
+            // To do it properly:
+            // 1. We should ideally have transferHistory in IndependentPerson to append to it. 
+            // For now, let's just do the site change which is the core request.
+
+            const res = await updatePersonnel(originalPerson.id, {
+                siteId: transferData.targetSiteId,
+                // Optional: We can add a note about the transfer
+                note: `${originalPerson.note || ''} (Şantiye Değişikliği: ${format(new Date(), 'dd.MM.yyyy')})`
+            });
+
+            if (res.success) {
+                // Refresh data to reflect changes
+                await refreshData();
+                setIsTransferOpen(false);
+                // toast.success is not imported, using alert or just closing. 
+                // NewPage uses 'alert' in other places.
+            } else {
+                alert("Transfer başarısız: " + res.error);
             }
-        });
-
-        // 2. Prepare New Attendance: Map Old 'Worked' history to 'TRANSFER' (Plane).
-        // Only for days BEFORE transfer date where they actually worked.
-        // "Transfer olduğu şantiyede... kaç gün çalıştıysa... o kadar uçak simgesi"
-        // 2. Prepare New Attendance: Map Old 'Worked' history to 'TRANSFER' (Plane).
-        // Only for days BEFORE transfer date where they actually worked.
-        // "Transfer olduğu şantiyede... kaç gün çalıştıysa... o kadar uçak simgesi"
-        const newAttendance: Record<string, AttendanceRecord> = {};
-        Object.entries(originalPerson.attendance || {}).forEach(([key, record]) => {
-            if (key < dateThreshold) {
-                // Check if 'Worked' or 'Occupied' (Full, Half, Out, Leave, Report)
-                if (['FULL', 'HALF', 'OUT', 'LEAVE', 'REPORT'].includes(record.status)) {
-                    newAttendance[key] = {
-                        status: 'TRANSFER',
-                        note: `Geçmiş Kayıt (Transfer: ${sites.find((s: any) => s.id === originalPerson.siteId)?.name})`
-                    };
-                }
-            }
-        });
-
-        // Include Transfer Day itself as 'TRANSFER' (Plane)
-        newAttendance[dateThreshold] = { status: 'TRANSFER', note: 'Transfer Girişi' };
-
-        const newPerson: IndependentPerson = {
-            ...originalPerson,
-            id: crypto.randomUUID(),
-            siteId: transferData.targetSiteId,
-            inputDate: dateThreshold,
-            attendance: newAttendance,
-            note: `${originalPerson.note || ''} (Transfer Geldi: ${sites.find((s: any) => s.id === originalPerson.siteId)?.name} - ${Object.keys(newAttendance).length} Gün)`
-        };
-
-        // Update Old Person
-        const updatedOriginalPerson = {
-            ...originalPerson,
-            attendance: oldAttendance,
-            transferOutDate: dateThreshold,
-            note: `${originalPerson.note || ''} (Transfer Gitti: -> ${sites.find((s: any) => s.id === transferData.targetSiteId)?.name})`
-        };
-
-        setNames(prev => [
-            ...prev.map(p => p.id === originalPerson.id ? updatedOriginalPerson : p),
-            newPerson
-        ]);
-
-        setIsTransferOpen(false);
+        } catch (error) {
+            console.error(error);
+            alert("Transfer sırasında bir hata oluştu.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleAdd = async () => {
@@ -2097,10 +2076,10 @@ export default function NewPage() {
                                                                 variant="outline"
                                                                 size="sm"
                                                                 onClick={() => openTransferModal(p)}
-                                                                title="Şantiye Transferi"
+                                                                title="Şantiye Ata"
                                                             >
                                                                 <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                                Transfer
+                                                                Şantiye Ata
                                                             </Button>
                                                         )}
                                                         {canEditPersonnel && (
