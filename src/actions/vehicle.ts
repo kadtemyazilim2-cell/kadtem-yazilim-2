@@ -567,7 +567,34 @@ export async function saveInsurancePolicy(
     try {
         console.log(`[saveInsurancePolicy] Starting for vehicle: ${vehicleId}, Mode: ${mode}`);
 
-        // [FIX] Convert date strings to Date objects for flatUpdates safely
+        // Helper to parse dates robustly (handles YYYY-MM-DD and DD.MM.YYYY)
+        const parseDate = (val: any): Date | null => {
+            if (!val) return null;
+            if (val instanceof Date) return val;
+            if (typeof val === 'string') {
+                // Try standard format
+                let d = new Date(val);
+                if (!isNaN(d.getTime())) return d;
+
+                // Try DD.MM.YYYY
+                const parts = val.split('.');
+                if (parts.length === 3) {
+                    const day = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    const year = parseInt(parts[2], 10);
+                    d = new Date(year, month, day);
+                    if (!isNaN(d.getTime())) return d;
+                }
+            }
+            return null;
+        };
+
+        // Format Date to YYYY-MM-DD string for JSON storage
+        const formatDateString = (d: Date): string => {
+            return d.toISOString().split('T')[0];
+        };
+
+        // 1. Clean & Prepare Flat Updates
         const dateFields = [
             'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
             'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
@@ -577,31 +604,42 @@ export async function saveInsurancePolicy(
 
         dateFields.forEach(field => {
             const val = cleanUpdates[field];
-            if (val && typeof val === 'string') {
-                const d = new Date(val);
-                // Check if valid date
-                if (!isNaN(d.getTime())) {
-                    cleanUpdates[field] = d;
-                } else {
-                    console.warn(`[saveInsurancePolicy] Invalid date for field ${field}: ${val}`);
-                    delete cleanUpdates[field]; // Remove invalid date to prevent DB error
-                }
+            const parsed = parseDate(val);
+            if (parsed) {
+                cleanUpdates[field] = parsed;
             } else if (val === '' || val === null) {
-                // If explicitly empty, set to null for nullable fields
                 cleanUpdates[field] = null;
+            } else if (val !== undefined) {
+                // Invalid date provided, remove it to prevent DB errors
+                console.warn(`[saveInsurancePolicy] Invalid date for flat field ${field}: ${val}`);
+                delete cleanUpdates[field];
             }
         });
 
+        // 2. Standardize Policy Dates (in the JSON record)
+        // Ensure dates in the policy object are consistently YYYY-MM-DD
+        const policyDateFields = ['startDate', 'endDate', 'transactionDate'];
+        if (policy) {
+            policyDateFields.forEach(field => {
+                if (policy[field]) {
+                    const parsed = parseDate(policy[field]);
+                    if (parsed) {
+                        policy[field] = formatDateString(parsed);
+                    }
+                }
+            });
+        }
+
         await prisma.$transaction(async (tx) => {
-            // 1. Fetch current history strictly from DB (Server Side)
+            // 3. Fetch current history strictly from DB (Server Side)
             const vehicle = await tx.vehicle.findUnique({
                 where: { id: vehicleId },
                 select: { insuranceHistory: true }
-            });
+            }) as any; // Cast to any because generated types might be stale
 
             if (!vehicle) throw new Error('Araç bulunamadı.');
 
-            // 2. Parse and Modify History
+            // 4. Parse and Modify History
             let history: any[] = [];
             if (vehicle.insuranceHistory && Array.isArray(vehicle.insuranceHistory)) {
                 history = [...(vehicle.insuranceHistory as any[])];
@@ -614,12 +652,12 @@ export async function saveInsurancePolicy(
                 history = history.map((record: any) => record.id === policy.id ? policy : record);
             }
 
-            // 3. Update DB
+            // 5. Update DB
             await tx.vehicle.update({
                 where: { id: vehicleId },
                 data: {
-                    ...cleanUpdates,       // Update flat fields (expiry, etc.)
-                    insuranceHistory: history // Update complex JSON history
+                    ...cleanUpdates,
+                    insuranceHistory: history
                 }
             });
         });
