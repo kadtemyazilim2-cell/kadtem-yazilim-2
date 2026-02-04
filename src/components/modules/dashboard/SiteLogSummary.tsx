@@ -262,66 +262,91 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {logsBySite.map(({ site, logs }: any) => (
-                    <Card key={site.id} className="flex flex-col h-full border-blue-100 shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2 bg-blue-50/50 border-b border-blue-50 rounded-t-lg">
-                            <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                                <MapPin className="w-4 h-4 text-blue-500" />
-                                <span className="truncate" title={site.name}>{site.name}</span>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-3 flex-1">
-                            <div className="space-y-3">
-                                {logs.map((log: any) => {
-                                    const author = users.find((u: any) => u.id === log.authorId);
-                                    const isItemLoading = isGenerating === log.id;
+                {logsBySite.map(({ site, logs }: any) => {
+                    // Group logs by date locally for display
+                    const logsByDate = logs.reduce((acc: any, log: any) => {
+                        const dateKey = log.date.split('T')[0];
+                        if (!acc[dateKey]) {
+                            acc[dateKey] = {
+                                date: log.date,
+                                weather: log.weather,
+                                items: []
+                            };
+                        }
+                        acc[dateKey].items.push(log);
+                        return acc;
+                    }, {});
 
-                                    return (
-                                        <div key={log.id} className="relative pl-3 border-l-2 border-slate-200 py-1">
-                                            {/* Row 1: Date | Preview Icon */}
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div className="flex items-center gap-1 font-medium text-slate-700 text-xs">
-                                                    <Calendar className="w-3 h-3 text-blue-500" />
-                                                    {format(new Date(log.date), 'dd MMMM yyyy', { locale: tr })}
+                    return (
+                        <Card key={site.id} className="flex flex-col h-full border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                            <CardHeader className="pb-2 bg-blue-50/50 border-b border-blue-50 rounded-t-lg">
+                                <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                                    <MapPin className="w-4 h-4 text-blue-500" />
+                                    <span className="truncate" title={site.name}>{site.name}</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-3 flex-1">
+                                <div className="space-y-4">
+                                    {Object.values(logsByDate)
+                                        .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .map((group: any) => {
+                                            const firstItem = group.items[0];
+                                            const isItemLoading = isGenerating === firstItem.id; // Just track first for loading visual
+
+                                            return (
+                                                <div key={group.date} className="relative pl-3 border-l-2 border-slate-200 py-1">
+                                                    {/* Row 1: Date | Preview Icon */}
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <div className="flex items-center gap-1 font-medium text-slate-700 text-xs">
+                                                            <Calendar className="w-3 h-3 text-blue-500" />
+                                                            {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6 text-slate-400 hover:text-blue-600"
+                                                            title="Önizle (Tüm Gün)"
+                                                            onClick={() => handleDownloadPDF(firstItem, true)}
+                                                            disabled={isItemLoading}
+                                                        >
+                                                            {isItemLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+                                                        </Button>
+                                                    </div>
+
+                                                    {/* Row 2: Weather (Combined or First) */}
+                                                    {group.weather && (
+                                                        <div className="mb-1.5">
+                                                            <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded inline-block max-w-full truncate" title={group.weather}>
+                                                                {group.weather}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Row 3: Contents (Stacked) */}
+                                                    <div className="space-y-2">
+                                                        {group.items.map((log: any) => {
+                                                            const author = users.find((u: any) => u.id === log.authorId);
+                                                            return (
+                                                                <div key={log.id}>
+                                                                    <p className="text-xs text-slate-700 line-clamp-3 leading-relaxed mb-0.5" title={log.content}>
+                                                                        {log.content}
+                                                                    </p>
+                                                                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                                                                        <User className="w-3 h-3" />
+                                                                        <span className="truncate">{author?.name || 'Bilinmeyen'}</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6 text-slate-400 hover:text-blue-600"
-                                                    title="Önizle"
-                                                    onClick={() => handleDownloadPDF(log, true)}
-                                                    disabled={isItemLoading}
-                                                >
-                                                    {isItemLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-                                                </Button>
-                                            </div>
-
-                                            {/* Row 2: Weather */}
-                                            {log.weather && (
-                                                <div className="mb-1.5">
-                                                    <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded inline-block max-w-full truncate" title={log.weather}>
-                                                        {log.weather}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            {/* Row 3: Content */}
-                                            <p className="text-xs text-slate-700 line-clamp-2 leading-relaxed mb-1" title={log.content}>
-                                                {log.content}
-                                            </p>
-
-                                            {/* Row 4: Author */}
-                                            <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                                                <User className="w-3 h-3" />
-                                                <span className="truncate">{author?.name || 'Bilinmeyen'}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                                            );
+                                        })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
         </div>
     );

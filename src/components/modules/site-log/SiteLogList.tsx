@@ -52,6 +52,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const [filterEndDate, setFilterEndDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+    const [internalSelectedSite, setInternalSelectedSite] = useState<string>('all'); // [NEW]
 
     // [NEW] Filtered & Grouped Data
     // const storeEntries = ... (removed redundant)
@@ -60,8 +61,9 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
         const grouped: Record<string, any> = {};
 
         siteLogEntries.filter((entry: any) => {
-            // 1. Site Filter
-            if (filterSiteId && entry.siteId !== filterSiteId) return false;
+            // 1. Site Filter (Prop OR Internal)
+            const activeFilterSite = filterSiteId || (internalSelectedSite !== 'all' ? internalSelectedSite : null);
+            if (activeFilterSite && entry.siteId !== activeFilterSite) return false;
 
             // 2. Date Range
             if (filterStartDate && new Date(entry.date) < new Date(filterStartDate)) return false;
@@ -550,7 +552,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-slate-50 border rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-slate-50 border rounded-lg">
                         <div className="col-span-1">
                             <Label className="text-xs text-muted-foreground mb-1 block">Ara</Label>
                             <Input
@@ -560,6 +562,25 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                 className="bg-white"
                             />
                         </div>
+
+                        {/* [NEW] Site Filter */}
+                        {!filterSiteId && (
+                            <div className="col-span-1">
+                                <Label className="text-xs text-muted-foreground mb-1 block">Şantiye</Label>
+                                <Select value={internalSelectedSite} onValueChange={setInternalSelectedSite}>
+                                    <SelectTrigger className="bg-white">
+                                        <SelectValue placeholder="Tümü" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tümü</SelectItem>
+                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+
                         <div className="col-span-1">
                             <Label className="text-xs text-muted-foreground mb-1 block">Başlangıç Tarihi</Label>
                             <Input
