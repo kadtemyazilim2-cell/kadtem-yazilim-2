@@ -1451,7 +1451,7 @@ export function VehicleList() {
                                             <TableRow key={policy.id} className={policy.isHistory ? "bg-slate-50 opacity-70" : ""}>
                                                 <TableCell className="text-slate-500 font-medium text-center">{formatDateSafe(policy.transactionDate)}</TableCell>
                                                 <TableCell className="font-bold font-mono">{policy.plate}</TableCell>
-                                                <TableCell className="text-xs">{policy.owner}</TableCell>
+                                                <TableCell className="text-xs max-w-[150px] truncate" title={policy.owner}>{policy.owner}</TableCell>
                                                 <TableCell>
                                                     <Badge variant="outline" className={policy.type === 'Kasko' ? "border-purple-200 text-purple-700 bg-purple-50" : "border-blue-200 text-blue-700 bg-blue-50"}>
                                                         {policy.type}
