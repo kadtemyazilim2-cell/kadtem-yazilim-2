@@ -47,7 +47,6 @@ interface VehicleFormData {
     kaskoCost: number;
     insuranceAgency: string;
     kaskoAgency: string;
-    definition: string;
 
     companyId: string;
     rentalCompanyName: string;
@@ -116,7 +115,6 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         kaskoCost: vehicleToEdit?.kaskoCost || 0,
         insuranceAgency: vehicleToEdit?.insuranceAgency || '',
         kaskoAgency: vehicleToEdit?.kaskoAgency || '',
-        definition: vehicleToEdit?.definition || '',
 
         companyId: vehicleToEdit?.companyId || '',
         rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
@@ -159,7 +157,6 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 kaskoCost: vehicleToEdit?.kaskoCost || 0,
                 insuranceAgency: vehicleToEdit?.insuranceAgency || '',
                 kaskoAgency: vehicleToEdit?.kaskoAgency || '',
-                definition: vehicleToEdit?.definition || '',
 
                 companyId: vehicleToEdit?.companyId || '',
                 rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
