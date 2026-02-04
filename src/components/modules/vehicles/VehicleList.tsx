@@ -1006,8 +1006,43 @@ export function VehicleList() {
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('year', e)}>
                                         Model Yılı {getSortIcon('year')}
                                     </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('type', e)}>
-                                        Tip {getSortIcon('type')}
+                                    <TableHead className="w-[100px] cursor-pointer" onClick={(e) => handleSort('ownership', e)}>
+                                        <div className="flex items-center gap-2">
+                                            <span>Mülkiyet</span>
+                                            {getSortIcon('ownership')}
+                                            <Popover>
+                                                <PopoverTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 ml-auto hover:bg-transparent">
+                                                        <ListFilter className={`h-3 w-3 ${filters.ownership.length > 0 ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-48 p-3" align="start">
+                                                    <div className="space-y-3">
+                                                        <h4 className="font-medium text-xs text-muted-foreground mb-2">Mülkiyet Filtrele</h4>
+                                                        <MultiSelect
+                                                            options={[
+                                                                { label: 'Kendi', value: 'OWNED' },
+                                                                { label: 'Kiralık', value: 'RENTAL' }
+                                                            ]}
+                                                            selected={filters.ownership}
+                                                            onChange={(selected) => setFilters(prev => ({ ...prev, ownership: selected }))}
+                                                            placeholder="Seçiniz..."
+                                                            className="w-full text-xs"
+                                                        />
+                                                        {filters.ownership.length > 0 && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
+                                                                onClick={() => setFilters(prev => ({ ...prev, ownership: [] }))}
+                                                            >
+                                                                Filtreyi Temizle
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
                                     </TableHead>
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('km', e)}>
                                         KM / Saat {getSortIcon('km')}
@@ -1039,7 +1074,11 @@ export function VehicleList() {
                                             </div>
                                         </TableCell>
                                         <TableCell>{vehicle.year}</TableCell>
-                                        <TableCell className="text-xs">{typeMap[vehicle.type] || vehicle.type}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className={vehicle.ownership === 'RENTAL' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
+                                                {vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Kendi'}
+                                            </Badge>
+                                        </TableCell>
                                         <TableCell>{vehicle.currentKm.toLocaleString()}</TableCell>
                                         <TableCell>
                                             <Badge variant={vehicle.status === 'ACTIVE' ? 'outline' : 'secondary'} className={
@@ -1051,9 +1090,37 @@ export function VehicleList() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm font-medium text-slate-700 block max-w-[150px] truncate" title={getVehicleSiteName(vehicle)}>
-                                                {getVehicleSiteName(vehicle)}
-                                            </span>
+                                            <div className="flex items-center gap-1 flex-wrap">
+                                                {(() => {
+                                                    const assignedSiteIds = vehicle.assignedSiteIds && vehicle.assignedSiteIds.length > 0
+                                                        ? vehicle.assignedSiteIds
+                                                        : (vehicle.assignedSiteId ? [vehicle.assignedSiteId] : []);
+
+                                                    if (assignedSiteIds.length === 0) return <span className="text-muted-foreground">-</span>;
+
+                                                    return assignedSiteIds.map((sid: string) => {
+                                                        const site = sites.find((s: any) => s.id === sid);
+                                                        if (!site) return null;
+
+                                                        // Fallback Short Name logic: First 2 chars or First Word
+                                                        const shortName = site.shortName || site.name.substring(0, 3).toUpperCase();
+
+                                                        return (
+                                                            <div key={sid} className="group relative">
+                                                                <Badge variant="secondary" className="cursor-help whitespace-nowrap text-[10px] px-1.5 h-5">
+                                                                    {shortName}
+                                                                </Badge>
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 whitespace-nowrap">
+                                                                    <div className="bg-popover text-popover-foreground text-xs rounded-md shadow-md border px-2 py-1">
+                                                                        {site.name}
+                                                                    </div>
+                                                                    <div className="w-2 h-2 bg-popover border-r border-b border-popover-foreground/20 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2"></div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             {canEdit && (

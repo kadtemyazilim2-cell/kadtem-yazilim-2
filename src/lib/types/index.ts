@@ -44,6 +44,7 @@ export interface Site {
   location: string; // Yer / Konum
   status: 'ACTIVE' | 'INACTIVE' | 'COMPLETED';
   isWarehouse?: boolean; // [NEW]
+  shortName?: string; // [NEW] Display name for dense lists
 
   // [NEW] Detailed Construction Project Info
   // [NEW] Detailed Construction Project Info

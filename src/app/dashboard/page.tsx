@@ -401,7 +401,7 @@ export default function DashboardPage() {
                                                     ) : (
                                                         <>
                                                             <Button variant="outline" size="sm" className="h-8 text-xs bg-white text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => handleAlertClick(item)}>
-                                                                Mail Gönder
+                                                                Teklif İste
                                                             </Button>
                                                             <Button variant="outline" size="sm" className="h-8 text-xs bg-white text-green-700 border-green-200 hover:bg-green-50" onClick={() => handlePolicyClick(item)}>
                                                                 Poliçe Gir
