@@ -28,6 +28,8 @@ export async function getPersonnel() {
 
 export async function createPersonnel(data: Partial<Personnel>) {
     try {
+        const { assignedSiteIds, ...rest } = data as any;
+
         const person = await prisma.personnel.create({
             data: {
                 fullName: data.fullName!,
@@ -40,10 +42,11 @@ export async function createPersonnel(data: Partial<Personnel>) {
                 status: 'ACTIVE',
                 startDate: data.startDate,
                 note: data.note,
+                salaryHistory: data.salaryHistory, // [NEW]
                 leaveAllowance: data.leaveAllowance,
                 hasOvertime: data.hasOvertime || false,
-                assignedSites: (data as any).assignedSiteIds ? {
-                    connect: (data as any).assignedSiteIds.map((id: string) => ({ id }))
+                assignedSites: assignedSiteIds ? {
+                    connect: assignedSiteIds.map((id: string) => ({ id }))
                 } : undefined
             }
         });
@@ -181,12 +184,14 @@ export async function getPersonnelWithAttendance(month: Date, siteId?: string) {
 
 export async function updatePersonnel(id: string, data: Partial<Personnel>) {
     try {
+        const { assignedSiteIds, ...rest } = data as any; // [FIX] Extract non-Prisma fields
+
         const person = await prisma.personnel.update({
             where: { id },
             data: {
-                ...data,
-                assignedSites: (data as any).assignedSiteIds ? {
-                    set: (data as any).assignedSiteIds.map((id: string) => ({ id }))
+                ...rest,
+                assignedSites: assignedSiteIds ? {
+                    set: assignedSiteIds.map((id: string) => ({ id }))
                 } : undefined
             }
         });

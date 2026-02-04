@@ -1036,6 +1036,9 @@ export function VehicleList() {
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('year', e)}>
                                         Model Yılı {getSortIcon('year')}
                                     </TableHead>
+                                    <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('type', e)}>
+                                        Araç Tipi {getSortIcon('type')}
+                                    </TableHead>
                                     <TableHead className="w-[100px] cursor-pointer" onClick={(e) => handleSort('ownership', e)}>
                                         <div className="flex items-center gap-2">
                                             <span>Mülkiyet</span>
@@ -1104,6 +1107,11 @@ export function VehicleList() {
                                             </div>
                                         </TableCell>
                                         <TableCell>{vehicle.year}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline" className="bg-slate-50 text-slate-700 font-normal">
+                                                {typeMap[vehicle.type] || vehicle.type}
+                                            </Badge>
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className={vehicle.ownership === 'RENTAL' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
                                                 {vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Kendi'}
@@ -1416,6 +1424,12 @@ export function VehicleList() {
                                                             </Button>
                                                         </div>
                                                     )}
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell font-mono text-slate-600">
+                                                    {vehicle.year}
+                                                </TableCell>
+                                                <TableCell className="hidden sm:table-cell text-slate-700">
+                                                    {typeMap[vehicle.type] || vehicle.type}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

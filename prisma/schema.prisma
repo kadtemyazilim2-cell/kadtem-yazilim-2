@@ -297,6 +297,7 @@ model Personnel {
   leftDate    DateTime?
   startDate   DateTime?
   note        String?
+  salaryHistory Json? // [NEW] Added to store history of salary changes
 
   // [NEW] Fields for Independent View Parity
   leaveAllowance String?  // Storing as String to match UI flexibility for now
