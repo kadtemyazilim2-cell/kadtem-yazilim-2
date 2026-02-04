@@ -800,6 +800,36 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                             </TableBody>
                         </Table>
                     </div>
+
+                    {/* Dynamic Summary Footer */}
+                    {reportData.length > 0 && (
+                        <div className="mt-4 p-4 bg-cyan-50/50 rounded-lg border border-cyan-100 dark:bg-cyan-950/20 dark:border-cyan-900">
+                            <div className="flex flex-col gap-2 text-sm">
+                                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                    Toplam Alınan Yakıt: <span className="text-slate-900 dark:text-slate-100 font-bold">
+                                        {reportData
+                                            .filter(r => r.recordType === 'PURCHASE' || r.recordType === 'VIRMAN_IN')
+                                            .reduce((acc, curr) => acc + curr.liters, 0)
+                                            .toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LT
+                                    </span>
+                                </div>
+                                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                    Toplam Verilen Yakıt: <span className="text-slate-900 dark:text-slate-100 font-bold">
+                                        {reportData
+                                            .filter(r => r.recordType === 'LOG' || r.recordType === 'VIRMAN_OUT')
+                                            .reduce((acc, curr) => acc + curr.liters, 0)
+                                            .toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LT
+                                    </span>
+                                </div>
+                                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                    Net Kümülatif: <span className={cn("font-bold", reportData[0].cumulativeTotal < 0 ? "text-red-600" : "text-slate-900 dark:text-slate-100")}>
+                                        {reportData[0].cumulativeTotal?.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LT
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </CardContent >
 
                 <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>

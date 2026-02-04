@@ -1617,7 +1617,7 @@ export function VehicleList() {
                 selectedVehicleForEdit && (
                     <VehicleForm
                         vehicleToEdit={selectedVehicleForEdit}
-                        customTrigger={<></>}
+                        customTrigger={<span className="hidden" />}
                         open={!!selectedVehicleForEdit}
                         onOpenChange={(open) => !open && setSelectedVehicleForEdit(null)}
                     />

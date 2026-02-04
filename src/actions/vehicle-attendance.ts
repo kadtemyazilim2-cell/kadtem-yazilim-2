@@ -64,10 +64,13 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
 
 export async function deleteVehicleAttendance(vehicleId: string, date: string) {
     try {
+        const targetDate = new Date(date);
+        targetDate.setHours(0, 0, 0, 0);
+
         const result = await prisma.vehicleAttendance.deleteMany({
             where: {
                 vehicleId: vehicleId,
-                date: date
+                date: targetDate
             }
         });
 

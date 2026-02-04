@@ -15,11 +15,11 @@ const TARGET_MONTH = 1; // January
 // Status Mapping
 const STATUS_MAP: Record<string, string> = {
     '✔️': 'WORK',
-    '⛔': 'ABSENT',
-    '🌓': 'HALF',
-    '🛠️': 'MAINTENANCE',
-    '🎉': 'ABSENT',
-    '❌': 'ABSENT'
+    '⛔': 'IDLE',       // UI: "Çalışmadı (Yattı)"
+    '🌓': 'HALF_DAY',   // UI: "Yarım Gün"
+    '🛠️': 'REPAIR',     // UI: "Arızalı"
+    '🎉': 'HOLIDAY',    // UI: "Tatil"
+    '❌': 'IDLE'        // Default bad state to IDLE
 };
 
 const SITE_NAME_KEYWORD = 'Nazilli';
@@ -74,15 +74,17 @@ async function main() {
             const icon = cell.find('div').first().text().trim();
 
             // Determine Status
-            let status = 'ABSENT'; // Default
+            let status = 'IDLE'; // Default to IDLE instead of ABSENT so it shows up in UI
+
             if (STATUS_MAP[icon]) {
                 status = STATUS_MAP[icon];
             } else if (text.includes('Tam Gün') || icon.includes('Tam')) status = 'WORK';
 
             if (cell.hasClass('ap-tamgun')) status = 'WORK';
-            else if (cell.hasClass('ap-yarimgun')) status = 'HALF';
-            else if (cell.hasClass('ap-arizali')) status = 'MAINTENANCE';
-            else if (cell.hasClass('ap-calismadi')) status = 'ABSENT';
+            else if (cell.hasClass('ap-yarimgun')) status = 'HALF_DAY';
+            else if (cell.hasClass('ap-arizali')) status = 'REPAIR';
+            else if (cell.hasClass('ap-calismadi')) status = 'IDLE';
+            else if (cell.hasClass('ap-tatil')) status = 'HOLIDAY';
 
             days.push(status);
         }
@@ -95,46 +97,68 @@ async function main() {
 
     console.log(`Parsed ${vehiclesToImport.length} vehicles.`);
 
-    // 3. Import to DB
+    // 3. Clear ALL existing records for this site/month (Sync Mode)
+    console.log("Clearing all existing records for this site and period (Sync Mode)...");
+    const monthStart = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH - 1, 1));
+    const monthEnd = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH, 0));
+
+    await prisma.vehicleAttendance.deleteMany({
+        where: {
+            siteId: site.id,
+            date: {
+                gte: monthStart,
+                lte: monthEnd
+            }
+        }
+    });
+
+    // 4. Import to DB
     console.log("Importing to DB...");
 
     const allVehicles = await prisma.vehicle.findMany();
 
     for (const v of vehiclesToImport) {
         // Find Vehicle
-        const plate = v.rawName.split('-')[0].trim();
-        const formattedPlate = plate.replace(/\s+/g, '').toUpperCase();
+        // Try splitting by " - " first (Space Hyphen Space) for patterns like "ID - Description"
+        const parts = v.rawName.split(' - ');
+        const identifier = parts[0].trim();
+        const formattedIdentifier = identifier.replace(/\s+/g, '').toUpperCase();
 
-        // Exact match first
+        // 1. Exact Plate Match
         let vehicle: Vehicle | undefined | null = await prisma.vehicle.findFirst({
-            where: { plate: plate }
+            where: { plate: identifier }
         });
 
+        // 2. Normalized Plate Match (Local Memory)
         if (!vehicle) {
-            // Memory filter
-            vehicle = allVehicles.find(av => av.plate.replace(/\s+/g, '').toUpperCase() === formattedPlate);
+            vehicle = allVehicles.find(av => av.plate.replace(/\s+/g, '').toUpperCase() === formattedIdentifier);
+        }
+
+        // 3. Model Match (Exact or Contains) - Fallback for "2025 T" etc.
+        if (!vehicle) {
+            vehicle = await prisma.vehicle.findFirst({
+                where: {
+                    OR: [
+                        { model: { equals: identifier, mode: 'insensitive' } },
+                        { model: { contains: identifier, mode: 'insensitive' } }
+                    ]
+                }
+            });
+        }
+
+        // 4. Raw Name contains Plate (last resort)
+        if (!vehicle) {
+            vehicle = allVehicles.find(av => v.rawName.toUpperCase().includes(av.plate.replace(/\s+/g, '').toUpperCase()) && av.plate.length > 3);
         }
 
         if (!vehicle) {
-            console.warn(`Vehicle not found for: ${v.rawName} (Plate: ${plate}). Skipping.`);
+            console.warn(`Vehicle not found for: ${v.rawName} (Identifier: ${identifier}). Skipping.`);
             continue;
         }
 
-        console.log(`Processing ${vehicle.plate}...`);
+        console.log(`Processing ${vehicle.plate} (${v.rawName})...`);
 
-        const startDate = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH - 1, 1));
-        const endDate = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH, 0));
-
-        await prisma.vehicleAttendance.deleteMany({
-            where: {
-                vehicleId: vehicle.id,
-                date: {
-                    gte: startDate,
-                    lte: endDate
-                }
-            }
-        });
-
+        // Records creation
         const records = v.days.map((status, index) => {
             const day = index + 1;
             const date = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH - 1, day));
@@ -145,13 +169,15 @@ async function main() {
                 siteId: site.id,
                 date: date,
                 status: status,
-                hours: status === 'WORK' ? 1 : status === 'HALF' ? 0.5 : 0
+                hours: status === 'WORK' ? 1 : status === 'HALF_DAY' ? 0.5 : 0
             };
         }).filter((r): r is NonNullable<typeof r> => r !== null);
 
-        await prisma.vehicleAttendance.createMany({
-            data: records
-        });
+        if (records.length > 0) {
+            await prisma.vehicleAttendance.createMany({
+                data: records
+            });
+        }
     }
 
     console.log("Import Completed.");

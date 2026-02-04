@@ -293,15 +293,24 @@ export function VehicleAttendanceList() {
     const activeVehicles = vehicles.filter((v: any) => {
         if (v.status === 'PASSIVE') return false;
 
+        // User Request: Only show vehicles that have ACTUAL attendance records for this month/site.
+        // Ignore assignment status, strictly look for data.
+        const hasAttendanceInMonth = vehicleAttendance.some((a: any) => {
+            if (a.vehicleId !== v.id || a.siteId !== selectedSiteId) return false;
+            try {
+                const d = new Date(a.date);
+                return d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
+            } catch (e) { return false; }
+        });
+
+        // Uncomment this if you want to allow manual entry for assigned vehicles again:
+        /*
         const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
             v.assignedSiteId === selectedSiteId;
-
         const hasHistory = assignmentHistory.some(h => h.vehicleId === v.id);
+        */
 
-        // [NEW] Check for legacy attendance records for this site to prevent disappearance
-        const hasAttendance = vehicleAttendance.some((a: any) => a.vehicleId === v.id && a.siteId === selectedSiteId);
-
-        return isAssigned || hasHistory || hasAttendance;
+        return hasAttendanceInMonth;
     });
 
     // Export Logic
@@ -363,14 +372,15 @@ export function VehicleAttendanceList() {
         doc.setFontSize(14);
         doc.text(`${siteName} - ${monthStr} - Araç Puantajı`, 14, 15);
 
-        const tableColumn = ["Plaka", "Cinsi", ...daysInMonth.map((d: any) => format(d, 'dd')), "Toplam"];
+        const tableColumn = ["Plaka", ...daysInMonth.map((d: any) => format(d, 'dd')), "Toplam"];
         const tableRows: any[] = [];
 
         activeVehicles.forEach((v: any) => {
             let totalWorked = 0;
             const rowData = [
                 v.plate,
-                v.definition || v.type,
+                v.plate + (v.model ? `\\n${v.model}` : ''),
+                // v.definition || v.type,
                 ...daysInMonth.map((day: any) => {
                     const record = getStatusForDate(v.id, day);
                     if (record && record.siteId === selectedSiteId) {
@@ -585,8 +595,13 @@ export function VehicleAttendanceList() {
                                                 <TableCell className="sticky left-0 z-10 bg-background border-r p-2 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
                                                     <div className="flex flex-col w-full">
                                                         <span className="font-bold font-mono text-sm truncate" title={v.plate}>{v.plate}</span>
-                                                        <span className="text-[10px] text-muted-foreground line-clamp-1">
-                                                            {v.definition || typeMap[v.type] || v.type}
+                                                        {v.model && (
+                                                            <span className="text-[10px] font-semibold text-slate-600 line-clamp-1">
+                                                                {v.model}
+                                                            </span>
+                                                        )}
+                                                        <span className="text-[9px] text-muted-foreground line-clamp-1 opacity-80">
+                                                            {/* {v.definition || typeMap[v.type] || v.type} */}
                                                         </span>
                                                     </div>
                                                 </TableCell>
@@ -604,7 +619,12 @@ export function VehicleAttendanceList() {
 
                                                     // Calculate Fuel for this day
                                                     const dailyFuel = showFuel ? fuelLogs
-                                                        .filter((l: any) => l.vehicleId === v.id && l.date === format(day, 'yyyy-MM-dd'))
+                                                        .filter((l: any) => {
+                                                            if (l.vehicleId !== v.id) return false;
+                                                            try {
+                                                                return format(new Date(l.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
+                                                            } catch (e) { return false; }
+                                                        })
                                                         .reduce((sum: any, l: any) => sum + Number(l.liters), 0) : 0;
 
                                                     // Determine validity for styling
