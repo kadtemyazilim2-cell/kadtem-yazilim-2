@@ -232,6 +232,9 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         if (payload.insuranceCost) payload.insuranceCost = parseFloat(payload.insuranceCost as any);
         if (payload.kaskoCost) payload.kaskoCost = parseFloat(payload.kaskoCost as any);
 
+        // [FIX] Handle optional Foreign Keys
+        if (!payload.assignedSiteId) payload.assignedSiteId = null;
+
 
         try {
             if (vehicleToEdit) {
