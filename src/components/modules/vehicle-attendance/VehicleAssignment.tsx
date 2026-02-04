@@ -39,8 +39,11 @@ export function VehicleAssignment() {
                 return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
             })
             .sort((a: any, b: any) => {
-                // Sort by Ownership (RENTAL first)
+                // 1. Sort by Ownership (RENTAL first)
                 if (a.ownership !== b.ownership) return a.ownership === 'RENTAL' ? -1 : 1;
+                // 2. Sort by Type (TRUCK, LORRY, etc.)
+                if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
+                // 3. Sort by Plate
                 return a.plate.localeCompare(b.plate);
             });
     }, [vehicles, selectedSiteId, assignedSearch]);
@@ -58,8 +61,11 @@ export function VehicleAssignment() {
             return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
         })
             .sort((a: any, b: any) => {
-                // Sort by Ownership (RENTAL first)
+                // 1. Sort by Ownership (RENTAL first)
                 if (a.ownership !== b.ownership) return a.ownership === 'RENTAL' ? -1 : 1;
+                // 2. Sort by Type (TRUCK, LORRY, etc.)
+                if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
+                // 3. Sort by Plate
                 return a.plate.localeCompare(b.plate);
             });
     }, [vehicles, availableSearch, selectedSiteId]);
@@ -168,6 +174,7 @@ export function VehicleAssignment() {
                             <CardContent className="p-0">
                                 <AssignTable
                                     vehicles={availableVehicles}
+                                    sites={sites} // Pass sites for lookup
                                     actionLabel="Ekle"
                                     actionVariant="default"
                                     onAction={handleAdd}
@@ -186,6 +193,7 @@ export function VehicleAssignment() {
 
 function AssignTable({
     vehicles,
+    sites, // Add sites prop
     actionLabel,
     actionVariant,
     onAction,
@@ -194,6 +202,7 @@ function AssignTable({
     isAdd
 }: {
     vehicles: any[],
+    sites?: any[], // Optional sites array
     actionLabel: string,
     actionVariant: "default" | "destructive",
     onAction: (id: string) => void,
@@ -204,6 +213,13 @@ function AssignTable({
     if (vehicles.length === 0) {
         return <div className="p-8 text-center text-muted-foreground">Liste boş.</div>;
     }
+
+    // Helper to find site name
+    const getSiteName = (siteIds?: string[]) => {
+        if (!siteIds || siteIds.length === 0 || !sites) return null;
+        const site = sites.find(s => s.id === siteIds[0]);
+        return site ? site.name : null;
+    };
 
     return (
         <div className="">
@@ -216,30 +232,44 @@ function AssignTable({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {vehicles.map(v => (
-                        <TableRow key={v.id}>
-                            <TableCell className="font-medium">
-                                <div className="flex flex-col">
-                                    <span>{v.plate}</span>
-                                    <span className="text-xs text-muted-foreground">{v.brand} {v.model}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                {v.ownership === 'OWNED' ? 'Kendi' : 'Kiralık'}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <Button
-                                    size="sm"
-                                    variant={actionVariant}
-                                    onClick={() => onAction(v.id)}
-                                    disabled={loadingIds[v.id] || disabled}
-                                    className={isAdd ? "bg-green-600 hover:bg-green-700 w-20" : "w-20"}
-                                >
-                                    {loadingIds[v.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : actionLabel}
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                    {vehicles.map(v => {
+                        const otherSiteName = isAdd ? getSiteName(v.assignedSiteIds) : null;
+
+                        return (
+                            <TableRow key={v.id}>
+                                <TableCell className="font-medium">
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                            <span>{v.plate}</span>
+                                            {otherSiteName && (
+                                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200">
+                                                    {otherSiteName.length > 15 ? otherSiteName.substring(0, 15) + '...' : otherSiteName}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <span className="text-xs text-muted-foreground">{v.brand} {v.model}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span>{v.ownership === 'OWNED' ? 'Kendi' : 'Kiralık'}</span>
+                                        {v.type && <span className="text-xs text-muted-foreground">{v.type}</span>}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Button
+                                        size="sm"
+                                        variant={actionVariant}
+                                        onClick={() => onAction(v.id)}
+                                        disabled={loadingIds[v.id] || disabled}
+                                        className={isAdd ? "bg-green-600 hover:bg-green-700 w-20" : "w-20"}
+                                    >
+                                        {loadingIds[v.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : actionLabel}
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        )
+                    })}
                 </TableBody>
             </Table>
         </div>
