@@ -33,6 +33,7 @@ import { Vehicle } from '@/lib/types';
 import { deleteVehicle as deleteVehicleAction, updateVehicle as updateVehicleAction } from '@/actions/vehicle'; // [NEW] Import Server Action
 
 export function VehicleList() {
+    // Rebuild Trigger: Ownership Column Update Verified
     const { vehicles, sites, companies, updateVehicle, vehicleAttendance, fuelLogs, deleteVehicle } = useAppStore();
     const { user, hasPermission } = useAuth();
     const [activeTab, setActiveTab] = useState("list");
