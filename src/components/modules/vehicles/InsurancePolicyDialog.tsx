@@ -44,6 +44,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
     const [file, setFile] = useState<File | null>(null);
     const [costInput, setCostInput] = useState('');
     const [definitionDialog, setDefinitionDialog] = useState<{ open: boolean; type: 'INSURANCE_COMPANY' | 'INSURANCE_AGENCY' }>({ open: false, type: 'INSURANCE_COMPANY' });
+    const [isSubmitting, setIsSubmitting] = useState(false); // [NEW] Loading State
 
     const getLastExpiry = (type: string) => {
         // 1. Try History first for most accurate latest date
@@ -69,6 +70,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
     useEffect(() => {
         if (open) {
+            setIsSubmitting(false); // Reset loading state
             if (mode === 'EDIT' && policy) {
                 setFormData({
                     type: policy.type === 'Trafik Sigortası' ? 'TRAFFIC' : (policy.type === 'Kasko' ? 'KASKO' : policy.type),
@@ -170,7 +172,14 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+            const selectedFile = e.target.files[0];
+            // [NEW] Validation: Size Check (2MB)
+            if (selectedFile.size > 2 * 1024 * 1024) {
+                toast.error("Dosya boyutu 2MB'dan büyük olamaz.");
+                e.target.value = ''; // Reset input
+                return;
+            }
+            setFile(selectedFile);
         }
     };
 
@@ -186,6 +195,8 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (isSubmitting) return; // Prevent double submit
+
         // 1. Validation
         if (!formData.type) return toast.error("Lütfen poliçe tipini seçiniz.");
         if (!formData.company) return toast.error("Lütfen sigorta firmasını seçiniz.");
@@ -199,6 +210,9 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
         if (isNaN(Number(costVal)) || (costVal !== 0 && !costVal)) {
             return toast.error("Lütfen geçerli bir tutar giriniz.");
         }
+
+        setIsSubmitting(true); // START LOADING
+        const toastId = toast.loading("İşlem yapılıyor, lütfen bekleyiniz..."); // SHOW LOADING TOAST
 
         try {
             let attachments = formData.attachments || [];
@@ -285,16 +299,21 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
             if (res.success) {
                 updateVehicle(vehicle.id, updates); // Update Store locally for consistency
+                toast.dismiss(toastId);
                 toast.success(mode === 'ADD' ? 'Poliçe başarıyla eklendi.' : 'Poliçe güncellendi.');
                 onOpenChange(false);
             } else {
                 console.error("Server Action Failed:", res.error);
+                toast.dismiss(toastId);
                 toast.error(res.error || 'Kaydetme işlemi başarısız oldu.');
             }
 
         } catch (error: any) {
             console.error("handleSubmit Exception:", error);
+            toast.dismiss(toastId);
             toast.error("Bir hata oluştu: " + (error.message || "Bilinmeyen hata"));
+        } finally {
+            setIsSubmitting(false); // STOP LOADING
         }
     };
 
@@ -313,7 +332,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4 py-4">
 
-                        <div className="space-y-4 rounded-md border p-4 bg-slate-50">
+                        <div className="space-y-4 rounded-md border text-sm p-4 bg-slate-50">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Poliçe Tipi <span className="text-red-500">*</span></Label>
@@ -431,7 +450,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Poliçe Dosyası (İsteğe Bağlı)</Label>
+                                <Label>Poliçe Dosyası (İsteğe Bağlı - Max 2MB)</Label>
                                 <div className="flex items-center gap-4">
                                     <Input
                                         id="file-upload"
@@ -473,8 +492,10 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                         </div>
 
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-                            <Button type="submit">Kaydet</Button>
+                            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>İptal</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

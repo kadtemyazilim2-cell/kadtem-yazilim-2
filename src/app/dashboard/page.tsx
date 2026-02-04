@@ -299,11 +299,12 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Genel Bakış</h1>
 
 
-            {/* Top Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {/* Financial Status List Card */}
+            {/* Top Stats Section - 12 Column Grid */}
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-12">
+
+                {/* 1. Financial Status (Left - 3/12) */}
                 {hasPermission('cash-book', 'VIEW') && (
-                    <Card className="bg-emerald-50 border-emerald-100 border shadow-sm col-span-1">
+                    <Card className="col-span-1 md:col-span-1 lg:col-span-3 bg-emerald-50 border-emerald-100 border shadow-sm h-full">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600">
                                 Şantiye Kasaları (Personel)
@@ -314,15 +315,15 @@ export default function DashboardPage() {
                             {userBalances.length === 0 ? (
                                 <div className="text-sm text-slate-500">Bakiye yok.</div>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                     {userBalances.map((u) => (
                                         <Link
                                             key={u.id}
                                             href={`/dashboard/cash-book?userId=${u.id}`}
-                                            className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                                            className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors rounded"
                                         >
-                                            <span className="font-medium text-slate-700">{u.name}</span>
-                                            <span className={cn("font-bold font-mono", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
+                                            <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
+                                            <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
                                                 {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                             </span>
                                         </Link>
@@ -333,97 +334,13 @@ export default function DashboardPage() {
                     </Card>
                 )}
 
-                {/* Insurance Alerts Card */}
-                {hasPermission('vehicle', 'VIEW') && (
-                    <Card className="bg-red-50 border-red-100 border shadow-sm col-span-2 lg:col-span-4">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">
-                                Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
-                            </CardTitle>
-                            <AlertTriangle className="h-4 w-4 text-red-600" />
-                        </CardHeader>
-                        <CardContent className="pt-2">
-                            {upcomingExpirations.length === 0 ? (
-                                <div className="text-sm text-slate-500">Yaklaşan ödeme bulunmuyor.</div>
-                            ) : (
-                                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
-                                    {upcomingExpirations.map((item) => {
-                                        // Find vehicle to show history
-                                        const vehicle = vehicles.find((v: any) => v.id === item.vehicleId);
-
-                                        // Determine History Text based on type
-                                        let historyText: string | null = null;
-                                        if (item.type === 'Trafik Sigortası' && vehicle?.lastTrafficProposalDate) {
-                                            const date = new Date(vehicle.lastTrafficProposalDate).toLocaleDateString('tr-TR');
-                                            const agencies = vehicle.lastTrafficProposalAgencies?.join(', ') || '';
-                                            historyText = `Son Teklif: ${date} (${agencies})`;
-                                        } else if (item.type === 'Kasko' && vehicle?.lastKaskoProposalDate) {
-                                            const date = new Date(vehicle.lastKaskoProposalDate).toLocaleDateString('tr-TR');
-                                            const agencies = vehicle.lastKaskoProposalAgencies?.join(', ') || '';
-                                            historyText = `Son Teklif: ${date} (${agencies})`;
-                                        }
-
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                className="flex flex-col sm:flex-row sm:items-center justify-between text-sm p-3 rounded hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200 gap-3"
-                                            >
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold font-mono text-slate-800 text-base">{item.plate}</span>
-                                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${item.days <= 7 ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-orange-100 text-orange-700'}`}>
-                                                            {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti` : `${item.days} Gün Kaldı`}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className="text-xs font-medium text-slate-600">{item.type}</span>
-                                                        <span className="text-[10px] text-slate-400 border-l pl-2 border-slate-300">
-                                                            {item.vehicleBrand} {item.vehicleModel}
-                                                        </span>
-                                                        <span className="text-[10px] text-slate-400 border-l pl-2 border-slate-300">
-                                                            Mevcut: {item.agencyName || '-'}
-                                                        </span>
-                                                    </div>
-                                                    {/* History Display */}
-                                                    {historyText && (
-                                                        <div className="text-[10px] text-blue-600 font-medium mt-0.5 bg-blue-50 px-2 py-0.5 rounded w-fit">
-                                                            {historyText}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Action Buttons */}
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    {item.type === 'Muayene' ? (
-                                                        <Button variant="outline" size="sm" className="h-8 text-xs bg-white" onClick={() => handleAlertClick(item)}>
-                                                            Tarih Güncelle
-                                                        </Button>
-                                                    ) : (
-                                                        <>
-                                                            <Button variant="outline" size="sm" className="h-8 text-xs bg-white text-blue-700 border-blue-200 hover:bg-blue-50" onClick={() => handleAlertClick(item)}>
-                                                                Teklif İste
-                                                            </Button>
-                                                            <Button variant="outline" size="sm" className="h-8 text-xs bg-white text-green-700 border-green-200 hover:bg-green-50" onClick={() => handlePolicyClick(item)}>
-                                                                Poliçe Gir
-                                                            </Button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Quick Actions & Info Card (Moved Here) */}
-                <Card className="col-span-1 shadow-sm border-slate-200">
-                    <CardHeader className="pb-2">
+                {/* 2. Quick Info & Indices (Middle - 3/12) */}
+                <Card className="col-span-1 md:col-span-1 lg:col-span-3 shadow-sm border-slate-200 h-full">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-600">Bilgiler & Endeksler</CardTitle>
+                        <FileText className="h-4 w-4 text-slate-400" />
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-4 pt-2">
                         {/* YI-UFE Display */}
                         {(() => {
                             const sortedYiufe = [...yiUfeRates].sort((a, b) => {
@@ -448,23 +365,9 @@ export default function DashboardPage() {
                                         </div>
                                     </div>
 
-                                    {previous && (
-                                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="text-xs text-slate-500 font-medium">Önceki Ay</span>
-                                                <span className="text-[10px] text-slate-400">
-                                                    {new Date(0, previous.month - 1).toLocaleString('tr-TR', { month: 'long' })} {previous.year}
-                                                </span>
-                                            </div>
-                                            <div className="text-lg font-semibold font-mono text-slate-600 flex items-center justify-between">
-                                                {previous.index.toFixed(2)}
-                                            </div>
-                                        </div>
-                                    )}
-
                                     {current && previous && (
-                                        <div className="flex items-center justify-between pt-1">
-                                            <span className="text-xs font-medium text-slate-500">Aylık Artış (Ortalama)</span>
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-xs font-medium text-slate-500">Aylık Artış</span>
                                             <span className={cn("text-sm font-bold", rate > 0 ? "text-green-600" : "text-slate-600")}>
                                                 %{(rate * 100).toFixed(2)}
                                             </span>
@@ -475,140 +378,243 @@ export default function DashboardPage() {
                         })()}
                     </CardContent>
                 </Card>
-            </div>
 
-            {/* Site Fuel Stocks */}
-            {hasPermission('fuel', 'VIEW') && (
-                <div className="space-y-4 mt-8">
-                    <h3 className="text-xl font-bold tracking-tight text-slate-800 border-b pb-2">Aktif Şantiye Depo Stokları</h3>
-                    <div className="grid gap-4" >
-                        <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
-                    </div>
-                </div>
-            )}
-
-            {/* Fuel Tables Section */}
-            {hasPermission('fuel', 'VIEW') && (
-                <>
-                    <div className="grid gap-4 md:grid-cols-1">
-                        <FuelPurchaseList isWidget={true} />
-                    </div>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
-                    </div>
-                </>
-            )}
-
-            {hasPermission('correspondence', 'VIEW') && (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                    <Card className="col-span-7 border-red-200 shadow-sm">
-                        <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
-                            <CardTitle className="flex items-center gap-2 text-red-700">
-                                <FileText className="h-5 w-5" />
-                                Eksik Evrak Numaraları
-                                <span className="ml-auto text-sm font-normal text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200 shadow-sm">
-                                    {missingDocs.length} Adet
-                                </span>
+                {/* 3. Upcoming Payments (Right - 6/12 - Wide) */}
+                {hasPermission('vehicle', 'VIEW') && (
+                    <Card className="col-span-1 md:col-span-2 lg:col-span-6 bg-red-50 border-red-100 border shadow-sm h-full flex flex-col">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 shrink-0">
+                            <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4 text-red-600" />
+                                Yaklaşan Ödemeler (Sigorta/Kasko/Muayene)
                             </CardTitle>
+                            <span className="text-xs font-medium bg-white px-2 py-0.5 rounded text-slate-500 shadow-sm border border-slate-100">
+                                {upcomingExpirations.length} Kayıt
+                            </span>
                         </CardHeader>
-                        <CardContent className="p-0">
-                            {missingDocs.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 text-sm">
-                                    Eksik evrak numarası bulunmuyor.
-                                </div>
+                        <CardContent className="pt-2 flex-grow overflow-hidden flex flex-col">
+                            {upcomingExpirations.length === 0 ? (
+                                <div className="text-sm text-slate-500 py-4 text-center">Yaklaşan ödeme bulunmuyor.</div>
                             ) : (
-                                <div className="rounded-md">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm text-left">
-                                            <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b">
-                                                <tr>
-                                                    <th className="px-4 py-3 font-medium">Tarih</th>
-                                                    <th className="px-4 py-3 font-medium">Konu</th>
-                                                    <th className="px-4 py-3 font-medium">Muhatap</th>
-                                                    <th className="px-4 py-3 font-medium text-right">İşlem</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {missingDocs.slice(0, showAllMissingDocs ? undefined : 5).map((doc: any) => {
-                                                    // Strip HTML tags helper
-                                                    const cleanText = (html: string) => {
-                                                        const tmp = document.createElement("DIV");
-                                                        tmp.innerHTML = html;
-                                                        return tmp.textContent || tmp.innerText || "";
-                                                    };
-                                                    // Safe Clean (since we are SSR/Client mix, simple regex usually safer if no DOM)
-                                                    // But in 'use client' document is available.
-                                                    // However, better properly handle possible nulls.
-                                                    const stripTags = (str: string) => str ? str.replace(/<[^>]*>/g, '') : '';
+                                <div className="space-y-2 overflow-y-auto pr-1 flex-grow scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                                    {upcomingExpirations.map((item) => {
+                                        const vehicle = vehicles.find((v: any) => v.id === item.vehicleId);
+                                        let historyText: string | null = null;
+                                        if (item.type === 'Trafik Sigortası' && vehicle?.lastTrafficProposalDate) {
+                                            const date = new Date(vehicle.lastTrafficProposalDate).toLocaleDateString('tr-TR');
+                                            const agencies = vehicle.lastTrafficProposalAgencies?.join(', ') || '';
+                                            historyText = `Son Teklif: ${date} (${agencies})`;
+                                        } else if (item.type === 'Kasko' && vehicle?.lastKaskoProposalDate) {
+                                            const date = new Date(vehicle.lastKaskoProposalDate).toLocaleDateString('tr-TR');
+                                            const agencies = vehicle.lastKaskoProposalAgencies?.join(', ') || '';
+                                            historyText = `Son Teklif: ${date} (${agencies})`;
+                                        }
 
-                                                    return (
-                                                        <tr key={doc.id} className="bg-white hover:bg-slate-50 transition-colors">
-                                                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                                                                {format(new Date(doc.date), 'dd.MM.yyyy')}
-                                                            </td>
-                                                            <td className="px-4 py-3 max-w-[300px]">
-                                                                <div className="truncate font-medium text-slate-900" title={stripTags(doc.subject)}>
-                                                                    {stripTags(doc.subject)}
-                                                                </div>
-                                                                {doc.description && (
-                                                                    <div className="text-xs text-slate-500 truncate" title={stripTags(doc.description)}>
-                                                                        {stripTags(doc.description)}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-                                                            <td className="px-4 py-3 max-w-[200px]">
-                                                                <div className="truncate text-slate-700" title={doc.senderReceiver}>
-                                                                    {doc.senderReceiver || '-'}
-                                                                </div>
-                                                                <div className="text-[10px] text-slate-400 truncate">
-                                                                    {companies.find((c: any) => c.id === doc.companyId)?.name}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-right">
-                                                                <Button
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                                                    onClick={() => {
-                                                                        setEditCorrespondenceId(doc.id);
-                                                                        setEditReferenceNumber(doc.referenceNumber || '');
-                                                                        setEditRegistrationNumber(doc.registrationNumber || '');
-                                                                        setIsEditCorrespondenceOpen(true);
-                                                                    }}
-                                                                >
-                                                                    Numara Gir
-                                                                </Button>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {missingDocs.length > 5 && (
-                                        <div className="flex justify-center py-3 border-t border-slate-100">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setShowAllMissingDocs(!showAllMissingDocs)}
-                                                className="text-xs text-slate-500 hover:text-slate-800 h-8"
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className="flex flex-col sm:flex-row sm:items-center justify-between text-sm p-3 rounded bg-white hover:bg-slate-50 transition-colors border border-slate-100 hover:border-slate-200 gap-3 shadow-sm"
                                             >
-                                                {showAllMissingDocs ? 'Listeyi Daralt' : `Tümünü Göster (+${missingDocs.length - 5})`}
-                                            </Button>
-                                        </div>
-                                    )}
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold font-mono text-slate-800 text-base">{item.plate}</span>
+                                                        <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                                                            item.days <= 7 ? "bg-red-50 text-red-700 border-red-100 animate-pulse" : "bg-orange-50 text-orange-700 border-orange-100"
+                                                        )}>
+                                                            {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti` : `${item.days} Gün Kaldı`}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                                                        <span className="font-medium text-slate-700">{item.type}</span>
+                                                        <span className="text-slate-400">•</span>
+                                                        <span className="text-slate-500">{item.vehicleBrand} {item.vehicleModel}</span>
+                                                        {item.agencyName && (
+                                                            <>
+                                                                <span className="text-slate-400">•</span>
+                                                                <span className="text-slate-500 font-medium truncate max-w-[120px]" title={item.agencyName}>{item.agencyName}</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    {historyText && (
+                                                        <div className="text-[10px] text-blue-600 font-medium mt-0.5 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100">
+                                                            {historyText}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                                                    {item.type === 'Muayene' ? (
+                                                        <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-50 hover:bg-slate-100" onClick={() => handleAlertClick(item)}>
+                                                            Tarih Gir
+                                                        </Button>
+                                                    ) : (
+                                                        <>
+                                                            <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-700 hover:bg-blue-50 hover:text-blue-800" onClick={() => handleAlertClick(item)}>
+                                                                Teklif İste
+                                                            </Button>
+                                                            <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300" onClick={() => handlePolicyClick(item)}>
+                                                                Poliçe Gir
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             )}
                         </CardContent>
                     </Card>
-                </div>
-            )}
+                )}
+            </div>
 
-            {/* SITE LOG SUMMARY */}
-            {hasPermission('site-log', 'VIEW') && (
-                <SiteLogSummary siteLogEntries={siteLogEntries} sites={sites} users={users} />
-            )}
+            {/* Middle Section - Operations Grid */}
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
+
+                {/* Site Stocks (Full Width - 12/12) */}
+                {hasPermission('fuel', 'VIEW') && (
+                    <div className="col-span-1 md:col-span-1 lg:col-span-12 space-y-4">
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <h3 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+                                <Droplet className="h-5 w-5 text-blue-600" />
+                                Aktif Şantiye Depo Stokları
+                            </h3>
+                        </div>
+                        <SiteStockOverview tanks={fuelTanks} sites={userSites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate)} />
+                    </div>
+                )}
+
+                {/* Fuel & Charts Section */}
+                {hasPermission('fuel', 'VIEW') && (
+                    <>
+                        {/* Fuel Purchase List (Left - 4/12) */}
+                        <div className="col-span-1 md:col-span-1 lg:col-span-4 h-full">
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm h-full overflow-hidden flex flex-col">
+                                <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+                                    <h4 className="font-semibold text-slate-700 flex items-center gap-2">
+                                        <Wallet className="h-4 w-4 text-slate-400" />
+                                        Son Yakıt Alımları
+                                    </h4>
+                                </div>
+                                <div className="flex-grow p-0">
+                                    <FuelPurchaseList isWidget={true} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Daily Chart (Right - 8/12) */}
+                        <div className="col-span-1 md:col-span-1 lg:col-span-8 h-full">
+                            <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
+                        </div>
+                    </>
+                )}
+
+                {/* Missing Docs (Full Width - 12/12) */}
+                {hasPermission('correspondence', 'VIEW') && (
+                    <div className="col-span-1 md:col-span-1 lg:col-span-12">
+                        <Card className="border-red-200 shadow-sm bg-white">
+                            <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
+                                <CardTitle className="flex items-center gap-2 text-red-700 text-base">
+                                    <FileText className="h-5 w-5" />
+                                    Eksik Evrak Numaraları
+                                    <span className="ml-auto text-xs font-normal text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200 shadow-sm">
+                                        {missingDocs.length} Adet
+                                    </span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                {missingDocs.length === 0 ? (
+                                    <div className="text-center py-8 text-slate-500 text-sm">
+                                        Eksik evrak numarası bulunmuyor.
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="text-xs text-slate-500 uppercase bg-slate-50/80 border-b">
+                                                    <tr>
+                                                        <th className="px-4 py-3 font-medium">Tarih</th>
+                                                        <th className="px-4 py-3 font-medium">Konu</th>
+                                                        <th className="px-4 py-3 font-medium">Muhatap</th>
+                                                        <th className="px-4 py-3 font-medium text-right">İşlem</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100">
+                                                    {missingDocs.slice(0, showAllMissingDocs ? undefined : 5).map((doc: any) => {
+                                                        const cleanText = (html: string) => { // Basic strip
+                                                            return html ? html.replace(/<[^>]*>/g, '') : '';
+                                                        };
+                                                        return (
+                                                            <tr key={doc.id} className="bg-white hover:bg-slate-50 transition-colors">
+                                                                <td className="px-4 py-3 whitespace-nowrap text-slate-600 font-mono text-xs">
+                                                                    {format(new Date(doc.date), 'dd.MM.yyyy')}
+                                                                </td>
+                                                                <td className="px-4 py-3 max-w-[300px]">
+                                                                    <div className="truncate font-medium text-slate-900 text-xs sm:text-sm" title={cleanText(doc.subject)}>
+                                                                        {cleanText(doc.subject)}
+                                                                    </div>
+                                                                    {doc.description && (
+                                                                        <div className="text-[10px] text-slate-500 truncate mt-0.5" title={cleanText(doc.description)}>
+                                                                            {cleanText(doc.description)}
+                                                                        </div>
+                                                                    )}
+                                                                </td>
+                                                                <td className="px-4 py-3 max-w-[200px]">
+                                                                    <div className="truncate text-slate-700 text-xs" title={doc.senderReceiver}>
+                                                                        {doc.senderReceiver || '-'}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-slate-400 truncate">
+                                                                        {companies.find((c: any) => c.id === doc.companyId)?.name}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                                                        onClick={() => {
+                                                                            setEditCorrespondenceId(doc.id);
+                                                                            setEditReferenceNumber(doc.referenceNumber || '');
+                                                                            setEditRegistrationNumber(doc.registrationNumber || '');
+                                                                            setIsEditCorrespondenceOpen(true);
+                                                                        }}
+                                                                    >
+                                                                        Numara Gir
+                                                                    </Button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        {missingDocs.length > 5 && (
+                                            <div className="flex justify-center py-2 border-t border-slate-100 bg-slate-50/30">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setShowAllMissingDocs(!showAllMissingDocs)}
+                                                    className="text-xs text-slate-500 hover:text-slate-800 h-7"
+                                                >
+                                                    {showAllMissingDocs ? 'Listeyi Daralt' : `Tümünü Göster (+${missingDocs.length - 5})`}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
+
+                {/* SITE LOG SUMMARY (Full Width) */}
+                {hasPermission('site-log', 'VIEW') && (
+                    <div className="col-span-1 md:col-span-1 lg:col-span-12">
+                        <SiteLogSummary siteLogEntries={siteLogEntries} sites={sites} users={users} />
+                    </div>
+                )}
+
+            </div>
+
 
 
             <InsuranceProposalDialog
