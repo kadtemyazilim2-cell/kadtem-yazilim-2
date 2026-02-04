@@ -276,7 +276,7 @@ function AssignTable({
 
 
     return (
-        <div className="max-h-[600px] overflow-auto">
+        <div className="">
             <Table>
                 <TableHeader className="bg-slate-50 sticky top-0 z-10">
                     <TableRow>
