@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
-import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
+import { updateVehicle as updateVehicleAction, saveInsurancePolicy } from '@/actions/vehicle';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -284,10 +285,11 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
             console.log("Saving policy via optimized action. Best Traffic:", bestTraffic?.endDate, "Best Kasko:", bestKasko?.endDate);
 
-            // Dynamically import to ensure we use the new action
-            const { saveInsurancePolicy } = await import('@/actions/vehicle');
+            // Dynamically import removed, using static import
+            // const { saveInsurancePolicy } = await import('@/actions/vehicle');
 
             const res = await saveInsurancePolicy(vehicle.id, newRecord, mode, flatUpdates);
+
 
             if (res.success) {
                 // Manual store update (Optimistic UI)

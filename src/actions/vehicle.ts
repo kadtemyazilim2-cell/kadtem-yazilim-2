@@ -557,6 +557,7 @@ export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
     }
 }
 // [NEW] Optimized Insurance Save Action (Avoids Payload Too Large)
+// [NEW] Optimized Insurance Save Action (Avoids Payload Too Large)
 export async function saveInsurancePolicy(
     vehicleId: string,
     policy: any, // Using 'any' to avoid strict type import issues, essentially InsuranceRecord
@@ -564,15 +565,30 @@ export async function saveInsurancePolicy(
     flatUpdates: Partial<Vehicle> // Updates to columns like insuranceExpiry, insuranceCompany etc.
 ) {
     try {
-        // [FIX] Convert date strings to Date objects for flatUpdates
+        console.log(`[saveInsurancePolicy] Starting for vehicle: ${vehicleId}, Mode: ${mode}`);
+
+        // [FIX] Convert date strings to Date objects for flatUpdates safely
         const dateFields = [
             'insuranceExpiry', 'kaskoExpiry', 'inspectionExpiry', 'vehicleCardExpiry',
             'insuranceStartDate', 'kaskoStartDate', 'rentalLastUpdate', 'lastInspectionDate'
         ];
 
+        const cleanUpdates: any = { ...flatUpdates };
+
         dateFields.forEach(field => {
-            if ((flatUpdates as any)[field] && typeof (flatUpdates as any)[field] === 'string') {
-                (flatUpdates as any)[field] = new Date((flatUpdates as any)[field]);
+            const val = cleanUpdates[field];
+            if (val && typeof val === 'string') {
+                const d = new Date(val);
+                // Check if valid date
+                if (!isNaN(d.getTime())) {
+                    cleanUpdates[field] = d;
+                } else {
+                    console.warn(`[saveInsurancePolicy] Invalid date for field ${field}: ${val}`);
+                    delete cleanUpdates[field]; // Remove invalid date to prevent DB error
+                }
+            } else if (val === '' || val === null) {
+                // If explicitly empty, set to null for nullable fields
+                cleanUpdates[field] = null;
             }
         });
 
@@ -602,14 +618,17 @@ export async function saveInsurancePolicy(
             await tx.vehicle.update({
                 where: { id: vehicleId },
                 data: {
-                    ...flatUpdates,         // Update flat fields (expiry, etc.)
+                    ...cleanUpdates,       // Update flat fields (expiry, etc.)
                     insuranceHistory: history // Update complex JSON history
                 }
             });
         });
 
+        // Revalidate broad paths to ensure UI is fresh
         revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        revalidatePath('/dashboard');
+
+        console.log(`[saveInsurancePolicy] Success`);
         return { success: true };
 
     } catch (error: any) {
