@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
+import { updateVehicle as updateVehicleAction } from '@/actions/vehicle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -86,12 +87,28 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 // Use defaultType if provided
                 const initialType = defaultType || '';
 
+                // Calculate dates if type provided
+                let initialStartDate = new Date().toISOString().split('T')[0];
+                let initialEndDate = '';
+
+                if (initialType) {
+                    const lastExpiry = getLastExpiry(initialType);
+                    if (lastExpiry) initialStartDate = lastExpiry;
+
+                    try {
+                        const start = new Date(initialStartDate);
+                        const end = new Date(start);
+                        end.setFullYear(end.getFullYear() + 1);
+                        initialEndDate = end.toISOString().split('T')[0];
+                    } catch (e) { }
+                }
+
                 setFormData({
                     type: initialType as any,
                     company: '',
                     agency: '',
-                    startDate: new Date().toISOString().split('T')[0],
-                    endDate: '',
+                    startDate: initialStartDate,
+                    endDate: initialEndDate,
                     cost: 0,
                     identificationNumber: '',
                     definition: '',
@@ -101,7 +118,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 setFile(null);
             }
         }
-    }, [open, mode, policy, vehicle]);
+    }, [open, mode, policy, vehicle]); // Removed defaultType from dep array to avoid re-run if it changes mid-flight (unlikely)
 
     // Auto-calculate End Date (1 Year) when Start Date changes
     useEffect(() => {
@@ -210,14 +227,14 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
             const currentHistory = vehicle.insuranceHistory || [];
             let newHistory = [...currentHistory];
+            const updates: any = {}; // Collect all updates
 
             if (mode === 'ADD') {
                 newHistory.push(newRecord);
+                updates.insuranceHistory = newHistory;
 
                 // UPDATE CURRENT VEHICLE STATUS (Smart Sync)
                 // If we added a Traffic Policy, update vehicle.insuranceExpiry etc.
-                const updates: any = { insuranceHistory: newHistory };
-
                 if (newRecord.type === 'TRAFFIC') {
                     // Check if this new policy is "newer" than current or we just overwrite
                     // Usually adding a policy means it's the valid one.
@@ -234,17 +251,14 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     updates.kaskoCost = newRecord.cost;
                 }
 
-                updateVehicle(vehicle.id, updates);
-                toast.success('Poliçe başarıyla eklendi.');
-
             } else {
                 // EDIT MODE
                 // 1. Update record in history
                 newHistory = newHistory.map((r: any) => r.id === policy.id ? newRecord : r);
+                updates.insuranceHistory = newHistory;
 
                 // 2. If this was the "active" or displayed policy logic, we might need to sync vehicle props too
                 // Simplified: If the dates match the vehicle's current props, update them too.
-                const updates: any = { insuranceHistory: newHistory };
 
                 // Check if this edited policy matches the current "Main" fields
                 if (newRecord.type === 'TRAFFIC' && vehicle.insuranceExpiry === policy.endDate) {
@@ -260,12 +274,18 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                     updates.kaskoExpiry = newRecord.endDate;
                     updates.kaskoCost = newRecord.cost;
                 }
-
-                updateVehicle(vehicle.id, updates);
-                toast.success('Poliçe güncellendi.');
             }
 
-            onOpenChange(false);
+            // PERSISTENCE FIX: Call Server Action
+            const res = await updateVehicleAction(vehicle.id, updates);
+
+            if (res.success) {
+                updateVehicle(vehicle.id, updates); // Update Store locally for consistency
+                toast.success(mode === 'ADD' ? 'Poliçe başarıyla eklendi.' : 'Poliçe güncellendi.');
+                onOpenChange(false);
+            } else {
+                toast.error(res.error || 'Kaydedilemedi.');
+            }
 
         } catch (error) {
             console.error("File upload error:", error);
@@ -310,146 +330,131 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                                         type="number"
                                         min="0"
                                         step="0.01"
-                                        value={formData.cost}
+                                        value={formData.cost || ''}
                                         onChange={(e) => setFormData({ ...formData, cost: Number(e.target.value) })}
+                                        placeholder="0.00"
                                     />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Sigorta Firması <span className="text-red-500">*</span></Label>
-                                    <div className="flex gap-2">
-                                        <Select
-                                            value={formData.company}
-                                            onValueChange={(val) => setFormData({ ...formData, company: val })}
-                                        >
-                                            <SelectTrigger className="flex-1"><SelectValue placeholder="Seçiniz" /></SelectTrigger>
-                                            <SelectContent>
-                                                {companies.map((c: any) => (
-                                                    <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setDefinitionDialog({ open: true, type: 'INSURANCE_COMPANY' })}
-                                            title="Yeni Firma Ekle"
-                                        >
+                                    <div className="flex items-center justify-between">
+                                        <Label>Sigorta Firması <span className="text-red-500">*</span></Label>
+                                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.preventDefault(); setDefinitionDialog({ open: true, type: 'INSURANCE_COMPANY' }); }}>
                                             <Plus className="h-4 w-4" />
                                         </Button>
                                     </div>
+                                    <Select
+                                        value={formData.company}
+                                        onValueChange={(val) => setFormData({ ...formData, company: val })}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
+                                        <SelectContent>
+                                            {companies.map((c: any) => (
+                                                <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Acente <span className="text-red-500">*</span></Label>
-                                    <div className="flex gap-2">
-                                        <Select
-                                            value={formData.agency}
-                                            onValueChange={(val) => setFormData({ ...formData, agency: val })}
-                                        >
-                                            <SelectTrigger className="flex-1"><SelectValue placeholder="Seçiniz" /></SelectTrigger>
-                                            <SelectContent>
-                                                {agencies.map((a: any) => (
-                                                    <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => setDefinitionDialog({ open: true, type: 'INSURANCE_AGENCY' })}
-                                            title="Yeni Acente Ekle"
-                                        >
+                                    <div className="flex items-center justify-between">
+                                        <Label>Acente <span className="text-red-500">*</span></Label>
+                                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={(e) => { e.preventDefault(); setDefinitionDialog({ open: true, type: 'INSURANCE_AGENCY' }); }}>
                                             <Plus className="h-4 w-4" />
                                         </Button>
                                     </div>
+                                    <Select
+                                        value={formData.agency}
+                                        onValueChange={(val) => setFormData({ ...formData, agency: val })}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
+                                        <SelectContent>
+                                            {agencies.map((a: any) => (
+                                                <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Başlangıç Tarihi <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        type="date"
-                                        value={formData.startDate}
-                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            type="date"
+                                            value={formData.startDate ? formData.startDate.split('T')[0] : ''}
+                                            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Bitiş Tarihi <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        type="date"
-                                        value={formData.endDate}
-                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Poliçe No <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.identificationNumber}
-                                        onChange={(e) => setFormData({ ...formData, identificationNumber: e.target.value })}
-                                        placeholder="Poliçe Numarası"
-                                    />
+                                    <div className="relative">
+                                        <Input
+                                            type="date"
+                                            value={formData.endDate ? formData.endDate.split('T')[0] : ''}
+                                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Açıklama / Not</Label>
+                                <Label>Poliçe Numarası <span className="text-red-500">*</span></Label>
                                 <Input
-                                    value={formData.definition || ''}
-                                    onChange={(e) => setFormData({ ...formData, definition: e.target.value })}
-                                    placeholder="Örn: X Sigorta 2024 Yenileme"
+                                    value={formData.identificationNumber}
+                                    onChange={(e) => setFormData({ ...formData, identificationNumber: e.target.value })}
+                                    placeholder="Poliçe numarası giriniz"
                                 />
                             </div>
 
-                            <div className="space-y-2 border-t pt-4">
-                                <Label>Poliçe Dosyası (PDF/Resim)</Label>
-
-                                {formData.attachments && formData.attachments.length > 0 ? (
-                                    <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded text-sm text-green-700 justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="w-4 h-4" />
-                                            <span>Dosya Yüklü</span>
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <a
-                                                href={formData.attachments[0]}
-                                                download={`police-${vehicle.plate}-${formData.type}.pdf`}
-                                                className="p-1 hover:bg-green-100 rounded"
-                                                title="İndir"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                            </a>
-                                            <button
-                                                type="button"
-                                                onClick={removeAttachment}
-                                                className="p-1 hover:bg-red-100 text-red-600 rounded"
-                                                title="Sil"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
+                            <div className="space-y-2">
+                                <Label>Poliçe Dosyası (İsteğe Bağlı)</Label>
+                                <div className="flex items-center gap-4">
                                     <Input
+                                        id="file-upload"
                                         type="file"
-                                        accept=".pdf,image/*"
+                                        accept="application/pdf,image/*"
+                                        className="hidden"
                                         onChange={handleFileChange}
-                                        className="cursor-pointer"
                                     />
+                                    <Label
+                                        htmlFor="file-upload"
+                                        className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors w-full"
+                                    >
+                                        <Upload className="h-4 w-4" />
+                                        {file ? file.name : (formData.attachments && formData.attachments.length > 0 ? 'Dosya Yüklü (Değiştirmek için tıkla)' : 'Dosya Seç')}
+                                    </Label>
+                                    {(file || (formData.attachments && formData.attachments.length > 0)) && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                            onClick={() => { setFile(null); removeAttachment(); }}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+                                {formData.attachments && formData.attachments.length > 0 && !file && (
+                                    <div className="flex items-center gap-2 text-xs text-green-600 mt-1">
+                                        <FileText className="h-3 w-3" />
+                                        <span>Mevcut dosya korunuyor</span>
+                                        <a href={formData.attachments[0]} download="police.pdf" target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:underline ml-2">
+                                            <Download className="h-3 w-3" /> İndir
+                                        </a>
+                                    </div>
                                 )}
                             </div>
+
                         </div>
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>İptal</Button>
-                            <Button type="submit">{mode === 'ADD' ? 'Kaydet' : 'Güncelle'}</Button>
+                            <Button type="submit">Kaydet</Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
@@ -457,10 +462,9 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
             <InsuranceDefinitionsDialog
                 open={definitionDialog.open}
-                onOpenChange={(open) => setDefinitionDialog(prev => ({ ...prev, open }))}
+                onOpenChange={(val) => setDefinitionDialog({ ...definitionDialog, open: val })}
                 type={definitionDialog.type}
             />
         </>
     );
 }
-
