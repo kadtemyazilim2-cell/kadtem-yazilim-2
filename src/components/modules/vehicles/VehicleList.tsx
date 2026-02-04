@@ -804,6 +804,30 @@ export function VehicleList() {
         }
     };
 
+    const handleDeletePolicy = async (policy: any) => {
+        if (!policy.originalVehicle) return;
+        if (!confirm(`${policy.plate} plakalı araç için bu poliçe kaydını silmek istediğinize emin misiniz?`)) return;
+
+        const vehicle = policy.originalVehicle;
+        // Filter out the policy
+        const newHistory = (vehicle.insuranceHistory || []).filter((h: any) => h.id !== policy.id);
+
+        const updates: any = { insuranceHistory: newHistory };
+
+        try {
+            const res = await updateVehicleAction(vehicle.id, updates);
+            if (res.success) {
+                updateVehicle(vehicle.id, updates);
+                toast.success('Poliçe kaydı silindi.');
+            } else {
+                toast.error(res.error || 'Silinemedi.');
+            }
+        } catch (error) {
+            console.error('Policy Delete Error:', error);
+            toast.error('Bir hata oluştu.');
+        }
+    };
+
     return (
         <Card>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1457,23 +1481,30 @@ export function VehicleList() {
                                                 </TableCell>
                                                 <TableCell>
                                                     {canEditInsurance && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 p-0"
-                                                            onClick={() => setSelectedVehicleForPolicy({
-                                                                vehicle: policy.originalVehicle,
-                                                                mode: 'EDIT',
-                                                                policy: policy.isHistory
-                                                                    ? policy.originalVehicle.insuranceHistory?.find((h: any) => h.id === policy.id)
-                                                                    : policy // If it's a current record without history entry, might be tricky to "Edit" in new dialog unless we migrate it.
-                                                                // The new dialog demands a record structure. 
-                                                                // If it's a "Legacy" derived row (id ends in -legacy), we should probably block edit or switch to ADD mode.
-                                                                // For now let's assume valid ID match.
-                                                            })}
-                                                        >
-                                                            <FileEdit className="w-4 h-4 text-slate-400" />
-                                                        </Button>
+                                                        <div className="flex items-center gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0"
+                                                                onClick={() => setSelectedVehicleForPolicy({
+                                                                    vehicle: policy.originalVehicle,
+                                                                    mode: 'EDIT',
+                                                                    policy: policy.isHistory
+                                                                        ? policy.originalVehicle.insuranceHistory?.find((h: any) => h.id === policy.id)
+                                                                        : policy // Fallback
+                                                                })}
+                                                            >
+                                                                <FileEdit className="w-4 h-4 text-slate-400" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={() => handleDeletePolicy(policy)}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
                                                     )}
                                                 </TableCell>
                                             </TableRow>
