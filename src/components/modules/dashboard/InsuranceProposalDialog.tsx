@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
+import { updateVehicle as updateVehicleAction } from "@/actions/vehicle"; // [NEW]
+
 interface InsuranceProposalDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -27,7 +29,7 @@ interface InsuranceProposalDialogProps {
 }
 
 export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceProposalDialogProps) {
-    const { institutions, vehicles, companies, smtpConfig: globalSmtpConfig, updateVehicle } = useAppStore();
+    const { institutions, vehicles, companies, smtpConfig: globalSmtpConfig, updateVehicle: updateVehicleStore } = useAppStore(); // [RENAME]
     const [sending, setSending] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [selectedAgencyIds, setSelectedAgencyIds] = useState<string[]>([]);
@@ -185,18 +187,27 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                 .filter((a: any) => selectedAgencyIds.includes(a.id))
                 .map((a: any) => a.name);
 
-            if (policyType.toLowerCase().includes('trafik')) {
-                updateVehicle(item.vehicleId, {
-                    lastTrafficProposalDate: now,
-                    lastTrafficProposalAgencies: agencyNames,
-                    // trafficProposalCount: (vehicle.trafficProposalCount || 0) + 1 // Add this if you want to increment count
-                });
-            } else if (policyType.toLowerCase().includes('kasko')) {
-                updateVehicle(item.vehicleId, {
-                    lastKaskoProposalDate: now,
-                    lastKaskoProposalAgencies: agencyNames,
-                    // kaskoProposalCount: (vehicle.kaskoProposalCount || 0) + 1
-                });
+            // [FIX] Update Server DB first
+            try {
+                const updatePayload: any = {};
+                if (policyType.toLowerCase().includes('trafik')) {
+                    updatePayload.lastTrafficProposalDate = now;
+                    updatePayload.lastTrafficProposalAgencies = agencyNames;
+                } else if (policyType.toLowerCase().includes('kasko')) {
+                    updatePayload.lastKaskoProposalDate = now;
+                    updatePayload.lastKaskoProposalAgencies = agencyNames;
+                }
+
+                const result = await updateVehicleAction(item.vehicleId, updatePayload);
+
+                if (result.success) {
+                    // Update Local Store
+                    updateVehicleStore(item.vehicleId, updatePayload);
+                } else {
+                    console.error('Update failed:', result.error);
+                }
+            } catch (err) {
+                console.error('Update error:', err);
             }
 
             alert(`Başarıyla ${successCount} acenteye teklif isteği gönderildi.`);
