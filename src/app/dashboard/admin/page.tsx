@@ -1347,7 +1347,10 @@ export default function AdminPage() {
 
                                                 {isEditing && (
                                                     <div className="p-4 bg-slate-100 rounded-md mb-4 space-y-2">
-                                                        <div className="font-medium">{userName}</div>
+                                                        <div className="space-y-2">
+                                                            <Label>Ad Soyad</Label>
+                                                            <Input value={userName} onChange={e => setUserName(e.target.value)} required />
+                                                        </div>
                                                         <div className="space-y-2">
                                                             <Label>Kullanıcı Adı</Label>
                                                             <Input value={userUsername} onChange={e => setUserUsername(e.target.value)} />
