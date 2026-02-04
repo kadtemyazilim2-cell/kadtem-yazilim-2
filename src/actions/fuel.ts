@@ -59,7 +59,6 @@ export async function createFuelLog(data: Partial<FuelLog>) {
             }
         });
 
-        // Update Tank Level if internal tank used
         if (data.tankId) {
             await prisma.fuelTank.update({
                 where: { id: data.tankId },
@@ -69,9 +68,22 @@ export async function createFuelLog(data: Partial<FuelLog>) {
             });
         }
 
+        // [NEW] Auto-update Vehicle KM if new mileage is higher
+        if (data.mileage) {
+            const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId } });
+            if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
+                await prisma.vehicle.update({
+                    where: { id: data.vehicleId },
+                    data: { currentKm: data.mileage }
+                });
+            }
+        }
+
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks'); // Tank level changed
+        revalidateTag('vehicles'); // Vehicle KM changed
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/vehicles', 'page'); // Update vehicle list
         return { success: true, data: log };
     } catch (error) {
         console.error('createFuelLog Error:', error);
