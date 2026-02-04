@@ -550,7 +550,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                     }}
                                     placeholder="0.00"
                                     className={formErrors.salary ? "border-red-500 pr-8" : "pr-8"}
-                                    disabled={!!personnelToEdit}
+                                    disabled={!!personnelToEdit && Number(salary) > 0}
                                 />
                                 <span className="absolute right-3 top-2.5 text-slate-400">₺</span>
                             </div>
