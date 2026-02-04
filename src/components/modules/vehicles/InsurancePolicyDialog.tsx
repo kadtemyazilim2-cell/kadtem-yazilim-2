@@ -234,7 +234,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
             if (mode === 'ADD') {
                 newHistory.push(newRecord);
-                updates.insuranceHistory = newHistory;
+                // updates.insuranceHistory = newHistory; // [DISABLED] Temporarily disabled due to Prisma Client update lock issue
 
                 // UPDATE CURRENT VEHICLE STATUS (Smart Sync)
                 // If we added a Traffic Policy, update vehicle.insuranceExpiry etc.
@@ -258,7 +258,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 // EDIT MODE
                 // 1. Update record in history
                 newHistory = newHistory.map((r: any) => r.id === policy.id ? newRecord : r);
-                updates.insuranceHistory = newHistory;
+                // updates.insuranceHistory = newHistory; // [DISABLED] Temporarily disabled due to Prisma Client update lock issue
 
                 // 2. If this was the "active" or displayed policy logic, we might need to sync vehicle props too
                 // Simplified: If the dates match the vehicle's current props, update them too.
