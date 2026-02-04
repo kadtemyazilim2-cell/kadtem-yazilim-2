@@ -325,3 +325,53 @@ export async function removePersonnelFromSite(personnelIds: string[], siteId: st
         return { success: false, error: 'Çıkarma işlemi yapılamadı: ' + (error.message || error) };
     }
 }
+
+// [NEW] Get Personnel Summary By Site
+export async function getPersonnelSiteSummary() {
+    try {
+        // Fetch sites with both primary attached personnel and assigned personnel
+        const sites = await prisma.site.findMany({
+            where: { status: 'ACTIVE' },
+            select: {
+                id: true,
+                name: true,
+                personnel: {
+                    where: { status: 'ACTIVE' },
+                    select: { id: true, salary: true }
+                },
+                assignedPersonnel: {
+                    where: { status: 'ACTIVE' },
+                    select: { id: true, salary: true }
+                }
+            },
+            orderBy: { name: 'asc' }
+        });
+
+        const summary = sites.map(site => {
+            // Merge both lists and deduplicate by ID
+            const allPersonnelMap = new Map<string, { id: string, salary: number | null }>();
+
+            site.personnel.forEach(p => allPersonnelMap.set(p.id, p));
+            site.assignedPersonnel.forEach(p => allPersonnelMap.set(p.id, p));
+
+            const uniquePersonnel = Array.from(allPersonnelMap.values());
+
+            const totalSalary = uniquePersonnel.reduce((sum, p) => sum + (p.salary || 0), 0);
+
+            return {
+                id: site.id,
+                name: site.name,
+                count: uniquePersonnel.length,
+                totalSalary: totalSalary
+            };
+        });
+
+        // Filter out sites with 0 personnel if desired, or keep them to show empty sites
+        // For now, let's keep all active sites to give a full picture
+        return { success: true, data: summary };
+
+    } catch (error: any) {
+        console.error('getPersonnelSiteSummary Error:', error);
+        return { success: false, error: 'Şantiye özet bilgisi alınamadı.' };
+    }
+}

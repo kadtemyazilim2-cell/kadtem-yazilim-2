@@ -6,6 +6,8 @@ import { GlobalPersonnelList } from '@/components/modules/personnel/GlobalPerson
 import { PersonnelForm } from '@/components/modules/personnel/PersonnelForm';
 import { PersonnelList } from '@/components/modules/personnel/PersonnelList'; // Keeping for 'Puantaj' tab
 import PersonnelAssignment from '@/components/modules/personnel-attendance/PersonnelAssignment';
+import { SitePersonnelSummaryTable } from '@/components/modules/personnel/SitePersonnelSummaryTable';
+
 
 export default function PersonnelPage() {
     return (
@@ -18,12 +20,17 @@ export default function PersonnelPage() {
                 <PersonnelForm />
             </div>
 
-            <Tabs defaultValue="all-personnel" className="w-full">
-                <TabsList className="grid w-full max-w-[600px] grid-cols-3">
+            <Tabs defaultValue="site-summary" className="w-full">
+                <TabsList className="grid w-full max-w-[800px] grid-cols-4">
+                    <TabsTrigger value="site-summary">Şantiye Özeti</TabsTrigger>
                     <TabsTrigger value="attendance">Puantaj</TabsTrigger>
                     <TabsTrigger value="assignments">Atamalar</TabsTrigger>
                     <TabsTrigger value="all-personnel">Tüm Personeller</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="site-summary" className="mt-4">
+                    <SitePersonnelSummaryTable />
+                </TabsContent>
 
                 <TabsContent value="assignments" className="mt-4">
                     <PersonnelAssignment />
