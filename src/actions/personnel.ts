@@ -191,9 +191,8 @@ export async function updatePersonnel(id: string, data: Partial<Personnel>) {
             }
         });
         revalidateTag('personnel');
-        revalidateTag('personnel');
-        revalidateTag('personnel');
         revalidatePath('/dashboard/personnel');
+        revalidatePath('/dashboard/new-tab');
         return { success: true, data: person };
     } catch (error) {
         console.error('updatePersonnel Error:', error);
