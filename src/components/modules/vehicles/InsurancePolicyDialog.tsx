@@ -401,6 +401,14 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
+                                    <Label>İşlem Tarihi <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.transactionDate ? formData.transactionDate.split('T')[0] : ''}
+                                        onChange={(e) => setFormData({ ...formData, transactionDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
                                     <Label>Başlangıç Tarihi <span className="text-red-500">*</span></Label>
                                     <div className="relative">
                                         <Input
