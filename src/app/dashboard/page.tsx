@@ -302,39 +302,7 @@ export default function DashboardPage() {
             {/* Top Stats Section - 12 Column Grid */}
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-12">
 
-                {/* 1. Financial Status (Left - 3/12) */}
-                {hasPermission('cash-book', 'VIEW') && (
-                    <Card className="col-span-1 md:col-span-1 lg:col-span-3 bg-emerald-50 border-emerald-100 border shadow-sm h-full">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-slate-600">
-                                Şantiye Kasaları (Personel)
-                            </CardTitle>
-                            <Wallet className="h-4 w-4 text-emerald-600" />
-                        </CardHeader>
-                        <CardContent className="pt-2">
-                            {userBalances.length === 0 ? (
-                                <div className="text-sm text-slate-500">Bakiye yok.</div>
-                            ) : (
-                                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                                    {userBalances.map((u) => (
-                                        <Link
-                                            key={u.id}
-                                            href={`/dashboard/cash-book?userId=${u.id}`}
-                                            className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors rounded"
-                                        >
-                                            <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
-                                            <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
-                                                {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                            </span>
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* 2. Quick Info & Indices (Middle - 3/12) */}
+                {/* 1. Quick Info & Indices (Left - 3/12) - [MOVED HERE] */}
                 <Card className="col-span-1 md:col-span-1 lg:col-span-3 shadow-sm border-slate-200 h-full">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-slate-600">Bilgiler & Endeksler</CardTitle>
@@ -378,6 +346,38 @@ export default function DashboardPage() {
                         })()}
                     </CardContent>
                 </Card>
+
+                {/* 2. Financial Status (Middle - 3/12) - [MOVED HERE] */}
+                {hasPermission('cash-book', 'VIEW') && (
+                    <Card className="col-span-1 md:col-span-1 lg:col-span-3 bg-emerald-50 border-emerald-100 border shadow-sm h-full">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-600">
+                                Şantiye Kasaları (Personel)
+                            </CardTitle>
+                            <Wallet className="h-4 w-4 text-emerald-600" />
+                        </CardHeader>
+                        <CardContent className="pt-2">
+                            {userBalances.length === 0 ? (
+                                <div className="text-sm text-slate-500">Bakiye yok.</div>
+                            ) : (
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                                    {userBalances.map((u) => (
+                                        <Link
+                                            key={u.id}
+                                            href={`/dashboard/cash-book?userId=${u.id}`}
+                                            className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors rounded"
+                                        >
+                                            <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
+                                            <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
+                                                {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                            </span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* 3. Upcoming Payments (Right - 6/12 - Wide) */}
                 {hasPermission('vehicle', 'VIEW') && (
@@ -486,9 +486,9 @@ export default function DashboardPage() {
                 {/* Fuel & Charts Section */}
                 {hasPermission('fuel', 'VIEW') && (
                     <>
-                        {/* Fuel Purchase List (Left - 4/12) */}
-                        <div className="col-span-1 md:col-span-1 lg:col-span-4 h-full">
-                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm h-full overflow-hidden flex flex-col">
+                        {/* Fuel Purchase List (Full Width - 12/12) */}
+                        <div className="col-span-1 md:col-span-1 lg:col-span-12 h-full">
+                            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                                 <div className="p-4 border-b border-slate-100 bg-slate-50/50">
                                     <h4 className="font-semibold text-slate-700 flex items-center gap-2">
                                         <Wallet className="h-4 w-4 text-slate-400" />
@@ -501,8 +501,8 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
-                        {/* Daily Chart (Right - 8/12) */}
-                        <div className="col-span-1 md:col-span-1 lg:col-span-8 h-full">
+                        {/* Daily Chart (Full Width - 12/12) */}
+                        <div className="col-span-1 md:col-span-1 lg:col-span-12 h-full">
                             <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
                         </div>
                     </>
