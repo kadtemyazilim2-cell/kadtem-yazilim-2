@@ -16,6 +16,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { useUserSites } from '@/hooks/use-user-access';
 import { FuelGivenList } from '@/components/modules/fuel/FuelGivenList'; // [NEW]
+import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList'; // [NEW]
+import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList'; // [NEW]
 
 export default function FuelMovementPage() {
     const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
@@ -482,6 +484,9 @@ export default function FuelMovementPage() {
                             </form>
                         </CardContent>
                     </Card>
+                    <div className="mt-6">
+                        <FuelTransferList />
+                    </div>
                 </TabsContent>
 
                 {/* YAKIT ALIMI (PURCHASE) */}
@@ -546,6 +551,9 @@ export default function FuelMovementPage() {
                             </form>
                         </CardContent>
                     </Card>
+                    <div className="mt-6">
+                        <FuelPurchaseList isWidget={true} />
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>

@@ -309,38 +309,50 @@ export default function DashboardPage() {
                         <FileText className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent className="space-y-4 pt-2">
-                        {/* YI-UFE Display */}
                         {(() => {
                             const sortedYiufe = [...yiUfeRates].sort((a, b) => {
                                 if (a.year !== b.year) return b.year - a.year;
                                 return b.month - a.month;
                             });
-                            const current = sortedYiufe[0];
-                            const previous = sortedYiufe[1];
-                            const rate = (current && previous) ? ((current.index / previous.index) - 1) : 0;
+                            // Show last 3 months
+                            const lastMonths = sortedYiufe.slice(0, 3);
 
                             return (
                                 <div className="space-y-3">
-                                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-xs text-slate-500 font-medium">Son Yi-ÜFE</span>
-                                            <span className="text-[10px] text-slate-400">
-                                                {current ? `${new Date(0, current.month - 1).toLocaleString('tr-TR', { month: 'long' })} ${current.year}` : '-'}
-                                            </span>
-                                        </div>
-                                        <div className="text-xl font-bold font-mono text-blue-700">
-                                            {current ? current.index.toFixed(2) : '-'}
-                                        </div>
-                                    </div>
+                                    <div className="space-y-2">
+                                        {lastMonths.map((rate, index) => {
+                                            const prevRate = sortedYiufe[index + 1];
+                                            const change = prevRate ? ((rate.index / prevRate.index) - 1) : 0;
 
-                                    {current && previous && (
-                                        <div className="flex items-center justify-between px-1">
-                                            <span className="text-xs font-medium text-slate-500">Aylık Artış</span>
-                                            <span className={cn("text-sm font-bold", rate > 0 ? "text-green-600" : "text-slate-600")}>
-                                                %{(rate * 100).toFixed(2)}
-                                            </span>
-                                        </div>
-                                    )}
+                                            return (
+                                                <div key={rate.id} className={cn(
+                                                    "flex items-center justify-between p-2 rounded border",
+                                                    index === 0 ? "bg-blue-50 border-blue-100" : "bg-slate-50 border-slate-100"
+                                                )}>
+                                                    <div className="flex flex-col">
+                                                        <span className={cn("text-xs font-medium", index === 0 ? "text-blue-700" : "text-slate-600")}>
+                                                            {new Date(0, rate.month - 1).toLocaleString('tr-TR', { month: 'long' })} {rate.year}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400">Yi-ÜFE Endeksi</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-end">
+                                                        <span className={cn("font-bold font-mono", index === 0 ? "text-blue-800 text-lg" : "text-slate-700 text-sm")}>
+                                                            {rate.index.toFixed(2)}
+                                                        </span>
+                                                        {prevRate && (
+                                                            <span className={cn("text-[10px] font-medium", change > 0 ? "text-green-600" : "text-red-500")}>
+                                                                %{(change * 100).toFixed(2)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+
+                                        {lastMonths.length === 0 && (
+                                            <div className="text-sm text-slate-500 text-center py-4">Veri yok.</div>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })()}
