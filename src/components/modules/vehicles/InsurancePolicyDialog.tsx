@@ -186,33 +186,18 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.type) {
-            toast.error("Lütfen poliçe tipini seçiniz.");
-            return;
-        }
-        if (!formData.company) {
-            toast.error("Lütfen sigorta firmasını seçiniz.");
-            return;
-        }
-        if (!formData.agency) {
-            toast.error("Lütfen acenteyi seçiniz.");
-            return;
-        }
-        if (!formData.startDate) {
-            toast.error("Lütfen başlangıç tarihini giriniz.");
-            return;
-        }
-        if (!formData.endDate) {
-            toast.error("Lütfen bitiş tarihini giriniz.");
-            return;
-        }
-        if (!formData.identificationNumber) {
-            toast.error("Lütfen poliçe numarasını giriniz.");
-            return;
-        }
-        if (!formData.cost && formData.cost !== 0) {
-            toast.error("Lütfen tutarı giriniz.");
-            return;
+        // 1. Validation
+        if (!formData.type) return toast.error("Lütfen poliçe tipini seçiniz.");
+        if (!formData.company) return toast.error("Lütfen sigorta firmasını seçiniz.");
+        if (!formData.agency) return toast.error("Lütfen acenteyi seçiniz.");
+        if (!formData.startDate) return toast.error("Lütfen başlangıç tarihini giriniz.");
+        if (!formData.endDate) return toast.error("Lütfen bitiş tarihini giriniz.");
+        if (!formData.identificationNumber) return toast.error("Lütfen poliçe numarasını giriniz.");
+
+        // Robust Cost Validation
+        const costVal = typeof formData.cost === 'string' ? parseFloat((formData.cost as string).replace(',', '.')) : formData.cost;
+        if (isNaN(Number(costVal)) || (costVal !== 0 && !costVal)) {
+            return toast.error("Lütfen geçerli bir tutar giriniz.");
         }
 
         try {
@@ -221,7 +206,7 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
             // If new file selected, convert and add
             if (file) {
                 const base64 = await convertToBase64(file);
-                attachments = [base64]; // Currently simple: replace or single file. Can extend to push for multiple.
+                attachments = [base64];
             }
 
             const newRecord: InsuranceRecord = {
@@ -231,24 +216,23 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 agency: formData.agency || '',
                 startDate: formData.startDate || '',
                 endDate: formData.endDate || '',
-                cost: Number(formData.cost),
-                active: true, // New policies are active by default
+                cost: Number(costVal),
+                active: true,
                 attachments: attachments,
-                definition: formData.definition,
+                definition: formData.definition || '',
                 identificationNumber: formData.identificationNumber,
-                transactionDate: formData.transactionDate
+                transactionDate: formData.transactionDate || new Date().toISOString().split('T')[0]
             };
 
-            const currentHistory = vehicle.insuranceHistory || [];
+            const currentHistory = Array.isArray(vehicle.insuranceHistory) ? [...vehicle.insuranceHistory] : [];
             let newHistory = [...currentHistory];
-            const updates: any = {}; // Collect all updates
+            const updates: any = {};
 
             if (mode === 'ADD') {
                 newHistory.push(newRecord);
-                updates.insuranceHistory = newHistory; // Enabled
+                updates.insuranceHistory = newHistory;
 
-                // UPDATE CURRENT VEHICLE STATUS (Smart Sync)
-                // [FIX] Only update if the new policy is NEWER than the current one (Chronological Check)
+                // UPDATE CURRENT VEHICLE STATUS (Smart Sync - Chronological Check)
                 if (newRecord.type === 'TRAFFIC') {
                     const currentExpiry = vehicle.insuranceExpiry;
                     if (!currentExpiry || new Date(newRecord.endDate) > new Date(currentExpiry)) {
@@ -271,17 +255,12 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
 
             } else {
                 // EDIT MODE
-                // 1. Update record in history
                 newHistory = newHistory.map((r: any) => r.id === policy.id ? newRecord : r);
-                updates.insuranceHistory = newHistory; // Enabled
+                updates.insuranceHistory = newHistory;
 
-                // 2. If this was the "active" or displayed policy logic, we might need to sync vehicle props too
-                // Check if this edited policy acts as the "Main" one based on chronological order
                 const currentExpiry = newRecord.type === 'TRAFFIC' ? vehicle.insuranceExpiry : vehicle.kaskoExpiry;
                 const newExpiry = newRecord.endDate;
 
-                // If the new date is NEWER than current vehicle date, OR if the current vehicle date matches the OLD policy date (sync fix)
-                // We default to "Update if Newer".
                 if (!currentExpiry || new Date(newExpiry) >= new Date(currentExpiry)) {
                     if (newRecord.type === 'TRAFFIC') {
                         updates.insuranceCompany = newRecord.company;
@@ -299,6 +278,8 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 }
             }
 
+            console.log("Submitting updates to vehicle:", vehicle.id, updates);
+
             // PERSISTENCE FIX: Call Server Action
             const res = await updateVehicleAction(vehicle.id, updates);
 
@@ -307,12 +288,13 @@ export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD
                 toast.success(mode === 'ADD' ? 'Poliçe başarıyla eklendi.' : 'Poliçe güncellendi.');
                 onOpenChange(false);
             } else {
-                toast.error(res.error || 'Kaydedilemedi.');
+                console.error("Server Action Failed:", res.error);
+                toast.error(res.error || 'Kaydetme işlemi başarısız oldu.');
             }
 
-        } catch (error) {
-            console.error("File upload error:", error);
-            toast.error("Dosya yüklenirken hata oluştu.");
+        } catch (error: any) {
+            console.error("handleSubmit Exception:", error);
+            toast.error("Bir hata oluştu: " + (error.message || "Bilinmeyen hata"));
         }
     };
 
