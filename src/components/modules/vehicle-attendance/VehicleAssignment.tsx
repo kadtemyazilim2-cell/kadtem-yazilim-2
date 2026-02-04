@@ -29,46 +29,71 @@ export function VehicleAssignment() {
     const [assignedSearch, setAssignedSearch] = useState('');
     const [availableSearch, setAvailableSearch] = useState('');
 
+    // Sorting & Filtering State
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'plate', direction: 'asc' });
+    const [ownershipFilter, setOwnershipFilter] = useState<'ALL' | 'OWNED' | 'RENTAL'>('ALL');
+
+    // Helper for Sorting
+    const sortVehicles = (list: any[]) => {
+        return [...list].sort((a: any, b: any) => {
+            let valA = a[sortConfig.key];
+            let valB = b[sortConfig.key];
+
+            // Specific field handling
+            if (sortConfig.key === 'ownership') {
+                valA = a.ownership === 'RENTAL' ? 'Kiralık' : 'Kendi';
+                valB = b.ownership === 'RENTAL' ? 'Kiralık' : 'Kendi';
+            }
+
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    };
+
     // 1. Vehicles in Selected Site
     const assignedVehicles = useMemo(() => {
         if (!selectedSiteId) return [];
-        return vehicles.filter((v: any) => v.status !== 'PASSIVE' && v.assignedSiteIds?.includes(selectedSiteId))
-            .filter((v: any) => {
-                if (!assignedSearch) return true;
-                const search = toTurkishLower(assignedSearch);
-                return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
-            })
-            .sort((a: any, b: any) => {
-                // 1. Sort by Ownership (RENTAL first)
-                if (a.ownership !== b.ownership) return a.ownership === 'RENTAL' ? -1 : 1;
-                // 2. Sort by Type (TRUCK, LORRY, etc.)
-                if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
-                // 3. Sort by Plate
-                return a.plate.localeCompare(b.plate);
-            });
-    }, [vehicles, selectedSiteId, assignedSearch]);
+        let list = vehicles.filter((v: any) => v.status !== 'PASSIVE' && v.assignedSiteIds?.includes(selectedSiteId));
+
+        // Filter
+        if (ownershipFilter !== 'ALL') {
+            list = list.filter((v: any) => v.ownership === ownershipFilter);
+        }
+
+        // Search
+        if (assignedSearch) {
+            const search = toTurkishLower(assignedSearch);
+            list = list.filter((v: any) => toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search));
+        }
+
+        return sortVehicles(list);
+    }, [vehicles, selectedSiteId, assignedSearch, sortConfig, ownershipFilter]);
 
     // 2. Available Vehicles (Not in THIS site)
     const availableVehicles = useMemo(() => {
         if (!selectedSiteId) return [];
-        return vehicles.filter((v: any) => {
+        let list = vehicles.filter((v: any) => {
             if (v.status === 'PASSIVE') return false;
-            // Available if NOT assigned to CURRENT site
             return !v.assignedSiteIds?.includes(selectedSiteId);
-        }).filter((v: any) => {
-            if (!availableSearch) return true;
+        });
+
+        // Filter
+        if (ownershipFilter !== 'ALL') {
+            list = list.filter((v: any) => v.ownership === ownershipFilter);
+        }
+
+        // Search
+        if (availableSearch) {
             const search = toTurkishLower(availableSearch);
-            return toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search);
-        })
-            .sort((a: any, b: any) => {
-                // 1. Sort by Ownership (RENTAL first)
-                if (a.ownership !== b.ownership) return a.ownership === 'RENTAL' ? -1 : 1;
-                // 2. Sort by Type (TRUCK, LORRY, etc.)
-                if (a.type !== b.type) return (a.type || '').localeCompare(b.type || '');
-                // 3. Sort by Plate
-                return a.plate.localeCompare(b.plate);
-            });
-    }, [vehicles, availableSearch, selectedSiteId]);
+            list = list.filter((v: any) => toTurkishLower(v.plate).includes(search) || toTurkishLower(v.model).includes(search));
+        }
+
+        return sortVehicles(list);
+    }, [vehicles, availableSearch, selectedSiteId, sortConfig, ownershipFilter]);
 
 
     const handleAdd = async (vehicleId: string) => {
@@ -111,6 +136,13 @@ export function VehicleAssignment() {
         }
     };
 
+    const handleSort = (key: string) => {
+        setSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
     return (
         <div className="space-y-6">
             <Card className="border-none shadow-none bg-transparent">
@@ -120,17 +152,36 @@ export function VehicleAssignment() {
 
                 {/* Site Selector Bar */}
                 <div className="bg-white p-6 border rounded-b-md shadow-sm mb-6">
-                    <Label className="text-lg font-semibold mb-2 block">Şantiye Seçin:</Label>
-                    <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                        <SelectTrigger className="w-full h-12 text-lg">
-                            <SelectValue placeholder="Şantiye Seçiniz..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex gap-4 items-end">
+                        <div className="flex-1">
+                            <Label className="text-lg font-semibold mb-2 block">Şantiye Seçin:</Label>
+                            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                                <SelectTrigger className="w-full h-12 text-lg">
+                                    <SelectValue placeholder="Şantiye Seçiniz..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {selectedSiteId && (
+                            <div className="w-[200px]">
+                                <Label className="text-sm font-semibold mb-2 block">Mülkiyet Filtresi:</Label>
+                                <Select value={ownershipFilter} onValueChange={(val: any) => setOwnershipFilter(val)}>
+                                    <SelectTrigger className="h-12">
+                                        <SelectValue placeholder="Tümü" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="ALL">Tümü</SelectItem>
+                                        <SelectItem value="OWNED">Kendi (Öz Mal)</SelectItem>
+                                        <SelectItem value="RENTAL">Kiralık</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {selectedSiteId && (
@@ -141,7 +192,7 @@ export function VehicleAssignment() {
                                 <CardTitle className="text-lg font-bold text-slate-800">Şantiyedeki Araçlar</CardTitle>
                                 <CardDescription>{assignedVehicles.length} araç listeleniyor</CardDescription>
                                 <Input
-                                    placeholder="Araç ara..."
+                                    placeholder="Araç ara (Plaka, Model)..."
                                     value={assignedSearch}
                                     onChange={(e) => setAssignedSearch(e.target.value)}
                                     className="mt-2"
@@ -155,6 +206,8 @@ export function VehicleAssignment() {
                                     onAction={handleRemove}
                                     loadingIds={loadingIds}
                                     disabled={!canAssign}
+                                    onSort={handleSort}
+                                    sortConfig={sortConfig}
                                 />
                             </CardContent>
                         </Card>
@@ -162,10 +215,10 @@ export function VehicleAssignment() {
                         {/* RIGHT: Available */}
                         <Card>
                             <CardHeader className="pb-3 border-b">
-                                <CardTitle className="text-lg font-bold text-slate-800">Boştaki Araçlar</CardTitle>
+                                <CardTitle className="text-lg font-bold text-slate-800">Boştaki ve Diğer Araçlar</CardTitle>
                                 <CardDescription>{availableVehicles.length} araç listeleniyor</CardDescription>
                                 <Input
-                                    placeholder="Araç ara..."
+                                    placeholder="Araç ara (Plaka, Model)..."
                                     value={availableSearch}
                                     onChange={(e) => setAvailableSearch(e.target.value)}
                                     className="mt-2"
@@ -174,13 +227,15 @@ export function VehicleAssignment() {
                             <CardContent className="p-0">
                                 <AssignTable
                                     vehicles={availableVehicles}
-                                    sites={sites} // Pass sites for lookup
+                                    sites={sites}
                                     actionLabel="Ekle"
                                     actionVariant="default"
                                     onAction={handleAdd}
                                     loadingIds={loadingIds}
                                     disabled={!canAssign}
                                     isAdd
+                                    onSort={handleSort}
+                                    sortConfig={sortConfig}
                                 />
                             </CardContent>
                         </Card>
@@ -193,28 +248,31 @@ export function VehicleAssignment() {
 
 function AssignTable({
     vehicles,
-    sites, // Add sites prop
+    sites,
     actionLabel,
     actionVariant,
     onAction,
     loadingIds,
     disabled,
-    isAdd
+    isAdd,
+    onSort,
+    sortConfig
 }: {
     vehicles: any[],
-    sites?: any[], // Optional sites array
+    sites?: any[],
     actionLabel: string,
     actionVariant: "default" | "destructive",
     onAction: (id: string) => void,
     loadingIds: Record<string, boolean>,
     disabled: boolean,
-    isAdd?: boolean
+    isAdd?: boolean,
+    onSort: (key: string) => void,
+    sortConfig: { key: string, direction: 'asc' | 'desc' }
 }) {
     if (vehicles.length === 0) {
         return <div className="p-8 text-center text-muted-foreground">Liste boş.</div>;
     }
 
-    // Helper to find site name
     const getSiteName = (siteIds?: string[]) => {
         if (!siteIds || siteIds.length === 0 || !sites) return null;
         const site = sites.find(s => s.id === siteIds[0]);
@@ -222,12 +280,16 @@ function AssignTable({
     };
 
     return (
-        <div className="">
+        <div className="max-h-[600px] overflow-auto">
             <Table>
-                <TableHeader className="bg-slate-50 sticky top-0">
+                <TableHeader className="bg-slate-50 sticky top-0 z-10">
                     <TableRow>
-                        <TableHead>Plaka</TableHead>
-                        <TableHead>Tür</TableHead>
+                        <TableHead className="cursor-pointer hover:bg-slate-100" onClick={() => onSort('plate')}>
+                            Plaka {sortConfig.key === 'plate' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer hover:bg-slate-100" onClick={() => onSort('ownership')}>
+                            Mülkiyet {sortConfig.key === 'ownership' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
                         <TableHead className="text-right">İşlem</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -251,10 +313,9 @@ function AssignTable({
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <div className="flex flex-col">
-                                        <span>{v.ownership === 'OWNED' ? 'Kendi' : 'Kiralık'}</span>
-                                        {v.type && <span className="text-xs text-muted-foreground">{v.type}</span>}
-                                    </div>
+                                    <Badge variant="outline" className={v.ownership === 'RENTAL' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
+                                        {v.ownership === 'RENTAL' ? 'Kiralık' : 'Kendi'}
+                                    </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button
@@ -262,7 +323,7 @@ function AssignTable({
                                         variant={actionVariant}
                                         onClick={() => onAction(v.id)}
                                         disabled={loadingIds[v.id] || disabled}
-                                        className={isAdd ? "bg-green-600 hover:bg-green-700 w-20" : "w-20"}
+                                        className={isAdd ? "bg-green-600 hover:bg-green-700 w-20" : "w-16"}
                                     >
                                         {loadingIds[v.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : actionLabel}
                                     </Button>

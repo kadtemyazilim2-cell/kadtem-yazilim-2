@@ -24,7 +24,17 @@ export interface Company {
   stamp?: string; // [NEW] Base64 Kaşe Image
   letterhead?: string; // [NEW] Base64 Antet Image
   taxNumber?: string; // [NEW]
-  phone?: string; // [NEW]
+  phone?: string;
+
+  // SMTP Config
+  smtpHost?: string;
+  smtpPort?: number;
+  smtpSecure?: boolean;
+  smtpUser?: string;
+  smtpPass?: string;
+  smtpFromEmail?: string;
+  smtpFromName?: string;
+  smtpConfig?: any; // [NEW]
   smtpConfig?: SmtpConfig; // [NEW] Per-company SMTP settings
   currentDocumentNumber?: number; // [NEW] Document Tracking
   shortName?: string; // [NEW]
