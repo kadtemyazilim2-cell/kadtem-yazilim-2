@@ -273,11 +273,7 @@ function AssignTable({
         return <div className="p-8 text-center text-muted-foreground">Liste boş.</div>;
     }
 
-    const getSiteName = (siteIds?: string[]) => {
-        if (!siteIds || siteIds.length === 0 || !sites) return null;
-        const site = sites.find(s => s.id === siteIds[0]);
-        return site ? site.name : null;
-    };
+
 
     return (
         <div className="max-h-[600px] overflow-auto">
@@ -295,18 +291,36 @@ function AssignTable({
                 </TableHeader>
                 <TableBody>
                     {vehicles.map(v => {
-                        const otherSiteName = isAdd ? getSiteName(v.assignedSiteIds) : null;
+
 
                         return (
                             <TableRow key={v.id}>
                                 <TableCell className="font-medium">
                                     <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <span>{v.plate}</span>
-                                            {otherSiteName && (
-                                                <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200">
-                                                    {otherSiteName.length > 15 ? otherSiteName.substring(0, 15) + '...' : otherSiteName}
-                                                </Badge>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            <span className="whitespace-nowrap">{v.plate}</span>
+                                            {isAdd && v.assignedSiteIds && v.assignedSiteIds.length > 0 && sites && (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {v.assignedSiteIds.map((sid: string) => {
+                                                        const site = sites.find(s => s.id === sid);
+                                                        if (!site) return null;
+
+                                                        // Determine Short Name
+                                                        // Priority: Explicit shortName > First 3 chars of name
+                                                        const shortName = site.shortName || (site.name.length > 3 ? site.name.substring(0, 3).toUpperCase() : site.name);
+
+                                                        return (
+                                                            <Badge
+                                                                key={sid}
+                                                                variant="outline"
+                                                                className="text-[10px] px-1.5 py-0 h-4 bg-orange-50 text-orange-700 border-orange-200 cursor-help"
+                                                                title={site.name} // Native Tooltip
+                                                            >
+                                                                {shortName}
+                                                            </Badge>
+                                                        );
+                                                    })}
+                                                </div>
                                             )}
                                         </div>
                                         <span className="text-xs text-muted-foreground">{v.brand} {v.model}</span>
