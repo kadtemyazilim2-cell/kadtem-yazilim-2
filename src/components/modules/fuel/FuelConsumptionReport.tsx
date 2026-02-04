@@ -365,72 +365,34 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         // 4. Filtering & Balancing Logic
         let processedData = [...data];
 
-        // A. Pre-Sort by Date DESCENTING (Newest First) for Backward Calc
-        processedData.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // A. Sort Ascending (Oldest First) for Forward Calculation
+        processedData.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        // B. Calculate Starting Stock per Site (CURRENT STOCK Map)
-        const currentStocks: Record<string, number> = {};
-        fuelTanks.forEach((t: any) => {
-            if (t.siteId) {
-                currentStocks[t.siteId] = (currentStocks[t.siteId] || 0) + (t.currentLevel || 0);
-            }
-        });
+        // B. Initialize Balances to 0 (Tracking History purely from transactions)
+        // If we anchored to Current Stock, any drift/missing data would skew the past.
+        // By anchoring to 0 (or relying on BALANCE_START if we had one), we show "Calculated Stock".
+        const runningBalances: Record<string, number> = {};
 
-        // Initialize Running Balances per Site
-        // We clone currentStocks to traverse backwards
-        const runningBalances = { ...currentStocks };
-
-        // C. Apply Filters (except Date Start, which cuts history)
-        // If we filter by Site here, we reduce the dataset, but runningBalance logic still works 
-        // because we only process visible rows.
-        // However, if we skip rows that DID affect stock (e.g. unrelated vehicle transaction?), 
-        // we might desync if we are not careful.
-        // BUT: Stock is driven by Logs/Transfers. All Logs/Transfers have a Site ID.
-        // If we filter by Site, we only see transactions for that Site.
-        // And we initialized the Balance for that Site correctly from Current Stock.
-        // So filtering by Site is safe.
-        // Filtering by Plate?
-        // If we filter by Plate, we hide some consumption logs of the same site.
-        // This MEANS we miss some "Depletion events".
-        // Use Case: "Show me consuming of Plate X".
-        // Column "Cumulative Total" (Stock).
-        // If I hide Plate Y's consumption, the Stock jump between Plate X logs will be unexplainable?
-        // Or should I calculate Stock against ALL data, THEN filter?
-        // YES. To show accurate "Stock at that moment", we must process ALL transactions to trace the curve,
-        // THEN hide the rows we don't want. 
-        // OTHERWISE, the stock numbers will be nonsensical (e.g. appearing to stay high because we hid other consumption).
-
-        // So: Do NOT filter processedData before calculation if we want accurate STOCK history.
-        // BUT: This is expensive if we have millions of rows. Client-side is fine for thousands.
-        // Let's walk ALL `processedData` (sorted desc), update balances, and mark rows as "visible" or filter later.
-
-        // Step 1: Walk all records (Backward) to assign Stock Snapshots
+        // C. Walk Forward
         processedData.forEach((item: any) => {
-            const sId = item.siteId || 'unknown'; // Group unknown sites together so they track relatively at least
+            const sId = item.siteId || 'unknown';
 
-            // Ensure bucket exists (start at 0 if no Tank known)
             if (runningBalances[sId] === undefined) {
                 runningBalances[sId] = 0;
             }
 
-            // Assign Current Snapshot to this item
-            item.cumulativeTotal = runningBalances[sId];
-
-            // Revert effect for Previous State
             let effect = 0;
-            // Logic:
-            // LOG (Consumption): Stock was Higher. Balance -= (-Liters) = +Liters.
-            // PURCHASE (Entry): Stock was Lower. Balance -= (+Liters).
-            // VIRMAN_OUT (Exit): Stock was Higher. Balance -= (-Liters) = +Liters.
-            // VIRMAN_IN (Entry): Stock was Lower. Balance -= (+Liters).
-
             if (item.recordType === 'LOG') effect = -1 * item.liters;
             else if (item.recordType === 'PURCHASE') effect = item.liters;
             else if (item.recordType === 'VIRMAN_OUT') effect = -1 * Math.abs(item.liters);
             else if (item.recordType === 'VIRMAN_IN') effect = Math.abs(item.liters);
 
-            runningBalances[sId] -= effect;
+            runningBalances[sId] += effect;
+            item.cumulativeTotal = runningBalances[sId];
         });
+
+        // D. Sort Descending for Display (Newest First)
+        processedData.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         // Step 2: NOW Apply Filters for Display
 
@@ -501,11 +463,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     // The stock AFTER that older item is our Opening Balance
                     devirBalance = olderItem.cumulativeTotal;
                 } else {
-                    // No older item found. 
-                    // Did we process everything? 
-                    // If we have data OLDER than start, it would be found.
-                    // If NO older data, then Opening Balance is the `runningBalances[sId]` (Initial Stock calculated at end of walk).
-                    devirBalance = runningBalances[sId];
+                    // No older item found. Start Date is before recorded history.
+                    // Opening Balance is 0.
+                    devirBalance = 0;
                 }
             }
 
