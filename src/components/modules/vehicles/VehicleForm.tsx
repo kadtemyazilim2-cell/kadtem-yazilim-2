@@ -485,8 +485,8 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                             <Input
                                 type="number"
                                 required
-                                value={formData.currentKm}
-                                onChange={(e) => setFormData({ ...formData, currentKm: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                                value={formData.currentKm === 0 ? '' : formData.currentKm}
+                                onChange={(e) => setFormData({ ...formData, currentKm: e.target.value === '' ? ('' as any) : parseInt(e.target.value) })}
                                 className={formErrors.currentKm ? "border-red-500" : ""}
                                 placeholder="0"
                             />

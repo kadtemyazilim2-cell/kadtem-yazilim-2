@@ -354,10 +354,10 @@ export function VehicleList() {
         }
 
         return policies;
-    }).sort((a, b) => { // Sort Newest First
+    }).sort((a, b) => { // Sort Oldest First (Chronological)
         const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
         const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
-        return dateB - dateA;
+        return dateA - dateB;
     });
 
     // --- DERIVE FILTER OPTIONS ---
@@ -1433,23 +1433,23 @@ export function VehicleList() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>İşlem Tarihi</TableHead>
+                                            <TableHead className="text-center">İşlem Tarihi</TableHead>
                                             <TableHead>Plaka</TableHead>
                                             <TableHead>Ruhsat Sahibi</TableHead>
                                             <TableHead>Poliçe Tipi</TableHead>
                                             <TableHead>Sigorta Firması</TableHead>
                                             <TableHead>Acente</TableHead>
-                                            <TableHead>Tutar</TableHead>
-                                            <TableHead>Başlangıç</TableHead>
-                                            <TableHead>Bitiş</TableHead>
-                                            <TableHead className="w-[50px]">Dosya</TableHead>
+                                            <TableHead className="text-right">Tutar</TableHead>
+                                            <TableHead className="text-center">Başlangıç</TableHead>
+                                            <TableHead className="text-center">Bitiş</TableHead>
+                                            <TableHead className="w-[50px] text-center">Dosya</TableHead>
                                             <TableHead className="w-[50px]"></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {filteredPolicies.map((policy) => (
                                             <TableRow key={policy.id} className={policy.isHistory ? "bg-slate-50 opacity-70" : ""}>
-                                                <TableCell className="text-slate-500 font-medium">{formatDateSafe(policy.transactionDate)}</TableCell>
+                                                <TableCell className="text-slate-500 font-medium text-center">{formatDateSafe(policy.transactionDate)}</TableCell>
                                                 <TableCell className="font-bold font-mono">{policy.plate}</TableCell>
                                                 <TableCell className="text-xs">{policy.owner}</TableCell>
                                                 <TableCell>
@@ -1459,10 +1459,10 @@ export function VehicleList() {
                                                 </TableCell>
                                                 <TableCell>{policy.provider}</TableCell>
                                                 <TableCell>{policy.agency}</TableCell>
-                                                <TableCell className="font-mono">{policy.cost ? `${policy.cost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}</TableCell>
-                                                <TableCell>{formatDateSafe(policy.startDate)}</TableCell>
+                                                <TableCell className="font-mono text-right">{policy.cost ? `${policy.cost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}</TableCell>
+                                                <TableCell className="text-center">{formatDateSafe(policy.startDate)}</TableCell>
                                                 <TableCell>
-                                                    <div className="flex flex-col">
+                                                    <div className="flex flex-col items-center">
                                                         <span>{formatDateSafe(policy.endDate)}</span>
                                                         {!policy.isHistory && getExpiryStatus(policy.endDate)}
                                                     </div>
