@@ -354,10 +354,10 @@ export function VehicleList() {
         }
 
         return policies;
-    }).sort((a, b) => { // Sort Oldest First (Chronological)
-        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
-        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
-        return dateA - dateB;
+    }).sort((a, b) => { // Sort Newest First by TRANSACTION DATE
+        const dateA = a.transactionDate ? new Date(a.transactionDate).getTime() : 0;
+        const dateB = b.transactionDate ? new Date(b.transactionDate).getTime() : 0;
+        return dateB - dateA;
     });
 
     // --- DERIVE FILTER OPTIONS ---

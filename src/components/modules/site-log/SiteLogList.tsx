@@ -110,7 +110,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
         });
 
         return list;
-    }, [siteLogEntries, filterSiteId, filterStartDate, filterEndDate, searchTerm, sortOrder, sites, users]);
+    }, [siteLogEntries, filterSiteId, filterStartDate, filterEndDate, searchTerm, sortOrder, sites, users, internalSelectedSite]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
