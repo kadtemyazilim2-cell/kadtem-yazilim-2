@@ -260,6 +260,7 @@ model Vehicle {
   
   // History
   assignmentHistory VehicleAssignmentHistory[]
+  insuranceHistory  Json? // [NEW] Added for policy history
 }
 
 model VehicleAssignmentHistory {
