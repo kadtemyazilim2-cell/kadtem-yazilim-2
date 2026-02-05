@@ -2875,5 +2875,6 @@ export default function NewPage() {
                     )}
                 </TabsContent>
             </Tabs>
-            );
+        </div>
+    );
 }
