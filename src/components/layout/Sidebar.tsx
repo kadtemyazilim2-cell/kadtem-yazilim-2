@@ -58,12 +58,11 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             // Block Admin Page for non-admins
                             if (item.href === '/dashboard/admin') return null;
 
-                            // Block modules if permission is NONE or missing (except Dashboard home)
-                            if (item.href !== '/dashboard') {
-                                const perms = (user?.permissions || {}) as Record<string, string[]>;
-                                const userPerm = perms[permissionId];
-                                if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
-                            }
+                            // Block modules if permission is NONE or missing
+                            // [FIX] Dashboard is now also subject to permission check ('dashboard' module)
+                            const perms = (user?.permissions || {}) as Record<string, string[]>;
+                            const userPerm = perms[permissionId];
+                            if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
                         }
 
                         const Icon = item.icon;
