@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction } from '@/actions/correspondence';
 import { useState, useEffect } from 'react';
-import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet } from "lucide-react";
+import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet, Lock } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -929,14 +929,20 @@ export function CorrespondenceList() {
                                         </Button>
                                         {canEdit && (
                                             <>
-                                                <CorrespondenceForm
-                                                    initialData={item}
-                                                    customTrigger={
-                                                        <Button variant="ghost" size="sm" title="Düzenle">
-                                                            <Pencil className="w-4 h-4 text-blue-600" />
-                                                        </Button>
-                                                    }
-                                                />
+                                                {item.registrationNumber ? (
+                                                    <Button variant="ghost" size="sm" title="Kayıt numarası girildiği için düzenlenemez" className="opacity-50 cursor-not-allowed" onClick={() => toast.warning('Evrak kayıt numarası girildiği için düzenlenemez.')}>
+                                                        <Lock className="w-4 h-4 text-slate-400" />
+                                                    </Button>
+                                                ) : (
+                                                    <CorrespondenceForm
+                                                        initialData={item}
+                                                        customTrigger={
+                                                            <Button variant="ghost" size="sm" title="Düzenle">
+                                                                <Pencil className="w-4 h-4 text-blue-600" />
+                                                            </Button>
+                                                        }
+                                                    />
+                                                )}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
