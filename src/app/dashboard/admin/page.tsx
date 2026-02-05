@@ -637,6 +637,67 @@ export default function AdminPage() {
         setEditLookbackDays('');
     };
 
+    const handleSaveUserSecure = async (e: any) => {
+        console.log('handleSaveUserSecure triggered');
+        toast.info('İşlem başlatıldı...', { duration: 2000 });
+
+        try {
+            if (!userName || !userUsername) {
+                toast.error('Lütfen ad ve kullanıcı adı alanlarını doldurunuz.');
+                return;
+            }
+            if (!isEditing && !userPassword) {
+                toast.error('Lütfen şifre belirleyiniz.');
+                return;
+            }
+
+            let result;
+
+            if (isEditing) {
+                if (!selectedUserId) {
+                    toast.error('Hata: Düzenlenecek kullanıcı ID bulunamadı.');
+                    return;
+                }
+
+                toast.loading('Kullanıcı güncelleniyor...');
+                result = await updateUserAction(selectedUserId, {
+                    username: userUsername,
+                    password: userPassword || undefined,
+                    role: userRole,
+                    permissions: userPermissions,
+                    assignedSiteIds: assignedSiteIds,
+                    editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays),
+                    status: 'ACTIVE'
+                });
+            } else {
+                toast.loading('Kullanıcı oluşturuluyor...');
+                result = await createUser({
+                    name: userName,
+                    username: userUsername,
+                    password: userPassword,
+                    role: userRole,
+                    permissions: userPermissions,
+                    assignedSiteIds: assignedSiteIds,
+                    editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
+                });
+            }
+
+            toast.dismiss();
+
+            if (result && result.success) {
+                toast.success(isEditing ? 'Kullanıcı güncellendi.' : 'Kullanıcı oluşturuldu.');
+                setUserModalOpen(false);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                toast.error('İşlem başarısız: ' + (result?.error || 'Bilinmeyen hata'));
+            }
+
+        } catch (error: any) {
+            console.error('Save User Error:', error);
+            toast.error('Bir hata oluştu: ' + (error.message || error));
+        }
+    };
+
     const handleDeleteUser = async (userToDelete: User) => {
         if (user?.role !== 'ADMIN') { // [Check] Only Admin can delete
             alert('Bu işlem için yetkiniz yok.');
@@ -1558,7 +1619,7 @@ export default function AdminPage() {
                                         </div>
 
                                         <DialogFooter className="pt-4 mt-auto">
-                                            <Button type="button" onClick={(e) => handleSaveUser(e as any)} size="lg" className="w-full sm:w-auto">Kaydet</Button>
+                                            <Button type="button" onClick={(e) => handleSaveUserSecure(e)} size="lg" className="w-full sm:w-auto">Kaydet</Button>
                                         </DialogFooter>
                                     </div>
                                 </DialogContent>
