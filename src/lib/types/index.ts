@@ -349,6 +349,7 @@ export interface AppState {
   fuelTransfers: FuelTransfer[];
   yiUfeRates: YiUfeRate[];
   institutions: Institution[];
+  smtpConfig: SmtpConfig | null; // [NEW]
   addCompany: (company: Company) => void;
   updateCompany: (id: string, updates: Partial<Company>) => void;
   deleteCompany: (id: string) => void;
@@ -401,4 +402,5 @@ export interface AppState {
   addInstitution: (institution: Institution) => void;
   updateInstitution: (id: string, updates: Partial<Institution>) => void;
   deleteInstitution: (id: string) => void;
+  updateSmtpConfig: (config: SmtpConfig | null) => void;
 }

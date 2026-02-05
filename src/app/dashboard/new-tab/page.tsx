@@ -549,7 +549,7 @@ export default function NewPage() {
             : processedGlobalList;
 
         // 4. Apply Filtering (Multi-Select)
-        let filteredList = [...processedGlobalList];
+        let filteredList = [...gridFiltered];
         if (Object.keys(columnFilters).length > 0) {
             filteredList = filteredList.filter(item => {
                 for (const [key, values] of Object.entries(columnFilters)) {

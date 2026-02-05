@@ -133,15 +133,15 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                 // <Boşluk>
                 // İyi çalışmalar.
 
-                let body = `Merhaba,\n\nEkli ruhsatı bulunan ${item.plate} plakalı aracımızın süresi dolan ${policyType} poliçesi için yenileme teklif çalışmasının yapılmasını rica ederim.`;
+                let body = `Ekte ruhsat fotokopisi bulunan ${item.plate} plakalı aracımızın süresi dolan ${policyType} poliçesi için yenileme teklif çalışmasının yapılmasını rica ederiz.`;
 
                 if (customNote && customNote.trim() !== '') {
                     body += `\n\n${customNote}`;
                 }
 
-                body += `\n\nİyi çalışmalar.`;
+                body += `\n\nİyi Çalışmalar.`;
 
-                let attachments = [];
+                let attachments: { filename: string; content: string; }[] = [];
                 if (vehicle?.licenseFile) {
                     const content = vehicle.licenseFile.includes('base64,')
                         ? vehicle.licenseFile.split('base64,')[1]
