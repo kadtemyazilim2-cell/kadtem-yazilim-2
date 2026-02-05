@@ -8,10 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { VehicleForm } from './VehicleForm';
 import { format, parseISO, isAfter, addMonths, addYears } from 'date-fns'; // Added addYears
+import { tr } from 'date-fns/locale';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // [NEW]
 import { AlertTriangle, CheckCircle2, AlertCircle, Plus, Search, FileEdit, MoreHorizontal, Settings, FileText, FileSpreadsheet, Download, Mail, Trash2, ArrowUp, ArrowDown, ListFilter, X, Calendar as CalendarIcon, Building2 } from 'lucide-react'; // Added CalendarIcon
@@ -537,12 +538,12 @@ export function VehicleList() {
         const { key, direction } = rentalSortConfig;
         let comparison = 0;
         switch (key) {
-            case 'plate': comparison = a.plate.localeCompare(b.plate, (window as any).trLocale || 'tr'); break;
-            case 'site': comparison = getVehicleSiteName(a).localeCompare(getVehicleSiteName(b), (window as any).trLocale || 'tr'); break;
+            case 'plate': comparison = a.plate.localeCompare(b.plate, 'tr-TR'); break;
+            case 'site': comparison = getVehicleSiteName(a).localeCompare(getVehicleSiteName(b), 'tr-TR'); break;
             case 'company':
                 const compA = a.rentalCompanyName || getCompanyName(a);
                 const compB = b.rentalCompanyName || getCompanyName(b);
-                comparison = compA.localeCompare(compB, (window as any).trLocale || 'tr');
+                comparison = compA.localeCompare(compB, 'tr-TR');
                 break;
             case 'fee': comparison = (a.monthlyRentalFee || 0) - (b.monthlyRentalFee || 0); break;
             case 'date':
@@ -550,7 +551,7 @@ export function VehicleList() {
                 const dateB = b.rentalLastUpdate ? new Date(b.rentalLastUpdate).getTime() : 0;
                 comparison = dateA - dateB;
                 break;
-            case 'status': comparison = (statusMap[a.status] || a.status).localeCompare(statusMap[b.status] || b.status, (window as any).trLocale || 'tr'); break;
+            case 'status': comparison = (statusMap[a.status] || a.status).localeCompare(statusMap[b.status] || b.status, 'tr-TR'); break;
         }
         return direction === 'asc' ? comparison : -comparison;
     });
@@ -587,7 +588,7 @@ export function VehicleList() {
     const formatDateSafe = (dateStr?: string) => {
         if (!dateStr) return '-';
         try {
-            return format(parseISO(dateStr), 'dd.MM.yyyy', { locale: (window as any).trLocale });
+            return format(parseISO(dateStr), 'dd.MM.yyyy', { locale: tr });
         } catch (e) {
             return '-';
         }
