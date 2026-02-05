@@ -180,7 +180,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
         setSending(false);
         setProgress(null);
 
-        if (failCount === 0) {
+        if (successCount > 0) {
             // [NEW] Update Vehicle History on Success
             const now = new Date().toISOString();
             const agencyNames = agencies
@@ -210,10 +210,12 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                 console.error('Update error:', err);
             }
 
-            alert(`Başarıyla ${successCount} acenteye teklif isteği gönderildi.`);
+            toast.success(`Başarıyla ${successCount} acenteye teklif isteği gönderildi.`);
             onOpenChange(false);
-        } else {
-            alert(`${successCount} gönderildi, ${failCount} başarısız oldu. Lütfen konsolu kontrol ediniz.`);
+        }
+
+        if (failCount > 0) {
+            toast.error(`${failCount} gönderim başarısız oldu. Lütfen konsolu kontrol ediniz.`);
         }
     };
 
