@@ -32,6 +32,58 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { Vehicle } from '@/lib/types';
 import { deleteVehicle as deleteVehicleAction, updateVehicle as updateVehicleAction } from '@/actions/vehicle'; // [NEW] Import Server Action
 
+const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleId: string, initialValue: number | null, onUpdate: (id: string, data: any, msg: string) => Promise<void> }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [value, setValue] = useState(initialValue?.toString() || '');
+
+    const handleSave = async () => {
+        const numVal = parseFloat(value);
+
+        if (isNaN(numVal)) {
+            setIsEditing(false);
+            return;
+        }
+
+        if (numVal !== initialValue) {
+            await onUpdate(vehicleId, { monthlyRentalFee: numVal }, 'Kira bedeli güncellendi.');
+        }
+        setIsEditing(false);
+    };
+
+    if (isEditing) {
+        return (
+            <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                <Input
+                    autoFocus
+                    defaultValue={initialValue?.toString()}
+                    onChange={(e) => setValue(e.target.value)}
+                    onBlur={handleSave}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSave();
+                        if (e.key === 'Escape') setIsEditing(false);
+                    }}
+                    className="h-8 w-24 text-right"
+                    type="number"
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div
+            onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(true);
+            }}
+            className="cursor-pointer hover:bg-slate-100 p-1 px-2 rounded border border-transparent hover:border-slate-300 text-right transition-all flex justify-end items-center gap-2 group"
+            title="Düzenlemek için tıkla"
+        >
+            {initialValue ? `${initialValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}
+            <FileEdit className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+    );
+};
+
 export function VehicleList() {
     // Rebuild Trigger: Ownership Column Update Verified
     const { vehicles, sites, companies, updateVehicle, vehicleAttendance, fuelLogs, deleteVehicle } = useAppStore();
@@ -191,6 +243,23 @@ export function VehicleList() {
         return [{ key: 'company', direction: 'asc' }, { key: 'plate', direction: 'asc' }]; // Default
     });
 
+    const [rentalSortConfig, setRentalSortConfig] = useState<SortConfigItem>({ key: 'plate', direction: 'asc' });
+    const [insuranceSortConfig, setInsuranceSortConfig] = useState<SortConfigItem>({ key: 'insuranceExpiry', direction: 'asc' });
+
+    const handleRentalSort = (key: string) => {
+        setRentalSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const handleInsuranceSort = (key: string) => {
+        setInsuranceSortConfig(current => ({
+            key,
+            direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
     const handleSort = (key: string, event: React.MouseEvent) => {
         setSortConfig(current => {
             let newConfig: SortConfigItem[];
@@ -236,6 +305,18 @@ export function VehicleList() {
                 {sortConfig.length > 1 && <span className="text-[10px] ml-0.5">{index + 1}</span>}
             </span>
         );
+    };
+
+    const getRentalSortIcon = (key: string) => {
+        if (rentalSortConfig.key !== key) return null;
+        const Icon = rentalSortConfig.direction === 'asc' ? ArrowUp : ArrowDown;
+        return <Icon className="ml-1 w-3 h-3 inline text-blue-600" />;
+    };
+
+    const getInsuranceSortIcon = (key: string) => {
+        if (insuranceSortConfig.key !== key) return null;
+        const Icon = insuranceSortConfig.direction === 'asc' ? ArrowUp : ArrowDown;
+        return <Icon className="ml-1 w-3 h-3 inline text-blue-600" />;
     };
 
     // Sort vehicles (Dynamic)
@@ -443,6 +524,55 @@ export function VehicleList() {
 
         if (rentalFilters.status.length > 0 && !rentalFilters.status.includes(vehicle.status)) return false;
         return true;
+    }).sort((a, b) => {
+        const { key, direction } = rentalSortConfig;
+        let comparison = 0;
+        switch (key) {
+            case 'plate': comparison = a.plate.localeCompare(b.plate, (window as any).trLocale || 'tr'); break;
+            case 'site': comparison = getVehicleSiteName(a).localeCompare(getVehicleSiteName(b), (window as any).trLocale || 'tr'); break;
+            case 'company':
+                const compA = a.rentalCompanyName || getCompanyName(a);
+                const compB = b.rentalCompanyName || getCompanyName(b);
+                comparison = compA.localeCompare(compB, (window as any).trLocale || 'tr');
+                break;
+            case 'fee': comparison = (a.monthlyRentalFee || 0) - (b.monthlyRentalFee || 0); break;
+            case 'date':
+                const dateA = a.rentalLastUpdate ? new Date(a.rentalLastUpdate).getTime() : 0;
+                const dateB = b.rentalLastUpdate ? new Date(b.rentalLastUpdate).getTime() : 0;
+                comparison = dateA - dateB;
+                break;
+            case 'status': comparison = (statusMap[a.status] || a.status).localeCompare(statusMap[b.status] || b.status, (window as any).trLocale || 'tr'); break;
+        }
+        return direction === 'asc' ? comparison : -comparison;
+    });
+
+    const sortedInsuranceVehicles = sortedVehicles.filter(v =>
+        v.ownership === 'OWNED' &&
+        v.status === 'ACTIVE' && // [NEW] Only show Active vehicles
+        !v.rentalCompanyName && // Exclude vehicles assigned to Rental Companies
+        companies.some(c => c.id === v.companyId) // [NEW] Exclude vehicles belonging to non-managed companies
+    ).sort((a, b) => {
+        const { key, direction } = insuranceSortConfig;
+        let comparison = 0;
+
+        // Helper to handle null dates safely for sorting (usually push nulls to end)
+        const getDate = (d?: string) => d ? new Date(d).getTime() : (direction === 'asc' ? 9999999999999 : 0);
+
+        switch (key) {
+            case 'plate': comparison = a.plate.localeCompare(b.plate, (window as any).trLocale || 'tr'); break;
+            case 'brand':
+                const brandA = `${a.brand} ${a.model}`;
+                const brandB = `${b.brand} ${b.model}`;
+                comparison = brandA.localeCompare(brandB, (window as any).trLocale || 'tr');
+                break;
+            case 'type': comparison = (typeMap[a.type] || a.type).localeCompare(typeMap[b.type] || b.type, (window as any).trLocale || 'tr'); break;
+            case 'insuranceExpiry': comparison = getDate(a.insuranceExpiry) - getDate(b.insuranceExpiry); break;
+            case 'kaskoExpiry': comparison = getDate(a.kaskoExpiry) - getDate(b.kaskoExpiry); break;
+            case 'inspectionExpiry': comparison = getDate(a.inspectionExpiry) - getDate(b.inspectionExpiry); break;
+            case 'vehicleCardExpiry': comparison = getDate(a.vehicleCardExpiry) - getDate(b.vehicleCardExpiry); break;
+            case 'status': comparison = (statusMap[a.status] || a.status).localeCompare(statusMap[b.status] || b.status, (window as any).trLocale || 'tr'); break;
+        }
+        return direction === 'asc' ? comparison : -comparison;
     });
 
     const formatDateSafe = (dateStr?: string) => {
@@ -1218,24 +1348,19 @@ export function VehicleList() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Plaka</TableHead>
-                                            <TableHead>Marka / Model</TableHead>
-                                            <TableHead>Tip</TableHead>
-                                            <TableHead>Trafik Sigortası Bitiş</TableHead>
-                                            <TableHead>Kasko Bitiş</TableHead>
-                                            <TableHead>Muayene Bitiş</TableHead>
-                                            <TableHead>Taşıt Kartı Bitiş</TableHead>
-                                            <TableHead className="text-right">Durum</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('plate')}>Plaka {getInsuranceSortIcon('plate')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('brand')}>Marka / Model {getInsuranceSortIcon('brand')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('type')}>Tip {getInsuranceSortIcon('type')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('insuranceExpiry')}>Trafik Sigortası Bitiş {getInsuranceSortIcon('insuranceExpiry')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('kaskoExpiry')}>Kasko Bitiş {getInsuranceSortIcon('kaskoExpiry')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('inspectionExpiry')}>Muayene Bitiş {getInsuranceSortIcon('inspectionExpiry')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('vehicleCardExpiry')}>Taşıt Kartı Bitiş {getInsuranceSortIcon('vehicleCardExpiry')}</TableHead>
+                                            <TableHead className="text-right cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleInsuranceSort('status')}>Durum {getInsuranceSortIcon('status')}</TableHead>
                                             <TableHead className="w-[100px]"></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {sortedVehicles.filter(v =>
-                                            v.ownership === 'OWNED' &&
-                                            v.status === 'ACTIVE' && // [NEW] Only show Active vehicles
-                                            !v.rentalCompanyName && // Exclude vehicles assigned to Rental Companies
-                                            companies.some(c => c.id === v.companyId) // [NEW] Exclude vehicles belonging to non-managed companies
-                                        ).map((vehicle) => (
+                                        {sortedInsuranceVehicles.map((vehicle) => (
                                             <TableRow key={vehicle.id}>
                                                 <TableCell className="font-bold font-mono">{vehicle.plate}</TableCell>
                                                 <TableCell>{vehicle.brand} - {vehicle.model}</TableCell>
@@ -1585,12 +1710,12 @@ export function VehicleList() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Plaka</TableHead>
-                                            <TableHead className="w-[200px]">Şantiye</TableHead>
-                                            <TableHead>Kiralama Şirketi / Firma</TableHead>
-                                            <TableHead>Aylık Kira Bedeli</TableHead>
-                                            <TableHead>Son Güncelleme</TableHead>
-                                            <TableHead>Durum</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleRentalSort('plate')}>Plaka {getRentalSortIcon('plate')}</TableHead>
+                                            <TableHead className="w-[200px] cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleRentalSort('site')}>Şantiye {getRentalSortIcon('site')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleRentalSort('company')}>Kiralama Şirketi / Firma {getRentalSortIcon('company')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors text-right" onClick={() => handleRentalSort('fee')}>Aylık Kira Bedeli {getRentalSortIcon('fee')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleRentalSort('date')}>Son Güncelleme {getRentalSortIcon('date')}</TableHead>
+                                            <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleRentalSort('status')}>Durum {getRentalSortIcon('status')}</TableHead>
                                             <TableHead></TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -1602,7 +1727,13 @@ export function VehicleList() {
                                                     {getVehicleSiteName(vehicle)}
                                                 </TableCell>
                                                 <TableCell>{vehicle.rentalCompanyName || getCompanyName(vehicle)}</TableCell>
-                                                <TableCell>{vehicle.monthlyRentalFee ? `${vehicle.monthlyRentalFee.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <RentalFeeEditableCell
+                                                        vehicleId={vehicle.id}
+                                                        initialValue={vehicle.monthlyRentalFee || null}
+                                                        onUpdate={handleUpdate}
+                                                    />
+                                                </TableCell>
                                                 <TableCell>{formatDateSafe(vehicle.rentalLastUpdate)}</TableCell>
                                                 <TableCell>
                                                     <Badge variant={vehicle.status === 'ACTIVE' ? 'outline' : 'secondary'} className={
