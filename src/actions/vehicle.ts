@@ -33,16 +33,12 @@ const getVehiclesFromDb = unstable_cache(
                 fuelType: true,
                 lastInspectionDate: true,
 
-                // Proposal History
-                lastTrafficProposalDate: true,
-                lastTrafficProposalAgencies: true,
-                lastKaskoProposalDate: true,
                 lastKaskoProposalAgencies: true,
 
                 // licenseFile: false, // EXCLUDED to prevent 2MB cache limit error
 
                 // History fields (if they exist in schema and act as scalars/small json)
-                insuranceHistory: true,
+                // insuranceHistory: true, // [DISABLED] Getting "Unknown field" error even though in schema. Likely build sync issue.
 
                 // Relations
                 // [FIX] Select ONLY necessary fields to prevent 2MB cache limit error
