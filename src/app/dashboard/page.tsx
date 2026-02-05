@@ -34,6 +34,8 @@ export default function DashboardPage() {
     const { user, hasPermission } = useAuth(); // To check if admin for other things if needed
     const router = useRouter();
 
+    const canEditDashboard = user?.role === 'ADMIN' || hasPermission('dashboard', 'EDIT');
+
     // Inspection Dialog State
     const [inspectionModalOpen, setInspectionModalOpen] = useState(false);
     const [selectedInspection, setSelectedInspection] = useState<any>(null);
@@ -303,63 +305,65 @@ export default function DashboardPage() {
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-12">
 
                 {/* 1. Quick Info & Indices (Left - 3/12) - [MOVED HERE] */}
-                <Card className="col-span-1 md:col-span-1 lg:col-span-3 shadow-sm border-slate-200 h-full">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600">Bilgiler & Endeksler</CardTitle>
-                        <FileText className="h-4 w-4 text-slate-400" />
-                    </CardHeader>
-                    <CardContent className="space-y-4 pt-2">
-                        {(() => {
-                            const sortedYiufe = [...yiUfeRates].sort((a, b) => {
-                                if (a.year !== b.year) return b.year - a.year;
-                                return b.month - a.month;
-                            });
+                {hasPermission('dashboard.indices', 'VIEW') && (
+                    <Card className="col-span-1 md:col-span-1 lg:col-span-3 shadow-sm border-slate-200 h-full">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-600">Bilgiler & Endeksler</CardTitle>
+                            <FileText className="h-4 w-4 text-slate-400" />
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-2">
+                            {(() => {
+                                const sortedYiufe = [...yiUfeRates].sort((a, b) => {
+                                    if (a.year !== b.year) return b.year - a.year;
+                                    return b.month - a.month;
+                                });
 
-                            const current = sortedYiufe[0];
-                            const prev = sortedYiufe[1];
-                            const change = (current && prev) ? ((current.index / prev.index) - 1) : 0;
+                                const current = sortedYiufe[0];
+                                const prev = sortedYiufe[1];
+                                const change = (current && prev) ? ((current.index / prev.index) - 1) : 0;
 
-                            if (!current) return <div className="text-sm text-slate-500 py-4">Veri yok.</div>;
+                                if (!current) return <div className="text-sm text-slate-500 py-4">Veri yok.</div>;
 
-                            return (
-                                <div className="flex flex-col space-y-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-slate-500 mb-1">
-                                            {new Date(0, current.month - 1).toLocaleString('tr-TR', { month: 'long' })} {current.year}
-                                        </span>
-                                        <span className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
-                                            {current.index.toFixed(2)}
-                                        </span>
-                                    </div>
-
-                                    {prev && (
-                                        <div className="flex flex-col pt-2 border-t border-slate-100">
-                                            <span className="text-xs text-slate-400 mb-1">
-                                                {new Date(0, prev.month - 1).toLocaleString('tr-TR', { month: 'long' })} {prev.year}
+                                return (
+                                    <div className="flex flex-col space-y-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-slate-500 mb-1">
+                                                {new Date(0, current.month - 1).toLocaleString('tr-TR', { month: 'long' })} {current.year}
                                             </span>
-                                            <span className="text-lg font-semibold text-slate-700 font-mono">
-                                                {prev.index.toFixed(2)}
+                                            <span className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
+                                                {current.index.toFixed(2)}
                                             </span>
                                         </div>
-                                    )}
 
-                                    {prev && (
-                                        <div className="pt-2">
-                                            <div className={cn("flex items-center w-full justify-center py-1.5 rounded-md text-sm font-bold",
-                                                change > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                            )}>
-                                                {change > 0 ? '+' : ''}%{(change * 100).toFixed(2)}
+                                        {prev && (
+                                            <div className="flex flex-col pt-2 border-t border-slate-100">
+                                                <span className="text-xs text-slate-400 mb-1">
+                                                    {new Date(0, prev.month - 1).toLocaleString('tr-TR', { month: 'long' })} {prev.year}
+                                                </span>
+                                                <span className="text-lg font-semibold text-slate-700 font-mono">
+                                                    {prev.index.toFixed(2)}
+                                                </span>
                                             </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
-                    </CardContent>
-                </Card>
+                                        )}
+
+                                        {prev && (
+                                            <div className="pt-2">
+                                                <div className={cn("flex items-center w-full justify-center py-1.5 rounded-md text-sm font-bold",
+                                                    change > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                )}>
+                                                    {change > 0 ? '+' : ''}%{(change * 100).toFixed(2)}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* 2. Financial Status (Middle - 3/12) - [MOVED HERE] */}
-                {hasPermission('cash-book', 'VIEW') && (
+                {hasPermission('dashboard.financial', 'VIEW') && (
                     <Card className="col-span-1 md:col-span-1 lg:col-span-3 bg-emerald-50 border-emerald-100 border shadow-sm h-full">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600">
@@ -373,16 +377,28 @@ export default function DashboardPage() {
                             ) : (
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                     {userBalances.map((u) => (
-                                        <Link
-                                            key={u.id}
-                                            href={`/dashboard/cash-book?userId=${u.id}`}
-                                            className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors rounded"
-                                        >
-                                            <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
-                                            <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
-                                                {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                            </span>
-                                        </Link>
+                                        canEditDashboard ? (
+                                            <Link
+                                                key={u.id}
+                                                href={`/dashboard/cash-book?userId=${u.id}`}
+                                                className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors rounded"
+                                            >
+                                                <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
+                                                <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
+                                                    {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                </span>
+                                            </Link>
+                                        ) : (
+                                            <div
+                                                key={u.id}
+                                                className="flex items-center justify-between text-sm p-2 border-b last:border-0 border-slate-100 bg-transparent cursor-default rounded opacity-80"
+                                            >
+                                                <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
+                                                <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
+                                                    {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                </span>
+                                            </div>
+                                        )
                                     ))}
                                 </div>
                             )}
@@ -391,7 +407,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* 3. Upcoming Payments (Right - 6/12 - Wide) */}
-                {hasPermission('vehicle', 'VIEW') && (
+                {hasPermission('dashboard.upcoming-payments', 'VIEW') && (
                     <Card className="col-span-1 md:col-span-2 lg:col-span-6 bg-red-50 border-red-100 border shadow-sm h-full flex flex-col">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 shrink-0">
                             <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
@@ -454,18 +470,22 @@ export default function DashboardPage() {
 
                                                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                                                     {item.type === 'Muayene' ? (
-                                                        <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-50 hover:bg-slate-100" onClick={() => handleAlertClick(item)}>
-                                                            Tarih Gir
-                                                        </Button>
+                                                        canEditDashboard && (
+                                                            <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-50 hover:bg-slate-100" onClick={() => handleAlertClick(item)}>
+                                                                Tarih Gir
+                                                            </Button>
+                                                        )
                                                     ) : (
-                                                        <>
-                                                            <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-700 hover:bg-blue-50 hover:text-blue-800" onClick={() => handleAlertClick(item)}>
-                                                                Teklif İste
-                                                            </Button>
-                                                            <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300" onClick={() => handlePolicyClick(item)}>
-                                                                Poliçe Gir
-                                                            </Button>
-                                                        </>
+                                                        canEditDashboard && (
+                                                            <>
+                                                                <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-700 hover:bg-blue-50 hover:text-blue-800" onClick={() => handleAlertClick(item)}>
+                                                                    Teklif İste
+                                                                </Button>
+                                                                <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300" onClick={() => handlePolicyClick(item)}>
+                                                                    Poliçe Gir
+                                                                </Button>
+                                                            </>
+                                                        )
                                                     )}
                                                 </div>
                                             </div>
@@ -482,7 +502,7 @@ export default function DashboardPage() {
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-12">
 
                 {/* Site Stocks (Full Width - 12/12) */}
-                {hasPermission('fuel', 'VIEW') && (
+                {hasPermission('dashboard.stocks', 'VIEW') && (
                     <div className="col-span-1 md:col-span-1 lg:col-span-12 space-y-4">
                         <div className="flex items-center justify-between border-b pb-2">
                             <h3 className="text-xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
@@ -495,9 +515,9 @@ export default function DashboardPage() {
                 )}
 
                 {/* Fuel & Charts Section */}
-                {hasPermission('fuel', 'VIEW') && (
-                    <>
-                        {/* Fuel Purchase List (Full Width - 12/12) */}
+                <>
+                    {/* Fuel Purchase List (Full Width - 12/12) */}
+                    {hasPermission('dashboard.fuel-purchases', 'VIEW') && (
                         <div className="col-span-1 md:col-span-1 lg:col-span-12 h-full">
                             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
                                 <div className="p-4 border-b border-slate-100 bg-slate-50/50">
@@ -511,16 +531,18 @@ export default function DashboardPage() {
                                 </div>
                             </div>
                         </div>
+                    )}
 
-                        {/* Daily Chart (Full Width - 12/12) */}
+                    {/* Daily Chart (Full Width - 12/12) */}
+                    {hasPermission('dashboard.fuel-chart', 'VIEW') && (
                         <div className="col-span-1 md:col-span-1 lg:col-span-12 h-full">
                             <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
                         </div>
-                    </>
-                )}
+                    )}
+                </>
 
                 {/* Missing Docs (Full Width - 12/12) */}
-                {hasPermission('correspondence', 'VIEW') && (
+                {hasPermission('dashboard.missing-docs', 'VIEW') && (
                     <div className="col-span-1 md:col-span-1 lg:col-span-12">
                         <Card className="border-red-200 shadow-sm bg-white">
                             <CardHeader className="pb-3 border-b border-slate-100 bg-slate-50/50">
@@ -578,19 +600,21 @@ export default function DashboardPage() {
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right">
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="outline"
-                                                                        className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                                                        onClick={() => {
-                                                                            setEditCorrespondenceId(doc.id);
-                                                                            setEditReferenceNumber(doc.referenceNumber || '');
-                                                                            setEditRegistrationNumber(doc.registrationNumber || '');
-                                                                            setIsEditCorrespondenceOpen(true);
-                                                                        }}
-                                                                    >
-                                                                        Numara Gir
-                                                                    </Button>
+                                                                    {canEditDashboard && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outline"
+                                                                            className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                                                            onClick={() => {
+                                                                                setEditCorrespondenceId(doc.id);
+                                                                                setEditReferenceNumber(doc.referenceNumber || '');
+                                                                                setEditRegistrationNumber(doc.registrationNumber || '');
+                                                                                setIsEditCorrespondenceOpen(true);
+                                                                            }}
+                                                                        >
+                                                                            Numara Gir
+                                                                        </Button>
+                                                                    )}
                                                                 </td>
                                                             </tr>
                                                         );
@@ -618,7 +642,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* SITE LOG SUMMARY (Full Width) */}
-                {hasPermission('site-log', 'VIEW') && (
+                {hasPermission('dashboard.site-log', 'VIEW') && (
                     <div className="col-span-1 md:col-span-1 lg:col-span-12">
                         <SiteLogSummary siteLogEntries={siteLogEntries} sites={sites} users={users} />
                     </div>

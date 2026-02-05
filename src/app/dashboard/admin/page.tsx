@@ -38,7 +38,20 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const MODULE_HIERARCHY = [
-    { id: 'dashboard', label: 'Ana Sayfa (Dashboard)' },
+    {
+        id: 'dashboard',
+        label: 'Ana Sayfa (Dashboard)',
+        children: [
+            { id: 'dashboard.indices', label: 'Bilgiler & Endeksler' },
+            { id: 'dashboard.financial', label: 'Şantiye Kasaları' },
+            { id: 'dashboard.upcoming-payments', label: 'Yaklaşan Ödemeler' },
+            { id: 'dashboard.stocks', label: 'Aktif Şantiye Depo Stokları' },
+            { id: 'dashboard.fuel-purchases', label: 'Son Yakıt Alımları' },
+            { id: 'dashboard.fuel-chart', label: 'Günlük Yakıt Tüketim Grafiği' },
+            { id: 'dashboard.missing-docs', label: 'Eksik Evrak Numaraları' },
+            { id: 'dashboard.site-log', label: 'Şantiye Günlüğü Özeti' },
+        ]
+    },
     {
         id: 'correspondence',
         label: 'Yazışmalar',
