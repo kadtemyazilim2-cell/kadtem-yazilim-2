@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'; // ... existing imports
 
 // [NEW] Server Actions
 import { createUser, updateUser as updateUserAction, deleteUser as deleteUserAction } from '@/actions/user';
+import { debugPing } from '@/actions/debug-action';
 import {
     getYiUfeRates,
     addYiUfeRate,
@@ -638,89 +639,94 @@ export default function AdminPage() {
     };
 
     const handleSaveUserSecure = async (e: any) => {
-        console.log('handleSaveUserSecure triggered');
-        toast.info('İşlem başlatıldı...', { duration: 2000 });
+        if (e && e.preventDefault) e.preventDefault();
+
+        console.log('handleSaveUserSecure triggered via API Route');
+        const loadingToastId = toast.loading('İşlem yapılıyor, lütfen bekleyiniz...');
 
         try {
             if (!userName || !userUsername) {
                 toast.error('Lütfen ad ve kullanıcı adı alanlarını doldurunuz.');
+                toast.dismiss(loadingToastId);
                 return;
             }
             if (!isEditing && !userPassword) {
                 toast.error('Lütfen şifre belirleyiniz.');
+                toast.dismiss(loadingToastId);
                 return;
             }
 
-            let result;
+            // Construct payload
+            const payload = {
+                id: isEditing ? selectedUserId : undefined,
+                name: userName,
+                username: userUsername,
+                password: userPassword || undefined, // Only send if changed/new
+                role: userRole,
+                permissions: userPermissions,
+                assignedSiteIds: assignedSiteIds,
+                editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays),
+                status: 'ACTIVE'
+            };
 
-            if (isEditing) {
-                if (!selectedUserId) {
-                    toast.error('Hata: Düzenlenecek kullanıcı ID bulunamadı.');
-                    return;
-                }
+            // Use FETCH API instead of Server Action
+            const response = await fetch('/api/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-                toast.loading('Kullanıcı güncelleniyor...');
-                result = await updateUserAction(selectedUserId, {
-                    username: userUsername,
-                    password: userPassword || undefined,
-                    role: userRole,
-                    permissions: userPermissions,
-                    assignedSiteIds: assignedSiteIds,
-                    editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays),
-                    status: 'ACTIVE'
-                });
-            } else {
-                toast.loading('Kullanıcı oluşturuluyor...');
-                result = await createUser({
-                    name: userName,
-                    username: userUsername,
-                    password: userPassword,
-                    role: userRole,
-                    permissions: userPermissions,
-                    assignedSiteIds: assignedSiteIds,
-                    editLookbackDays: editLookbackDays === '' ? undefined : Number(editLookbackDays)
-                });
-            }
+            const result = await response.json();
 
-            toast.dismiss();
-
-            if (result && result.success) {
+            if (response.ok && result.success) {
+                toast.dismiss(loadingToastId); // Dismiss loading first
                 toast.success(isEditing ? 'Kullanıcı güncellendi.' : 'Kullanıcı oluşturuldu.');
                 setUserModalOpen(false);
                 setTimeout(() => location.reload(), 1000);
             } else {
-                toast.error('İşlem başarısız: ' + (result?.error || 'Bilinmeyen hata'));
+                throw new Error(result.error || 'Sunucu işlem hatası');
             }
 
         } catch (error: any) {
             console.error('Save User Error:', error);
-            toast.error('Bir hata oluştu: ' + (error.message || error));
+            toast.dismiss(loadingToastId);
+            toast.error('HATA: ' + (error.message || 'Beklenmeyen hata'));
         }
     };
 
+
     const handleDeleteUser = async (userToDelete: User) => {
         if (user?.role !== 'ADMIN') { // [Check] Only Admin can delete
-            alert('Bu işlem için yetkiniz yok.');
+            toast.error('Bu işlem için yetkiniz yok.');
             return;
         }
 
         if (userToDelete.id === user?.id) {
-            alert('Kendinizi silemezsiniz.');
+            toast.error('Kendinizi silemezsiniz.');
             return;
         }
 
         if (confirm(`${userToDelete.name} kullanıcısını silmek istediğinize emin misiniz?`)) {
             try {
-                const res = await deleteUserAction(userToDelete.id);
+                // Use FETCH instead of Action to avoid "Unrecognized Action" error
+                const response = await fetch('/api/users', {
+                    method: 'POST', // standard API route only handles POST/GET generally, or we could use DELETE method if route supports it. 
+                    // My previous route code handled 'isDelete' in POST.
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: userToDelete.id, isDelete: true })
+                });
+
+                const res = await response.json();
+
                 if (res.success) {
-                    deleteUser(userToDelete.id); // Update Store
+                    deleteUser(userToDelete.id); // Update Store locally
                     toast.success('Kullanıcı silindi.');
                 } else {
                     toast.error(res.error || 'Silinemedi.');
                 }
-            } catch (error) {
+            } catch (error: any) {
                 console.error(error);
-                toast.error('Geriye dönük hata oluştu.');
+                toast.error('Silme hatası: ' + (error.message || 'Sunucu hatası'));
             }
         }
     };

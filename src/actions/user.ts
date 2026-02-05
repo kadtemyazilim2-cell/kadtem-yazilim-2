@@ -56,29 +56,13 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
 
 export async function updateUser(id: string, data: Partial<User> & { assignedSiteIds?: string[] }) {
     try {
-        console.log('[updateUser] Action started for ID:', id);
-        console.log('[updateUser] Data received:', JSON.stringify(data, null, 2));
+        console.log('[updateUser] Action NUCLEAR MOCK started for ID:', id);
 
-        const user = await prisma.user.update({
-            where: { id },
-            data: {
-                username: data.username,
-                password: data.password || undefined,
-                role: data.role,
-                permissions: data.permissions as any,
-                editLookbackDays: data.editLookbackDays,
-                status: data.status,
-                assignedSites: data.assignedSiteIds ? {
-                    set: data.assignedSiteIds.map((sid: string) => ({ id: sid }))
-                } : undefined
-            }
-        });
+        // NUCLEAR OPTION: Bypass DB completely to test connectivity
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        console.log('[updateUser] User updated in DB');
-
-        // revalidatePath('/dashboard/admin');
-        console.log('[updateUser] Success returning');
-        return { success: true, data: user };
+        console.log('[updateUser] NUCLEAR MOCK Success returning');
+        return { success: true, data: { id, ...data } as any };
     } catch (error) {
         console.error('updateUser Error:', error);
         return { success: false, error: 'Kullanıcı güncellenemedi.' };
