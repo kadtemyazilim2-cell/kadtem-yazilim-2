@@ -65,7 +65,7 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
             <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                 <Input
                     autoFocus
-                    defaultValue={initialValue?.toString()}
+                    defaultValue={value}
                     onChange={(e) => setValue(e.target.value)}
                     onBlur={handleSave}
                     onKeyDown={(e) => {
@@ -73,7 +73,8 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
                         if (e.key === 'Escape') setIsEditing(false);
                     }}
                     className="h-8 w-24 text-right"
-                    type="number"
+                    type="text"
+                    placeholder="0.00"
                 />
             </div>
         );
