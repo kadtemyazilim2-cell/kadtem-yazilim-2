@@ -376,8 +376,9 @@ export default function DashboardPage() {
                                 <div className="text-sm text-slate-500">Bakiye yok.</div>
                             ) : (
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                                    {userBalances.map((u) => (
-                                        canEditDashboard ? (
+                                    {userBalances.map((u) => {
+                                        const canEditFinancial = user?.role === 'ADMIN' || hasPermission('dashboard.financial', 'EDIT') || hasPermission('dashboard', 'EDIT');
+                                        return canEditFinancial ? (
                                             <Link
                                                 key={u.id}
                                                 href={`/dashboard/cash-book?userId=${u.id}`}
@@ -398,8 +399,8 @@ export default function DashboardPage() {
                                                     {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                                 </span>
                                             </div>
-                                        )
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </CardContent>
@@ -425,6 +426,7 @@ export default function DashboardPage() {
                                 <div className="space-y-2 overflow-y-auto pr-1 flex-grow scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                                     {upcomingExpirations.map((item) => {
                                         const vehicle = vehicles.find((v: any) => v.id === item.vehicleId);
+                                        const canEditPayments = user?.role === 'ADMIN' || hasPermission('dashboard.upcoming-payments', 'EDIT') || hasPermission('dashboard', 'EDIT');
                                         let historyText: string | null = null;
                                         if (item.type === 'Trafik Sigortası' && vehicle?.lastTrafficProposalDate) {
                                             const date = new Date(vehicle.lastTrafficProposalDate).toLocaleDateString('tr-TR');
@@ -470,13 +472,13 @@ export default function DashboardPage() {
 
                                                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                                                     {item.type === 'Muayene' ? (
-                                                        canEditDashboard && (
+                                                        canEditPayments && (
                                                             <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-50 hover:bg-slate-100" onClick={() => handleAlertClick(item)}>
                                                                 Tarih Gir
                                                             </Button>
                                                         )
                                                     ) : (
-                                                        canEditDashboard && (
+                                                        canEditPayments && (
                                                             <>
                                                                 <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-700 hover:bg-blue-50 hover:text-blue-800" onClick={() => handleAlertClick(item)}>
                                                                     Teklif İste
