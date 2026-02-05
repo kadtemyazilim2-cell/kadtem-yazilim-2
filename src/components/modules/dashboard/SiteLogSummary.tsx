@@ -278,9 +278,9 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                     return (
                         <Card key={site.id} className="flex flex-col h-full border-blue-100 shadow-sm hover:shadow-md transition-shadow">
                             <CardHeader className="pb-2 bg-blue-50/50 border-b border-blue-50 rounded-t-lg">
-                                <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                                    <MapPin className="w-4 h-4 text-blue-500" />
-                                    <span className="truncate" title={site.name}>{site.name}</span>
+                                <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-2 min-w-0">
+                                    <MapPin className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                    <span className="truncate flex-1" title={site.name}>{site.name}</span>
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-3 flex-1">
