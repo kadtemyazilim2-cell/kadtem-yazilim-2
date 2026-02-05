@@ -36,6 +36,11 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
     const [isEditing, setIsEditing] = useState(false);
     const [value, setValue] = useState(initialValue?.toString() || '');
 
+    // [FIX] Sync state with props when initialValue changes (e.g. after successful update)
+    useEffect(() => {
+        setValue(initialValue?.toString() || '');
+    }, [initialValue]);
+
     const handleSave = async () => {
         const numVal = parseFloat(value);
 
@@ -45,7 +50,11 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
         }
 
         if (numVal !== initialValue) {
-            await onUpdate(vehicleId, { monthlyRentalFee: numVal }, 'Kira bedeli güncellendi.');
+            // [FIX] Also update the rentalLastUpdate date
+            await onUpdate(vehicleId, {
+                monthlyRentalFee: numVal,
+                rentalLastUpdate: new Date().toISOString()
+            }, 'Kira bedeli güncellendi.');
         }
         setIsEditing(false);
     };
