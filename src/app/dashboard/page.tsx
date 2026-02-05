@@ -309,47 +309,48 @@ export default function DashboardPage() {
                         <FileText className="h-4 w-4 text-slate-400" />
                     </CardHeader>
                     <CardContent className="space-y-4 pt-2">
+                        {(() => {
                             const sortedYiufe = [...yiUfeRates].sort((a, b) => {
                                 if (a.year !== b.year) return b.year - a.year;
-                        return b.month - a.month;
+                                return b.month - a.month;
                             });
 
-                        const current = sortedYiufe[0];
-                        const prev = sortedYiufe[1];
-                        const change = (current && prev) ? ((current.index / prev.index) - 1) : 0;
+                            const current = sortedYiufe[0];
+                            const prev = sortedYiufe[1];
+                            const change = (current && prev) ? ((current.index / prev.index) - 1) : 0;
 
-                        if (!current) return <div className="text-sm text-slate-500 py-4">Veri yok.</div>;
+                            if (!current) return <div className="text-sm text-slate-500 py-4">Veri yok.</div>;
 
-                        return (
-                        <div className="flex flex-col space-y-4">
-                            <div className="flex flex-col">
-                                <span className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
-                                    {current.index.toFixed(2)}
-                                </span>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-sm font-medium text-slate-700">
-                                        {new Date(0, current.month - 1).toLocaleString('tr-TR', { month: 'long' })} {current.year}
-                                    </span>
+                            return (
+                                <div className="flex flex-col space-y-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
+                                            {current.index.toFixed(2)}
+                                        </span>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-sm font-medium text-slate-700">
+                                                {new Date(0, current.month - 1).toLocaleString('tr-TR', { month: 'long' })} {current.year}
+                                            </span>
+                                            {prev && (
+                                                <div className={cn("flex items-center text-xs font-semibold px-2 py-0.5 rounded-full",
+                                                    change > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                                                )}>
+                                                    {change > 0 ? '+' : ''}%{(change * 100).toFixed(2)}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
                                     {prev && (
-                                        <div className={cn("flex items-center text-xs font-semibold px-2 py-0.5 rounded-full",
-                                            change > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                                        )}>
-                                            {change > 0 ? '+' : ''}%{(change * 100).toFixed(2)}
+                                        <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
+                                            <span>Önceki Ay:</span>
+                                            <span className="font-medium text-slate-700">
+                                                {new Date(0, prev.month - 1).toLocaleString('tr-TR', { month: 'long' })}: {prev.index.toFixed(2)}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-
-                            {prev && (
-                                <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-100">
-                                    <span>Önceki Ay:</span>
-                                    <span className="font-medium text-slate-700">
-                                        {new Date(0, prev.month - 1).toLocaleString('tr-TR', { month: 'long' })}: {prev.index.toFixed(2)}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                        );
+                            );
                         })()}
                     </CardContent>
                 </Card>

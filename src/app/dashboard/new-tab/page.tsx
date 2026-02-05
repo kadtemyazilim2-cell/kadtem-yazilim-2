@@ -2742,299 +2742,301 @@ export default function NewPage() {
                                 </div>
                                 <div className="pt-4 flex justify-end">
                                     <Button onClick={handleAdd}>
-                                    </TabsContent>
+                                        {editingId ? 'Güncelle' : 'Kaydet'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
 
+                    {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
+                    <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                        setIsDialogOpen(open);
+                        if (!open) setEditingId(null);
+                    }}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>İşe Giriş Tarihi</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.inputDate}
+                                        onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={formData.tc}
+                                        onChange={e => setFormData({ ...formData, tc: e.target.value })}
+                                        placeholder="11 haneli TC no"
+                                        maxLength={11}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Ad Soyad"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Mesleği <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={formData.profession}
+                                            onChange={e => setFormData({ ...formData, profession: e.target.value })}
+                                            placeholder="Örn: Kalıpçı"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Görevi <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={formData.role}
+                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                            placeholder="Örn: Usta"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Şantiye <span className="text-red-500">*</span></Label>
+                                    {availableSites.length > 1 ? (
+                                        <Select
+                                            value={formData.siteId}
+                                            onValueChange={(val) => setFormData({ ...formData, siteId: val })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Şantiye Seçiniz" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableSites.map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input
+                                            value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
+                                            disabled
+                                            className="bg-muted"
+                                        />
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Maaşı (₺) <span className="text-red-500">*</span></Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="text"
+                                            value={formData.salary}
+                                            onChange={e => {
+                                                const formatted = formatMoneyInput(e.target.value);
+                                                setFormData({ ...formData, salary: formatted });
+                                            }}
+                                            placeholder="0,00"
+                                            disabled={!!editingId}
+                                            className={editingId ? "bg-slate-100" : ""}
+                                        />
+                                        {editingId && (
+                                            <Button
+                                                type="button"
+                                                variant={showSalaryInput ? "secondary" : "outline"}
+                                                onClick={() => setShowSalaryInput(!showSalaryInput)}
+                                            >
+                                                {showSalaryInput ? "İptal" : "Yeni Maaş"}
+                                            </Button>
+                                        )}
+                                    </div>
 
-                                </Tabs>
-
-                                {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
-                                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                                    setIsDialogOpen(open);
-                                    if (!open) setEditingId(null);
-                                }}>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label>İşe Giriş Tarihi</Label>
+                                    {showSalaryInput && editingId && (
+                                        <div className="mt-2 p-3 bg-slate-50 border rounded-md animate-in fade-in slide-in-from-top-2 space-y-2">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-slate-500 block">Yeni Maaş Tutarı</Label>
+                                                <Input
+                                                    type="text"
+                                                    value={formData.newSalary}
+                                                    onChange={e => {
+                                                        const formatted = formatMoneyInput(e.target.value);
+                                                        setFormData({ ...formData, newSalary: formatted });
+                                                    }}
+                                                    placeholder="Yeni tutarı giriniz..."
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-slate-500 block">Güncelleme Tarihi</Label>
                                                 <Input
                                                     type="date"
-                                                    value={formData.inputDate}
-                                                    onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
+                                                    value={formData.newSalaryDate}
+                                                    onChange={e => setFormData({ ...formData, newSalaryDate: e.target.value })}
                                                 />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
-                                                <Input
-                                                    value={formData.tc}
-                                                    onChange={e => setFormData({ ...formData, tc: e.target.value })}
-                                                    placeholder="11 haneli TC no"
-                                                    maxLength={11}
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
-                                                <Input
-                                                    value={formData.name}
-                                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                                    placeholder="Ad Soyad"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label>Mesleği <span className="text-red-500">*</span></Label>
-                                                    <Input
-                                                        value={formData.profession}
-                                                        onChange={e => setFormData({ ...formData, profession: e.target.value })}
-                                                        placeholder="Örn: Kalıpçı"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Görevi <span className="text-red-500">*</span></Label>
-                                                    <Input
-                                                        value={formData.role}
-                                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                                        placeholder="Örn: Usta"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Şantiye <span className="text-red-500">*</span></Label>
-                                                {availableSites.length > 1 ? (
-                                                    <Select
-                                                        value={formData.siteId}
-                                                        onValueChange={(val) => setFormData({ ...formData, siteId: val })}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Şantiye Seçiniz" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {availableSites.map(s => (
-                                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                ) : (
-                                                    <Input
-                                                        value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
-                                                        disabled
-                                                        className="bg-muted"
-                                                    />
-                                                )}
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Maaşı (₺) <span className="text-red-500">*</span></Label>
-                                                <div className="flex gap-2">
-                                                    <Input
-                                                        type="text"
-                                                        value={formData.salary}
-                                                        onChange={e => {
-                                                            const formatted = formatMoneyInput(e.target.value);
-                                                            setFormData({ ...formData, salary: formatted });
-                                                        }}
-                                                        placeholder="0,00"
-                                                        disabled={!!editingId}
-                                                        className={editingId ? "bg-slate-100" : ""}
-                                                    />
-                                                    {editingId && (
-                                                        <Button
-                                                            type="button"
-                                                            variant={showSalaryInput ? "secondary" : "outline"}
-                                                            onClick={() => setShowSalaryInput(!showSalaryInput)}
-                                                        >
-                                                            {showSalaryInput ? "İptal" : "Yeni Maaş"}
-                                                        </Button>
-                                                    )}
-                                                </div>
-
-                                                {showSalaryInput && editingId && (
-                                                    <div className="mt-2 p-3 bg-slate-50 border rounded-md animate-in fade-in slide-in-from-top-2 space-y-2">
-                                                        <div className="space-y-1">
-                                                            <Label className="text-xs text-slate-500 block">Yeni Maaş Tutarı</Label>
-                                                            <Input
-                                                                type="text"
-                                                                value={formData.newSalary}
-                                                                onChange={e => {
-                                                                    const formatted = formatMoneyInput(e.target.value);
-                                                                    setFormData({ ...formData, newSalary: formatted });
-                                                                }}
-                                                                placeholder="Yeni tutarı giriniz..."
-                                                                autoFocus
-                                                            />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label className="text-xs text-slate-500 block">Güncelleme Tarihi</Label>
-                                                            <Input
-                                                                type="date"
-                                                                value={formData.newSalaryDate}
-                                                                onChange={e => setFormData({ ...formData, newSalaryDate: e.target.value })}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={formData.leaveAllowance}
-                                                        onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                                <div className="flex items-end pb-2">
-                                                    <div className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id="overtime"
-                                                            checked={formData.hasOvertime}
-                                                            onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
-                                                        />
-                                                        <Label htmlFor="overtime">Mesai Hakkı Var</Label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Notlar</Label>
-                                                <Textarea
-                                                    value={formData.note}
-                                                    onChange={e => setFormData({ ...formData, note: e.target.value })}
-                                                    placeholder="Kısa notlar..."
-                                                />
-                                            </div>
-                                            <div className="pt-4 flex justify-end">
-                                                <Button onClick={handleAdd}>
-                                                    public Kaydet
-                                                </Button>
                                             </div>
                                         </div>
-                                    </DialogContent>
-                                </Dialog>
+                                    )}
 
-                                {/* Salary Adjustment Dialog */}
-                                <Dialog open={isSalaryAdjustmentOpen} onOpenChange={setIsSalaryAdjustmentOpen}>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Maaş Düzenlemesi ({salaryAdjustmentForm.dateKey})</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-4">
-                                            <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-4">
-                                                Bu ay için hesaplanan değerleri buradan manuel olarak değiştirebilirsiniz. Değişiklikler sadece bu ay için geçerli olacaktır.
-                                            </div>
 
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label>Çalışılan Gün</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={salaryAdjustmentForm.workedDays}
-                                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, workedDays: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Mesai Saati</Label>
-                                                    <Input
-                                                        type="number"
-                                                        value={salaryAdjustmentForm.overtimeHours}
-                                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, overtimeHours: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Ekstra Prim (₺)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="0"
-                                                        value={salaryAdjustmentForm.bonus}
-                                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, bonus: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Kesinti / Avans (₺)</Label>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder="0"
-                                                        value={salaryAdjustmentForm.deduction}
-                                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, deduction: e.target.value })}
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label>Not</Label>
-                                                <Textarea
-                                                    placeholder="Düzenleme nedeni..."
-                                                    value={salaryAdjustmentForm.note}
-                                                    onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, note: e.target.value })}
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-end pt-4">
-                                                <Button onClick={() => {
-                                                    setNames(prev => prev.map(p => {
-                                                        if (p.id === salaryAdjustmentForm.personId) {
-                                                            return {
-                                                                ...p,
-                                                                salaryAdjustments: {
-                                                                    ...p.salaryAdjustments,
-                                                                    [salaryAdjustmentForm.dateKey]: {
-                                                                        workedDays: salaryAdjustmentForm.workedDays ? parseFloat(salaryAdjustmentForm.workedDays) : undefined,
-                                                                        overtimeHours: salaryAdjustmentForm.overtimeHours ? parseFloat(salaryAdjustmentForm.overtimeHours) : undefined,
-                                                                        bonus: salaryAdjustmentForm.bonus ? parseFloat(salaryAdjustmentForm.bonus) : undefined,
-                                                                        deduction: salaryAdjustmentForm.deduction ? parseFloat(salaryAdjustmentForm.deduction) : undefined,
-                                                                        note: salaryAdjustmentForm.note
-                                                                    }
-                                                                }
-                                                            };
-                                                        }
-                                                        return p;
-                                                    }));
-                                                    setIsSalaryAdjustmentOpen(false);
-                                                }}>
-                                                    Kaydet
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </DialogContent>
-                                </Dialog>
-
-                                {/* Rich Tooltip Overlay */}
-                                {hoveredData && (hoveredData.record?.note || hoveredData.record?.overtime) && (
-                                    <div
-                                        className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
-                                        style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
-                                    >
-                                        <div className="font-bold text-center mb-1 text-slate-100 text-sm">
-                                            {hoveredData.record?.status === 'FULL' && 'Tam Gün'}
-                                            {hoveredData.record?.status === 'HALF' && 'Yarım Gün'}
-                                            {hoveredData.record?.status === 'ABSENT' && 'Gelmedi'}
-                                            {hoveredData.record?.status === 'LEAVE' && 'İzinli'}
-                                            {hoveredData.record?.status === 'REPORT' && 'Raporlu'}
-                                            {hoveredData.record?.status === 'OUT' && 'Dış Görev'}
-                                            {hoveredData.record?.status === 'EXIT' && 'İşten Çıkış'}
-                                            {hoveredData.record?.status === 'TRANSFER' && 'Transfer'}
-                                            {!hoveredData.record && 'Kayıt Yok'}
-                                        </div>
-
-                                        {hoveredData.record?.overtime && (
-                                            <div className="text-orange-400 font-extrabold text-center text-sm border-b border-slate-700/50 pb-1 mb-1">
-                                                +{hoveredData.record.overtime} Saat Mesai
-                                            </div>
-                                        )}
-
-                                        {hoveredData.record?.note && (
-                                            <div className={`italic text-white break-words leading-relaxed text-sm font-medium ${hoveredData.record.overtime ? 'mt-1' : 'border-t border-slate-700/50 pt-1 mt-1'}`}>
-                                                {hoveredData.record.note}
-                                            </div>
-                                        )}
-
-                                        {/* Tooltip Arrow */}
-                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            type="number"
+                                            value={formData.leaveAllowance}
+                                            onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
+                                            placeholder="0"
+                                        />
                                     </div>
-                                )}
+                                    <div className="flex items-end pb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="overtime"
+                                                checked={formData.hasOvertime}
+                                                onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
+                                            />
+                                            <Label htmlFor="overtime">Mesai Hakkı Var</Label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Notlar</Label>
+                                    <Textarea
+                                        value={formData.note}
+                                        onChange={e => setFormData({ ...formData, note: e.target.value })}
+                                        placeholder="Kısa notlar..."
+                                    />
+                                </div>
+                                <div className="pt-4 flex justify-end">
+                                    <Button onClick={handleAdd}>
+                                        public Kaydet
+                                    </Button>
+                                </div>
                             </div>
-                            );
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Salary Adjustment Dialog */}
+                    <Dialog open={isSalaryAdjustmentOpen} onOpenChange={setIsSalaryAdjustmentOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Maaş Düzenlemesi ({salaryAdjustmentForm.dateKey})</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-4">
+                                    Bu ay için hesaplanan değerleri buradan manuel olarak değiştirebilirsiniz. Değişiklikler sadece bu ay için geçerli olacaktır.
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Çalışılan Gün</Label>
+                                        <Input
+                                            type="number"
+                                            value={salaryAdjustmentForm.workedDays}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, workedDays: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Mesai Saati</Label>
+                                        <Input
+                                            type="number"
+                                            value={salaryAdjustmentForm.overtimeHours}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, overtimeHours: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Ekstra Prim (₺)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={salaryAdjustmentForm.bonus}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, bonus: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Kesinti / Avans (₺)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={salaryAdjustmentForm.deduction}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, deduction: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Not</Label>
+                                    <Textarea
+                                        placeholder="Düzenleme nedeni..."
+                                        value={salaryAdjustmentForm.note}
+                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, note: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex justify-end pt-4">
+                                    <Button onClick={() => {
+                                        setNames(prev => prev.map(p => {
+                                            if (p.id === salaryAdjustmentForm.personId) {
+                                                return {
+                                                    ...p,
+                                                    salaryAdjustments: {
+                                                        ...p.salaryAdjustments,
+                                                        [salaryAdjustmentForm.dateKey]: {
+                                                            workedDays: salaryAdjustmentForm.workedDays ? parseFloat(salaryAdjustmentForm.workedDays) : undefined,
+                                                            overtimeHours: salaryAdjustmentForm.overtimeHours ? parseFloat(salaryAdjustmentForm.overtimeHours) : undefined,
+                                                            bonus: salaryAdjustmentForm.bonus ? parseFloat(salaryAdjustmentForm.bonus) : undefined,
+                                                            deduction: salaryAdjustmentForm.deduction ? parseFloat(salaryAdjustmentForm.deduction) : undefined,
+                                                            note: salaryAdjustmentForm.note
+                                                        }
+                                                    }
+                                                };
+                                            }
+                                            return p;
+                                        }));
+                                        setIsSalaryAdjustmentOpen(false);
+                                    }}>
+                                        Kaydet
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Rich Tooltip Overlay */}
+                    {hoveredData && (hoveredData.record?.note || hoveredData.record?.overtime) && (
+                        <div
+                            className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
+                            style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
+                        >
+                            <div className="font-bold text-center mb-1 text-slate-100 text-sm">
+                                {hoveredData.record?.status === 'FULL' && 'Tam Gün'}
+                                {hoveredData.record?.status === 'HALF' && 'Yarım Gün'}
+                                {hoveredData.record?.status === 'ABSENT' && 'Gelmedi'}
+                                {hoveredData.record?.status === 'LEAVE' && 'İzinli'}
+                                {hoveredData.record?.status === 'REPORT' && 'Raporlu'}
+                                {hoveredData.record?.status === 'OUT' && 'Dış Görev'}
+                                {hoveredData.record?.status === 'EXIT' && 'İşten Çıkış'}
+                                {hoveredData.record?.status === 'TRANSFER' && 'Transfer'}
+                                {!hoveredData.record && 'Kayıt Yok'}
+                            </div>
+
+                            {hoveredData.record?.overtime && (
+                                <div className="text-orange-400 font-extrabold text-center text-sm border-b border-slate-700/50 pb-1 mb-1">
+                                    +{hoveredData.record.overtime} Saat Mesai
+                                </div>
+                            )}
+
+                            {hoveredData.record?.note && (
+                                <div className={`italic text-white break-words leading-relaxed text-sm font-medium ${hoveredData.record.overtime ? 'mt-1' : 'border-t border-slate-700/50 pt-1 mt-1'}`}>
+                                    {hoveredData.record.note}
+                                </div>
+                            )}
+
+                            {/* Tooltip Arrow */}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                        </div>
+                    )}
+                </div>
+                );
 }
