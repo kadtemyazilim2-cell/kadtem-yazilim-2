@@ -568,18 +568,18 @@ export function VehicleList() {
         const getDate = (d?: string) => d ? new Date(d).getTime() : (direction === 'asc' ? 9999999999999 : 0);
 
         switch (key) {
-            case 'plate': comparison = a.plate.localeCompare(b.plate, (window as any).trLocale || 'tr'); break;
+            case 'plate': comparison = a.plate.localeCompare(b.plate, 'tr-TR'); break;
             case 'brand':
                 const brandA = `${a.brand} ${a.model}`;
                 const brandB = `${b.brand} ${b.model}`;
-                comparison = brandA.localeCompare(brandB, (window as any).trLocale || 'tr');
+                comparison = brandA.localeCompare(brandB, 'tr-TR');
                 break;
-            case 'type': comparison = (typeMap[a.type] || a.type).localeCompare(typeMap[b.type] || b.type, (window as any).trLocale || 'tr'); break;
+            case 'type': comparison = (typeMap[a.type] || a.type).localeCompare(typeMap[b.type] || b.type, 'tr-TR'); break;
             case 'insuranceExpiry': comparison = getDate(a.insuranceExpiry) - getDate(b.insuranceExpiry); break;
             case 'kaskoExpiry': comparison = getDate(a.kaskoExpiry) - getDate(b.kaskoExpiry); break;
             case 'inspectionExpiry': comparison = getDate(a.inspectionExpiry) - getDate(b.inspectionExpiry); break;
             case 'vehicleCardExpiry': comparison = getDate(a.vehicleCardExpiry) - getDate(b.vehicleCardExpiry); break;
-            case 'status': comparison = (statusMap[a.status] || a.status).localeCompare(statusMap[b.status] || b.status, (window as any).trLocale || 'tr'); break;
+            case 'status': comparison = (statusMap[a.status] || a.status).localeCompare(statusMap[b.status] || b.status, 'tr-TR'); break;
         }
         return direction === 'asc' ? comparison : -comparison;
     });
