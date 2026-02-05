@@ -152,19 +152,21 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
         const errors: Record<string, string> = {};
         let isValid = true;
 
-        if (!name) { errors.name = "Ad Soyad zorunludur"; isValid = false; }
+        if (!name) { errors.name = "Ad Soyad zorunludur"; isValid = false; toast.error("Ad Soyad zorunludur"); }
 
         if (!tcNumber) {
             errors.tcNumber = "TC Kimlik No zorunludur";
             isValid = false;
+            toast.error("TC Kimlik No zorunludur");
         } else if (tcNumber.length !== 11) {
             errors.tcNumber = "TC Kimlik No 11 haneli olmalıdır";
             isValid = false;
+            toast.error("TC Kimlik No 11 haneli olmalıdır");
         }
 
-        if (!category) { errors.category = "Personel grubu seçimi zorunludur"; isValid = false; }
-        if (!profession) { errors.profession = "Meslek bilgisi zorunludur"; isValid = false; }
-        if (!role) { errors.role = "Görev bilgisi zorunludur"; isValid = false; }
+        if (!category) { errors.category = "Personel grubu seçimi zorunludur"; isValid = false; toast.error("Personel grubu seçimi zorunludur"); }
+        if (!profession) { errors.profession = "Meslek bilgisi zorunludur"; isValid = false; toast.error("Meslek bilgisi zorunludur"); }
+        if (!role) { errors.role = "Görev bilgisi zorunludur"; isValid = false; toast.error("Görev bilgisi zorunludur"); }
 
         // [FIX] If updating salary, validate the NEW salary, otherwise validate the EXISTING salary
         const salaryToValidate = showSalaryUpdate ? newSalary : salary;
@@ -173,12 +175,13 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
         if (salaryToValidate === '' || isNaN(Number(salaryToValidate))) {
             errors.salary = "Maaş bilgisi geçerli bir sayı olmalıdır";
             isValid = false;
+            toast.error("Maaş bilgisi geçerli bir sayı olmalıdır");
         }
-        if (!siteId) { errors.siteId = "Şantiye seçimi zorunludur"; isValid = false; }
+        if (!siteId) { errors.siteId = "Şantiye seçimi zorunludur"; isValid = false; toast.error("Şantiye seçimi zorunludur"); }
 
         if (!isValid) {
             setFormErrors(errors);
-            toast.error("Lütfen tüm zorunlu alanları doldurunuz.");
+            // toast.error("Lütfen tüm zorunlu alanları doldurunuz."); // Redundant if individual toasts are shown
             return;
         }
 
@@ -516,34 +519,34 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     </div>
 
                     {/* 5. Maaş ve Geçmişi */}
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-center">
-                            <Label>Net Maaş (TL)</Label>
-                            {personnelToEdit && !showSalaryUpdate && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-xs text-blue-600 hover:text-blue-700 p-0"
-                                    onClick={() => setShowSalaryUpdate(true)}
-                                >
-                                    + Yeni Maaş Ekle
-                                </Button>
-                            )}
-                            {showSalaryUpdate && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-xs text-red-600 hover:text-red-700 p-0"
-                                    onClick={() => setShowSalaryUpdate(false)}
-                                >
-                                    İptal
-                                </Button>
-                            )}
-                        </div>
+                    <div className="space-y-3">
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                                <Label>Net Maaş (TL)</Label>
+                                {personnelToEdit && !showSalaryUpdate && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-xs text-blue-600 hover:text-blue-700 p-0"
+                                        onClick={() => setShowSalaryUpdate(true)}
+                                    >
+                                        + Yeni Maaş Ekle
+                                    </Button>
+                                )}
+                                {showSalaryUpdate && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 text-xs text-red-600 hover:text-red-700 p-0"
+                                        onClick={() => setShowSalaryUpdate(false)}
+                                    >
+                                        İptal
+                                    </Button>
+                                )}
+                            </div>
 
-                        {!showSalaryUpdate ? (
                             <div className="relative">
                                 <Input
                                     type="number"
@@ -554,37 +557,43 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                     }}
                                     placeholder="0.00"
                                     className={formErrors.salary ? "border-red-500 pr-8" : "pr-8"}
-                                    disabled={!!personnelToEdit && Number(salary) > 0}
+                                    // Disable if editing (force use of update flow) OR if update mode is open
+                                    disabled={!!personnelToEdit || showSalaryUpdate}
                                 />
                                 <span className="absolute right-3 top-2.5 text-slate-400">₺</span>
                             </div>
-                        ) : (
-                            <div className="p-3 bg-slate-50 border rounded-md space-y-3">
+                            {formErrors.salary && <span className="text-xs text-red-500">{formErrors.salary}</span>}
+                        </div>
+
+                        {showSalaryUpdate && (
+                            <div className="p-3 bg-slate-50 border rounded-md space-y-3 animate-in fade-in slide-in-from-top-2">
                                 <div className="space-y-1">
-                                    <Label className="text-xs">Yeni Maaş Tutarı</Label>
+                                    <Label className="text-xs font-semibold text-blue-600">Yeni Maaş Tutarı</Label>
                                     <Input
                                         type="number"
                                         value={newSalary}
                                         onChange={e => setNewSalary(e.target.value)}
                                         placeholder="0.00"
+                                        className="bg-white"
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label className="text-xs">Geçerlilik Tarihi</Label>
+                                    <Label className="text-xs font-semibold text-blue-600">Geçerlilik Tarihi</Label>
                                     <Input
                                         type="date"
                                         value={salaryEffectiveDate}
                                         onChange={e => setSalaryEffectiveDate(e.target.value)}
+                                        className="bg-white"
                                     />
                                 </div>
                             </div>
                         )}
+
                         {personnelToEdit && !showSalaryUpdate && (
                             <p className="text-[10px] text-muted-foreground text-right">
                                 Güncel maaşı değiştirmek için "Yeni Maaş Ekle" butonunu kullanınız.
                             </p>
                         )}
-                        {formErrors.salary && <span className="text-xs text-red-500">{formErrors.salary}</span>}
                     </div>
 
                     {/* [NEW] İşe Başlama Tarihi (Hidden / Auto-detected) */}
