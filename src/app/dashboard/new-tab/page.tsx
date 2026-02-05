@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil, Users, ReceiptTurkishLira } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -1884,74 +1884,112 @@ export default function NewPage() {
 
 
                         <TabsContent value="site-list">
-                            {!selectedSiteId || selectedSiteId === 'all' ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground bg-white border rounded-md">
-                                    <div className="bg-slate-100 p-4 rounded-full mb-4">
-                                        <ArrowRightLeft className="w-8 h-8 text-slate-400" />
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-base font-semibold text-slate-700">Şantiye Personel Özeti</CardTitle>
+                                        <CardDescription>Şantiyelere göre toplam personel ve maaş dağılımı.</CardDescription>
                                     </div>
-                                    <p className="font-medium text-lg text-slate-900">Şantiye Seçimi Yapılmadı</p>
-                                    <p className="text-sm">Bu listeyi görüntülemek için lütfen yukarıdan bir şantiye seçiniz.</p>
-                                </div>
-                            ) : (
-                                <div className="border rounded-md overflow-hidden bg-white">
+                                    <div className="flex items-center gap-2">
+                                        {/* Optional: Add Export for Summary */}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
                                     <Table>
-                                        <TableHeader>
+                                        <TableHeader className="bg-slate-50">
                                             <TableRow>
-                                                <TableHead>TC Kimlik</TableHead>
-                                                <TableHead>Ad Soyad</TableHead>
-                                                <TableHead>Meslek</TableHead>
-                                                <TableHead>Görev</TableHead>
-                                                <TableHead>Şantiye</TableHead>
-                                                <TableHead className="text-center">Mesai?</TableHead>
-                                                {canViewSalary && <TableHead>Maaş</TableHead>}
-                                                <TableHead>İzin</TableHead>
-                                                <TableHead className="text-right">İşlem</TableHead>
+                                                <TableHead className="font-semibold text-slate-600 pl-6">Şantiye Adı</TableHead>
+                                                <TableHead className="font-semibold text-slate-600 text-center w-[150px]">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Users className="h-4 w-4 text-slate-500" /> Çalışan Sayısı
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead className="font-semibold text-slate-600 text-right pr-6 w-[200px]">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <ReceiptTurkishLira className="h-4 w-4 text-slate-500" /> Toplam Maaş
+                                                    </div>
+                                                </TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {filteredNames.length === 0 ? (
-                                                <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">Bu şantiyede kayıtlı personel yok</TableCell></TableRow>
-                                            ) : filteredNames.map(p => (
-                                                <TableRow key={p.id}>
-                                                    <TableCell className="font-mono">{p.tc}</TableCell>
-                                                    <TableCell className="font-medium">{p.name}</TableCell>
-                                                    <TableCell>{p.profession}</TableCell>
-                                                    <TableCell>{p.role}</TableCell>
-                                                    <TableCell className="max-w-[120px] truncate" title={sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}>
-                                                        {sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}
-                                                    </TableCell>
-                                                    <TableCell className="text-center">
-                                                        {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
-                                                    </TableCell>
-                                                    {canViewSalary && <TableCell>{formatCurrency(p.salary)}</TableCell>}
-                                                    <TableCell>{p.leaveAllowance} Gün</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            {canTransfer && (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    onClick={() => openTransferModal(p)}
-                                                                    title="Şantiye Transferi"
-                                                                >
-                                                                    <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                                    Transfer
-                                                                </Button>
-                                                            )}
-                                                            {canEditPersonnel && (
-                                                                <>
-                                                                    <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
-                                                                    <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
+                                            {(() => {
+                                                // Calculate Summary on the fly
+                                                const summary: Record<string, { name: string; count: number; totalSalary: number }> = {};
+
+                                                // 1. Initialize with active sites (to show empty ones if "All" is selected)
+                                                // Only if showing ALL sites, otherwise just show filtered
+                                                const showAllSites = !selectedSiteId || selectedSiteId === 'all';
+
+                                                if (showAllSites) {
+                                                    sites.filter((s: any) => s.status === 'ACTIVE').forEach((s: any) => {
+                                                        summary[s.id] = { name: s.name, count: 0, totalSalary: 0 };
+                                                    });
+                                                }
+
+                                                // 2. Aggregate from filtered list
+                                                filteredNames.forEach(p => {
+                                                    const sId = p.siteId || 'unknown';
+                                                    if (!summary[sId]) {
+                                                        const sName = sites.find((s: any) => s.id === sId)?.name || 'Bilinmeyen Şantiye';
+                                                        summary[sId] = { name: sName, count: 0, totalSalary: 0 };
+                                                    }
+                                                    summary[sId].count += 1;
+                                                    // Parse salary formatting
+                                                    const rawSalary = p.salary ? parseFloat(p.salary.replace(/\./g, '').replace(',', '.')) : 0;
+                                                    summary[sId].totalSalary += rawSalary;
+                                                });
+
+                                                // 3. Convert to Array & Sort
+                                                // Filter out empty sites ONLY if we are filtering? No, usually summarized view shows 0 counts nicely.
+                                                // But let's keep it clean.
+                                                const summaryList = Object.values(summary).sort((a, b) => b.totalSalary - a.totalSalary);
+
+                                                const grandTotalCount = summaryList.reduce((acc, curr) => acc + curr.count, 0);
+                                                const grandTotalSalary = summaryList.reduce((acc, curr) => acc + curr.totalSalary, 0);
+
+                                                if (summaryList.length === 0) {
+                                                    return (
+                                                        <TableRow>
+                                                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Veri bulunamadı.</TableCell>
+                                                        </TableRow>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <>
+                                                        {summaryList.map((item) => (
+                                                            <TableRow key={item.name} className="hover:bg-slate-50">
+                                                                <TableCell className="font-medium text-slate-700 pl-6">
+                                                                    {item.name}
+                                                                </TableCell>
+                                                                <TableCell className="text-center">
+                                                                    <Badge variant="secondary" className="font-mono text-sm px-3">
+                                                                        {item.count}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right font-mono font-medium text-slate-700 pr-6">
+                                                                    {item.totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                        <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+                                                            <TableCell className="font-bold text-slate-800 pl-6">GENEL TOPLAM</TableCell>
+                                                            <TableCell className="font-bold text-slate-800 text-center">
+                                                                <Badge className="font-mono text-sm px-3 bg-slate-800 hover:bg-slate-700">
+                                                                    {grandTotalCount}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="font-bold text-emerald-700 text-right font-mono pr-6 text-lg">
+                                                                {grandTotalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    </>
+                                                );
+                                            })()}
                                         </TableBody>
                                     </Table>
-                                </div>
-                            )}
+                                </CardContent>
+                            </Card>
                         </TabsContent>
 
                         <TabsContent value="all-list">
