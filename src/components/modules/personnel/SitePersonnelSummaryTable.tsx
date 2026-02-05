@@ -59,7 +59,12 @@ export function SitePersonnelSummaryTable() {
                 };
             }
             groups[sId].personnelCount += 1;
-            groups[sId].totalSalary += (parseFloat(p.salary) || 0);
+            groups[sId].personnelCount += 1;
+            // Use helper or safe parsing logic
+            const rawSalary = typeof p.salary === 'string'
+                ? parseFloat(p.salary.replace(/\./g, '').replace(',', '.'))
+                : Number(p.salary);
+            groups[sId].totalSalary += (isNaN(rawSalary) ? 0 : rawSalary);
         });
 
         // Filter out empty 'unassigned'
