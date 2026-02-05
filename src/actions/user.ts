@@ -22,8 +22,9 @@ export async function getUsers() {
 
 export async function createUser(data: Partial<User> & { assignedCompanyIds?: string[], assignedSiteIds?: string[] }) {
     try {
-        // Basic validation/hashing would go here.
+        console.log('[createUser] Action started', { name: data.name, username: data.username });
 
+        // Basic validation/hashing would go here.
         const user = await prisma.user.create({
             data: {
                 name: data.name!,
@@ -42,7 +43,10 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
             }
         });
 
+        console.log('[createUser] User created in DB, ID:', user.id);
+
         revalidatePath('/dashboard/admin'); // Invalidate admin page
+        console.log('[createUser] Success returning');
         return { success: true, data: user };
     } catch (error) {
         console.error('createUser Error:', error);
@@ -52,6 +56,9 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
 
 export async function updateUser(id: string, data: Partial<User> & { assignedSiteIds?: string[] }) {
     try {
+        console.log('[updateUser] Action started for ID:', id);
+        console.log('[updateUser] Data received:', JSON.stringify(data, null, 2));
+
         const user = await prisma.user.update({
             where: { id },
             data: {
@@ -66,7 +73,11 @@ export async function updateUser(id: string, data: Partial<User> & { assignedSit
                 } : undefined
             }
         });
+
+        console.log('[updateUser] User updated in DB');
+
         revalidatePath('/dashboard/admin');
+        console.log('[updateUser] Success returning');
         return { success: true, data: user };
     } catch (error) {
         console.error('updateUser Error:', error);
