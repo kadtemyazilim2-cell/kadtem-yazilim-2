@@ -295,6 +295,11 @@ export function VehicleAttendanceList() {
 
         // User Request: Only show vehicles that have ACTUAL attendance records for this month/site.
         // Ignore assignment status, strictly look for data.
+        // 1. Check current assignment
+        const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
+            v.assignedSiteId === selectedSiteId;
+
+        // 2. Check if it has history/data even if moved
         const hasAttendanceInMonth = vehicleAttendance.some((a: any) => {
             if (a.vehicleId !== v.id || a.siteId !== selectedSiteId) return false;
             try {
@@ -303,14 +308,8 @@ export function VehicleAttendanceList() {
             } catch (e) { return false; }
         });
 
-        // Uncomment this if you want to allow manual entry for assigned vehicles again:
-        /*
-        const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
-            v.assignedSiteId === selectedSiteId;
-        const hasHistory = assignmentHistory.some(h => h.vehicleId === v.id);
-        */
-
-        return hasAttendanceInMonth;
+        // Show if EITHER assigned currently OR has history
+        return isAssigned || hasAttendanceInMonth;
     });
 
     // Export Logic
