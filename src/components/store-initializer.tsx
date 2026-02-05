@@ -92,8 +92,13 @@ export function StoreInitializer({
                 return;
             }
 
+            // [FIX] Hydrate from FRESH `users` array instead of stale session
+            // This ensures permissions are updated immediately without re-login
+            // The `users` prop comes from `getUsers()` in DashboardLayout which is fresh from DB.
+            const freshUser = users.find((u: any) => u.id === currentUser.id) || currentUser;
+
             useAuth.setState({
-                user: currentUser,
+                user: freshUser,
                 isAuthenticated: true
             });
         } else {
@@ -103,7 +108,7 @@ export function StoreInitializer({
                 isAuthenticated: false
             });
         }
-    }, [currentUser]);
+    }, [currentUser, users]);
 
     return null;
 }
