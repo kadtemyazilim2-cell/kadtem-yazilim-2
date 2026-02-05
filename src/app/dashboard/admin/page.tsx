@@ -1345,7 +1345,7 @@ export default function AdminPage() {
                                     <DialogHeader>
                                         <DialogTitle>{isEditing ? 'Kullanıcı Düzenle' : 'Yeni Kullanıcı Ekle'}</DialogTitle>
                                     </DialogHeader>
-                                    <form onSubmit={handleSaveUser} className="flex-1 overflow-hidden flex flex-col">
+                                    <div className="flex-1 overflow-hidden flex flex-col">
 
                                         <div className="grid grid-cols-12 gap-6 flex-1 overflow-hidden p-1">
                                             {/* LEFT COLUMN: Basic Info & Sites */}
@@ -1558,9 +1558,9 @@ export default function AdminPage() {
                                         </div>
 
                                         <DialogFooter className="pt-4 mt-auto">
-                                            <Button type="submit" size="lg" className="w-full sm:w-auto">Kaydet</Button>
+                                            <Button type="button" onClick={(e) => handleSaveUser(e as any)} size="lg" className="w-full sm:w-auto">Kaydet</Button>
                                         </DialogFooter>
-                                    </form>
+                                    </div>
                                 </DialogContent>
                             </Dialog>
                         </CardHeader>
