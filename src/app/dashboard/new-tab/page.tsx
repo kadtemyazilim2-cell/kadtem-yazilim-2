@@ -1973,16 +1973,33 @@ export default function NewPage() {
                                                 }
 
                                                 // 2. Aggregate from filtered list
-                                                filteredNames.forEach(p => {
+                                                // [FIX] Use 'names' directly to avoid TC Deduplication merging (which hides multi-site personnel)
+                                                // We want to count every active active record per site.
+                                                const sourceList = names;
+
+                                                sourceList.forEach(p => {
+                                                    // 1. Basic Date Visibility Filter
+                                                    // Skip if start date is strictly in the future (next month or later)
+                                                    if (p.inputDate) {
+                                                        const startDate = new Date(p.inputDate);
+                                                        // If View Month is BEFORE Start Month
+                                                        if (differenceInCalendarMonths(startOfMonth(date), startDate) < 0) {
+                                                            // Check if they have unexpected attendance this month (e.g. started early)
+                                                            const hasAtt = Object.keys(p.attendance).some(k => k.startsWith(format(date, 'yyyy-MM')));
+                                                            if (!hasAtt) return;
+                                                        }
+                                                    }
+
                                                     const sId = p.siteId || 'unknown';
+
+                                                    // Initialize if missing (e.g. Passive site or Unknown)
                                                     if (!summary[sId]) {
                                                         const sName = sites.find((s: any) => s.id === sId)?.name || 'Bilinmeyen Şantiye';
                                                         summary[sId] = { name: sName, count: 0, totalSalary: 0 };
                                                     }
+
                                                     summary[sId].count += 1;
-                                                    // Parse salary formatting
-                                                    const rawSalary = p.salary ? parseFloat(p.salary.replace(/\./g, '').replace(',', '.')) : 0;
-                                                    summary[sId].totalSalary += rawSalary;
+                                                    summary[sId].totalSalary += parseCurrency(p.salary);
                                                 });
 
                                                 // 3. Convert to Array & Sort
