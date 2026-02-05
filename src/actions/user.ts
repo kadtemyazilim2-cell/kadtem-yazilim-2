@@ -45,7 +45,7 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
 
         console.log('[createUser] User created in DB, ID:', user.id);
 
-        revalidatePath('/dashboard/admin'); // Invalidate admin page
+        // revalidatePath('/dashboard/admin'); // Invalidate admin page
         console.log('[createUser] Success returning');
         return { success: true, data: user };
     } catch (error) {
@@ -76,7 +76,7 @@ export async function updateUser(id: string, data: Partial<User> & { assignedSit
 
         console.log('[updateUser] User updated in DB');
 
-        revalidatePath('/dashboard/admin');
+        // revalidatePath('/dashboard/admin');
         console.log('[updateUser] Success returning');
         return { success: true, data: user };
     } catch (error) {
