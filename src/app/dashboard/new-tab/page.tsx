@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -688,7 +689,24 @@ export default function NewPage() {
     };
 
     const handleAdd = async () => {
-        if (!formData.tc || !formData.name || !formData.profession || !formData.role || !formData.salary || !formData.leaveAllowance || !formData.siteId) return;
+        // [FIX] Detailed Validation with Toasts
+        if (!formData.tc) { toast.error("TC Kimlik Numarası zorunludur."); return; }
+        if (formData.tc.length !== 11) { toast.error("TC Kimlik Numarası 11 haneli olmalıdır."); return; }
+        if (!formData.name) { toast.error("Ad Soyad zorunludur."); return; }
+        if (!formData.profession) { toast.error("Meslek bilgisi zorunludur."); return; }
+        if (!formData.role) { toast.error("Görev bilgisi zorunludur."); return; }
+        if (!formData.siteId) { toast.error("Şantiye seçimi zorunludur."); return; }
+        if (!formData.leaveAllowance) { toast.error("İzin hakkı girilmelidir."); return; }
+
+        // Salary Validation: Allow empty 'salary' IF 'newSalary' is provided during edit
+        // Or if salary is explicitly "0" or "0,00"
+        const hasSalary = formData.salary && formData.salary !== '';
+        const hasNewSalary = formData.newSalary && formData.newSalary !== '';
+
+        if (!hasSalary && !hasNewSalary) {
+            toast.error("Maaş bilgisi zorunludur.");
+            return;
+        }
 
         if (editingId) {
             // Update
@@ -708,7 +726,8 @@ export default function NewPage() {
 
             if (res.success) {
                 setEditingId(null);
-                setEditingId(null);
+                setIsDialogOpen(false); // Close dialog
+                toast.success("Personel başarıyla güncellendi.");
 
                 // Optimistic Update
                 setNames(prev => prev.map(p => {
@@ -733,7 +752,7 @@ export default function NewPage() {
                 }));
                 // refreshData(); // Skip refresh for speed
             } else {
-                alert("Güncelleme başarısız: " + res.error);
+                toast.error("Güncelleme başarısız: " + res.error);
             }
         } else {
             // Create
@@ -752,6 +771,9 @@ export default function NewPage() {
             } as any);
 
             if (res.success && res.data) {
+                toast.success("Personel başarıyla eklendi.");
+                setIsDialogOpen(false); // Close dialog
+
                 // Optimistic Update / Instant Add
                 const newPersonData = res.data as any; // Cast to any to avoid stale type errors
                 const newIndependentPerson: IndependentPerson = {
@@ -788,7 +810,7 @@ export default function NewPage() {
                 setNames(prev => [...prev, newIndependentPerson]);
                 // refreshData(); // Still refresh to be safe, but state is already updated
             } else {
-                alert("Ekleme başarısız: " + res.error);
+                toast.error("Ekleme başarısız: " + res.error);
             }
         }
 
@@ -798,7 +820,6 @@ export default function NewPage() {
             inputDate: format(new Date(), 'yyyy-MM-dd'),
             salaryHistory: []
         });
-        setIsDialogOpen(false);
     };
 
     const handleEdit = (person: IndependentPerson) => {
@@ -2554,7 +2575,7 @@ export default function NewPage() {
                                     />
                                 </div>
                                 <div className="pt-4 flex justify-end">
-                                    <Button onClick={handleAdd} disabled={!formData.tc || !formData.name || !formData.profession || !formData.role || !formData.salary || !formData.leaveAllowance || !formData.siteId}>
+                                    <Button onClick={handleAdd}>
                                         Kaydet
                                     </Button>
                                 </div>
@@ -2726,8 +2747,8 @@ export default function NewPage() {
                             />
                         </div>
                         <div className="pt-4 flex justify-end">
-                            <Button onClick={handleAdd} disabled={!formData.tc || !formData.name || !formData.profession || !formData.role || !formData.salary || !formData.leaveAllowance || !formData.siteId}>
-                                Kaydet
+                            <Button onClick={handleAdd}>
+                                public Kaydet
                             </Button>
                         </div>
                     </div>
