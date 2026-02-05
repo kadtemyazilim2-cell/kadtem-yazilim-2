@@ -1032,13 +1032,20 @@ export default function NewPage() {
         // I need to use the RAW value if possible, or re-parse. 
         // Actually, person.salary IS the formatted string "1.000,00".
         // Helper to parse "1.000,00" -> 1000.00
-        const parseCurrency = (val: string) => {
+        // Helper to parse "1.000,00" -> 1000.00
+        const parseCurrencyLocal = (val: string) => {
             if (!val) return 0;
-            // Remove dots (thousands), replace comma with dot (decimal)
-            return parseFloat(val.replace(/\./g, '').replace(',', '.')) || 0;
+            const strVal = val.toString();
+            if (strVal.includes(',')) {
+                return parseFloat(strVal.replace(/\./g, '').replace(',', '.')) || 0;
+            }
+            if ((strVal.match(/\./g) || []).length > 1) {
+                return parseFloat(strVal.replace(/\./g, '')) || 0;
+            }
+            return parseFloat(strVal) || 0;
         };
 
-        const salaryAmount = parseCurrency(person.salary || '');
+        const salaryAmount = parseCurrencyLocal(person.salary || '');
 
         // User Defined Calculation:
         // Daily Rate = Salary / 30
@@ -1273,10 +1280,28 @@ export default function NewPage() {
             .replace(/Ç/g, "C").replace(/ç/g, "c");
     };
 
+    const parseCurrency = (val: string | undefined | null) => {
+        if (!val) return 0;
+        const strVal = val.toString();
+        // Check if it's already a clean number string (no commas, single dot or no dot)
+        // vs TR format (1.234,56)
+        if (strVal.includes(',')) {
+            // TR Format: Remove dots, replace comma with dot
+            return parseFloat(strVal.replace(/\./g, '').replace(',', '.')) || 0;
+        }
+        // If multiple dots, it's TR format without decimals or large number?
+        // e.g. 1.000.000 -> 1000000
+        if ((strVal.match(/\./g) || []).length > 1) {
+            return parseFloat(strVal.replace(/\./g, '')) || 0;
+        }
+
+        // Standard Format
+        return parseFloat(strVal) || 0;
+    };
+
     const formatCurrency = (amount: string | undefined) => {
-        if (!amount) return '0,00 ₺';
-        const num = parseFloat(amount);
-        if (isNaN(num)) return '0,00 ₺';
+        const num = parseCurrency(amount);
+        if (num === 0 && !amount) return '0,00 ₺'; // Distinguish 0 from empty? Usually 0 is 0,00.
         return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(num);
     };
 
@@ -2417,6 +2442,8 @@ export default function NewPage() {
 
 
 
+
+
                     {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
                     <Dialog open={isDialogOpen} onOpenChange={(open) => {
                         setIsDialogOpen(open);
@@ -2579,174 +2606,6 @@ export default function NewPage() {
                                 <div className="pt-4 flex justify-end">
                                     <Button onClick={handleAdd}>
                                         {editingId ? 'Güncelle' : 'Kaydet'}
-                                    </Button>
-                                </div>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-
-                    {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
-                    <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                        setIsDialogOpen(open);
-                        if (!open) setEditingId(null);
-                    }}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="space-y-2">
-                                    <Label>İşe Giriş Tarihi</Label>
-                                    <Input
-                                        type="date"
-                                        value={formData.inputDate}
-                                        onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.tc}
-                                        onChange={e => setFormData({ ...formData, tc: e.target.value })}
-                                        placeholder="11 haneli TC no"
-                                        maxLength={11}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Ad Soyad"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Mesleği <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={formData.profession}
-                                            onChange={e => setFormData({ ...formData, profession: e.target.value })}
-                                            placeholder="Örn: Kalıpçı"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Görevi <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={formData.role}
-                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                            placeholder="Örn: Usta"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Şantiye <span className="text-red-500">*</span></Label>
-                                    {availableSites.length > 1 ? (
-                                        <Select
-                                            value={formData.siteId}
-                                            onValueChange={(val) => setFormData({ ...formData, siteId: val })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Şantiye Seçiniz" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableSites.map(s => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <Input
-                                            value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
-                                            disabled
-                                            className="bg-muted"
-                                        />
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Maaşı (₺) <span className="text-red-500">*</span></Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            type="text"
-                                            value={formData.salary}
-                                            onChange={e => {
-                                                const formatted = formatMoneyInput(e.target.value);
-                                                setFormData({ ...formData, salary: formatted });
-                                            }}
-                                            placeholder="0,00"
-                                            disabled={!!editingId}
-                                            className={editingId ? "bg-slate-100" : ""}
-                                        />
-                                        {editingId && (
-                                            <Button
-                                                type="button"
-                                                variant={showSalaryInput ? "secondary" : "outline"}
-                                                onClick={() => setShowSalaryInput(!showSalaryInput)}
-                                            >
-                                                {showSalaryInput ? "İptal" : "Yeni Maaş"}
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {showSalaryInput && editingId && (
-                                        <div className="mt-2 p-3 bg-slate-50 border rounded-md animate-in fade-in slide-in-from-top-2 space-y-2">
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-slate-500 block">Yeni Maaş Tutarı</Label>
-                                                <Input
-                                                    type="text"
-                                                    value={formData.newSalary}
-                                                    onChange={e => {
-                                                        const formatted = formatMoneyInput(e.target.value);
-                                                        setFormData({ ...formData, newSalary: formatted });
-                                                    }}
-                                                    placeholder="Yeni tutarı giriniz..."
-                                                    autoFocus
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-slate-500 block">Güncelleme Tarihi</Label>
-                                                <Input
-                                                    type="date"
-                                                    value={formData.newSalaryDate}
-                                                    onChange={e => setFormData({ ...formData, newSalaryDate: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.leaveAllowance}
-                                            onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="flex items-end pb-2">
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id="overtime"
-                                                checked={formData.hasOvertime}
-                                                onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
-                                            />
-                                            <Label htmlFor="overtime">Mesai Hakkı Var</Label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Notlar</Label>
-                                    <Textarea
-                                        value={formData.note}
-                                        onChange={e => setFormData({ ...formData, note: e.target.value })}
-                                        placeholder="Kısa notlar..."
-                                    />
-                                </div>
-                                <div className="pt-4 flex justify-end">
-                                    <Button onClick={handleAdd}>
-                                        public Kaydet
                                     </Button>
                                 </div>
                             </div>
