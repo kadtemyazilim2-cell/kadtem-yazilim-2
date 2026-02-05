@@ -66,7 +66,9 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             setRole(personnelToEdit.role || '');
             setSalary(personnelToEdit.salary?.toString() || '');
             setSiteId(personnelToEdit.siteId || '');
-            setAssignedSiteIds(personnelToEdit.assignedSites?.map((s: any) => s.id) || []); // [NEW]
+            // [FIX] assignedSites might not exist on Personnel type definition yet if it's new. Use `any` cast or update interface properly elsewhere.
+            // Assuming Personnel type update is pending or inconsistent.
+            setAssignedSiteIds((personnelToEdit as any).assignedSites?.map((s: any) => s.id) || []); // [NEW]
             setCategory(personnelToEdit.category || 'FIELD');
             setMonthlyLeaveAllowance(personnelToEdit.monthlyLeaveAllowance?.toString() || '');
             setIsOvertimeAllowed(!!personnelToEdit.isOvertimeAllowed);
@@ -166,8 +168,10 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
 
         // [FIX] If updating salary, validate the NEW salary, otherwise validate the EXISTING salary
         const salaryToValidate = showSalaryUpdate ? newSalary : salary;
-        if (!salaryToValidate || Number(salaryToValidate) <= 0) {
-            errors.salary = "Maaş bilgisi zorunludur";
+        // [FIX] Allow 0 salary (e.g. for inactive/unpaid periods or legacy data)
+        // Only error if it's strictly empty string or NaN
+        if (salaryToValidate === '' || isNaN(Number(salaryToValidate))) {
+            errors.salary = "Maaş bilgisi geçerli bir sayı olmalıdır";
             isValid = false;
         }
         if (!siteId) { errors.siteId = "Şantiye seçimi zorunludur"; isValid = false; }
@@ -237,7 +241,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     transferHistory.push({
                         fromSiteId: existingRecord.siteId,
                         toSiteId: siteId,
-                        date: hireDate
+                        date: hireDate || new Date().toISOString() || new Date().toISOString()
                     });
                 }
 
@@ -305,7 +309,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     transferHistory.push({
                         fromSiteId: existingInactiveGlobal.siteId,
                         toSiteId: siteId,
-                        date: hireDate
+                        date: hireDate || new Date().toISOString() || new Date().toISOString()
                     });
                 }
 

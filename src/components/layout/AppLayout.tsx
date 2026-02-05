@@ -76,7 +76,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 <Topbar />
 
                 <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
-                    <div className={`mx-auto w-full ${pathname?.includes('/admin') || pathname?.includes('/fuel') || pathname?.includes('/vehicles') || pathname?.includes('/cash-book') || pathname?.includes('/personnel') || pathname?.includes('/vehicle-attendance') || pathname?.includes('/site-log') || pathname?.includes('/correspondence') ? 'max-w-full' : 'max-w-7xl'}`}>
+                    <div className={`mx-auto w-full ${pathname?.includes('/admin') || pathname?.includes('/fuel') || pathname?.includes('/vehicles') || pathname?.includes('/cash-book') || pathname?.includes('/personnel') || pathname?.includes('/vehicle-attendance') || pathname?.includes('/site-log') || pathname?.includes('/correspondence') || pathname?.includes('/new-tab') ? 'max-w-full' : 'max-w-7xl'}`}>
                         {children}
                     </div>
                 </main>
