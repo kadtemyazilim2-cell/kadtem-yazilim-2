@@ -3038,5 +3038,7 @@ export default function NewPage() {
                         </div>
                     )}
                 </div>
-                );
+            </TabsContent>
+        </Tabs>
+    );
 }
