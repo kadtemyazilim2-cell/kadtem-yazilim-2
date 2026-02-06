@@ -42,27 +42,44 @@ export async function getAllTransactions() {
 export async function createTransaction(data: Partial<CashTransaction>) {
     try {
         console.log('[createTransaction] Started with data:', JSON.stringify(data));
+
+        // [SECURITY] Use server-side session for creator
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) {
+            return { success: false, error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' };
+        }
+
+        // Validation
+        if (!data.siteId) return { success: false, error: 'Şantiye seçimi zorunludur.' };
+        if (!data.amount) return { success: false, error: 'Tutar zorunludur.' };
+        if (!data.type) return { success: false, error: 'İşlem tipi zorunludur.' };
+        if (!data.category) return { success: false, error: 'Kategori zorunludur.' };
+
+        // [FIX] Enum Handling: Ensure generic string matches enum if needed, or rely on Prisma
+        // Prisma Client accepts strings for Enums usually. 
+        // We cast to any to bypass TS strictness if Partial<CashTransaction> is fighting us.
+
         const transaction = await prisma.cashTransaction.create({
             data: {
-                siteId: data.siteId!,
-                date: new Date(data.date!),
-                type: data.type!,
-                category: data.category!,
-                amount: data.amount!,
-                description: data.description!,
+                siteId: data.siteId,
+                date: data.date ? new Date(data.date) : new Date(),
+                type: data.type,
+                category: data.category,
+                amount: Number(data.amount), // Ensure number
+                description: data.description || '',
                 documentNo: data.documentNo,
-                createdByUserId: data.createdByUserId!,
-                responsibleUserId: data.responsibleUserId, // Optional, can be null
-                paymentMethod: data.paymentMethod,
+                createdByUserId: session.user.id, // Server-side ID
+                responsibleUserId: data.responsibleUserId || session.user.id, // Fallback to current user
+                paymentMethod: (data.paymentMethod as any) || 'CASH',
                 imageUrl: data.imageUrl
             }
         });
         console.log('[createTransaction] DB Create Success:', transaction.id);
         revalidatePath('/dashboard/cash-book');
         return { success: true, data: transaction };
-    } catch (error) {
+    } catch (error: any) {
         console.error('createTransaction Error:', error);
-        return { success: false, error: `İşlem eklenemedi: ${error instanceof Error ? error.message : String(error)}` };
+        return { success: false, error: `İşlem eklenemedi: ${error.message || String(error)}` };
     }
 }
 
