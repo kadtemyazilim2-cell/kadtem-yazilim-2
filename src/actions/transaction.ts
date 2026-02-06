@@ -41,24 +41,13 @@ export async function getAllTransactions() {
 
 export async function createTransaction(data: Partial<CashTransaction>) {
     try {
-        console.log('[createTransaction] Started with data:', JSON.stringify(data));
-
-        // [DEBUG] Bypass auth() check to debug hang
-        // const session = await import('@/auth').then(m => m.auth());
-        // if (!session?.user?.id) {
-        //    return { success: false, error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' };
-        // }
-
-        const creatorId = data.createdByUserId; // Use client-provided ID for debug
-        if (!creatorId) {
-            return { success: false, error: 'Kullanıcı ID (createdByUserId) eksik.' };
+        // [AUTH] Strict Session Check
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) {
+            return { success: false, error: 'Oturum süreniz dolmuş. Lütfen sayfayı yenileyip tekrar giriş yapın.' };
         }
 
-        // [SECURITY] Verify user exists in DB to prevent FK errors
-        const creator = await prisma.user.findUnique({ where: { id: creatorId } });
-        if (!creator) {
-            return { success: false, error: 'Kullanıcı kaydı bulunamadı.' };
-        }
+        const creatorId = session.user.id;
 
         // Validation
         if (!data.siteId) return { success: false, error: 'Şantiye seçimi zorunludur.' };
@@ -68,13 +57,8 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
         // [FIX] Strict Enum Mapping
         let pm: PaymentMethod = PaymentMethod.CASH;
-        if (data.paymentMethod === 'CREDIT_CARD' || data.paymentMethod === PaymentMethod.CREDIT_CARD) {
+        if (String(data.paymentMethod) === 'CREDIT_CARD' || data.paymentMethod === PaymentMethod.CREDIT_CARD) {
             pm = PaymentMethod.CREDIT_CARD;
-        }
-
-        // [DEBUG] Log payload size (approx)
-        if (data.imageUrl) {
-            console.log('[createTransaction] Image present, length:', data.imageUrl.length);
         }
 
         // [TIMEOUT] Wrap DB call in race
@@ -88,17 +72,25 @@ export async function createTransaction(data: Partial<CashTransaction>) {
                     amount: Number(data.amount),
                     description: data.description || '',
                     documentNo: data.documentNo,
-                    createdByUserId: creator.id,
-                    responsibleUserId: data.responsibleUserId || creator.id,
+                    createdByUserId: creatorId,
+                    // If responsibleUserId is not provided, fallback to creator
+                    responsibleUserId: data.responsibleUserId || creatorId,
                     paymentMethod: pm,
                     imageUrl: data.imageUrl
                 }
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout (10s)')), 10000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Veritabanı zaman aşımı (10s)')), 10000))
         ]) as CashTransaction;
 
-        console.log('[createTransaction] DB Create Success:', transaction.id);
-        revalidatePath('/dashboard/cash-book');
+        console.log('[createTransaction] Success:', transaction.id);
+
+        // Revalidate
+        try {
+            revalidatePath('/dashboard/cash-book');
+        } catch (e) {
+            console.error('Revalidate failed but transaction created:', e);
+        }
+
         return { success: true, data: transaction };
     } catch (error: any) {
         console.error('createTransaction Error:', error);
@@ -135,7 +127,7 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
         // 4. Data Preparation & Enum Fix
         let pm: PaymentMethod | undefined;
         if (data.paymentMethod) {
-            if (data.paymentMethod === 'CREDIT_CARD' || data.paymentMethod === PaymentMethod.CREDIT_CARD) {
+            if (String(data.paymentMethod) === 'CREDIT_CARD' || data.paymentMethod === PaymentMethod.CREDIT_CARD) {
                 pm = PaymentMethod.CREDIT_CARD;
             } else {
                 pm = PaymentMethod.CASH;
