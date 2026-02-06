@@ -40,7 +40,11 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
 
     // Filter vehicles by company if needed, but for now show all active
     const activeVehicles = vehicles.filter((v: any) => v.status === 'ACTIVE');
-    const activeSites = accessibleSites.filter((s: any) => s.status === 'ACTIVE'); // [UPDATED] Use accessibleSites
+    const activeSites = accessibleSites.filter((s: any) => {
+        if (s.status !== 'ACTIVE') return false;
+        // [FIX] Only show sites with ACTIVE tanks
+        return fuelTanks.some((t: any) => t.siteId === s.id && t.status === 'ACTIVE');
+    });
 
     const [formData, setFormData] = useState({
         vehicleId: '',

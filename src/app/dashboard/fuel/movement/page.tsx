@@ -29,7 +29,15 @@ export default function FuelMovementPage() {
     }, []);
 
     const rawAvailableSites = useUserSites();
-    const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]);
+    const availableSites = useMemo(() => {
+        const sites = (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE');
+        // [FIX] User Request: Only show sites that have at least one ACTIVE tank.
+        // If a site has no tank, it should not be listed as fuel cannot be dispensed/transferred there.
+        return sites.filter((site: any) => {
+            const hasTank = fuelTanks.some((t: any) => t.siteId === site.id && t.status === 'ACTIVE');
+            return hasTank;
+        });
+    }, [rawAvailableSites, fuelTanks]);
 
     // Filter Tanks based on available sites
     const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
