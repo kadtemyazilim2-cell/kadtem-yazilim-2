@@ -1,24 +1,43 @@
 'use client';
 
-import { useState } from 'react'; // [NEW]
+import { useState } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
-import { useAuth } from '@/lib/store/use-auth'; // [NEW]
+import { useAuth } from '@/lib/store/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
-import { FuelTransferEditDialog } from './FuelTransferEditDialog'; // [NEW]
+import { FuelTransferEditDialog } from './FuelTransferEditDialog';
 
 export function FuelTransferList() {
-    const { user, getAccessibleSites } = useAuth(); // [NEW]
+    const { fuelTransfers, fuelTanks, sites, vehicles, users } = useAppStore();
+    const { user, getAccessibleSites } = useAuth();
     const accessibleSites = getAccessibleSites(sites);
+
+    const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+    // Helper to resolve Site Name from Entity ID
+    const getEntityName = (type: string, id: string) => {
+        if (type === 'TANK') {
+            const tank = fuelTanks.find((t: any) => t.id === id);
+            return tank?.name || '-';
+        }
+        if (type === 'EXTERNAL') {
+            return id || 'Dış Kaynak';
+        }
+        return '-';
+    };
+
+    // Helper for Author
+    const getAuthorName = (id: string) => users.find((u: any) => u.id === id)?.name || 'Bilinmeyen';
 
     // Filter only Internal Transfers (Virman) -> Exclude External Purchases
     const transfers = fuelTransfers
         .filter((t: any) => {
             if (t.fromType === 'EXTERNAL') return false;
 
-            // [NEW] Permission Check
+            // Permission Check
             const fromTank = t.fromType === 'TANK' ? fuelTanks.find((tk: any) => tk.id === t.fromId) : null;
             const toTank = t.toType === 'TANK' ? fuelTanks.find((tk: any) => tk.id === t.toId) : null;
 
@@ -58,8 +77,8 @@ export function FuelTransferList() {
                             transfers.map((t: any) => (
                                 <TableRow
                                     key={t.id}
-                                    className="cursor-pointer hover:bg-slate-50" // [NEW] Pointer
-                                    onClick={() => { setSelectedTransfer(t); setIsEditDialogOpen(true); }} // [NEW] Click Handler
+                                    className="cursor-pointer hover:bg-slate-50"
+                                    onClick={() => { setSelectedTransfer(t); setIsEditDialogOpen(true); }}
                                 >
                                     <TableCell>{format(new Date(t.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                     <TableCell className="font-medium text-slate-700">
