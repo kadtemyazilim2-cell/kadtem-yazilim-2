@@ -340,6 +340,23 @@ export default function FuelMovementPage() {
                                         </Select>
                                     </div>
                                     <div className="space-y-2">
+                                        <Label>Hangi Depodan?</Label>
+                                        <Select
+                                            value={dispenseData.tankId}
+                                            onValueChange={v => setDispenseData({ ...dispenseData, tankId: v || '' })}
+                                            disabled={!selectedDispenseSiteId}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
+                                            <SelectContent>
+                                                {accessibleTanks
+                                                    .filter((t: any) => t.siteId === selectedDispenseSiteId)
+                                                    .map((t: any) => (
+                                                        <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>
+                                                    ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
                                         <Label>Hangi Araca?</Label>
                                         <Select value={dispenseData.vehicleId} onValueChange={v => setDispenseData({ ...dispenseData, vehicleId: v || '' })} required>
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
