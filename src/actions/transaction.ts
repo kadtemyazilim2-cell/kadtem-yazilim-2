@@ -100,12 +100,12 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
 export async function updateTransaction(id: string, data: Partial<CashTransaction>) {
     try {
-        console.log('[updateTransaction] Started for ID:', id, 'Data:', JSON.stringify(data));
+        console.log('[updateTransaction] Started for ID:', id);
 
         // 1. Auth Check
         const session = await import('@/auth').then(m => m.auth());
         if (!session?.user?.id) {
-            return { success: false, error: 'Oturum bulunamadı.' };
+            return { success: false, error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' };
         }
 
         // 2. Fetch existing to check permission
@@ -115,9 +115,8 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
         }
 
         // 3. Permission: Admin or Owner or Responsible
-        // If Admin, can edit anything.
-        // If User, can only edit if within time limit (frontend check mainly) and own record.
         const isAdmin = session.user.role === 'ADMIN';
+        // Check if user is creator OR responsible
         const isOwner = existing.createdByUserId === session.user.id || existing.responsibleUserId === session.user.id;
 
         if (!isAdmin && !isOwner) {
@@ -157,11 +156,17 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
                 where: { id },
                 data: updateData
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout (10s)')), 10000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Güncelleme zaman aşımı (10s)')), 10000))
         ]) as CashTransaction;
 
         console.log('[updateTransaction] Success:', transaction.id);
-        revalidatePath('/dashboard/cash-book');
+
+        try {
+            revalidatePath('/dashboard/cash-book');
+        } catch (e) {
+            console.error('Revalidate failed (Update):', e);
+        }
+
         return { success: true, data: transaction };
     } catch (error: any) {
         console.error('updateTransaction Error:', error);
@@ -174,7 +179,13 @@ export async function deleteTransaction(id: string) {
         await prisma.cashTransaction.delete({
             where: { id }
         });
-        revalidatePath('/dashboard/cash-book');
+
+        try {
+            revalidatePath('/dashboard/cash-book');
+        } catch (e) {
+            console.error('Revalidate failed (Delete):', e);
+        }
+
         return { success: true };
     } catch (error: any) {
         console.error('deleteTransaction Error:', error);

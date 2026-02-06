@@ -508,8 +508,12 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                 ) : (
                                     <>
                                         <SelectItem value="Tahsilat">Tahsilat</SelectItem>
-                                        <SelectItem value="Nakit İade">Nakit İade</SelectItem>
-                                        <SelectItem value="Şantiye Harcaması İçin Gönderilen">Şantiye Harcaması İçin Gönderilen</SelectItem>
+                                        {user?.role === 'ADMIN' && (
+                                            <>
+                                                <SelectItem value="Nakit İade">Nakit İade</SelectItem>
+                                                <SelectItem value="Şantiye Harcaması İçin Gönderilen">Şantiye Harcaması İçin Gönderilen</SelectItem>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </SelectContent>
