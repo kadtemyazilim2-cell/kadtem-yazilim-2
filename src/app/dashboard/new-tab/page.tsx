@@ -146,7 +146,7 @@ export default function NewPage() {
     const [loading, setLoading] = useState(true);
 
     // Site Filter State
-    const [selectedSiteId, setSelectedSiteId] = useState<string>('all');
+    const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
     // Auto-select site if only one available
     useEffect(() => {
@@ -327,6 +327,12 @@ export default function NewPage() {
 
     // Fetch from Server (Moved here to access 'date' and 'selectedSiteId')
     const refreshData = async () => {
+        if (!selectedSiteId || selectedSiteId === 'all') {
+            setNames([]);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const res = await getPersonnelWithAttendance(date, selectedSiteId);
@@ -1668,10 +1674,9 @@ export default function NewPage() {
                             <div className="w-[300px]">
                                 <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Şantiye Filtrele" />
+                                        <SelectValue placeholder="Şantiye Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Tüm Şantiyeler</SelectItem>
                                         {availableSites.map(s => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
@@ -1696,7 +1701,7 @@ export default function NewPage() {
                                 <Button onClick={() => {
                                     setEditingId(null);
                                     setFormData({
-                                        siteId: (selectedSiteId && selectedSiteId !== 'all') ? selectedSiteId : (availableSites.length === 1 ? availableSites[0].id : ''),
+                                        siteId: selectedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''),
                                         tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
                                         inputDate: format(new Date(), 'yyyy-MM-dd'),
                                         salaryHistory: []
