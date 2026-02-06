@@ -611,14 +611,16 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             </div>
 
             {/* [NEW] Export Buttons */}
-            <div className="flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
-                    <FileSpreadsheet className="w-4 h-4 text-green-600" /> Excel İndir
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-2">
-                    <FileDown className="w-4 h-4 text-red-600" /> PDF İndir
-                </Button>
-            </div>
+            {hasPermission('fuel.consumption', 'EXPORT') && (
+                <div className="flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportExcel} className="gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-green-600" /> Excel İndir
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-2">
+                        <FileDown className="w-4 h-4 text-red-600" /> PDF İndir
+                    </Button>
+                </div>
+            )}
         </div>
     );
 

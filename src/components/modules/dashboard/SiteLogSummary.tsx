@@ -19,7 +19,7 @@ interface SiteLogSummaryProps {
 
 export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryProps) {
     const { user, hasPermission } = useAuth(); // [NEW] - Auth hook
-    const canPrint = user?.role === 'ADMIN' || hasPermission('dashboard', 'EDIT'); // [NEW] - Permission check
+    const canPrint = user?.role === 'ADMIN' || hasPermission('dashboard', 'EDIT') || hasPermission('dashboard.site-log', 'VIEW'); // [UPDATED] - Allow view permission to print
 
     const [isGenerating, setIsGenerating] = useState<string | null>(null);
 

@@ -23,7 +23,7 @@ interface FuelPurchaseListProps {
 export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
     const { fuelTransfers, fuelTanks, sites } = useAppStore();
     const { user, hasPermission } = useAuth(); // [NEW] - Auth hook
-    const canEdit = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EDIT'); // [NEW] - Permission check
+    const canEdit = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EDIT') || hasPermission('dashboard.fuel-purchases', 'EDIT'); // [NEW] - Permission check
 
     const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -125,14 +125,21 @@ export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
                         {isWidget ? 'Son Yakıt Alımları' : 'Tüm Yakıt Alımları'}
                     </CardTitle>
                     <div className="flex gap-2">
+                        const canExport = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EXPORT'); // [NEW] Export Permission
+                        // ...
+                        // Verify variable scope before using
                         {!isWidget && (
                             <>
-                                <Button variant="outline" size="sm" onClick={handleExportExcel} title="Excel İndir">
-                                    <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={handleExportPDF} title="PDF İndir">
-                                    <FileDown className="w-4 h-4 text-red-600" />
-                                </Button>
+                                {canExport && (
+                                    <>
+                                        <Button variant="outline" size="sm" onClick={handleExportExcel} title="Excel İndir">
+                                            <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={handleExportPDF} title="PDF İndir">
+                                            <FileDown className="w-4 h-4 text-red-600" />
+                                        </Button>
+                                    </>
+                                )}
                             </>
                         )}
                         {isWidget && (

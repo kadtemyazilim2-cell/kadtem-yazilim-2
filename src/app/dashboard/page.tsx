@@ -602,7 +602,7 @@ export default function DashboardPage() {
                                                                     </div>
                                                                 </td>
                                                                 <td className="px-4 py-3 text-right">
-                                                                    {canEditDashboard && (
+                                                                    {(canEditDashboard || hasPermission('dashboard.missing-docs', 'EDIT')) && (
                                                                         <Button
                                                                             size="sm"
                                                                             variant="outline"
