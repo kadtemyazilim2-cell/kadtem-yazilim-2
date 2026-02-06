@@ -297,8 +297,11 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     } as any);
                     resetForm();
                 } else {
-                    // Force refresh for update to ensure sync
-                    window.location.reload();
+                    // Update local store instead of reload
+                    updateCashTransaction(initialData.id, {
+                        ...res.data,
+                        date: new Date(res.data.date).toISOString(),
+                    });
                 }
 
                 setOpen(false);
