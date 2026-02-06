@@ -13,5 +13,5 @@ export function useUserSites() {
 
     // Filter sites based on assigned IDs
     const assignedIds = user.assignedSiteIds || [];
-    return sites.filter((site: any) => assignedIds.includes(site.id));
+    return (sites || []).filter((site: any) => assignedIds.includes(site.id));
 }

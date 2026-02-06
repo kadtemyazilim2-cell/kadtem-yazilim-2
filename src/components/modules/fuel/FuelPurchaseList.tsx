@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
-import { useAuth } from '@/lib/store/use-auth'; // [NEW] - Added import
+import { useAuth } from '@/lib/store/use-auth';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW] // [NEW] - Added import
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
@@ -22,8 +23,8 @@ interface FuelPurchaseListProps {
 
 export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
     const { fuelTransfers, fuelTanks, sites } = useAppStore();
-    const { getAccessibleSites } = useAuth(); // [NEW]
-    const accessibleSites = useMemo(() => getAccessibleSites(sites), [sites, user]); // [NEW]
+    const { user } = useAuth();
+    const accessibleSites = useUserSites(); // [NEW] Use Hook directly
 
     // Filter Logic
     const filteredPurchases = useMemo(() => {

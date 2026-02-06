@@ -8,11 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { ArrowRight } from 'lucide-react';
 import { FuelTransferEditDialog } from './FuelTransferEditDialog';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 
 export function FuelTransferList() {
     const { fuelTransfers, fuelTanks, sites, vehicles, users } = useAppStore();
-    const { user, getAccessibleSites } = useAuth();
-    const accessibleSites = getAccessibleSites(sites);
+    const { user } = useAuth();
+    const accessibleSites = useUserSites(); // [NEW] Use Hook directly
 
     const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
