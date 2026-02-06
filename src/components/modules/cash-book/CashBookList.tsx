@@ -64,6 +64,13 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         }
     }, []);
 
+    // [NEW] Enforce default Payment Method for restricted users
+    useEffect(() => {
+        if (user && user.role !== 'ADMIN') {
+            setSelectedPaymentMethod('CASH');
+        }
+    }, [user]);
+
     // Helpers for quick month selection
     // We track the "quick select" state just for the UI of the dropdowns, 
     // but the source of truth is always startDate/endDate.
@@ -844,7 +851,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                                         <SelectValue placeholder="Ödeme Tipi" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ALL">Tüm Ödemeler</SelectItem>
+                                        {user?.role === 'ADMIN' && <SelectItem value="ALL">Tüm Ödemeler</SelectItem>}
                                         <SelectItem value="CASH">Nakit</SelectItem>
                                         <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
                                     </SelectContent>
