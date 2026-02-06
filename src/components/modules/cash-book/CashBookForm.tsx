@@ -31,15 +31,12 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { addCashTransaction, updateCashTransaction, sites, users } = useAppStore();
-    const { user, hasPermission } = useAuth();
+    const { user, hasPermission, getAccessibleSites } = useAuth();
     const canCreate = hasPermission('cash-book', 'CREATE');
     const canEdit = hasPermission('cash-book', 'EDIT');
 
-    const activeSites = (sites || []).filter((s: any) => s.status === 'ACTIVE');
-    // [MOD] Filter sites available to user
-    const availableSites = user?.role === 'ADMIN'
-        ? activeSites
-        : activeSites.filter((s: any) => user?.assignedSiteIds?.includes(s.id));
+    // [MOD] Use centralized helper for consistency
+    const availableSites = getAccessibleSites(sites || []);
 
     const [formData, setFormData] = useState({
         siteId: '',
