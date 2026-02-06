@@ -29,15 +29,7 @@ export default function FuelMovementPage() {
     }, []);
 
     const rawAvailableSites = useUserSites();
-    const availableSites = useMemo(() => {
-        const sites = (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE');
-        // [FIX] User Request: Only show sites that have at least one tank.
-        // Relaxed check: Just check if any tank exists for the site, regardless of status for now to debug visibility.
-        return sites.filter((site: any) => {
-            const hasTank = fuelTanks.some((t: any) => t.siteId === site.id);
-            return hasTank;
-        });
-    }, [rawAvailableSites, fuelTanks]);
+    const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]);
 
     // Filter Tanks based on available sites
     const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
