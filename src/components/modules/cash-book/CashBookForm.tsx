@@ -124,7 +124,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                 setFormData(prev => ({ ...prev, responsibleUserId: user.id }));
             }
         }
-    }, [isOpen]); // Only run when open state changes (specifically to true)
+    }, [isOpen, availableSites.length, user]); // Only run when open state changes (specifically to true)
 
 
     const resetForm = () => {
