@@ -869,10 +869,16 @@ export default function NewPage() {
         // [NEW] Permission Check
         if (!canEditAttendance) return false;
 
-        // ALWAYS Check Transfer Lock (Even for Admin)
+        // Check Transfer Lock
         if (person.transferOutDate) {
             const targetKey = format(targetDate, 'yyyy-MM-dd');
-            if (targetKey >= person.transferOutDate) return false;
+            if (targetKey >= person.transferOutDate) {
+                // Allow Admin to fix or User to revert EXIT
+                const isExitRecord = record?.status === 'EXIT';
+                const isAdmin = user?.role === 'ADMIN';
+
+                if (!isExitRecord && !isAdmin) return false;
+            }
         }
 
         // Admin -> checks nothing (except strict locks above)
