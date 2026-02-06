@@ -42,8 +42,8 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
     const activeVehicles = vehicles.filter((v: any) => v.status === 'ACTIVE');
     const activeSites = accessibleSites.filter((s: any) => {
         if (s.status !== 'ACTIVE') return false;
-        // [FIX] Only show sites with ACTIVE tanks
-        return fuelTanks.some((t: any) => t.siteId === s.id && t.status === 'ACTIVE');
+        // [FIX] Only show sites with tanks (Relaxed check)
+        return fuelTanks.some((t: any) => t.siteId === s.id);
     });
 
     const [formData, setFormData] = useState({

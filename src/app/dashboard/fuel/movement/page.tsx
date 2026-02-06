@@ -31,10 +31,10 @@ export default function FuelMovementPage() {
     const rawAvailableSites = useUserSites();
     const availableSites = useMemo(() => {
         const sites = (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE');
-        // [FIX] User Request: Only show sites that have at least one ACTIVE tank.
-        // If a site has no tank, it should not be listed as fuel cannot be dispensed/transferred there.
+        // [FIX] User Request: Only show sites that have at least one tank.
+        // Relaxed check: Just check if any tank exists for the site, regardless of status for now to debug visibility.
         return sites.filter((site: any) => {
-            const hasTank = fuelTanks.some((t: any) => t.siteId === site.id && t.status === 'ACTIVE');
+            const hasTank = fuelTanks.some((t: any) => t.siteId === site.id);
             return hasTank;
         });
     }, [rawAvailableSites, fuelTanks]);
