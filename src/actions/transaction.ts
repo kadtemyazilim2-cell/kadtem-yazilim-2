@@ -108,26 +108,72 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
 export async function updateTransaction(id: string, data: Partial<CashTransaction>) {
     try {
-        const transaction = await prisma.cashTransaction.update({
-            where: { id },
-            data: {
-                siteId: data.siteId,
-                date: data.date ? new Date(data.date) : undefined,
-                type: data.type,
-                category: data.category,
-                amount: data.amount,
-                description: data.description,
-                documentNo: data.documentNo,
-                responsibleUserId: data.responsibleUserId,
-                paymentMethod: data.paymentMethod,
-                imageUrl: data.imageUrl
+        console.log('[updateTransaction] Started for ID:', id, 'Data:', JSON.stringify(data));
+
+        // 1. Auth Check
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) {
+            return { success: false, error: 'Oturum bulunamadı.' };
+        }
+
+        // 2. Fetch existing to check permission
+        const existing = await prisma.cashTransaction.findUnique({ where: { id } });
+        if (!existing) {
+            return { success: false, error: 'Kayıt bulunamadı.' };
+        }
+
+        // 3. Permission: Admin or Owner or Responsible
+        // If Admin, can edit anything.
+        // If User, can only edit if within time limit (frontend check mainly) and own record.
+        const isAdmin = session.user.role === 'ADMIN';
+        const isOwner = existing.createdByUserId === session.user.id || existing.responsibleUserId === session.user.id;
+
+        if (!isAdmin && !isOwner) {
+            return { success: false, error: 'Bu kaydı düzenleme yetkiniz yok.' };
+        }
+
+        // 4. Data Preparation & Enum Fix
+        let pm: PaymentMethod | undefined;
+        if (data.paymentMethod) {
+            if (data.paymentMethod === 'CREDIT_CARD' || data.paymentMethod === PaymentMethod.CREDIT_CARD) {
+                pm = PaymentMethod.CREDIT_CARD;
+            } else {
+                pm = PaymentMethod.CASH;
             }
-        });
+        }
+
+        const updateData: any = {
+            siteId: data.siteId,
+            date: data.date ? new Date(data.date) : undefined,
+            type: data.type,
+            category: data.category,
+            amount: data.amount ? Number(data.amount) : undefined,
+            description: data.description,
+            documentNo: data.documentNo,
+            paymentMethod: pm, // Enum mapped
+            imageUrl: data.imageUrl
+        };
+
+        // Only update responsibleUserId if provided
+        if (data.responsibleUserId) {
+            updateData.responsibleUserId = data.responsibleUserId;
+        }
+
+        // [TIMEOUT] Wrap DB call
+        const transaction = await Promise.race([
+            prisma.cashTransaction.update({
+                where: { id },
+                data: updateData
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout (10s)')), 10000))
+        ]) as CashTransaction;
+
+        console.log('[updateTransaction] Success:', transaction.id);
         revalidatePath('/dashboard/cash-book');
         return { success: true, data: transaction };
-    } catch (error) {
+    } catch (error: any) {
         console.error('updateTransaction Error:', error);
-        return { success: false, error: 'İşlem güncellenemedi.' };
+        return { success: false, error: `Güncelleme başarısız: ${error.message}` };
     }
 }
 

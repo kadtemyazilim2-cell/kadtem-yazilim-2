@@ -768,6 +768,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                                         setFormDefaultValues({
                                             type: 'INCOME',
                                             paymentMethod: 'CASH',
+                                            category: 'Tahsilat',
                                             description: `${monthCap} Ayı Şantiye Harcaması İçin Gönderilen`
                                         });
                                         setIsFormOpen(true);
