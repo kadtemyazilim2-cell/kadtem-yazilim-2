@@ -32,14 +32,21 @@ export const useAuth = create<AuthState>()(
                     if (result.success && result.data) {
                         const freshUser = result.data;
 
+                        // [FIX] Map Prisma relations to IDs for frontend store compatibility
+                        const userWithIds = {
+                            ...freshUser,
+                            assignedSiteIds: freshUser.assignedSites?.map((s: any) => s.id) || [],
+                            assignedCompanyIds: freshUser.assignedCompanies?.map((c: any) => c.id) || []
+                        };
+
                         // ALSO Update Client Store to keep it in sync
                         const { useAppStore } = await import('./use-store');
                         const store = useAppStore.getState();
-                        store.updateUser(freshUser.id, freshUser as any);
+                        store.updateUser(freshUser.id, userWithIds as any);
 
                         // Update Session
-                        set({ user: freshUser as any });
-                        console.log("Session Refreshed from Server:", freshUser.username);
+                        set({ user: userWithIds as any });
+                        console.log("Session Refreshed from Server:", freshUser.username, "Sites:", userWithIds.assignedSiteIds);
                     }
                 } catch (error) {
                     console.error("Session Refresh Failed:", error);
