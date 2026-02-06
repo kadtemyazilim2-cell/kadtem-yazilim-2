@@ -41,6 +41,7 @@ export async function getAllTransactions() {
 
 export async function createTransaction(data: Partial<CashTransaction>) {
     try {
+        console.log('[createTransaction] Started with data:', JSON.stringify(data));
         const transaction = await prisma.cashTransaction.create({
             data: {
                 siteId: data.siteId!,
@@ -51,11 +52,12 @@ export async function createTransaction(data: Partial<CashTransaction>) {
                 description: data.description!,
                 documentNo: data.documentNo,
                 createdByUserId: data.createdByUserId!,
-                responsibleUserId: data.responsibleUserId,
+                responsibleUserId: data.responsibleUserId, // Optional, can be null
                 paymentMethod: data.paymentMethod,
                 imageUrl: data.imageUrl
             }
         });
+        console.log('[createTransaction] DB Create Success:', transaction.id);
         revalidatePath('/dashboard/cash-book');
         return { success: true, data: transaction };
     } catch (error) {
