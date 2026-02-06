@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,25 @@ export function FuelGivenList() {
 
     if (!user) return null;
 
-    // Filter logs created by the current user
+    const accessibleSites = useUserSites(); // [NEW] Use Hook
+    const accessibleSiteIds = accessibleSites.map((s: any) => s.id);
+
+    // Filter logs created by the current user OR visible to them based on site
     const userLogs = fuelLogs
-        // Filter by user ID
-        .filter((log: any) => log.filledByUserId === user.id)
+        // Filter by user ID (User sees their own actions) AND Site Access (Security)
+        // If user is ADMIN, accessibleSiteIds has all sites, so just check createdBy or show all?
+        // Usually "My Given Fuels" implies only what *I* gave.
+        // But if the user complains about "seeing mixed sites", maybe they want strict site filtering?
+        .filter((log: any) => {
+            // 1. Must be filled by this user (Primary condition)
+            if (log.filledByUserId !== user.id) return false;
+
+            // 2. [NEW] Must be for a site the user STILL has access to?
+            // This prevents seeing logs from sites they were removed from.
+            if (!accessibleSiteIds.includes(log.siteId)) return false;
+
+            return true;
+        })
         // Sort by date descending (newest first)
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
         // Limit to last 50 entries for performance/relevance
