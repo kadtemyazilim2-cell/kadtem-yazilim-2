@@ -292,6 +292,18 @@ export default function FuelMovementPage() {
                 <p className="text-muted-foreground">
                     Yakıt alım, virman ve araç dolum işlemlerini buradan yönetebilirsiniz.
                 </p>
+                <div className="mt-2 p-2 bg-red-50 text-xs font-mono rounded border border-red-200">
+                    DEBUG:
+                    Sites={availableSites.length},
+                    AllTanks={fuelTanks.length},
+                    AccTanks={accessibleTanks.length}
+                    <br />
+                    UserRole: {user?.role}
+                    <br />
+                    SelectedSite: {selectedDispenseSiteId || 'None'}
+                    <br />
+                    TanksForSelected: {(fuelTanks || []).filter((t: any) => t.siteId === selectedDispenseSiteId).length}
+                </div>
             </div>
 
             <Tabs defaultValue="dispense" className="w-full">
