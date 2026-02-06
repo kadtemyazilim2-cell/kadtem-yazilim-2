@@ -346,7 +346,8 @@ export default function FuelMovementPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    <div className="space-y-2">
+                                    {/* Tank Selection Hidden - Auto Detected */}
+                                    <div className="hidden">
                                         <Label>Hangi Depodan?</Label>
                                         <Select
                                             value={dispenseData.tankId}

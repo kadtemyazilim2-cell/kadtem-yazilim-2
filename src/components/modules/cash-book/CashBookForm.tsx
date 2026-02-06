@@ -266,7 +266,9 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                 // [FIX] Ensure responsibleUserId is valid or undefined (not empty string)
                 responsibleUserId: (formData.responsibleUserId || user.id) || undefined,
                 paymentMethod: formData.paymentMethod || 'CASH',
-                imageUrl: undefined
+                imageUrl: undefined,
+                description: formData.description,
+                documentNo: formData.documentNo
             };
 
             if (file) {
