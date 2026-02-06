@@ -20,18 +20,29 @@ export const useAuth = create<AuthState>()(
             user: null,
             isAuthenticated: false,
 
-            refreshSession: () => {
+            refreshSession: async () => {
                 const { user } = get();
                 if (!user) return;
 
-                // Reload specific user from UseAppStore (Source of Truth)
-                const { useAppStore } = require('./use-store');
-                const users = useAppStore.getState().users;
-                const freshUser = users.find((u: any) => u.id === user.id);
+                try {
+                    // Import Server Action Dynamically
+                    const { getUserById } = await import('@/actions/user');
+                    const result = await getUserById(user.id);
 
-                if (freshUser) {
-                    set({ user: freshUser });
-                    console.log("Session Refreshed:", freshUser.username);
+                    if (result.success && result.data) {
+                        const freshUser = result.data;
+
+                        // ALSO Update Client Store to keep it in sync
+                        const { useAppStore } = await import('./use-store');
+                        const store = useAppStore.getState();
+                        store.updateUser(freshUser.id, freshUser as any);
+
+                        // Update Session
+                        set({ user: freshUser as any });
+                        console.log("Session Refreshed from Server:", freshUser.username);
+                    }
+                } catch (error) {
+                    console.error("Session Refresh Failed:", error);
                 }
             },
 

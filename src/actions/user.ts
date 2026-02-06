@@ -54,18 +54,55 @@ export async function createUser(data: Partial<User> & { assignedCompanyIds?: st
     }
 }
 
+// [FIXED] Restored actual DB update logic
 export async function updateUser(id: string, data: Partial<User> & { assignedSiteIds?: string[] }) {
     try {
-        console.log('[updateUser] Action NUCLEAR MOCK started for ID:', id);
+        console.log('[updateUser] Action started for ID:', id);
 
-        // NUCLEAR OPTION: Bypass DB completely to test connectivity
-        await new Promise(resolve => setTimeout(resolve, 500));
+        const { assignedSiteIds, ...rest } = data;
 
-        console.log('[updateUser] NUCLEAR MOCK Success returning');
-        return { success: true, data: { id, ...data } as any };
+        const updatedUser = await prisma.user.update({
+            where: { id },
+            data: {
+                ...rest,
+                assignedSites: assignedSiteIds ? {
+                    set: assignedSiteIds.map(sid => ({ id: sid }))
+                } : undefined
+            },
+            include: {
+                assignedCompanies: true,
+                assignedSites: true
+            }
+        });
+
+        // revalidatePath('/dashboard/admin');
+        return { success: true, data: updatedUser };
     } catch (error) {
         console.error('updateUser Error:', error);
         return { success: false, error: 'Kullanıcı güncellenemedi.' };
+    }
+}
+
+// [NEW] Get Single User Fresh Data
+export async function getUserById(id: string) {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id },
+            include: {
+                assignedCompanies: true,
+                assignedSites: true
+            }
+        });
+
+        if (!user) return { success: false, error: 'Kullanıcı bulunamadı.' };
+
+        // Ensure flattened IDs are present for frontend logic if needed, 
+        // though frontend usually derives them from arrays.
+        // We return the raw Prisma object, frontend handles mapping.
+        return { success: true, data: user };
+    } catch (error) {
+        console.error('getUserById Error:', error);
+        return { success: false, error: 'Kullanıcı verisi alınamadı.' };
     }
 }
 
