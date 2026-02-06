@@ -210,7 +210,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         });
 
         return result;
-    }, [cashTransactions, selectedUserId, selectedSiteId, searchTerm, startDate, endDate, user, sites, users]);
+    }, [cashTransactions, selectedUserId, selectedSiteId, searchTerm, startDate, endDate, user, sites, users, selectedPaymentMethod, selectedType]);
 
     // [NEW] Previous Balance Calculation
     const previousBalance = useMemo(() => {
