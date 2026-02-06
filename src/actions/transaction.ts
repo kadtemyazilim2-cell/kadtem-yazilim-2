@@ -1,7 +1,7 @@
 'use server';
 
 import { prisma } from '@/lib/db';
-import { CashTransaction } from '@prisma/client';
+import { CashTransaction, PaymentMethod } from '@prisma/client'; // [FIX] Import Enum
 import { revalidatePath } from 'next/cache';
 
 export async function getTransactionsBySite(siteId: string) {
@@ -49,15 +49,23 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             return { success: false, error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' };
         }
 
+        // [SECURITY] Verify user exists in DB to prevent FK errors
+        const creator = await prisma.user.findUnique({ where: { id: session.user.id } });
+        if (!creator) {
+            return { success: false, error: 'Kullanıcı kaydı bulunamadı.' };
+        }
+
         // Validation
         if (!data.siteId) return { success: false, error: 'Şantiye seçimi zorunludur.' };
         if (!data.amount) return { success: false, error: 'Tutar zorunludur.' };
         if (!data.type) return { success: false, error: 'İşlem tipi zorunludur.' };
         if (!data.category) return { success: false, error: 'Kategori zorunludur.' };
 
-        // [FIX] Enum Handling: Ensure generic string matches enum if needed, or rely on Prisma
-        // Prisma Client accepts strings for Enums usually. 
-        // We cast to any to bypass TS strictness if Partial<CashTransaction> is fighting us.
+        // [FIX] Strict Enum Mapping
+        let pm: PaymentMethod = PaymentMethod.CASH;
+        if (data.paymentMethod === 'CREDIT_CARD' || data.paymentMethod === PaymentMethod.CREDIT_CARD) {
+            pm = PaymentMethod.CREDIT_CARD;
+        }
 
         const transaction = await prisma.cashTransaction.create({
             data: {
@@ -68,9 +76,9 @@ export async function createTransaction(data: Partial<CashTransaction>) {
                 amount: Number(data.amount), // Ensure number
                 description: data.description || '',
                 documentNo: data.documentNo,
-                createdByUserId: session.user.id, // Server-side ID
-                responsibleUserId: data.responsibleUserId || session.user.id, // Fallback to current user
-                paymentMethod: (data.paymentMethod as any) || 'CASH',
+                createdByUserId: creator.id, // Server-side ID
+                responsibleUserId: data.responsibleUserId || creator.id, // Fallback to current user
+                paymentMethod: pm, // Checked Enum
                 imageUrl: data.imageUrl
             }
         });
