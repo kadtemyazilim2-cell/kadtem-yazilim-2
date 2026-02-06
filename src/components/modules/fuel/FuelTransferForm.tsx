@@ -35,7 +35,7 @@ export function FuelTransferForm() {
                 fromId,
                 toType: 'TANK',
                 toId,
-                date,
+                date: new Date(date),
                 amount,
                 createdByUserId: user.id
             }));
