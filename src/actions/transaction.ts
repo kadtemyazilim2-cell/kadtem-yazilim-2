@@ -72,21 +72,31 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             pm = PaymentMethod.CREDIT_CARD;
         }
 
-        const transaction = await prisma.cashTransaction.create({
-            data: {
-                siteId: data.siteId,
-                date: data.date ? new Date(data.date) : new Date(),
-                type: data.type,
-                category: data.category,
-                amount: Number(data.amount), // Ensure number
-                description: data.description || '',
-                documentNo: data.documentNo,
-                createdByUserId: creator.id, // Server-side ID
-                responsibleUserId: data.responsibleUserId || creator.id, // Fallback to current user
-                paymentMethod: pm, // Checked Enum
-                imageUrl: data.imageUrl
-            }
-        });
+        // [DEBUG] Log payload size (approx)
+        if (data.imageUrl) {
+            console.log('[createTransaction] Image present, length:', data.imageUrl.length);
+        }
+
+        // [TIMEOUT] Wrap DB call in race
+        const transaction = await Promise.race([
+            prisma.cashTransaction.create({
+                data: {
+                    siteId: data.siteId,
+                    date: data.date ? new Date(data.date) : new Date(),
+                    type: data.type,
+                    category: data.category,
+                    amount: Number(data.amount),
+                    description: data.description || '',
+                    documentNo: data.documentNo,
+                    createdByUserId: creator.id,
+                    responsibleUserId: data.responsibleUserId || creator.id,
+                    paymentMethod: pm,
+                    imageUrl: data.imageUrl
+                }
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('DB Timeout (10s)')), 10000))
+        ]) as CashTransaction;
+
         console.log('[createTransaction] DB Create Success:', transaction.id);
         revalidatePath('/dashboard/cash-book');
         return { success: true, data: transaction };
