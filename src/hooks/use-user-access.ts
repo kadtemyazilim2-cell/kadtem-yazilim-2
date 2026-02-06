@@ -7,11 +7,8 @@ export function useUserSites() {
 
     if (!user) return [];
 
-    if (user.role === 'ADMIN') {
-        return sites;
-    }
-
-    // Filter sites based on assigned IDs
-    const assignedIds = user.assignedSiteIds || [];
-    return (sites || []).filter((site: any) => assignedIds.includes(site.id));
+    // [FIX] Server action getSites() already scopes the data for non-admins.
+    // The store only contains sites the user is allowed to see.
+    // Redundant client-side filtering causes issues if assignedSiteIds in session is out of sync.
+    return sites || [];
 }
