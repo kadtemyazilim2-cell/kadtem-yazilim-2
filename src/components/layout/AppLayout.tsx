@@ -9,7 +9,7 @@ import { useYiUfeAutoUpdate } from '@/hooks/use-yi-ufe-auto-update';
 import { StoreHydration } from './StoreHydration';
 
 export function AppLayout({ children }: { children: ReactNode }) {
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, refreshSession } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
@@ -19,7 +19,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         setMounted(true);
-    }, []);
+        // [FIX] Ensure session user data (assignments) is fresh from DB
+        if (isAuthenticated) {
+            refreshSession();
+        }
+    }, [isAuthenticated]);
 
     useEffect(() => {
         if (mounted) {
