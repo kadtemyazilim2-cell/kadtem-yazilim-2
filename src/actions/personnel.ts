@@ -147,6 +147,17 @@ export async function upsertPersonnelAttendance(
                     }
                 });
             }
+
+            // [FIX] If status is 'EXIT', update Personnel status and leftDate
+            if (data.status === 'EXIT') {
+                await prisma.personnel.update({
+                    where: { id: personnelId },
+                    data: {
+                        status: 'PASSIVE', // Or 'LEFT' if enum supports it, usually 'PASSIVE' or 'INACTIVE'
+                        leftDate: dateObj
+                    }
+                });
+            }
         }
 
         revalidatePath('/dashboard/new-tab');
