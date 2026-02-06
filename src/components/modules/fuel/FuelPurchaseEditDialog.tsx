@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { updateFuelTransfer } from '@/actions/fuel';
 import { useAppStore } from '@/lib/store/use-store';
 import { toast } from 'sonner';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 
 interface FuelPurchaseEditDialogProps {
     open: boolean;
@@ -21,6 +22,7 @@ interface FuelPurchaseEditDialogProps {
 
 export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelPurchaseEditDialogProps) {
     const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();
+    const accessibleSites = useUserSites(); // [NEW]
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
@@ -191,7 +193,14 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                                     <SelectValue placeholder="Depo Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {fuelTanks.filter((t: any) => t.status === 'ACTIVE' || t.id === formData.tankId).map((t: any) => (
+                                    {fuelTanks.filter((t: any) => {
+                                        // Filter by Active Status OR if it is the currently selected tank (to prevent disappearing value)
+                                        const isActive = t.status === 'ACTIVE' || t.id === formData.tankId;
+                                        if (!isActive) return false;
+                                        // Filter by Accessibility
+                                        const isAccessible = accessibleSites.some((s: any) => s.id === t.siteId);
+                                        return isAccessible;
+                                    }).map((t: any) => (
                                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                                     ))}
                                 </SelectContent>

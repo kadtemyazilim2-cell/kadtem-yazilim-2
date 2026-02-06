@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,9 @@ import { ArrowRightLeft } from 'lucide-react';
 export function FuelTransferForm() {
     const { fuelTanks, addFuelTransfer } = useAppStore();
     const { user } = useAuth();
+    const accessibleSites = useUserSites(); // [NEW]
+    const accessibleTanks = fuelTanks.filter((t: any) => accessibleSites.some((s: any) => s.id === t.siteId)); // [NEW] Filtered tanks
+
     const [open, setOpen] = useState(false);
 
     // Form State
@@ -70,7 +74,7 @@ export function FuelTransferForm() {
                             <Select value={fromId} onValueChange={setFromId} required>
                                 <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                 <SelectContent>
-                                    {fuelTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
+                                    {accessibleTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -79,7 +83,7 @@ export function FuelTransferForm() {
                             <Select value={toId} onValueChange={setToId} required>
                                 <SelectTrigger><SelectValue placeholder="Depo Seçiniz" /></SelectTrigger>
                                 <SelectContent>
-                                    {fuelTanks.filter((t: any) => t.id !== fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                                    {accessibleTanks.filter((t: any) => t.id !== fromId).map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>

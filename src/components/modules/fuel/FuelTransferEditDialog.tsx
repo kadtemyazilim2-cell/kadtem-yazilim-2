@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { updateFuelTransfer } from '@/actions/fuel';
 import { useAppStore } from '@/lib/store/use-store';
 import { toast } from 'sonner';
+import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 
 interface FuelTransferEditDialogProps {
     open: boolean;
@@ -19,6 +20,7 @@ interface FuelTransferEditDialogProps {
 
 export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelTransferEditDialogProps) {
     const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();
+    const accessibleSites = useUserSites(); // [NEW]
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Simplification: Only Amount, Date, Source, Dest
@@ -116,7 +118,11 @@ export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess
                                     <SelectValue placeholder="Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {fuelTanks.filter((t: any) => t.status === 'ACTIVE' || t.id === formData.fromId).map((t: any) => (
+                                    {fuelTanks.filter((t: any) => {
+                                        const isActive = t.status === 'ACTIVE' || t.id === formData.fromId;
+                                        if (!isActive) return false;
+                                        return accessibleSites.some((s: any) => s.id === t.siteId);
+                                    }).map((t: any) => (
                                         <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -133,7 +139,11 @@ export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess
                                 </SelectTrigger>
                                 <SelectContent>
                                     {fuelTanks
-                                        .filter((t: any) => (t.status === 'ACTIVE' || t.id === formData.toId) && t.id !== formData.fromId)
+                                        .filter((t: any) => {
+                                            const isActive = (t.status === 'ACTIVE' || t.id === formData.toId) && t.id !== formData.fromId;
+                                            if (!isActive) return false;
+                                            return accessibleSites.some((s: any) => s.id === t.siteId);
+                                        })
                                         .map((t: any) => (
                                             <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                                         ))
