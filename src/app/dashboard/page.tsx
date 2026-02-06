@@ -462,6 +462,14 @@ export default function DashboardPage() {
                                                                 <span className="text-slate-500 font-medium truncate max-w-[120px]" title={item.agencyName}>{item.agencyName}</span>
                                                             </>
                                                         )}
+                                                        {!item.agencyName && historyText && (
+                                                            <>
+                                                                <span className="text-slate-400">•</span>
+                                                                <span className="text-orange-600 font-medium truncate max-w-[200px] text-[11px]" title={historyText}>
+                                                                    {historyText.replace('Son Teklif: ', 'Teklif: ')}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                     {historyText && (
                                                         <div className="text-[10px] text-blue-600 font-medium mt-0.5 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100">
