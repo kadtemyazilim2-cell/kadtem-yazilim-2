@@ -112,7 +112,7 @@ export const useAuth = create<AuthState>()(
                 // Usually restrict to none if not admin and no assignment.
                 if (!user.assignedSiteIds || user.assignedSiteIds.length === 0) return [];
 
-                return allSites.filter(site => user.assignedSiteIds.includes(site.id) && site.status === 'ACTIVE');
+                return allSites.filter(site => user.assignedSiteIds.includes(site.id) && site.status !== 'INACTIVE');
             },
         }),
         {
