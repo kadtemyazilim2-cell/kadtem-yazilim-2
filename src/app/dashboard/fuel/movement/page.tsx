@@ -34,16 +34,23 @@ export default function FuelMovementPage() {
     // Filter Tanks based on available sites
     const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
 
+    // [NEW] Filter sites for Dispense tab: Only show sites that have at least one tank
+    const dispenseSites = useMemo(() => {
+        return (availableSites || []).filter((site: any) =>
+            (accessibleTanks || []).some((tank: any) => tank.siteId === site.id)
+        );
+    }, [availableSites, accessibleTanks]);
+
     const [selectedDispenseSiteId, setSelectedDispenseSiteId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const submitLock = useRef(false); // [NEW] Synclock for double-click prevention
 
     // Auto-select site if only one available
     useEffect(() => {
-        if (availableSites?.length === 1 && !selectedDispenseSiteId) {
-            setSelectedDispenseSiteId(availableSites[0].id);
+        if (dispenseSites.length === 1 && !selectedDispenseSiteId) {
+            setSelectedDispenseSiteId(dispenseSites[0].id);
         }
-    }, [availableSites, selectedDispenseSiteId]);
+    }, [dispenseSites, selectedDispenseSiteId]);
 
     // Filter Tanks based on selected site for Dispense (Yakıt Verme)
     const dispenseTanks = useMemo(() => (fuelTanks || []).filter((t: any) => t.siteId === selectedDispenseSiteId), [fuelTanks, selectedDispenseSiteId]);
@@ -331,11 +338,11 @@ export default function FuelMovementPage() {
                                                 setSelectedDispenseSiteId(v);
                                                 setDispenseData(prev => ({ ...prev, tankId: '' }));
                                             }}
-                                            disabled={availableSites.length === 1}
+                                            disabled={dispenseSites.length === 1}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Şantiye Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {availableSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                {dispenseSites.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
