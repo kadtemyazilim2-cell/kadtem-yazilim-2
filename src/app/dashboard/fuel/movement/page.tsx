@@ -345,11 +345,18 @@ export default function FuelMovementPage() {
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
                                                 {(vehicles || [])
-                                                    .filter((v: any) =>
-                                                        v.status === 'ACTIVE' &&
-                                                        // Filter vehicles by selected site (optional but good per user request "Şantiye seçince o araçlar gelsin")
-                                                        (!selectedDispenseSiteId || v.assignedSiteId === selectedDispenseSiteId || (v.assignedSiteIds && v.assignedSiteIds.includes(selectedDispenseSiteId)))
-                                                    )
+                                                    .filter((v: any) => {
+                                                        if (v.status !== 'ACTIVE') return false;
+
+                                                        // [FIX] Strict Site Filter: MUST have a site selected
+                                                        if (!selectedDispenseSiteId) return false;
+
+                                                        // Check if vehicle belongs to selected site (Primary or Assigned)
+                                                        const isPrimary = v.assignedSiteId === selectedDispenseSiteId;
+                                                        const isAssigned = v.assignedSiteIds && Array.isArray(v.assignedSiteIds) && v.assignedSiteIds.includes(selectedDispenseSiteId);
+
+                                                        return isPrimary || isAssigned;
+                                                    })
                                                     .map((v: any) => <SelectItem key={v.id} value={v.id}>{v.plate} - {v.brand}</SelectItem>)}
                                             </SelectContent>
                                         </Select>

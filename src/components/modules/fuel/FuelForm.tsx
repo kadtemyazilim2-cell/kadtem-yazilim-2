@@ -91,10 +91,12 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
     // [NEW] Filter vehicles based on selected site
     const filteredVehicles = vehicles.filter((v: any) => {
         if (v.status !== 'ACTIVE') return false;
-        if (!formData.siteId) return false;
-        if (v.assignedSiteId === formData.siteId) return true;
-        if (Array.isArray(v.assignedSiteIds) && v.assignedSiteIds.includes(formData.siteId)) return true;
-        return false;
+        if (!formData.siteId) return false; // Strict: No site = No vehicles
+
+        const isPrimary = v.assignedSiteId === formData.siteId;
+        const isAssigned = Array.isArray(v.assignedSiteIds) && v.assignedSiteIds.includes(formData.siteId);
+
+        return isPrimary || isAssigned;
     });
 
     // [NEW] Auto-detect tank when site changes
