@@ -33,7 +33,7 @@ export async function POST(request: Request) {
             text: text,
             attachments: attachments ? attachments.map((att: any) => ({
                 filename: att.filename,
-                content: att.content, // Base64 string
+                content: att.content,
                 encoding: 'base64'
             })) : []
         };

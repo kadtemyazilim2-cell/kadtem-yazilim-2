@@ -148,6 +148,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
 
                 let attachments: { filename: string; content: string; }[] = [];
                 if (fullVehicle?.licenseFile) {
+                    console.log(`[InsuranceProposalDialog] License file found. Length: ${fullVehicle.licenseFile.length}`);
                     const content = fullVehicle.licenseFile.includes('base64,')
                         ? fullVehicle.licenseFile.split('base64,')[1]
                         : fullVehicle.licenseFile;
@@ -156,6 +157,8 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
                         filename: `ruhsat-${item.plate}.pdf`,
                         content: content
                     });
+                } else {
+                    console.log(`[InsuranceProposalDialog] No license file found for vehicle ${item.vehicleId}`);
                 }
 
                 const res = await fetch('/api/send-mail', {
