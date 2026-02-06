@@ -35,8 +35,11 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
     const canCreate = hasPermission('cash-book', 'CREATE');
     const canEdit = hasPermission('cash-book', 'EDIT');
 
-    // [MOD] Use centralized helper for consistency
-    const availableSites = getAccessibleSites(sites || []);
+    // [MOD] Simplified Site Availability Logic
+    // Since 'sites' in the store are already filtered by the Server (DashboardLayout -> getSites) based on user role/id,
+    // active sites in the store are basically the ones user has access to.
+    // We skip the double-check against user.assignedSiteIds to avoid sync issues.
+    const availableSites = (sites || []).filter((s: any) => s.status !== 'INACTIVE');
 
     const [formData, setFormData] = useState({
         siteId: '',
