@@ -2,6 +2,7 @@
 
 import { useState } from 'react'; // [NEW]
 import { useAppStore } from '@/lib/store/use-store';
+import { useAuth } from '@/lib/store/use-auth'; // [NEW]
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format, parseISO } from 'date-fns';
@@ -9,28 +10,24 @@ import { ArrowRight } from 'lucide-react';
 import { FuelTransferEditDialog } from './FuelTransferEditDialog'; // [NEW]
 
 export function FuelTransferList() {
-    const { fuelTransfers, fuelTanks, sites, vehicles, users } = useAppStore();
-    const [selectedTransfer, setSelectedTransfer] = useState<any>(null); // [NEW]
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // [NEW]
-
-    // Helper to resolve Site Name from Entity ID
-    const getEntityName = (type: string, id: string) => {
-        if (type === 'TANK') {
-            const tank = fuelTanks.find((t: any) => t.id === id);
-            return tank?.name || '-';
-        }
-        if (type === 'EXTERNAL') {
-            return id || 'Dış Kaynak';
-        }
-        return '-';
-    };
-
-    // [NEW] Helper for Author
-    const getAuthorName = (id: string) => users.find((u: any) => u.id === id)?.name || 'Bilinmeyen';
+    const { user, getAccessibleSites } = useAuth(); // [NEW]
+    const accessibleSites = getAccessibleSites(sites);
 
     // Filter only Internal Transfers (Virman) -> Exclude External Purchases
     const transfers = fuelTransfers
-        .filter((t: any) => t.fromType !== 'EXTERNAL')
+        .filter((t: any) => {
+            if (t.fromType === 'EXTERNAL') return false;
+
+            // [NEW] Permission Check
+            const fromTank = t.fromType === 'TANK' ? fuelTanks.find((tk: any) => tk.id === t.fromId) : null;
+            const toTank = t.toType === 'TANK' ? fuelTanks.find((tk: any) => tk.id === t.toId) : null;
+
+            const fromAccessible = fromTank ? accessibleSites.some((s: any) => s.id === fromTank.siteId) : false;
+            const toAccessible = toTank ? accessibleSites.some((s: any) => s.id === toTank.siteId) : false;
+
+            // Show if user has access to EITHER source OR destination
+            return fromAccessible || toAccessible;
+        })
         .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return (

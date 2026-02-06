@@ -22,35 +22,21 @@ interface FuelPurchaseListProps {
 
 export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
     const { fuelTransfers, fuelTanks, sites } = useAppStore();
-    const { user, hasPermission } = useAuth(); // [NEW] - Auth hook
-    const canEdit = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EDIT') || hasPermission('dashboard.fuel-purchases', 'EDIT'); // [NEW] - Permission check
-    const canExport = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EXPORT'); // [NEW] Export Permission
-
-    const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isFullListOpen, setIsFullListOpen] = useState(false);
-
-    // [NEW] States
-    const [showAll, setShowAll] = useState(false);
-    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
-    const [selectedSiteId, setSelectedSiteId] = useState<string>('all');
-
-    // Helper to resolve Entity Names
-    const getEntityName = (type: string, id: string) => {
-        if (type === 'TANK') {
-            const tank = fuelTanks.find((t: any) => t.id === id);
-            return tank?.name || '-';
-        }
-        if (type === 'VEHICLE') return 'Araç';
-        if (type === 'EXTERNAL') return id || 'Dış Kaynak';
-        return '-';
-    };
+    const { getAccessibleSites } = useAuth(); // [NEW]
+    const accessibleSites = useMemo(() => getAccessibleSites(sites), [sites, user]); // [NEW]
 
     // Filter Logic
     const filteredPurchases = useMemo(() => {
         return fuelTransfers
             .filter((t: any) => {
                 if (t.fromType !== 'EXTERNAL') return false;
+
+                // [NEW] Permission Filter: Only show if Tank is in Accessible Sites
+                const tank = fuelTanks.find((tk: any) => tk.id === t.toId);
+                if (tank) {
+                    const isAccessible = accessibleSites.some((s: any) => s.id === tank.siteId);
+                    if (!isAccessible) return false;
+                }
 
                 // Date Filter (Only in Full Mode)
                 if (!isWidget && dateRange.start && dateRange.end) {
@@ -63,7 +49,7 @@ export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
                 // Site Filter (Only in Full Mode)
                 if (!isWidget && selectedSiteId !== 'all') {
                     if (t.toType === 'TANK') {
-                        const tank = fuelTanks.find((tk: any) => tk.id === t.toId);
+                        // tank is already found above
                         if (!tank || tank.siteId !== selectedSiteId) return false;
                     } else {
                         return false;
@@ -73,7 +59,7 @@ export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
                 return true;
             })
             .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [fuelTransfers, dateRange, selectedSiteId, fuelTanks, isWidget]);
+    }, [fuelTransfers, dateRange, selectedSiteId, fuelTanks, isWidget, accessibleSites]);
 
     const displayPurchases = isWidget ? filteredPurchases.slice(0, 4) : (showAll ? filteredPurchases : filteredPurchases.slice(0, 10));
 
@@ -168,7 +154,7 @@ export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tüm Şantiyeler</SelectItem>
-                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                        {accessibleSites.map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
