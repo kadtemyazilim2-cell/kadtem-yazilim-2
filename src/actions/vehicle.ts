@@ -173,6 +173,11 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
             }
         }
 
+        console.log(`[updateVehicle] ID: ${id}, LicenseFile Length: ${cleanData.licenseFile?.length || 0}`);
+        if (cleanData.licenseFile) {
+            console.log(`[updateVehicle] LicenseFile Start: ${cleanData.licenseFile.substring(0, 50)}...`);
+        }
+
         // Handle assignedSiteIds history logic
         if ('assignedSiteIds' in cleanData) {
             const newSiteIds = cleanData.assignedSiteIds as string[];
