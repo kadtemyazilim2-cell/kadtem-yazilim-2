@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-import { updateVehicle as updateVehicleAction } from "@/actions/vehicle"; // [NEW]
+import { updateVehicle as updateVehicleAction, getVehicle } from "@/actions/vehicle"; // [NEW]
 
 interface InsuranceProposalDialogProps {
     open: boolean;
@@ -141,11 +141,16 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
 
                 body += `\n\nİyi Çalışmalar.`;
 
+
+                // [FIX] Fetch FULL vehicle details (including licenseFile)
+                const fullVehicleRes = await getVehicle(item.vehicleId);
+                const fullVehicle = fullVehicleRes.success ? fullVehicleRes.data : null;
+
                 let attachments: { filename: string; content: string; }[] = [];
-                if (vehicle?.licenseFile) {
-                    const content = vehicle.licenseFile.includes('base64,')
-                        ? vehicle.licenseFile.split('base64,')[1]
-                        : vehicle.licenseFile;
+                if (fullVehicle?.licenseFile) {
+                    const content = fullVehicle.licenseFile.includes('base64,')
+                        ? fullVehicle.licenseFile.split('base64,')[1]
+                        : fullVehicle.licenseFile;
 
                     attachments.push({
                         filename: `ruhsat-${item.plate}.pdf`,
