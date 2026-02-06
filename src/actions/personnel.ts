@@ -92,20 +92,35 @@ export async function upsertPersonnelAttendance(
 ) {
     try {
         const dateObj = new Date(date);
-        dateObj.setHours(0, 0, 0, 0);
+        const nextDay = new Date(dateObj);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        // Normalize for range check
+        const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setDate(endOfDay.getDate() + 1);
 
         // If specific status (e.g. '', null) -> DELETE
         if (!data.status) {
             await prisma.personnelAttendance.deleteMany({
                 where: {
                     personnelId,
-                    date: dateObj
+                    date: {
+                        gte: startOfDay,
+                        lt: endOfDay
+                    }
                 }
             });
         } else {
             // Manual Upsert to handle lack of composite unique constraint
             const existing = await prisma.personnelAttendance.findFirst({
-                where: { personnelId, date: dateObj }
+                where: {
+                    personnelId,
+                    date: {
+                        gte: startOfDay,
+                        lt: endOfDay
+                    }
+                }
             });
 
             if (existing) {
@@ -147,14 +162,25 @@ export async function getPersonnelWithAttendance(month: Date, siteId?: string) {
     try {
         const stablePersonnel = await prisma.personnel.findMany({
             where: {
-                status: 'ACTIVE', // Or include LEFT if they worked in this month?
-                // Logic: show if active OR (leftDate > startOfMonth)
-                OR: [
-                    { status: 'ACTIVE' },
-                    { leftDate: { gte: new Date(month.getFullYear(), month.getMonth(), 1) } }
-                ],
-                // Filter by site if provided
-                ...(siteId && siteId !== 'all' ? { siteId } : {})
+                AND: [
+                    {
+                        OR: [
+                            { status: 'ACTIVE' },
+                            { leftDate: { gte: new Date(month.getFullYear(), month.getMonth(), 1) } },
+                            {
+                                attendance: {
+                                    some: {
+                                        date: {
+                                            gte: new Date(month.getFullYear(), month.getMonth(), 1),
+                                            lte: new Date(month.getFullYear(), month.getMonth() + 1, 0)
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    (siteId && siteId !== 'all') ? { siteId } : {}
+                ]
             },
             include: {
                 attendance: {
