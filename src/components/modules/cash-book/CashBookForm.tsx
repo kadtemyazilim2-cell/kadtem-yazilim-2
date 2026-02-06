@@ -241,60 +241,75 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         if (!formData.category.trim()) { alert('Lütfen kategori giriniz.'); return; }
         if (!formData.description.trim()) { alert('Lütfen açıklama giriniz.'); return; }
 
+        // Future date check
         const todayStr = new Date().toISOString().split('T')[0];
         if (formData.date > todayStr) { alert('İleri tarihli işlem giremezsiniz.'); return; }
 
         setIsSubmitting(true);
         try {
-            const payload = {
+            // [FIX] Convert Date to string for safer serialization
+            // Assuming server action handles string or Date. We will adjust server action if needed, 
+            // but Prisma usually handles ISO strings for DateTime fields well.
+            // Actually, best to pass Date object BUT ensure it is valid.
+            // Let's pass ISO string to be safe and modify Server Action to parse it.
+            // Wait, existing Server Action expects Partial<CashTransaction>. CashTransaction.date is Date.
+            // So we MUST pass a Date object or change the type.
+            // Let's rely on Date object but ensure it's fresh.
+
+            const payload: any = {
                 siteId: formData.siteId,
                 date: new Date(formData.date),
                 type: formData.type as 'INCOME' | 'EXPENSE',
                 category: formData.category,
                 amount: Number(formData.amount),
                 createdByUserId: user.id,
-                responsibleUserId: formData.responsibleUserId || user.id,
-                paymentMethod: formData.paymentMethod as any,
-                imageUrl: formData.imageUrl
+                // [FIX] Ensure responsibleUserId is valid or undefined (not empty string)
+                responsibleUserId: (formData.responsibleUserId || user.id) || undefined,
+                paymentMethod: formData.paymentMethod || 'CASH',
+                imageUrl: undefined
             };
 
             if (file) {
                 payload.imageUrl = await convertToBase64(file);
+            } else if (formData.imageUrl) {
+                payload.imageUrl = formData.imageUrl;
             }
 
+            console.log('Submitting Payload:', payload);
+
+            let res;
             if (initialData) {
                 // UPDATE
-                const res = await updateTransaction(initialData.id, payload);
-                if (res.success && res.data) {
-                    // Update Store (Optimistic or Refresh)
-                    // Assume updateCashTransaction exists in store
-                    // updateCashTransaction(initialData.id, res.data);
-                    window.location.reload(); // Temporary force refresh to ensure sync if store update not ready
-                    setOpen(false);
-                    if (onSuccess) onSuccess();
-                } else {
-                    alert(res.error || 'Güncelleme başarısız.');
-                }
+                res = await updateTransaction(initialData.id, payload);
             } else {
                 // CREATE
-                const res = await createTransaction(payload as any);
-                if (res.success && res.data) {
+                res = await createTransaction(payload);
+            }
+
+            console.log('Server Response:', res);
+
+            if (res && res.success && res.data) {
+                if (!initialData) {
                     addCashTransaction({
                         ...res.data,
                         date: new Date(res.data.date).toISOString(),
                         createdAt: new Date(res.data.createdAt).toISOString(),
                     } as any);
-                    setOpen(false);
                     resetForm();
-                    if (onSuccess) onSuccess();
                 } else {
-                    alert(res.error || 'İşlem kaydedilemedi.');
+                    // Force refresh for update to ensure sync
+                    window.location.reload();
                 }
+
+                setOpen(false);
+                if (onSuccess) onSuccess();
+            } else {
+                alert(res?.error || 'İşlem kaydedilemedi.');
             }
 
-        } catch (error) {
-            console.error(error);
-            alert('Bir hata oluştu.');
+        } catch (error: any) {
+            console.error('Submit Error:', error);
+            alert(`Bir hata oluştu: ${error.message || 'Bilinmeyen Hata'}`);
         } finally {
             setIsSubmitting(false);
         }
