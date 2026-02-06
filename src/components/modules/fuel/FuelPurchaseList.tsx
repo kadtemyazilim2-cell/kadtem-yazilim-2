@@ -23,8 +23,31 @@ interface FuelPurchaseListProps {
 
 export function FuelPurchaseList({ isWidget = false }: FuelPurchaseListProps) {
     const { fuelTransfers, fuelTanks, sites } = useAppStore();
-    const { user } = useAuth();
-    const accessibleSites = useUserSites(); // [NEW] Use Hook directly
+    const { user, hasPermission } = useAuth();
+    const accessibleSites = useUserSites(); // Use Hook directly
+
+    // Permissions
+    const canEdit = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EDIT') || hasPermission('dashboard.fuel-purchases', 'EDIT');
+    const canExport = user?.role === 'ADMIN' || hasPermission('movement.purchase', 'EXPORT');
+
+    // State Declarations
+    const [selectedTransfer, setSelectedTransfer] = useState<any>(null);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isFullListOpen, setIsFullListOpen] = useState(false);
+    const [showAll, setShowAll] = useState(false);
+    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
+    const [selectedSiteId, setSelectedSiteId] = useState<string>('all');
+
+    // Helper Functions
+    const getEntityName = (type: string, id: string) => {
+        if (type === 'TANK') {
+            const tank = fuelTanks.find((t: any) => t.id === id);
+            return tank?.name || '-';
+        }
+        if (type === 'VEHICLE') return 'Araç';
+        if (type === 'EXTERNAL') return id || 'Dış Kaynak';
+        return '-';
+    };
 
     // Filter Logic
     const filteredPurchases = useMemo(() => {
