@@ -10,7 +10,8 @@ interface AuthState {
     logout: () => void;
     hasRole: (role: Role | Role[]) => boolean;
     hasPermission: (module: string, level: 'VIEW' | 'CREATE' | 'EDIT' | 'EXPORT') => boolean;
-    getAccessibleSites: (allSites: import('../types').Site[]) => import('../types').Site[]; // [NEW]
+    getAccessibleSites: (allSites: import('../types').Site[]) => import('../types').Site[];
+    refreshSession: () => void; // [NEW] force reload user from main store
 }
 
 export const useAuth = create<AuthState>()(
@@ -18,6 +19,21 @@ export const useAuth = create<AuthState>()(
         (set, get) => ({
             user: null,
             isAuthenticated: false,
+
+            refreshSession: () => {
+                const { user } = get();
+                if (!user) return;
+
+                // Reload specific user from UseAppStore (Source of Truth)
+                const { useAppStore } = require('./use-store');
+                const users = useAppStore.getState().users;
+                const freshUser = users.find((u: any) => u.id === user.id);
+
+                if (freshUser) {
+                    set({ user: freshUser });
+                    console.log("Session Refreshed:", freshUser.username);
+                }
+            },
 
             login: async (username, password) => {
                 // Login Logic - Check against store state which includes new users

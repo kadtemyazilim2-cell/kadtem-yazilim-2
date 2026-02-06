@@ -26,8 +26,13 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { addFuelLog, updateFuelLog, vehicles, fuelTanks } = useAppStore();
-    const { user } = useAuth();
+    const { user, refreshSession } = useAuth(); // [NEW] Get refresh
     const accessibleSites = useUserSites(); // [NEW]
+
+    // [NEW] Refresh User Session on Mount to catch any recent assignment changes
+    useEffect(() => {
+        refreshSession();
+    }, []);
 
     // [NEW] Permissions
     // As per previous pattern, we might need to check if user can edit
