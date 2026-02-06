@@ -390,7 +390,7 @@ export default function DashboardPage() {
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                                     {userBalances.map((u) => {
                                         const canEditFinancial = user?.role === 'ADMIN' || hasPermission('dashboard.financial', 'EDIT') || hasPermission('dashboard', 'EDIT');
-                                        const Container = canEditFinancial ? Link : 'div';
+                                        const Container = (canEditFinancial ? Link : 'div') as any;
                                         const props = canEditFinancial ? { href: `/dashboard/cash-book?userId=${u.id}` } : {};
 
                                         return (
@@ -402,14 +402,14 @@ export default function DashboardPage() {
                                                     canEditFinancial ? "hover:bg-slate-50 cursor-pointer" : "bg-transparent cursor-default opacity-80"
                                                 )}
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-medium text-slate-700 truncate mr-2">{u.name}</span>
-                                                    <span className={cn("font-bold font-mono whitespace-nowrap", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="font-medium text-slate-700 text-xs sm:text-sm">{u.name}</span>
+                                                    <span className={cn("font-bold font-mono whitespace-nowrap text-sm", u.balance < 0 ? "text-red-600" : "text-emerald-700")}>
                                                         {u.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                                     </span>
                                                 </div>
                                                 {/* Current Month Breakdown */}
-                                                <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-1 font-mono pl-1">
+                                                <div className="flex items-center gap-3 text-[9px] text-slate-400 mt-1 font-mono pl-1">
                                                     <span>K.K: {u.monthCCExp.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                                     <span>Nakit: {u.monthCashExp.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                                 </div>
@@ -457,18 +457,18 @@ export default function DashboardPage() {
                                             return (
                                                 <div
                                                     key={item.id}
-                                                    className="flex flex-col sm:flex-row sm:items-center justify-between text-sm p-3 rounded bg-white hover:bg-slate-50 transition-colors border border-slate-100 hover:border-slate-200 gap-3 shadow-sm"
+                                                    className="flex flex-col sm:flex-row sm:items-center justify-between text-sm p-2 rounded bg-white hover:bg-slate-50 transition-colors border border-slate-100 hover:border-slate-200 gap-2 shadow-sm"
                                                 >
-                                                    <div className="flex flex-col gap-1">
+                                                    <div className="flex flex-col gap-0.5">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="font-bold font-mono text-slate-800 text-base">{item.plate}</span>
-                                                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                                                            <span className="font-bold font-mono text-slate-800 text-sm">{item.plate}</span>
+                                                            <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full border",
                                                                 item.days <= 7 ? "bg-red-50 text-red-700 border-red-100 animate-pulse" : "bg-orange-50 text-orange-700 border-orange-100"
                                                             )}>
                                                                 {item.days < 0 ? `${Math.abs(item.days)} Gün Geçti` : `${item.days} Gün Kaldı`}
                                                             </span>
                                                         </div>
-                                                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                                                        <div className="flex items-center gap-2 flex-wrap text-[10px]">
                                                             <span className="font-medium text-slate-700">{item.type}</span>
                                                             <span className="text-slate-400">•</span>
                                                             <span className="text-slate-500">{item.vehicleBrand} {item.vehicleModel}</span>

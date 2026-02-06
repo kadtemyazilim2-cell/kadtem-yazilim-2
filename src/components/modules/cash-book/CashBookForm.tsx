@@ -345,7 +345,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    {user?.role === 'ADMIN' && (
+                    {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && (
                         <div className="space-y-2">
                             <Label>İlgili Personel (İşlemi Yapan)</Label>
                             <Select
@@ -508,7 +508,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                 ) : (
                                     <>
                                         <SelectItem value="Tahsilat">Tahsilat</SelectItem>
-                                        {user?.role === 'ADMIN' && (
+                                        {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && (
                                             <>
                                                 <SelectItem value="Nakit İade">Nakit İade</SelectItem>
                                                 <SelectItem value="Şantiye Harcaması İçin Gönderilen">Şantiye Harcaması İçin Gönderilen</SelectItem>

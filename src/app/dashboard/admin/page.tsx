@@ -97,6 +97,7 @@ const MODULE_HIERARCHY = [
         label: 'Kasa Defteri',
         children: [
             { id: 'cash-book.reports', label: 'Geçmiş Sorgu & Raporlama' },
+            { id: 'cash-book.admin-view', label: 'Yönetici Görünümü (Tüm Kayıtlar)' },
         ]
     },
     {
@@ -2281,7 +2282,7 @@ export default function AdminPage() {
                                                             workExperienceCertificate: getVal(row, ['İş Deneyim Belgesi']) ? getVal(row, ['İş Deneyim Belgesi']).toString() : '',
                                                             statusDetail: getVal(row, ['Durum']) ? getVal(row, ['Durum']).toString() : '',
                                                             partnershipPercentage: parseNumber(getVal(row, ['Ortaklık Oranı'])) || 100,
-                                                            completionPercentage: parseNumber(getVal(row, ['Fiziki Gerçekleşme (%)'])) || 0,
+                                                            // completionPercentage: parseNumber(getVal(row, ['Fiziki Gerçekleşme (%)'])) || 0,
                                                             personnelCount: parseNumber(getVal(row, ['Ort. Çalıştırılan Personel'])) || 0,
                                                             note: getVal(row, ['Notlar']) ? getVal(row, ['Notlar']).toString() : ''
                                                         });

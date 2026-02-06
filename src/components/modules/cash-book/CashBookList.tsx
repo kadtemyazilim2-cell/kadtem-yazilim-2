@@ -66,7 +66,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
 
     // [NEW] Enforce default Payment Method for restricted users
     useEffect(() => {
-        if (user && user.role !== 'ADMIN') {
+        if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
             setSelectedPaymentMethod('CASH');
         }
     }, [user]);
@@ -137,8 +137,8 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
         // Ensure valid objects
         result = result.filter(t => t && typeof t === 'object');
 
-        // [NEW] Isolation Logic: If not ADMIN, only see own transactions
-        if (user && user.role !== 'ADMIN') {
+        // [NEW] Isolation Logic: If not ADMIN and no Admin View Perm, only see own transactions
+        if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
             // Strictly filter by responsibleUserId to ensure "My Cash" balance is correct.
             // We ignore createdByUserId because if I created a record for someone else, it shouldn't show in MY balance.
             result = result.filter(t => t.responsibleUserId === user.id);
@@ -235,7 +235,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
             return d < start;
         });
 
-        if (user && user.role !== 'ADMIN') {
+        if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
             preTransactions = preTransactions.filter((t: any) => t.responsibleUserId === user.id);
         } else if (selectedUserId !== 'all') {
             preTransactions = preTransactions.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
@@ -341,7 +341,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
             let preList = (cashTransactions || []).filter((t: any) => t && t.date && new Date(t.date) < start);
 
             // Apply same User Filter
-            if (user && user.role !== 'ADMIN') {
+            if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
                 preList = preList.filter((t: any) => t.responsibleUserId === user.id);
             } else if (selectedUserId !== 'all') {
                 preList = preList.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
@@ -714,7 +714,7 @@ export function CashBookList({ siteId, userId, type }: CashBookListProps) {
                     <CardTitle className="text-2xl font-bold">Kasa Hareketleri</CardTitle>
                     <div className="flex gap-2">
                         {/* [MOD] Role-Based Action Buttons */}
-                        {user?.role === 'ADMIN' ? (
+                        {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) ? (
                             <>
                                 {canExport && (
                                     <>
