@@ -21,7 +21,12 @@ import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList'; /
 
 export default function FuelMovementPage() {
     const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
-    const { hasPermission, user } = useAuth();
+    const { hasPermission, user, refreshSession } = useAuth(); // [NEW] refreshSession
+
+    // [NEW] Refresh Session on Mount
+    useEffect(() => {
+        refreshSession();
+    }, []);
 
     const rawAvailableSites = useUserSites();
     const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]);
