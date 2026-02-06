@@ -24,7 +24,7 @@ interface VehicleFormProps {
 import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 
-import { createVehicle, updateVehicle, deleteVehicle } from '@/actions/vehicle';
+import { createVehicle, updateVehicle, deleteVehicle, getVehicle } from '@/actions/vehicle';
 
 interface VehicleFormData {
     plate: string;
@@ -169,7 +169,23 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 licenseFile: vehicleToEdit?.licenseFile || '',
             });
         }
-    }, [open, vehicleToEdit, initialOwnership]); // Removed availableSites from dep here to avoid loop, but handled above logic
+    }, [open, vehicleToEdit, initialOwnership]);
+
+    // [NEW] Fetch full details (specifically licenseFile which is excluded from list view)
+    useEffect(() => {
+        const fetchDetails = async () => {
+            if (open && vehicleToEdit && vehicleToEdit.id) {
+                const result = await getVehicle(vehicleToEdit.id);
+                if (result.success && result.data) {
+                    setFormData(prev => ({
+                        ...prev,
+                        licenseFile: result.data?.licenseFile || ''
+                    }));
+                }
+            }
+        };
+        fetchDetails();
+    }, [open, vehicleToEdit]);
 
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 

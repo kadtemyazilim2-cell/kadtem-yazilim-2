@@ -7,7 +7,7 @@ import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { FuelForm } from './FuelForm';
@@ -88,14 +88,45 @@ export function FuelGivenList() {
                                         {log.description || '-'}
                                     </TableCell>
                                     <TableCell>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setEditingLog(log)}
-                                            className="h-8 w-8 text-muted-foreground hover:text-blue-600"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => setEditingLog(log)}
+                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                                                title="Düzenle"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={async () => {
+                                                    if (window.confirm('Bu yakıt kaydını silmek istediğinizden emin misiniz?')) {
+                                                        try {
+                                                            const { deleteFuelLog } = await import('@/actions/fuel');
+                                                            const result = await deleteFuelLog(log.id);
+                                                            if (result.success) {
+                                                                // Toast or alert
+                                                                // Since toast isn't imported, let's dynamic import or use alert fallback
+                                                                // But let's try to be consistent with page.tsx
+                                                                const { toast } = await import('sonner');
+                                                                toast.success('Yakıt kaydı silindi.');
+                                                            } else {
+                                                                alert(result.error || 'Silinemedi.');
+                                                            }
+                                                        } catch (error) {
+                                                            console.error(error);
+                                                            alert('Bir hata oluştu.');
+                                                        }
+                                                    }
+                                                }}
+                                                className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                                                title="Sil"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))

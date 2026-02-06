@@ -84,6 +84,18 @@ export async function getVehicles() {
     }
 }
 
+export async function getVehicle(id: string) {
+    try {
+        const vehicle = await prisma.vehicle.findUnique({
+            where: { id },
+        });
+        return { success: true, data: vehicle };
+    } catch (error) {
+        console.error('getVehicle Error:', error);
+        return { success: false, error: 'Araç detayları getirilemedi.' };
+    }
+}
+
 export async function createVehicle(data: Partial<Vehicle>) {
     try {
         // [FIX] For RENTAL, if companyId is missing, try to derive from assignedSiteId
