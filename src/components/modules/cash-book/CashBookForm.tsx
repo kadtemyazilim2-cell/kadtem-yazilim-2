@@ -409,19 +409,41 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Ödeme Yöntemi</Label>
-                            <Select
-                                value={formData.paymentMethod}
-                                onValueChange={(v) => setFormData({ ...formData, paymentMethod: v })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="CASH">Nakit</SelectItem>
-                                    <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            {/* Only show Payment Method selector if NOT preset by parent action */}
+                            {defaultValues?.paymentMethod ? (
+                                // Hidden state, but render label/badge or nothing? 
+                                // User said "remove this tab", implies hiding the selector.
+                                // We can show a static badge or fully hide. Let's fully hide the input but maybe show a label?
+                                // "otomatik algılayacaksın... bu sekmeyide kaldır" -> Hide select completely.
+                                // But we need to keep Grid layout consistent.
+                                // If hidden, we can leave an empty div or make Amount full width.
+                                // Let's make Amount full width if PaymentMethod is hidden?
+                                // Or display as read-only text.
+                                <>
+                                    <Label>Ödeme Yöntemi</Label>
+                                    <div className="h-10 px-3 py-2 border rounded-md bg-slate-100 text-sm text-muted-foreground flex items-center">
+                                        {formData.paymentMethod === 'CREDIT_CARD' ? 'Kredi Kartı' : 'Nakit'}
+                                        {formData.paymentMethod === 'CREDIT_CARD' && <span className="ml-2 text-xs text-yellow-600 font-semibold">(Otomatik Seçildi)</span>}
+                                        {formData.paymentMethod === 'CASH' && <span className="ml-2 text-xs text-green-600 font-semibold">(Otomatik Seçildi)</span>}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <Label>Ödeme Yöntemi</Label>
+                                    <Select
+                                        value={formData.paymentMethod}
+                                        onValueChange={(v) => setFormData({ ...formData, paymentMethod: v })}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CASH">Nakit</SelectItem>
+                                            <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Tutar (TL)</Label>
