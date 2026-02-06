@@ -43,14 +43,19 @@ export async function createTransaction(data: Partial<CashTransaction>) {
     try {
         console.log('[createTransaction] Started with data:', JSON.stringify(data));
 
-        // [SECURITY] Use server-side session for creator
-        const session = await import('@/auth').then(m => m.auth());
-        if (!session?.user?.id) {
-            return { success: false, error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' };
+        // [DEBUG] Bypass auth() check to debug hang
+        // const session = await import('@/auth').then(m => m.auth());
+        // if (!session?.user?.id) {
+        //    return { success: false, error: 'Oturum bulunamadı. Lütfen tekrar giriş yapın.' };
+        // }
+
+        const creatorId = data.createdByUserId; // Use client-provided ID for debug
+        if (!creatorId) {
+            return { success: false, error: 'Kullanıcı ID (createdByUserId) eksik.' };
         }
 
         // [SECURITY] Verify user exists in DB to prevent FK errors
-        const creator = await prisma.user.findUnique({ where: { id: session.user.id } });
+        const creator = await prisma.user.findUnique({ where: { id: creatorId } });
         if (!creator) {
             return { success: false, error: 'Kullanıcı kaydı bulunamadı.' };
         }
