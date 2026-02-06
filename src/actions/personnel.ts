@@ -153,10 +153,29 @@ export async function upsertPersonnelAttendance(
                 await prisma.personnel.update({
                     where: { id: personnelId },
                     data: {
-                        status: 'PASSIVE', // Or 'LEFT' if enum supports it, usually 'PASSIVE' or 'INACTIVE'
+                        status: 'PASSIVE', // Or 'LEFT'
                         leftDate: dateObj
                     }
                 });
+            } else {
+                // If we are NOT setting EXIT (or we deleted it), check if any EXIT remains
+                const hasExit = await prisma.personnelAttendance.findFirst({
+                    where: {
+                        personnelId,
+                        status: 'EXIT'
+                    }
+                });
+
+                if (!hasExit) {
+                    // No exits left, revert to ACTIVE
+                    await prisma.personnel.update({
+                        where: { id: personnelId },
+                        data: {
+                            status: 'ACTIVE',
+                            leftDate: null
+                        }
+                    });
+                }
             }
         }
 
