@@ -110,6 +110,7 @@ export async function deleteInstitution(id: string) {
 export async function getInstitutions() {
     try {
         const list = await prisma.institution.findMany({
+            where: { status: 'ACTIVE' },
             orderBy: { name: 'asc' }
         });
         return { success: true, data: list };

@@ -24,7 +24,7 @@ export function AgencyManagerDialog({
     const { institutions, addInstitution, deleteInstitution } = useAppStore()
     const [newAgencyName, setNewAgencyName] = useState("")
 
-    const agencies = institutions.filter((i: any) => i.category === "INSURANCE_AGENCY")
+    const agencies = institutions.filter((i: any) => i.category === "INSURANCE_AGENCY" && i.status !== 'PASSIVE')
 
     const handleAdd = () => {
         if (!newAgencyName.trim()) return
