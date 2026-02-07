@@ -93,55 +93,74 @@ export async function createFuelLog(data: Partial<FuelLog>) {
 
 export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
     try {
-        const existing = await prisma.fuelLog.findUnique({ where: { id } });
-        if (!existing) return { success: false, error: 'Kayıt bulunamadı.' };
+        const session = await import('@/auth').then(m => m.auth()); // Simple auth check
+        if (!session?.user) return { success: false, error: 'Yetkisiz işlem.' };
 
-        // 1. Revert Old Tank Level if Tank Changed or Amount Changed
-        if (existing.tankId) {
-            await prisma.fuelTank.update({
-                where: { id: existing.tankId },
-                data: { currentLevel: { increment: existing.liters } }
-            });
-        }
+        console.log('updateFuelLog: Starting update for ID:', id, data);
 
-        // 2. Update Log
-        const log = await prisma.fuelLog.update({
-            where: { id },
-            data: {
-                vehicleId: data.vehicleId,
-                siteId: data.siteId,
-                tankId: data.tankId,
-                date: data.date ? new Date(data.date) : undefined,
-                liters: data.liters,
-                cost: data.cost,
-                unitPrice: data.unitPrice,
-                mileage: data.mileage,
-                fullTank: data.fullTank,
-                description: data.description,
-                // filledByUserId usually doesn't change or is not allowed to change easily
+        const result = await prisma.$transaction(async (tx) => {
+            const existing = await tx.fuelLog.findUnique({ where: { id } });
+            if (!existing) throw new Error('Kayıt bulunamadı.');
+
+            // 1. Revert Old Tank Level
+            if (existing.tankId) {
+                await tx.fuelTank.update({
+                    where: { id: existing.tankId },
+                    data: { currentLevel: { increment: existing.liters } }
+                });
             }
-        });
 
-        // 3. Apply New Tank Level
-        if (data.tankId) {
-            await prisma.fuelTank.update({
-                where: { id: data.tankId },
+            // 2. Update Log
+            const log = await tx.fuelLog.update({
+                where: { id },
                 data: {
-                    currentLevel: { decrement: data.liters! }
+                    vehicleId: data.vehicleId,
+                    siteId: data.siteId,
+                    tankId: data.tankId,
+                    date: data.date ? new Date(data.date) : undefined,
+                    liters: data.liters,
+                    cost: data.cost,
+                    unitPrice: data.unitPrice,
+                    mileage: data.mileage,
+                    fullTank: data.fullTank,
+                    description: data.description,
                 }
             });
-        }
+
+            // 3. Apply New Tank Level
+            if (data.tankId && data.liters !== undefined) {
+                await tx.fuelTank.update({
+                    where: { id: data.tankId },
+                    data: {
+                        currentLevel: { decrement: data.liters }
+                    }
+                });
+            }
+
+            // [NEW] Update Vehicle KM if mileage increased
+            if (data.mileage) {
+                const vehicle = await tx.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
+                if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
+                    await tx.vehicle.update({
+                        where: { id: vehicle.id },
+                        data: { currentKm: data.mileage }
+                    });
+                }
+            }
+
+            return log;
+        });
 
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page');
-        revalidatePath('/dashboard', 'page'); // Further ensure layout updates
-        revalidatePath('/', 'layout'); // Global layout reset to force fetch
-        return { success: true, data: log };
+        revalidatePath('/', 'layout'); // Force global refresh
 
-    } catch (error) {
+        return { success: true, data: result };
+
+    } catch (error: any) {
         console.error('updateFuelLog Error:', error);
-        return { success: false, error: 'Güncelleme yapılamadı.' };
+        return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
     }
 }
 
