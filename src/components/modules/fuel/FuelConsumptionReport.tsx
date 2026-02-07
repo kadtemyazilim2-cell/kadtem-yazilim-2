@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { FuelLog } from '@/lib/types';
 import { Pencil, Trash2, Calendar, Search, ArrowRight, ArrowLeft, FileSpreadsheet, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import { MultiSelect } from '@/components/ui/multi-select';
 import { useState } from 'react';
 import { normalizeSearchText, cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
-import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction, updateFuelLog as updateFuelLogAction, updateFuelTransfer as updateFuelTransferAction } from '@/actions/fuel';
+import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction, updateFuelLog as updateFuelLogAction, updateFuelTransfer as updateFuelTransferAction, getFuelLogs, getFuelTransfers, getFuelTanks } from '@/actions/fuel';
 
 // ...
 
@@ -82,6 +82,29 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         deleteFuelTransfer, updateFuelTransfer
     } = useAppStore();
     const { user, hasPermission } = useAuth();
+
+    // [NEW] Client-side fresh fetch to bypass server cache issues
+    useEffect(() => {
+        const fetchData = async () => {
+            console.log('Fetching fresh fuel data on client...');
+            const [logsRes, transfersRes, tanksRes] = await Promise.all([
+                getFuelLogs(),
+                getFuelTransfers(),
+                getFuelTanks()
+            ]);
+
+            if (logsRes.success && logsRes.data) {
+                useAppStore.getState().setFuelLogs(logsRes.data as any);
+            }
+            if (transfersRes.success && transfersRes.data) {
+                useAppStore.getState().setFuelTransfers(transfersRes.data as any);
+            }
+            if (tanksRes.success && tanksRes.data) {
+                useAppStore.getState().setFuelTanks(tanksRes.data as any);
+            }
+        };
+        fetchData();
+    }, []);
 
     // Permission Check
     const canEditFuel = hasPermission('fuel.consumption', 'EDIT');

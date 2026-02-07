@@ -166,6 +166,7 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page'); // Specific page
+        revalidatePath('/dashboard', 'layout'); // [NEW] Force Dashboard Layout refresh
         revalidatePath('/dashboard/fuel/movement', 'page'); // Movement page
         revalidatePath('/', 'layout'); // Global layout refresh
 
