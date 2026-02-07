@@ -7,6 +7,7 @@ import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 export async function getSiteLogEntries() {
     try {
         const entries = await prisma.siteLogEntry.findMany({
+            take: 500, // [PERFORMANCE] Limit to avoid huge payload
             orderBy: { date: 'desc' },
             include: {
                 author: {

@@ -7,11 +7,12 @@ import { revalidatePath, revalidateTag, unstable_cache, unstable_noStore as noSt
 // [PERFORMANCE] Cached fuel logs query - CACHE ABORTED FOR DEBUGGING
 // const getFuelLogsFromDb = unstable_cache(...)
 
-export async function getFuelLogs() {
+export async function getFuelLogs(limit?: number) {
     noStore(); // [CRITICAL] Opt out of static caching
     console.log('[getFuelLogs] Fetching fresh fuel logs at', new Date().toISOString());
     try {
         const logs = await prisma.fuelLog.findMany({
+            take: limit || 1000, // [PERFORMANCE] Limit to last 1000 records to prevent timeout
             orderBy: { date: 'desc' },
             include: {
                 vehicle: true,
@@ -243,10 +244,11 @@ export async function deleteFuelTank(id: string) {
 // [PERFORMANCE] Cached fuel transfers query - CACHE ABORTED FOR DEBUGGING
 // const getFuelTransfersFromDb = unstable_cache(...)
 
-export async function getFuelTransfers() {
+export async function getFuelTransfers(limit?: number) {
     noStore(); // [CRITICAL]
     try {
         const transfers = await prisma.fuelTransfer.findMany({
+            take: limit || 1000, // [PERFORMANCE] Limit to last 1000 records
             orderBy: { date: 'desc' },
         });
         return { success: true, data: transfers };

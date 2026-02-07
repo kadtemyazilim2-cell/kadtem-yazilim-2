@@ -92,6 +92,7 @@ export async function getVehicleAttendanceList() {
         const cutoffDate = new Date('2025-01-01');
 
         const records = await prisma.vehicleAttendance.findMany({
+            take: 2000, // [PERFORMANCE] Safety limit
             where: {
                 date: { gte: cutoffDate }
             },

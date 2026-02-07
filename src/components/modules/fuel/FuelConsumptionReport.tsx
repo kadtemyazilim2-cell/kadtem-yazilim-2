@@ -891,7 +891,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Yakıt Kaydını Düzenle <span className="text-xs text-muted-foreground ml-2">(v1.2)</span></DialogTitle>
+                            <DialogTitle>Yakıt Kaydını Düzenle <span className="text-xs text-muted-foreground ml-2">(v1.3 - Hızlandırıldı)</span></DialogTitle>
                         </DialogHeader>
                         {editingLog && (
                             <div className="grid gap-4 py-4">
