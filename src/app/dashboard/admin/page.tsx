@@ -26,7 +26,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Minus, Search, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Building2, Users, ShieldCheck, ShieldAlert, TrendingUp, RefreshCw, MapPin, Mail, Pencil, FileDown, FileSpreadsheet, ArrowUp, ArrowDown, Eye } from 'lucide-react';
+import { Plus, Minus, Search, Trash2, SlidersHorizontal, ArrowUpDown, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Building2, Users, ShieldCheck, ShieldAlert, TrendingUp, RefreshCw, MapPin, Mail, Pencil, FileDown, FileSpreadsheet, ArrowUp, ArrowDown, Eye, FileText } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch'; // [NEW]
 import { MultiSelect } from '@/components/ui/multi-select'; // [NEW]
@@ -1676,12 +1676,11 @@ export default function AdminPage() {
                                                                         ))}
                                                                     </SelectGroup>
                                                                     <SelectGroup>
-                                                                        <SelectGroup>
-                                                                            <SelectLabel>Kullanıcıdan Kopyala</SelectLabel>
-                                                                            {users.filter((u: any) => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map((u: any) => (
-                                                                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                                                            ))}
-                                                                        </SelectGroup>
+                                                                        <SelectLabel>Kullanıcıdan Kopyala</SelectLabel>
+                                                                        {users.filter((u: any) => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map((u: any) => (
+                                                                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                                                        ))}
+                                                                    </SelectGroup>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>
