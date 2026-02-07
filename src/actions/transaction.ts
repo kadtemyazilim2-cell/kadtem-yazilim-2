@@ -109,12 +109,14 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
         console.log('[createTransaction] Success:', transaction.id);
 
-        // Revalidate safely
+        // Revalidate safely - [OPTIMIZATION] Removed to prevent blocking since UI updates optimistically
+        /*
         try {
             revalidatePath('/dashboard/cash-book');
         } catch (e) {
             console.error('Revalidate failed but transaction created:', e);
         }
+        */
 
         return { success: true, data: transaction };
     } catch (error: any) {

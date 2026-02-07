@@ -70,8 +70,8 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const MAX_WIDTH = 1024;
-                    const MAX_HEIGHT = 1024;
+                    const MAX_WIDTH = 800; // [OPTIMIZATION] Reduced from 1024
+                    const MAX_HEIGHT = 800; // [OPTIMIZATION] Reduced from 1024
 
                     if (width > height) {
                         if (width > MAX_WIDTH) {
@@ -89,8 +89,8 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx?.drawImage(img, 0, 0, width, height);
-                    // Compress to JPEG at 0.7 quality
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    // Compress to JPEG at 0.5 quality [OPTIMIZATION] Reduced from 0.7
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
                     resolve(dataUrl);
                 };
                 img.onerror = (err) => reject(err);
