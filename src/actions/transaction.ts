@@ -58,12 +58,19 @@ export async function getAllTransactions() {
         const user = session.user;
         const isAdmin = user.role === 'ADMIN';
         const perms = (user.permissions as any) || {};
-        const canViewAll = isAdmin || (perms['cash-book.admin-view'] && perms['cash-book.admin-view'].includes('VIEW'));
+        const canViewAll = isAdmin ||
+            (perms['cash-book.admin-view']?.includes('VIEW')) ||
+            (perms['cash-book.reports']?.includes('VIEW')) ||
+            (perms['cash-book']?.includes('EXPORT'));
 
         const where: any = {};
         if (!canViewAll) {
-            // Restriction: Only see transactions where user is responsible
-            where.responsibleUserId = user.id;
+            // Restriction: Only see transactions where user is responsible (or created)
+            // Added createdByUserId to be safe so they see what they entered even if assigned to someone else (rare)
+            where.OR = [
+                { responsibleUserId: user.id },
+                { createdByUserId: user.id }
+            ];
         }
 
         // [OPTIMIZATION] Removed Date Filter to allow full history visibility
