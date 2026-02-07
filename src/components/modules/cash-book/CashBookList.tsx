@@ -74,12 +74,9 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
     // Removed useEffect that forced current month default
 
 
-    // [NEW] Enforce default Payment Method for restricted users
-    useEffect(() => {
-        if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
-            setSelectedPaymentMethod('CASH');
-        }
-    }, [user]);
+    // [REMOVED] Enforce default Payment Method - caused disappearing data issues if role check fails
+    // allow users to select manually
+
 
     // Helpers for quick month selection
     // We track the "quick select" state just for the UI of the dropdowns, 
