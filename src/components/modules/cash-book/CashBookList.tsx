@@ -1047,6 +1047,28 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                     setEditingTransaction(null);
                 }}
             />
+
+            {/* [DEBUG] Temporary Permission Debugger */}
+            <div className="mt-8 p-4 border-2 border-dashed border-red-300 bg-red-50 rounded text-xs font-mono text-red-800">
+                <h4 className="font-bold border-b border-red-200 mb-2 pb-1">🔧 YETKİ HATA AYIKLAMA PANELİ (Geliştirici İçin)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <p><strong>Kullanıcı:</strong> {user?.username} ({user?.role})</p>
+                        <p><strong>ID:</strong> {user?.id}</p>
+                        <p><strong>Yönetici Görünümü (canViewAll):</strong> {canViewAll ? "✅ EVET" : "❌ HAYIR"}</p>
+                        <p><strong>Gelen Veri Sayısı:</strong> {cashTransactions?.length || 0}</p>
+                        <p><strong>Filtrelenen Veri Sayısı:</strong> {filteredTransactions?.length || 0}</p>
+                        <p><strong>Seçili Personel Filtresi:</strong> {selectedUserId}</p>
+                    </div>
+                    <div>
+                        <p><strong>Ham Yetkiler:</strong></p>
+                        <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-white p-1 border rounded">
+                            {JSON.stringify(user?.permissions, null, 2)}
+                        </pre>
+                    </div>
+                </div>
+                <p className="mt-2 text-[10px] opacity-75">* Bu panel hatanın kaynağını bulmak içindir. Sorun çözüldüğünde kaldırılacaktır.</p>
+            </div>
         </Card >
     );
 }
