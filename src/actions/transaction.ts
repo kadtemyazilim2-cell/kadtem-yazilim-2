@@ -24,13 +24,29 @@ export async function getTransactionsBySite(siteId: string) {
 
 export async function getAllTransactions() {
     try {
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) {
+            return { success: false, error: 'Oturum bulunamadı.' };
+        }
+
+        const user = session.user;
+        const isAdmin = user.role === 'ADMIN';
+        // Check for Admin View permission
+        // permissions is typed as any in session mostly, casting or optional chaining
+        const perms = (user.permissions as any) || {};
+        const canViewAll = isAdmin || (perms['cash-book.admin-view'] && perms['cash-book.admin-view'].includes('VIEW'));
+
+        const where: any = {};
+        if (!canViewAll) {
+            // Restriction: Only see transactions where user is responsible
+            where.responsibleUserId = user.id;
+        }
+
         const transactions = await prisma.cashTransaction.findMany({
+            where,
             orderBy: { date: 'desc' },
-            include: {
-                createdByUser: true,
-                responsibleUser: true,
-                site: true
-            }
+            // [OPTIMIZATION] Removed includes to reduce payload size.
+            // Helper functions in UI (getUserName, getSiteName) use the stores, so we don't need relations here.
         });
         return { success: true, data: transactions };
     } catch (error) {
