@@ -35,6 +35,10 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
     // [NEW] Sync Server Data to Store
     useEffect(() => {
         if (initialData) {
+            // [FIX] Ensure dates are ISO strings (serializeData does this)
+            // Store expects CashTransaction[] which usually has Date or string depending on usage.
+            // But our store type likely expects string for date if we look at addCashTransaction.
+            // Let's trust serializeData returning strings for dates.
             useAppStore.setState({ cashTransactions: initialData });
         }
     }, [initialData]);

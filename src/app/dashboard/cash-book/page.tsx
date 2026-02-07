@@ -1,11 +1,6 @@
-'use client';
-
 import { CashBookList } from '@/components/modules/cash-book/CashBookList';
-import { useAuth } from '@/lib/store/use-auth';
-import { useSearchParams } from 'next/navigation'; // [NEW]
-
-import { getAllTransactions } from '@/actions/transaction'; // [NEW]
-import { serializeData } from '@/lib/serializer'; // [NEW]
+import { getAllTransactions } from '@/actions/transaction';
+import { serializeData } from '@/lib/serializer';
 
 export default async function CashBookPage() {
     const { user, hasPermission } = await import('@/auth').then(m => m.auth().then(s => ({ user: s?.user, hasPermission: (mod: string, act: string) => { const p = (s?.user as any)?.permissions?.[mod]; return p?.includes(act); } })));
