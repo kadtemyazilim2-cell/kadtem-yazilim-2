@@ -55,6 +55,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
     });
 
     const [file, setFile] = useState<File | null>(null);
+    const [statusMessage, setStatusMessage] = useState(''); // [NEW] Progress UI
 
 
 
@@ -285,6 +286,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         if (!formData.siteId) { alert('Lütfen şantiye seçiniz.'); return; }
         if (!formData.category.trim()) { alert('Lütfen kategori giriniz.'); return; }
         if (!formData.description.trim()) { alert('Lütfen açıklama giriniz.'); return; }
+        if (Number(formData.amount) <= 0) { alert('Lütfen geçerli bir tutar giriniz (0\'dan büyük).'); return; }
 
         // Future date check
         const todayStr = new Date().toISOString().split('T')[0];
@@ -317,12 +319,20 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
             };
 
             if (file) {
-                payload.imageUrl = await convertToBase64(file);
+                try {
+                    payload.imageUrl = await convertToBase64(file);
+                } catch (imgErr) {
+                    console.error(imgErr);
+                    alert('Görsel işlenirken hata oluştu.');
+                    setIsSubmitting(false);
+                    return;
+                }
             } else if (formData.imageUrl) {
                 payload.imageUrl = formData.imageUrl;
             }
 
             console.log('Submitting Payload:', payload);
+            setStatusMessage('Sunucuya gönderiliyor...');
 
             // Client-side timeout race to prevention stuck state
             const requestPromise = initialData
@@ -596,8 +606,15 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     </div>
 
                     <DialogFooter>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                            {isSubmitting ? (
+                                <span className="flex items-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    {statusMessage || 'İşleniyor...'}
+                                </span>
+                            ) : (
+                                initialData ? 'Güncelle' : 'Kaydet'
+                            )}
                         </Button>
                     </DialogFooter>
                 </form>

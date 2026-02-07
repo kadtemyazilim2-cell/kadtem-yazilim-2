@@ -4,6 +4,10 @@ import { prisma } from '@/lib/db';
 import { CashTransaction, PaymentMethod } from '@prisma/client'; // [FIX] Import Enum
 import { revalidatePath } from 'next/cache';
 
+// [CONFIG] Increase duration for Vercel (if applicable)
+export const maxDuration = 60;
+
+
 export async function getTransactionsBySite(siteId: string) {
     try {
         const transactions = await prisma.cashTransaction.findMany({
