@@ -106,13 +106,15 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         const existing = await prisma.fuelLog.findUnique({ where: { id } });
         if (!existing) throw new Error('Kayıt bulunamadı.');
 
-        // 1. Revert Old Tank Level
+        // 1. Revert Old Tank Level - DISABLED FOR DEBUGGING
+        /*
         if (existing.tankId) {
             await prisma.fuelTank.update({
                 where: { id: existing.tankId },
                 data: { currentLevel: { increment: existing.liters } }
             });
         }
+        */
 
         // 2. Update Log
         const updatedLog = await prisma.fuelLog.update({
@@ -129,15 +131,16 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
                 fullTank: data.fullTank,
                 description: data.description,
             },
-            include: { // [NEW] Return full object with relations to update Store immediately
-                vehicle: true,
-                site: true,
-                filledByUser: true,
-                tank: true
-            }
+            // include: { // [DEBUG] Disabled heavy payload
+            //     vehicle: true,
+            //     site: true,
+            //     filledByUser: true,
+            //     tank: true
+            // }
         });
 
-        // 3. Apply New Tank Level
+        // 3. Apply New Tank Level - DISABLED FOR DEBUGGING
+        /*
         if (data.tankId && data.liters !== undefined) {
             await prisma.fuelTank.update({
                 where: { id: data.tankId },
@@ -146,8 +149,10 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
                 }
             });
         }
+        */
 
-        // [NEW] Update Vehicle KM if mileage increased
+        // [NEW] Update Vehicle KM - DISABLED FOR DEBUGGING
+        /*
         if (data.mileage) {
             const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
             if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
@@ -157,23 +162,9 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
                 });
             }
         }
+        */
 
-        console.log('[updateFuelLog] Transaction committed:', updatedLog.id);
-
-        // Server Revalidation - TEMPORARILY DISABLED
-        // We will rely on router.refresh() from client for now to avoid Vercel Timeouts
-        try {
-            /*
-            console.log('[updateFuelLog] Starting revalidation...');
-            revalidateTag('fuel-logs');
-            revalidateTag('fuel-tanks');
-            // revalidatePath('/dashboard/fuel', 'page');
-            // revalidatePath('/dashboard/fuel/movement', 'page');
-            console.log('[updateFuelLog] Revalidation complete.');
-            */
-        } catch (revalError) {
-            console.error('[updateFuelLog] Revalidation failed:', revalError);
-        }
+        console.log('[updateFuelLog] Only Log Updated:', updatedLog.id);
 
         return { success: true, data: updatedLog };
 
