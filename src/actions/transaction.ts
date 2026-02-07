@@ -2,53 +2,12 @@
 
 import { prisma } from '@/lib/db';
 import { CashTransaction, PaymentMethod } from '@prisma/client'; // [FIX] Import Enum
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
 
-// [CONFIG] Increase duration for Vercel (if applicable)
-// [CONFIG] Increase duration for Vercel (if applicable) -> Moved to Page
-
-
-export async function getTransactionsBySite(siteId: string) {
-    try {
-        const transactions = await prisma.cashTransaction.findMany({
-            where: { siteId },
-            orderBy: { date: 'desc' },
-            include: {
-                createdByUser: true,
-                responsibleUser: true,
-                site: true
-            }
-        });
-        return { success: true, data: transactions };
-    } catch (error) {
-        console.error('getTransactions Error:', error);
-        return { success: false, error: 'İşlemler alınamadı.' };
-    }
-}
-
-export async function getTransaction(id: string) {
-    try {
-        const session = await import('@/auth').then(m => m.auth());
-        if (!session?.user?.id) return { success: false, error: 'Oturum bulunamadı.' };
-
-        const transaction = await prisma.cashTransaction.findUnique({
-            where: { id }
-        });
-
-        if (!transaction) return { success: false, error: 'Kayıt bulunamadı.' };
-
-        // Permission Check (Optional but good)
-        // For now, if they have ID, let them fetch, but UI hides button usually.
-        // We can add strict check if needed.
-
-        return { success: true, data: transaction };
-    } catch (error) {
-        console.error('getTransaction Error:', error);
-        return { success: false, error: 'İşlem detayları alınamadı.' };
-    }
-}
+// ...
 
 export async function getAllTransactions() {
+    noStore();
     try {
         const session = await import('@/auth').then(m => m.auth());
         if (!session?.user?.id) {

@@ -2,6 +2,7 @@ import { CashBookList } from '@/components/modules/cash-book/CashBookList';
 import { getAllTransactions } from '@/actions/transaction';
 import { serializeData } from '@/lib/serializer';
 
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // [CONFIG] Increase duration for Vercel
 
 

@@ -136,7 +136,11 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
     const getUserName = (id?: string) => users?.find((u: any) => u.id === id)?.name || '-';
 
     // Permission check for Reports & Date Filtering
-    const canExport = hasPermission('cash-book', 'EXPORT');
+    // [FIX] Allow export if user has explicit EXPORT permission OR has Admin View / Reports View
+    // This allows users with "Yönetici Görünümü" to also download the data they see.
+    const canExport = hasPermission('cash-book', 'EXPORT') ||
+        hasPermission('cash-book.admin-view', 'VIEW') ||
+        hasPermission('cash-book.reports', 'VIEW');
 
     const filteredTransactions = useMemo(() => {
         let result = [...(cashTransactions || [])];
