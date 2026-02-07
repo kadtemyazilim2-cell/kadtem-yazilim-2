@@ -20,28 +20,30 @@ import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
-import { deleteTransaction } from '@/actions/transaction';
+import { deleteTransaction, getTransaction } from '@/actions/transaction';
 
 interface CashBookListProps {
     siteId?: string;
     userId?: string; // [NEW]
     type?: 'INCOME' | 'EXPENSE' | 'ALL';
     initialData?: any[]; // [NEW] Server fetched data
+    currentUser?: any; // [NEW] Sync server user to client store
 }
 
-export function CashBookList({ siteId, userId, type, initialData }: CashBookListProps) {
+export function CashBookList({ siteId, userId, type, initialData, currentUser }: CashBookListProps) {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
 
     // [NEW] Sync Server Data to Store
     useEffect(() => {
         if (initialData) {
-            // [FIX] Ensure dates are ISO strings (serializeData does this)
-            // Store expects CashTransaction[] which usually has Date or string depending on usage.
-            // But our store type likely expects string for date if we look at addCashTransaction.
-            // Let's trust serializeData returning strings for dates.
             useAppStore.setState({ cashTransactions: initialData });
         }
-    }, [initialData]);
+        // [FIX] Sync Server User Session to Client Store to ensure permissions are up-to-date
+        if (currentUser) {
+            console.log("Syncing Server User to Client Store:", currentUser.username);
+            useAuth.setState({ user: currentUser, isAuthenticated: true });
+        }
+    }, [initialData, currentUser]);
 
     const { user, hasPermission } = useAuth();
     const [selectedUserId, setSelectedUserId] = useState<string>(userId || 'all');

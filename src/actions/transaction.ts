@@ -269,3 +269,20 @@ export async function deleteTransaction(id: string) {
         return { success: false, error: `İşlem silinemedi: ${error.message}` };
     }
 }
+
+export async function getTransaction(id: string) {
+    try {
+        const transaction = await prisma.cashTransaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) {
+            return { success: false, error: 'Kayıt bulunamadı.' };
+        }
+
+        return { success: true, data: transaction };
+    } catch (error: any) {
+        console.error('getTransaction Error:', error);
+        return { success: false, error: 'İşlem detayları alınamadı.' };
+    }
+}

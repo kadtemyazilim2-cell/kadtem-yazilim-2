@@ -31,7 +31,7 @@ export default async function CashBookPage() {
 
     return (
         <div className="space-y-6">
-            <CashBookList initialData={initialData} />
+            <CashBookList initialData={initialData} currentUser={user} />
         </div>
     );
 }
