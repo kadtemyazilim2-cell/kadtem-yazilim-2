@@ -20,7 +20,7 @@ import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
-import { deleteTransaction } from '@/actions/transaction';
+import { deleteTransaction, getTransaction } from '@/actions/transaction';
 
 interface CashBookListProps {
     siteId?: string;
@@ -974,9 +974,19 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
                                                         variant="ghost"
                                                         size="sm"
                                                         className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                                        onClick={() => {
-                                                            setEditingTransaction(item);
-                                                            setIsFormOpen(true);
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await getTransaction(item.id);
+                                                                if (res.success && res.data) {
+                                                                    setEditingTransaction(res.data);
+                                                                    setIsFormOpen(true);
+                                                                } else {
+                                                                    alert('İşlem detayları alınamadı.');
+                                                                }
+                                                            } catch (err) {
+                                                                console.error(err);
+                                                                alert('Bir hata oluştu.');
+                                                            }
                                                         }}
                                                     >
                                                         <Edit className="h-4 w-4" />

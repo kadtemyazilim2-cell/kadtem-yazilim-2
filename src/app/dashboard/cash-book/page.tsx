@@ -2,6 +2,9 @@ import { CashBookList } from '@/components/modules/cash-book/CashBookList';
 import { getAllTransactions } from '@/actions/transaction';
 import { serializeData } from '@/lib/serializer';
 
+export const maxDuration = 60; // [CONFIG] Increase duration for Vercel
+
+
 export default async function CashBookPage() {
     const { user, hasPermission } = await import('@/auth').then(m => m.auth().then(s => ({ user: s?.user, hasPermission: (mod: string, act: string) => { const p = (s?.user as any)?.permissions?.[mod]; return p?.includes(act); } })));
     const isSuperAdmin = user?.role === 'ADMIN';

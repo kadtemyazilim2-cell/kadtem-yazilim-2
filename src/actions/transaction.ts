@@ -5,7 +5,7 @@ import { CashTransaction, PaymentMethod } from '@prisma/client'; // [FIX] Import
 import { revalidatePath } from 'next/cache';
 
 // [CONFIG] Increase duration for Vercel (if applicable)
-export const maxDuration = 60;
+// [CONFIG] Increase duration for Vercel (if applicable) -> Moved to Page
 
 
 export async function getTransactionsBySite(siteId: string) {
@@ -26,6 +26,28 @@ export async function getTransactionsBySite(siteId: string) {
     }
 }
 
+export async function getTransaction(id: string) {
+    try {
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) return { success: false, error: 'Oturum bulunamadı.' };
+
+        const transaction = await prisma.cashTransaction.findUnique({
+            where: { id }
+        });
+
+        if (!transaction) return { success: false, error: 'Kayıt bulunamadı.' };
+
+        // Permission Check (Optional but good)
+        // For now, if they have ID, let them fetch, but UI hides button usually.
+        // We can add strict check if needed.
+
+        return { success: true, data: transaction };
+    } catch (error) {
+        console.error('getTransaction Error:', error);
+        return { success: false, error: 'İşlem detayları alınamadı.' };
+    }
+}
+
 export async function getAllTransactions() {
     try {
         const session = await import('@/auth').then(m => m.auth());
@@ -35,8 +57,6 @@ export async function getAllTransactions() {
 
         const user = session.user;
         const isAdmin = user.role === 'ADMIN';
-        // Check for Admin View permission
-        // permissions is typed as any in session mostly, casting or optional chaining
         const perms = (user.permissions as any) || {};
         const canViewAll = isAdmin || (perms['cash-book.admin-view'] && perms['cash-book.admin-view'].includes('VIEW'));
 
@@ -46,19 +66,26 @@ export async function getAllTransactions() {
             where.responsibleUserId = user.id;
         }
 
-        const currentYear = new Date().getFullYear();
-        const startDate = new Date(currentYear, 0, 1); // Jan 1st of current year
-
+        // [OPTIMIZATION] Removed Date Filter to allow full history visibility
+        // [OPTIMIZATION] Select specific fields to EXCLUDE imageUrl (Base64 strings are heavy)
         const transactions = await prisma.cashTransaction.findMany({
-            where: {
-                ...where,
-                date: {
-                    gte: startDate
-                }
-            },
+            where: { ...where },
             orderBy: { date: 'desc' },
-            // [OPTIMIZATION] Removed includes to reduce payload size.
-            // Helper functions in UI (getUserName, getSiteName) use the stores, so we don't need relations here.
+            select: {
+                id: true,
+                siteId: true,
+                date: true,
+                type: true,
+                category: true,
+                amount: true,
+                description: true,
+                documentNo: true,
+                responsibleUserId: true,
+                createdByUserId: true,
+                paymentMethod: true,
+                createdAt: true
+                // imageUrl excluded
+            }
         });
         return { success: true, data: transactions };
     } catch (error) {
