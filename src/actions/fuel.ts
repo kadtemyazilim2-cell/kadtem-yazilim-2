@@ -185,6 +185,7 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 // const getFuelTanksFromDb = unstable_cache(...)
 
 export async function getFuelTanks() {
+    noStore(); // [CRITICAL]
     try {
         const tanks = await prisma.fuelTank.findMany({
             include: { site: true }
@@ -240,6 +241,7 @@ export async function deleteFuelTank(id: string) {
 // const getFuelTransfersFromDb = unstable_cache(...)
 
 export async function getFuelTransfers() {
+    noStore(); // [CRITICAL]
     try {
         const transfers = await prisma.fuelTransfer.findMany({
             orderBy: { date: 'desc' },
