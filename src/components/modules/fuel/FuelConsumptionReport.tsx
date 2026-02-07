@@ -173,16 +173,16 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 // Call Server Action
                 const res = await updateFuelTransferAction(editingLog.id, {
                     ...editForm,
-                    date: editForm.date ? new Date(editForm.date) : undefined, // [FIX] Convert string to Date
+                    date: editForm.date ? new Date(editForm.date) : undefined,
                     amount: editForm.liters
-                });
+                } as any);
 
                 if (res.success) {
                     updateFuelTransfer(editingLog.id, {
                         ...editForm,
-                        date: editForm.date ? new Date(editForm.date) : undefined,
+                        date: editForm.date ? new Date(editForm.date) : undefined, // Store might expect Date or String, let's pass date object
                         amount: editForm.liters
-                    });
+                    } as any);
                     setIsEditOpen(false);
                     setEditingLog(null);
                     router.refresh();
@@ -195,7 +195,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 // Call Server Action
                 const res = await updateFuelLogAction(editingLog.id, {
                     ...editForm,
-                    date: editForm.date ? new Date(editForm.date) : undefined // [FIX] Convert string to Date
+                    date: editForm.date ? new Date(editForm.date) : undefined
                 } as any);
 
                 if (res.success && res.data) {
