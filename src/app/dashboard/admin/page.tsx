@@ -17,6 +17,7 @@ import { createSite, deleteSite as deleteSiteAction, getSites, updateSite as upd
 import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel'; // [NEW]
 import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company'; // [NEW]
 import { resetDatabase } from '@/actions/system';
+import { createRoleTemplate, getRoleTemplates, deleteRoleTemplate } from '@/actions/role-template'; // [NEW]
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -179,6 +180,70 @@ export default function AdminPage() {
     const [userPermissions, setUserPermissions] = useState<Record<string, string[]>>({});
     const [assignedSiteIds, setAssignedSiteIds] = useState<string[]>([]);
     const [editLookbackDays, setEditLookbackDays] = useState<number | ''>(''); // [NEW]
+
+    // [NEW] Role Templates State
+    const [templates, setTemplates] = useState<any[]>([]);
+    const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
+    const [newTemplateName, setNewTemplateName] = useState('');
+
+    useEffect(() => {
+        loadTemplates();
+    }, []);
+
+    const loadTemplates = async () => {
+        try {
+            const res = await getRoleTemplates();
+            if (res.success) {
+                setTemplates(res.data || []);
+            }
+        } catch (e) {
+            console.error('Failed to load templates', e);
+        }
+    };
+
+    const handleSaveTemplate = async () => {
+        if (!newTemplateName.trim()) {
+            toast.error('Şablon adı giriniz.');
+            return;
+        }
+
+        try {
+            // Collect current permissions
+            const currentPerms: Record<string, string[]> = {};
+            // We need to access the CURRENT state of permissions being edited in the dialog.
+            // The dialog uses `userPermissions` state.
+
+            const res = await createRoleTemplate(newTemplateName, userPermissions); // [FIX] Use userPermissions
+            if (res.success) {
+                toast.success('Şablon kaydedildi.');
+                setIsSaveTemplateOpen(false);
+                setNewTemplateName('');
+                loadTemplates();
+            } else {
+                toast.error(res.error || 'Kaydedilemedi.');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Bir hata oluştu.');
+        }
+    };
+
+    const handleDeleteTemplate = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation(); // Prevent select trigger
+        if (!confirm('Bu şablonu silmek istediğinize emin misiniz?')) return;
+
+        try {
+            const res = await deleteRoleTemplate(id);
+            if (res.success) {
+                toast.success('Şablon silindi.');
+                loadTemplates();
+            } else {
+                toast.error(res.error || 'Silinemedi.');
+            }
+        } catch (e) {
+            toast.error('Hata oluştu.');
+        }
+    };
 
     // Yi-Ufe State
     const [updatingYiUfe, setUpdatingYiUfe] = useState(false);
@@ -1260,23 +1325,44 @@ export default function AdminPage() {
     // If Admin is selected, select all permissions automatically? 
     // Or keep them separate. User request says "restricted and full access".
     // Let's implement logic: Admin usually has access to everything by default logic elsewhere, 
-    // but here we can just auto-check everything for visual feedback or keep it manual.
     // User request: "kısıtlı yetki ve tam yetkiyi hangi sekmelere vermek istediğimi seçenek olarak sun"
 
+    // [NEW] Role Templates State (Using state from top of component, removing duplicates here if any)
+    // The state `templates` is already defined at top level.
+
     // [NEW] Helper to render permission rows recursively
-    const handleApplyTemplate = (value: string) => {
-        if (value === 'VIEW_ALL') {
-            setAllPermissions('VIEW');
-        } else {
-            // Check if it's a user ID
-            const sourceUser = users.find((u: any) => u.id === value);
-            if (sourceUser) {
-                // Copy permissions strictly
-                setUserPermissions({ ...(sourceUser.permissions || {}) });
-            }
+    const handleApplyTemplate = (val: string) => {
+        // Check if it is a SPECIAL value
+        if (val === 'VIEW_ALL') {
+            const newPerms: Record<string, string[]> = {};
+            MODULE_HIERARCHY.forEach(m => {
+                // Main module view
+                newPerms[m.id] = ['VIEW'];
+                // Sub modules view
+                m.children?.forEach(sub => {
+                    newPerms[sub.id] = ['VIEW'];
+                });
+            });
+            setUserPermissions(newPerms); // [FIX] Use setUserPermissions
+            toast.success('İzleme şablonu uygulandı.');
+            return;
+        }
+
+        // Check if it is a TEMPLATE
+        const template = templates.find(t => t.id === val);
+        if (template) {
+            setUserPermissions(template.permissions as Record<string, string[]>); // [FIX] Use setUserPermissions
+            toast.success(`"${template.name}" şablonu uygulandı.`);
+            return;
+        }
+
+        // Fallback: Copy from USER
+        const targetUser = users.find((u: any) => u.id === val);
+        if (targetUser && targetUser.permissions) {
+            setUserPermissions(targetUser.permissions as Record<string, string[]>); // [FIX] Use setUserPermissions
+            toast.success(`${targetUser.name} kullanıcısının yetkileri kopyalandı.`);
         }
     };
-
     const renderPermissionRow = (module: any, depth = 0) => {
         const perms = userPermissions[module.id] || [];
         const hasView = perms.includes('VIEW');
@@ -1542,8 +1628,25 @@ export default function AdminPage() {
                                                                     <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('FULL')} className="h-7 text-xs font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-50">
                                                                         <ShieldCheck className="w-3 h-3 mr-1" /> Tam Yetki
                                                                     </Button>
+                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setIsSaveTemplateOpen(true)} className="h-7 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
+                                                                        <FileText className="w-3 h-3 mr-1" /> Şablon Kaydet
+                                                                    </Button>
                                                                 </div>
                                                             </div>
+
+                                                            {/* Save Template Dialog (Inline or Popover equivalent) */}
+                                                            {isSaveTemplateOpen && (
+                                                                <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded mb-2">
+                                                                    <Input
+                                                                        placeholder="Şablon Adı (Örn: Saha Ekibi)"
+                                                                        value={newTemplateName}
+                                                                        onChange={(e) => setNewTemplateName(e.target.value)}
+                                                                        className="h-8 text-xs"
+                                                                    />
+                                                                    <Button size="sm" onClick={handleSaveTemplate} className="h-8 text-xs whitespace-nowrap bg-emerald-600 hover:bg-emerald-700">Kaydet</Button>
+                                                                    <Button size="sm" variant="ghost" onClick={() => setIsSaveTemplateOpen(false)} className="h-8 text-xs w-8 p-0"><XCircle className="w-4 h-4" /></Button>
+                                                                </div>
+                                                            )}
 
                                                             {/* [NEW] Template Selector */}
                                                             <Select onValueChange={handleApplyTemplate}>
@@ -1554,13 +1657,31 @@ export default function AdminPage() {
                                                                     <SelectGroup>
                                                                         <SelectLabel>Hazır Şablonlar</SelectLabel>
                                                                         <SelectItem value="VIEW_ALL">Sadece İzleme (Tüm Modüller)</SelectItem>
-                                                                    </SelectGroup>
-                                                                    <SelectGroup>
-                                                                        <SelectLabel>Kullanıcıdan Kopyala</SelectLabel>
-                                                                        {users.filter((u: any) => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map((u: any) => (
-                                                                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                                                        {templates.map((t: any) => (
+                                                                            <SelectItem key={t.id} value={t.id} className="flex justify-between items-center w-full">
+                                                                                <span>{t.name}</span>
+                                                                            </SelectItem>
                                                                         ))}
                                                                     </SelectGroup>
+                                                                    <SelectGroup>
+                                                                        <SelectLabel>Şablon Yönetimi</SelectLabel>
+                                                                        {templates.length > 0 && templates.map((t: any) => (
+                                                                            <div key={`del-${t.id}`} className="px-2 py-1 flex justify-between items-center text-xs hover:bg-slate-100 cursor-default">
+                                                                                <span>{t.name}</span>
+                                                                                <Trash2
+                                                                                    className="w-3 h-3 text-red-500 cursor-pointer hover:text-red-700"
+                                                                                    onClick={(e) => handleDeleteTemplate(e, t.id)}
+                                                                                />
+                                                                            </div>
+                                                                        ))}
+                                                                    </SelectGroup>
+                                                                    <SelectGroup>
+                                                                        <SelectGroup>
+                                                                            <SelectLabel>Kullanıcıdan Kopyala</SelectLabel>
+                                                                            {users.filter((u: any) => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map((u: any) => (
+                                                                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                                                            ))}
+                                                                        </SelectGroup>
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>

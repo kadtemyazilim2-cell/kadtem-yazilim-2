@@ -66,6 +66,14 @@ model User {
   siteLogs                   SiteLogEntry[]    @relation("SiteLogAuthor")
 }
 
+model RoleTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  permissions Json     // Stores Record<string, string[]>
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 // -----------------------------------------------------------------------------
 // CORE ENTITIES
 // -----------------------------------------------------------------------------

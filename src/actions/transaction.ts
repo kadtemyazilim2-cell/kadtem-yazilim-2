@@ -66,6 +66,7 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             prisma.cashTransaction.create({
                 data: {
                     siteId: data.siteId,
+                    // [FIX] Handle string or Date
                     date: data.date ? new Date(data.date) : new Date(),
                     type: data.type,
                     category: data.category,

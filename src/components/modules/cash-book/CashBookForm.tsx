@@ -256,14 +256,14 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
             // So we MUST pass a Date object or change the type.
             // Let's rely on Date object but ensure it's fresh.
 
+            // [FIX] Convert Date to string to avoid Server Action serialization issues
             const payload: any = {
                 siteId: formData.siteId,
-                date: new Date(formData.date),
+                date: new Date(formData.date).toISOString(), // Send as ISO String
                 type: formData.type as 'INCOME' | 'EXPENSE',
                 category: formData.category,
                 amount: Number(formData.amount),
                 createdByUserId: user.id,
-                // [FIX] Ensure responsibleUserId is valid or undefined (not empty string)
                 responsibleUserId: (formData.responsibleUserId || user.id) || undefined,
                 paymentMethod: formData.paymentMethod || 'CASH',
                 imageUrl: undefined,
@@ -279,14 +279,16 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
 
             console.log('Submitting Payload:', payload);
 
-            let res;
-            if (initialData) {
-                // UPDATE
-                res = await updateTransaction(initialData.id, payload);
-            } else {
-                // CREATE
-                res = await createTransaction(payload);
-            }
+            // Client-side timeout race to prevention stuck state
+            const requestPromise = initialData
+                ? updateTransaction(initialData.id, payload)
+                : createTransaction(payload);
+
+            // Race against a 15s timeout
+            const res = await Promise.race([
+                requestPromise,
+                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi (Zaman aşımı).')), 15000))
+            ]);
 
             console.log('Server Response:', res);
 
