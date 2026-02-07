@@ -328,65 +328,66 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
 export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>) {
     try {
         console.log('updateFuelTransfer: Starting transaction for ID:', id);
-        return await prisma.$transaction(async (tx) => {
-            const existing = await tx.fuelTransfer.findUnique({ where: { id } });
-            if (!existing) throw new Error('Transfer bulunamadı.');
+        // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
+        console.log('updateFuelTransfer: Starting update for ID:', id);
 
-            // 1. Revert Old Tank Levels
-            // Revert From (Increment back what was taken)
-            if (existing.fromType === 'TANK') {
-                await tx.fuelTank.update({
-                    where: { id: existing.fromId },
-                    data: { currentLevel: { increment: existing.amount } }
-                });
-            }
-            // Revert To (Decrement back what was added)
-            if (existing.toType === 'TANK') {
-                await tx.fuelTank.update({
-                    where: { id: existing.toId },
-                    data: { currentLevel: { decrement: existing.amount } }
-                });
-            }
+        const existing = await prisma.fuelTransfer.findUnique({ where: { id } });
+        if (!existing) throw new Error('Transfer bulunamadı.');
 
-            // 2. Update Transfer
-            const transfer = await tx.fuelTransfer.update({
-                where: { id },
-                data: {
-                    amount: data.amount,
-                    date: data.date ? new Date(data.date) : undefined,
-                    unitPrice: data.unitPrice,
-                    totalCost: data.totalCost,
-                    description: data.description,
-                    fromType: data.fromType,
-                    fromId: data.fromId,
-                    fromTankId: data.fromType === 'TANK' ? data.fromId : null,
-                    fromVehicleId: data.fromType === 'VEHICLE' ? data.fromId : null,
-                    toType: data.toType,
-                    toId: data.toId,
-                    toTankId: data.toType === 'TANK' ? data.toId : null,
-                    toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
-                }
+        // 1. Revert Old Tank Levels
+        // Revert From (Increment back what was taken)
+        if (existing.fromType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: existing.fromId },
+                data: { currentLevel: { increment: existing.amount } }
             });
+        }
+        // Revert To (Decrement back what was added)
+        if (existing.toType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: existing.toId },
+                data: { currentLevel: { decrement: existing.amount } }
+            });
+        }
 
-            console.log('updateFuelTransfer: Transfer record updated', transfer.id);
-
-            // 3. Apply New Tank Levels
-            if (transfer.fromType === 'TANK') {
-                await tx.fuelTank.update({
-                    where: { id: transfer.fromId },
-                    data: { currentLevel: { decrement: transfer.amount } }
-                });
+        // 2. Update Transfer
+        const transfer = await prisma.fuelTransfer.update({
+            where: { id },
+            data: {
+                amount: data.amount,
+                date: data.date ? new Date(data.date) : undefined,
+                unitPrice: data.unitPrice,
+                totalCost: data.totalCost,
+                description: data.description,
+                fromType: data.fromType,
+                fromId: data.fromId,
+                fromTankId: data.fromType === 'TANK' ? data.fromId : null,
+                fromVehicleId: data.fromType === 'VEHICLE' ? data.fromId : null,
+                toType: data.toType,
+                toId: data.toId,
+                toTankId: data.toType === 'TANK' ? data.toId : null,
+                toVehicleId: data.toType === 'VEHICLE' ? data.toId : null,
             }
-
-            if (transfer.toType === 'TANK') {
-                await tx.fuelTank.update({
-                    where: { id: transfer.toId },
-                    data: { currentLevel: { increment: transfer.amount } }
-                });
-            }
-
-            return { success: true, data: transfer };
         });
+
+        console.log('updateFuelTransfer: Transfer record updated', transfer.id);
+
+        // 3. Apply New Tank Levels
+        if (transfer.fromType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: transfer.fromId },
+                data: { currentLevel: { decrement: transfer.amount } }
+            });
+        }
+
+        if (transfer.toType === 'TANK') {
+            await prisma.fuelTank.update({
+                where: { id: transfer.toId },
+                data: { currentLevel: { increment: transfer.amount } }
+            });
+        }
+
+        return { success: true, data: transfer };
     } catch (error: any) {
         console.error('updateFuelTransfer Error:', error);
         return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
