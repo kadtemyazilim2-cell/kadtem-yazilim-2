@@ -2,12 +2,13 @@
 
 import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
-import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache, unstable_noStore as noStore } from 'next/cache';
 
 // [PERFORMANCE] Cached fuel logs query - CACHE ABORTED FOR DEBUGGING
 // const getFuelLogsFromDb = unstable_cache(...)
 
 export async function getFuelLogs() {
+    noStore(); // [CRITICAL] Opt out of static caching
     try {
         const logs = await prisma.fuelLog.findMany({
             orderBy: { date: 'desc' },

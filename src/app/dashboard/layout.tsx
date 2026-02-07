@@ -15,8 +15,12 @@ import { serializeData } from '@/lib/serializer';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { unstable_noStore as noStore } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+    noStore();
     const session = await auth();
 
     if (!session || !session.user) {
