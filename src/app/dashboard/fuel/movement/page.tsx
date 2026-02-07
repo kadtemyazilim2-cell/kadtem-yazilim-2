@@ -15,9 +15,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { useUserSites } from '@/hooks/use-user-access';
-import { FuelGivenList } from '@/components/modules/fuel/FuelGivenList'; // [NEW]
-import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList'; // [NEW]
-import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList'; // [NEW]
+import { FuelGivenList } from '@/components/modules/fuel/FuelGivenList';
+import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList';
+import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
+import { getFuelLogs, getFuelTransfers, getFuelTanks } from '@/actions/fuel'; // [NEW]
 
 export const dynamic = 'force-dynamic';
 
@@ -25,9 +26,29 @@ export default function FuelMovementPage() {
     const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
     const { hasPermission, user, refreshSession } = useAuth(); // [NEW] refreshSession
 
-    // [NEW] Refresh Session on Mount
+    // [NEW] Refresh Session on Mount & Fetch Fresh Data
     useEffect(() => {
         refreshSession();
+
+        const fetchData = async () => {
+            console.log('FuelMovementPage: Fetching fresh fuel data...');
+            const [logsRes, transfersRes, tanksRes] = await Promise.all([
+                getFuelLogs(),
+                getFuelTransfers(),
+                getFuelTanks()
+            ]);
+
+            if (logsRes.success && logsRes.data) {
+                useAppStore.getState().setFuelLogs(logsRes.data as any);
+            }
+            if (transfersRes.success && transfersRes.data) {
+                useAppStore.getState().setFuelTransfers(transfersRes.data as any);
+            }
+            if (tanksRes.success && tanksRes.data) {
+                useAppStore.getState().setFuelTanks(tanksRes.data as any);
+            }
+        };
+        fetchData();
     }, []);
 
     const rawAvailableSites = useUserSites();

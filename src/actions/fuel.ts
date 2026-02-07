@@ -85,6 +85,7 @@ export async function createFuelLog(data: Partial<FuelLog>) {
         revalidateTag('fuel-tanks'); // Tank level changed
         revalidateTag('vehicles'); // Vehicle KM changed
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         revalidatePath('/dashboard/vehicles', 'page'); // Update vehicle list
         return { success: true, data: log };
     } catch (error) {
@@ -212,6 +213,7 @@ export async function createFuelTank(data: Partial<FuelTank>) {
         });
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true, data: tank };
     } catch (error: any) {
         console.error('createFuelTank Error:', error);
@@ -224,6 +226,7 @@ export async function deleteFuelTank(id: string) {
         await prisma.fuelTank.delete({ where: { id } });
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true };
     } catch (error) {
         console.error('deleteFuelTank Error:', error);
@@ -307,8 +310,9 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
         }
 
         revalidateTag('fuel-transfers');
-        revalidateTag('fuel-tanks'); // Levels changed
+        revalidateTag('fuel-tanks'); // Levels changed, logs might depend on it
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true, data: transfer };
     } catch (error) {
         console.error('createFuelTransfer Error:', error);
@@ -385,6 +389,7 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
     }
 }
 
@@ -405,6 +410,7 @@ export async function deleteFuelLog(id: string) {
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true };
     } catch (error) {
         console.error('deleteFuelLog Error:', error);
@@ -438,6 +444,7 @@ export async function deleteFuelTransfer(id: string) {
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true };
     } catch (error) {
         console.error('deleteFuelTransfer Error:', error);
@@ -461,6 +468,7 @@ export async function markFuelLogsAsFull(ids: string[]) {
 
         revalidateTag('fuel-logs');
         revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true, count: ids.length };
     } catch (error) {
         console.error('markFuelLogsAsFull Error:', error);

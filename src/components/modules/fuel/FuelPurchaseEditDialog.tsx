@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation'; // [FIX] Added import
+
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,6 +25,7 @@ interface FuelPurchaseEditDialogProps {
 export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelPurchaseEditDialogProps) {
     const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();
     const accessibleSites = useUserSites(); // [NEW]
+    const router = useRouter(); // [FIX] Init router
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
@@ -137,9 +140,9 @@ export function FuelPurchaseEditDialog({ open, onOpenChange, transfer, onSuccess
                 toast.success('Satın alma kaydı güncellendi.');
                 if (updateStoreTransfer) {
                     updateStoreTransfer(transfer.id, result.data);
-                } else {
-                    window.location.reload();
                 }
+
+                router.refresh(); // [FIX] Refresh Server Data
 
                 onOpenChange(false);
                 if (onSuccess) onSuccess();

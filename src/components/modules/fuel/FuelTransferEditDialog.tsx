@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // [FIX] Added import
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { updateFuelTransfer } from '@/actions/fuel';
 import { useAppStore } from '@/lib/store/use-store';
 import { toast } from 'sonner';
-import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
+import { useUserSites } from '@/hooks/use-user-access';
 
 interface FuelTransferEditDialogProps {
     open: boolean;
@@ -20,7 +21,8 @@ interface FuelTransferEditDialogProps {
 
 export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess }: FuelTransferEditDialogProps) {
     const { updateFuelTransfer: updateStoreTransfer, fuelTanks } = useAppStore();
-    const accessibleSites = useUserSites(); // [NEW]
+    const accessibleSites = useUserSites();
+    const router = useRouter(); // [FIX] Init router
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Simplification: Only Amount, Date, Source, Dest
@@ -79,9 +81,9 @@ export function FuelTransferEditDialog({ open, onOpenChange, transfer, onSuccess
 
                 if (updateStoreTransfer) {
                     updateStoreTransfer(transfer.id, result.data);
-                } else {
-                    window.location.reload();
                 }
+
+                router.refresh(); // [FIX] Added refresh
 
                 onOpenChange(false);
                 if (onSuccess) onSuccess();

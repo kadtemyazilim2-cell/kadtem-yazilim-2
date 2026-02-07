@@ -1,9 +1,10 @@
 'use client';
 
+import { useRouter } from 'next/navigation'; // [FIX] Added import
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
-import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
+import { useUserSites } from '@/hooks/use-user-access';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -15,19 +16,17 @@ import { FuelForm } from './FuelForm';
 export function FuelGivenList() {
     const { fuelLogs, vehicles, sites } = useAppStore();
     const { user } = useAuth();
+    const router = useRouter(); // [FIX] Init router
     const [editingLog, setEditingLog] = useState<any>(null);
 
     if (!user) return null;
 
-    const accessibleSites = useUserSites(); // [NEW] Use Hook
+    const accessibleSites = useUserSites();
     const accessibleSiteIds = accessibleSites.map((s: any) => s.id);
 
     // Filter logs created by the current user OR visible to them based on site
     const userLogs = fuelLogs
         // Filter by user ID (User sees their own actions) AND Site Access (Security)
-        // If user is ADMIN, accessibleSiteIds has all sites, so just check createdBy or show all?
-        // Usually "My Given Fuels" implies only what *I* gave.
-        // But if the user complains about "seeing mixed sites", maybe they want strict site filtering?
         .filter((log: any) => {
             // 1. Must be filled by this user (Primary condition)
             if (log.filledByUserId !== user.id) return false;
@@ -108,10 +107,9 @@ export function FuelGivenList() {
                                                             const result = await deleteFuelLog(log.id);
                                                             if (result.success) {
                                                                 // Toast or alert
-                                                                // Since toast isn't imported, let's dynamic import or use alert fallback
-                                                                // But let's try to be consistent with page.tsx
                                                                 const { toast } = await import('sonner');
                                                                 toast.success('Yakıt kaydı silindi.');
+                                                                router.refresh(); // [FIX] Refresh
                                                             } else {
                                                                 alert(result.error || 'Silinemedi.');
                                                             }
