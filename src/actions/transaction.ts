@@ -36,6 +36,10 @@ export async function getAllTransactions() {
             (perms['cash-book.reports']?.includes('VIEW')) ||
             (perms['cash-book']?.includes('EXPORT'));
 
+        console.log(`[getAllTransactions] User: ${dbUser.role}, ID: ${session.user.id}`);
+        console.log(`[getAllTransactions] Perms: ${JSON.stringify(perms['cash-book.admin-view'])}`);
+        console.log(`[getAllTransactions] canViewAll: ${canViewAll}`);
+
         const where: any = {};
         if (!canViewAll) {
             // Restriction: Only see transactions where user is responsible (or created)
@@ -45,6 +49,8 @@ export async function getAllTransactions() {
                 { createdByUserId: session.user.id }
             ];
         }
+
+        console.log(`[getAllTransactions] Where Clause:`, JSON.stringify(where));
 
         // [OPTIMIZATION] Removed Date Filter to allow full history visibility
         // [OPTIMIZATION] Select specific fields to EXCLUDE imageUrl (Base64 strings are heavy)
@@ -67,6 +73,8 @@ export async function getAllTransactions() {
                 // imageUrl excluded
             }
         });
+
+        console.log(`[getAllTransactions] Found ${transactions.length} transactions.`);
         return { success: true, data: transactions };
     } catch (error) {
         console.error('getAllTransactions Error:', error);

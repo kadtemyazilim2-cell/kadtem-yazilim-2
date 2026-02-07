@@ -161,6 +161,10 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
     const filteredTransactions = useMemo(() => {
         let result = [...(cashTransactions || [])];
 
+        console.log(`[CashBookList] canViewAll: ${canViewAll}, selectedUserId: ${selectedUserId}`);
+        console.log(`[CashBookList] Total Transactions: ${result.length}`);
+        console.log(`[CashBookList] Filters - Site: ${selectedSiteId}, Date: ${startDate}-${endDate}`);
+
         // Ensure valid objects
         result = result.filter(t => t && typeof t === 'object');
 
