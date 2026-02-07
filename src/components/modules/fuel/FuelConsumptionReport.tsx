@@ -170,9 +170,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         console.log('Updating Fuel Record:', editingLog.id, editForm);
         setIsUpdating(true); // [NEW] Start Loading
 
-        // Safety Timeout (10 seconds)
+        // Safety Timeout (30 seconds) - Increased for Cold Starts
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (Sunucu yanıt vermedi).')), 10000)
+            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (v1.2 - Sunucu yanıt vermedi).')), 30000)
         );
 
         try {
@@ -891,7 +891,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
+                            <DialogTitle>Yakıt Kaydını Düzenle <span className="text-xs text-muted-foreground ml-2">(v1.2)</span></DialogTitle>
                         </DialogHeader>
                         {editingLog && (
                             <div className="grid gap-4 py-4">
