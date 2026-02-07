@@ -802,7 +802,7 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
                 </div>
 
                 {/* Filter Row: Grid Layout */}
-                {(user?.role === 'ADMIN' || showReport) && (
+                {(user?.role === 'ADMIN' || showReport || hasPermission('cash-book.admin-view', 'VIEW')) && (
                     <div className="bg-slate-50 p-4 rounded-lg border">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                             {/* Search - Col 3 */}
@@ -831,8 +831,8 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
                                 </Select>
                             </div>
 
-                            {/* User Filter (Admin Only) - Col 2 */}
-                            {user?.role === 'ADMIN' && (
+                            {/* User Filter (Admin or Admin View Perm) - Col 2 */}
+                            {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && (
                                 <div className="col-span-12 md:col-span-2">
                                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                                         <SelectTrigger className="w-full bg-white">
@@ -855,7 +855,7 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
                                         <SelectValue placeholder="Ödeme Tipi" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {user?.role === 'ADMIN' && <SelectItem value="ALL">Tüm Ödemeler</SelectItem>}
+                                        {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && <SelectItem value="ALL">Tüm Ödemeler</SelectItem>}
                                         <SelectItem value="CASH">Nakit</SelectItem>
                                         <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
                                     </SelectContent>
@@ -864,7 +864,7 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
 
                             {/* Date Range - Col 3 */}
                             {canExport && (
-                                <div className={cn("col-span-12 flex gap-2 items-center", user?.role === 'ADMIN' ? "md:col-span-3" : "md:col-span-5")}>
+                                <div className={cn("col-span-12 flex gap-2 items-center", (user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) ? "md:col-span-3" : "md:col-span-5")}>
                                     <Input
                                         type="date"
                                         value={startDate}
@@ -910,8 +910,8 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
                     </div>
                 )}
             </CardHeader>
-            {/* Only show Table Content if Admin or showReport is true */}
-            {(user?.role === 'ADMIN' || showReport) && (
+            {/* Only show Table Content if Admin, Admin View Perm, or showReport is true */}
+            {(user?.role === 'ADMIN' || showReport || hasPermission('cash-book.admin-view', 'VIEW')) && (
                 <CardContent>
                     <div className="mb-4 p-2 bg-slate-50 border rounded text-xs text-muted-foreground">
                         <span className="font-semibold">Devreden Bakiye: </span>
