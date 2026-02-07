@@ -101,65 +101,61 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 
         console.log('updateFuelLog: Starting update for ID:', id, 'Payload:', JSON.stringify(data)); // [DEBUG] Log Payload
 
-        // Execute Transaction
-        const updatedLog = await prisma.$transaction(async (tx) => {
-            const existing = await tx.fuelLog.findUnique({ where: { id } });
-            if (!existing) throw new Error('Kayıt bulunamadı.');
+        // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
+        const existing = await prisma.fuelLog.findUnique({ where: { id } });
+        if (!existing) throw new Error('Kayıt bulunamadı.');
 
-            // 1. Revert Old Tank Level
-            if (existing.tankId) {
-                await tx.fuelTank.update({
-                    where: { id: existing.tankId },
-                    data: { currentLevel: { increment: existing.liters } }
-                });
+        // 1. Revert Old Tank Level
+        if (existing.tankId) {
+            await prisma.fuelTank.update({
+                where: { id: existing.tankId },
+                data: { currentLevel: { increment: existing.liters } }
+            });
+        }
+
+        // 2. Update Log
+        const updatedLog = await prisma.fuelLog.update({
+            where: { id },
+            data: {
+                vehicleId: data.vehicleId,
+                siteId: data.siteId,
+                tankId: data.tankId,
+                date: data.date ? new Date(data.date) : undefined,
+                liters: data.liters,
+                cost: data.cost,
+                unitPrice: data.unitPrice,
+                mileage: data.mileage,
+                fullTank: data.fullTank,
+                description: data.description,
+            },
+            include: { // [NEW] Return full object with relations to update Store immediately
+                vehicle: true,
+                site: true,
+                filledByUser: true,
+                tank: true
             }
+        });
 
-            // 2. Update Log
-            const log = await tx.fuelLog.update({
-                where: { id },
+        // 3. Apply New Tank Level
+        if (data.tankId && data.liters !== undefined) {
+            await prisma.fuelTank.update({
+                where: { id: data.tankId },
                 data: {
-                    vehicleId: data.vehicleId,
-                    siteId: data.siteId,
-                    tankId: data.tankId,
-                    date: data.date ? new Date(data.date) : undefined,
-                    liters: data.liters,
-                    cost: data.cost,
-                    unitPrice: data.unitPrice,
-                    mileage: data.mileage,
-                    fullTank: data.fullTank,
-                    description: data.description,
-                },
-                include: { // [NEW] Return full object with relations to update Store immediately
-                    vehicle: true,
-                    site: true,
-                    filledByUser: true,
-                    tank: true
+                    currentLevel: { decrement: data.liters }
                 }
             });
+        }
 
-            // 3. Apply New Tank Level
-            if (data.tankId && data.liters !== undefined) {
-                await tx.fuelTank.update({
-                    where: { id: data.tankId },
-                    data: {
-                        currentLevel: { decrement: data.liters }
-                    }
+        // [NEW] Update Vehicle KM if mileage increased
+        if (data.mileage) {
+            const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
+            if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
+                await prisma.vehicle.update({
+                    where: { id: vehicle.id },
+                    data: { currentKm: data.mileage }
                 });
             }
-
-            // [NEW] Update Vehicle KM if mileage increased
-            if (data.mileage) {
-                const vehicle = await tx.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
-                if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
-                    await tx.vehicle.update({
-                        where: { id: vehicle.id },
-                        data: { currentKm: data.mileage }
-                    });
-                }
-            }
-
-            return log;
-        });
+        }
 
         console.log('[updateFuelLog] Transaction committed:', updatedLog.id);
 
