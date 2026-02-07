@@ -104,6 +104,34 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         */
         console.log('updateFuelLog: [NO AUTH CHECK] Starting update for ID:', id, 'Payload:', JSON.stringify(data)); // [DEBUG] Log Payload
 
+        // [DEBUG] V1.7 - MOCK MODE - BYPASS DATABASE COMPLETELY
+        // Test: Is it the DB connection or the Server Action itself?
+        console.log('updateFuelLog: [MOCK MODE] Starting simulation for ID:', id);
+
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate work
+
+        console.log('updateFuelLog: [MOCK MODE] Simulation complete.');
+
+        return {
+            success: true,
+            data: {
+                id,
+                ...data,
+                updatedAt: new Date(),
+                tankId: data.tankId || null,
+                vehicleId: data.vehicleId || "mock-vehicle",
+                siteId: data.siteId || "mock-site",
+                filledByUserId: "mock-user",
+                liters: data.liters || 0,
+                cost: data.cost || 0,
+                unitPrice: data.unitPrice || 0,
+                mileage: data.mileage || 0,
+                fullTank: !!data.fullTank,
+                recordType: 'LOG'
+            } as any
+        };
+
+        /* DATABASE OPERATIONS DISABLED
         // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
         const existing = await prisma.fuelLog.findUnique({ where: { id } });
         if (!existing) throw new Error('Kayıt bulunamadı.');
@@ -119,6 +147,7 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         */
 
         // 2. Update Log
+        /*
         const updatedLog = await prisma.fuelLog.update({
             where: { id },
             data: {
@@ -140,6 +169,7 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
             //     tank: true
             // }
         });
+        */
 
         // 3. Apply New Tank Level - DISABLED FOR DEBUGGING
         /*
@@ -166,9 +196,10 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         }
         */
 
-        console.log('[updateFuelLog] Only Log Updated:', updatedLog.id);
+        // console.log('[updateFuelLog] Only Log Updated:', updatedLog.id);
 
-        return { success: true, data: updatedLog };
+        // return { success: true, data: updatedLog };
+        */
 
     } catch (error: any) {
         console.error('updateFuelLog FATAL ERROR:', error);
