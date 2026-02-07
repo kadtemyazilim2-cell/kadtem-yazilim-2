@@ -46,19 +46,35 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
     }, [initialData, currentUser]);
 
     const { user, hasPermission } = useAuth();
-    const [selectedUserId, setSelectedUserId] = useState<string>(userId || 'all');
+
+    // [FIX] Consolidate "Admin View" logic
+    // Admin or User with explicit 'cash-book.admin-view' permission
+    const canViewAll = useMemo(() => {
+        return user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW');
+    }, [user, hasPermission]);
+
+    // [FIX] Initialize selectedUserId to 'all' ONLY if allowed, otherwise force own ID
+    // If userId prop is passed, use it, else if canViewAll use 'all', else use user.id
+    const [selectedUserId, setSelectedUserId] = useState<string>(
+        userId || (canViewAll ? 'all' : (user?.id || 'all'))
+    );
+
     const [selectedSiteId, setSelectedSiteId] = useState<string>(siteId || 'all');
     const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>(type || 'ALL');
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ALL' | 'CASH' | 'CREDIT_CARD'>('ALL'); // [NEW]
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Update state if props change
+    // Update state if props change or Perms change
     useEffect(() => {
         if (siteId) setSelectedSiteId(siteId);
         if (type) setSelectedType(type);
-        // [NEW]
         if (userId) setSelectedUserId(userId);
-    }, [siteId, type, userId]);
+
+        // [FIX] If user gained permission dynamically, ensure they can see all if not restricted by prop
+        if (!userId && canViewAll && selectedUserId !== 'all' && selectedUserId === user?.id) {
+            // Optional: Don't force reset if they manually selected, but for initial load it helps
+        }
+    }, [siteId, type, userId, canViewAll]);
 
     // [NEW] Edit State
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -140,9 +156,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
     // Permission check for Reports & Date Filtering
     // [FIX] Allow export if user has explicit EXPORT permission OR has Admin View / Reports View
     // This allows users with "Yönetici Görünümü" to also download the data they see.
-    const canExport = hasPermission('cash-book', 'EXPORT') ||
-        hasPermission('cash-book.admin-view', 'VIEW') ||
-        hasPermission('cash-book.reports', 'VIEW');
+    const canExport = hasPermission('cash-book', 'EXPORT') || canViewAll || hasPermission('cash-book.reports', 'VIEW');
 
     const filteredTransactions = useMemo(() => {
         let result = [...(cashTransactions || [])];
@@ -154,7 +168,10 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
         // Server already filters data based on permissions in getAllTransactions.
         // Doing it here again causes issues if user role is delayed or mismatched.
 
-        if (selectedUserId !== 'all') {
+        if (!canViewAll && user) {
+            // Force filter to own ID if not Admin/ViewAll
+            result = result.filter(t => (t.responsibleUserId || t.createdByUserId) === user.id);
+        } else if (selectedUserId !== 'all') {
             // Admin filtering by user
             result = result.filter(t => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
         }
@@ -738,7 +755,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                         )}
 
                         {/* [MOD] Role-Based Action Buttons */}
-                        {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) ? (
+                        {(canViewAll) ? (
                             <>
                                 <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => {
                                     setEditingTransaction(null);
@@ -810,7 +827,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                 </div>
 
                 {/* Filter Row: Grid Layout */}
-                {(user?.role === 'ADMIN' || showReport || hasPermission('cash-book.admin-view', 'VIEW')) && (
+                {(canViewAll || showReport) && (
                     <div className="bg-slate-50 p-4 rounded-lg border">
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
                             {/* Search - Col 3 */}
@@ -840,7 +857,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                             </div>
 
                             {/* User Filter (Admin or Admin View Perm) - Col 2 */}
-                            {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && (
+                            {canViewAll && (
                                 <div className="col-span-12 md:col-span-2">
                                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                                         <SelectTrigger className="w-full bg-white">
@@ -863,7 +880,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                         <SelectValue placeholder="Ödeme Tipi" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && <SelectItem value="ALL">Tüm Ödemeler</SelectItem>}
+                                        {(canViewAll) && <SelectItem value="ALL">Tüm Ödemeler</SelectItem>}
                                         <SelectItem value="CASH">Nakit</SelectItem>
                                         <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
                                     </SelectContent>
@@ -872,7 +889,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
 
                             {/* Date Range - Col 3 */}
                             {canExport && (
-                                <div className={cn("col-span-12 flex gap-2 items-center", (user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) ? "md:col-span-3" : "md:col-span-5")}>
+                                <div className={cn("col-span-12 flex gap-2 items-center", canViewAll ? "md:col-span-3" : "md:col-span-12")}>
                                     <Input
                                         type="date"
                                         value={startDate}
@@ -919,7 +936,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                 )}
             </CardHeader>
             {/* Only show Table Content if Admin, Admin View Perm, or showReport is true */}
-            {(user?.role === 'ADMIN' || showReport || hasPermission('cash-book.admin-view', 'VIEW')) && (
+            {(canViewAll || showReport) && (
                 <CardContent>
                     <div className="mb-4 p-2 bg-slate-50 border rounded text-xs text-muted-foreground">
                         <span className="font-semibold">Devreden Bakiye: </span>
