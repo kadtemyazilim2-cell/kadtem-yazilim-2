@@ -131,75 +131,75 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
             } as any
         };
 
-        /* DATABASE OPERATIONS DISABLED
-        // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
-        const existing = await prisma.fuelLog.findUnique({ where: { id } });
-        if (!existing) throw new Error('Kayıt bulunamadı.');
+        // /* DATABASE OPERATIONS DISABLED
+        // // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
+        // const existing = await prisma.fuelLog.findUnique({ where: { id } });
+        // if (!existing) throw new Error('Kayıt bulunamadı.');
 
-        // 1. Revert Old Tank Level - DISABLED FOR DEBUGGING
-        /*
-        if (existing.tankId) {
-            await prisma.fuelTank.update({
-                where: { id: existing.tankId },
-                data: { currentLevel: { increment: existing.liters } }
-            });
-        }
-        */
+        // // 1. Revert Old Tank Level - DISABLED FOR DEBUGGING
+        // /*
+        // if (existing.tankId) {
+        //     await prisma.fuelTank.update({
+        //         where: { id: existing.tankId },
+        //         data: { currentLevel: { increment: existing.liters } }
+        //     });
+        // }
+        // */
 
-        // 2. Update Log
-        /*
-        const updatedLog = await prisma.fuelLog.update({
-            where: { id },
-            data: {
-                vehicleId: data.vehicleId,
-                siteId: data.siteId,
-                tankId: data.tankId,
-                date: data.date ? new Date(data.date) : undefined,
-                liters: data.liters,
-                cost: data.cost,
-                unitPrice: data.unitPrice,
-                mileage: data.mileage,
-                fullTank: data.fullTank,
-                description: data.description,
-            },
-            // include: { // [DEBUG] Disabled heavy payload
-            //     vehicle: true,
-            //     site: true,
-            //     filledByUser: true,
-            //     tank: true
-            // }
-        });
-        */
+        // // 2. Update Log
+        // /*
+        // const updatedLog = await prisma.fuelLog.update({
+        //     where: { id },
+        //     data: {
+        //         vehicleId: data.vehicleId,
+        //         siteId: data.siteId,
+        //         tankId: data.tankId,
+        //         date: data.date ? new Date(data.date) : undefined,
+        //         liters: data.liters,
+        //         cost: data.cost,
+        //         unitPrice: data.unitPrice,
+        //         mileage: data.mileage,
+        //         fullTank: data.fullTank,
+        //         description: data.description,
+        //     },
+        //     // include: { // [DEBUG] Disabled heavy payload
+        //     //     vehicle: true,
+        //     //     site: true,
+        //     //     filledByUser: true,
+        //     //     tank: true
+        //     // }
+        // });
+        // */
 
-        // 3. Apply New Tank Level - DISABLED FOR DEBUGGING
-        /*
-        if (data.tankId && data.liters !== undefined) {
-            await prisma.fuelTank.update({
-                where: { id: data.tankId },
-                data: {
-                    currentLevel: { decrement: data.liters }
-                }
-            });
-        }
-        */
+        // // 3. Apply New Tank Level - DISABLED FOR DEBUGGING
+        // /*
+        // if (data.tankId && data.liters !== undefined) {
+        //     await prisma.fuelTank.update({
+        //         where: { id: data.tankId },
+        //         data: {
+        //             currentLevel: { decrement: data.liters }
+        //         }
+        //     });
+        // }
+        // */
 
-        // [NEW] Update Vehicle KM - DISABLED FOR DEBUGGING
-        /*
-        if (data.mileage) {
-            const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
-            if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
-                await prisma.vehicle.update({
-                    where: { id: vehicle.id },
-                    data: { currentKm: data.mileage }
-                });
-            }
-        }
-        */
+        // // [NEW] Update Vehicle KM - DISABLED FOR DEBUGGING
+        // /*
+        // if (data.mileage) {
+        //     const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
+        //     if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
+        //         await prisma.vehicle.update({
+        //             where: { id: vehicle.id },
+        //             data: { currentKm: data.mileage }
+        //         });
+        //     }
+        // }
+        // */
 
-        // console.log('[updateFuelLog] Only Log Updated:', updatedLog.id);
+        // // console.log('[updateFuelLog] Only Log Updated:', updatedLog.id);
 
-        // return { success: true, data: updatedLog };
-        */
+        // // return { success: true, data: updatedLog };
+        // */
 
     } catch (error: any) {
         console.error('updateFuelLog FATAL ERROR:', error);
