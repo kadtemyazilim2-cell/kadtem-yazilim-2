@@ -97,10 +97,12 @@ export async function createFuelLog(data: Partial<FuelLog>) {
 
 export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
     try {
+        // [DEBUG] Bypass Auth Check to test Connection Leak
+        /*
         const session = await import('@/auth').then(m => m.auth()); // Simple auth check
         if (!session?.user) return { success: false, error: 'Yetkisiz işlem.' };
-
-        console.log('updateFuelLog: Starting update for ID:', id, 'Payload:', JSON.stringify(data)); // [DEBUG] Log Payload
+        */
+        console.log('updateFuelLog: [NO AUTH CHECK] Starting update for ID:', id, 'Payload:', JSON.stringify(data)); // [DEBUG] Log Payload
 
         // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
         const existing = await prisma.fuelLog.findUnique({ where: { id } });
