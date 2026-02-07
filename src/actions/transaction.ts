@@ -42,8 +42,16 @@ export async function getAllTransactions() {
             where.responsibleUserId = user.id;
         }
 
+        const currentYear = new Date().getFullYear();
+        const startDate = new Date(currentYear, 0, 1); // Jan 1st of current year
+
         const transactions = await prisma.cashTransaction.findMany({
-            where,
+            where: {
+                ...where,
+                date: {
+                    gte: startDate
+                }
+            },
             orderBy: { date: 'desc' },
             // [OPTIMIZATION] Removed includes to reduce payload size.
             // Helper functions in UI (getUserName, getSiteName) use the stores, so we don't need relations here.
@@ -101,7 +109,7 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
         console.log('[createTransaction] Success:', transaction.id);
 
-        // Revalidate
+        // Revalidate safely
         try {
             revalidatePath('/dashboard/cash-book');
         } catch (e) {
