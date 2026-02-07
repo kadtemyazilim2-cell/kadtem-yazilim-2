@@ -173,8 +173,8 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         return { success: true, data: updatedLog };
 
     } catch (error: any) {
-        console.error('updateFuelLog Error:', error);
-        return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
+        console.error('updateFuelLog FATAL ERROR:', error);
+        return { success: false, error: error.message || 'Güncelleme yapılamadı (Sunucu Hatası).' };
     }
 }
 

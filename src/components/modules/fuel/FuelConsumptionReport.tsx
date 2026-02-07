@@ -195,7 +195,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 mileage: row.mileage,
                 liters: row.liters,
                 cost: row.cost,
-                siteId: row.siteId
+                siteId: row.siteId,
+                tankId: row.tankId, // [FIX]
+                vehicleId: row.vehicleId // [FIX]
             });
         }
         setIsEditOpen(true);
@@ -341,6 +343,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     lifetimeAvg: lifetimeAvg,
                     fullTank: log.fullTank,
                     siteId: log.siteId,
+                    tankId: log.tankId, // [FIX] Include tankId for edits
+                    vehicleId: log.vehicleId, // [FIX] Include vehicleId for edits
                     filledByUserId: log.filledByUserId,
                     sourceName: undefined, // Fallback to filledByUserId name in render,
                     description: log.description // [NEW] Note
