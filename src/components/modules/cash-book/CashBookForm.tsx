@@ -329,11 +329,9 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                 ? updateTransaction(initialData.id, payload)
                 : createTransaction(payload);
 
-            // Race against a 45s timeout (Increased for slower uploads if resize is efficient but net is slow)
-            const res = await Promise.race([
-                requestPromise,
-                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Sunucu yanıt vermedi (Zaman aşımı). Lütfen daha küçük bir dosya yüklemeyi deneyin veya internet bağlantınızı kontrol edin.')), 45000))
-            ]);
+            // Client-side request without artificial race
+            console.log('Sending request...');
+            const res = await requestPromise;
 
             console.log('Server Response:', res);
 

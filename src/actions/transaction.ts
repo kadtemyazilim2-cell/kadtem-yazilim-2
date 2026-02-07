@@ -85,27 +85,24 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             pm = PaymentMethod.CREDIT_CARD;
         }
 
-        // [TIMEOUT] Wrap DB call in race
-        const transaction = await Promise.race([
-            prisma.cashTransaction.create({
-                data: {
-                    siteId: data.siteId,
-                    // [FIX] Handle string or Date
-                    date: data.date ? new Date(data.date) : new Date(),
-                    type: data.type,
-                    category: data.category,
-                    amount: Number(data.amount),
-                    description: data.description || '',
-                    documentNo: data.documentNo,
-                    createdByUserId: creatorId,
-                    // If responsibleUserId is not provided, fallback to creator
-                    responsibleUserId: data.responsibleUserId || creatorId,
-                    paymentMethod: pm,
-                    imageUrl: data.imageUrl
-                }
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Veritabanı zaman aşımı (10s)')), 10000))
-        ]) as CashTransaction;
+        // [TIMEOUT] Removed manual race, relying on Prisma timeout
+        const transaction = await prisma.cashTransaction.create({
+            data: {
+                siteId: data.siteId,
+                // [FIX] Handle string or Date
+                date: data.date ? new Date(data.date) : new Date(),
+                type: data.type,
+                category: data.category,
+                amount: Number(data.amount),
+                description: data.description || '',
+                documentNo: data.documentNo,
+                createdByUserId: creatorId,
+                // If responsibleUserId is not provided, fallback to creator
+                responsibleUserId: data.responsibleUserId || creatorId,
+                paymentMethod: pm,
+                imageUrl: data.imageUrl
+            }
+        });
 
         console.log('[createTransaction] Success:', transaction.id);
 
@@ -177,14 +174,11 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             updateData.responsibleUserId = data.responsibleUserId;
         }
 
-        // [TIMEOUT] Wrap DB call
-        const transaction = await Promise.race([
-            prisma.cashTransaction.update({
-                where: { id },
-                data: updateData
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Güncelleme zaman aşımı (10s)')), 10000))
-        ]) as CashTransaction;
+        // [TIMEOUT] Removed manual race
+        const transaction = await prisma.cashTransaction.update({
+            where: { id },
+            data: updateData
+        });
 
         console.log('[updateTransaction] Success:', transaction.id);
 
