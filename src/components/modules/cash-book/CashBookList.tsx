@@ -717,21 +717,23 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <CardTitle className="text-2xl font-bold">Kasa Hareketleri</CardTitle>
                     <div className="flex gap-2">
+                        {/* [MOD] Export Buttons - Visible to ALL with permission */}
+                        {canExport && (
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={exportPDF} title="PDF İndir">
+                                    <FileText className="h-4 w-4 text-red-600 mr-2" />
+                                    PDF
+                                </Button>
+                                <Button variant="outline" onClick={exportExcel} title="Excel İndir">
+                                    <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
+                                    Excel
+                                </Button>
+                            </div>
+                        )}
+
                         {/* [MOD] Role-Based Action Buttons */}
                         {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) ? (
                             <>
-                                {canExport && (
-                                    <>
-                                        <Button variant="outline" onClick={exportPDF} title="PDF İndir">
-                                            <FileText className="h-4 w-4 text-red-600 mr-2" />
-                                            PDF
-                                        </Button>
-                                        <Button variant="outline" onClick={exportExcel} title="Excel İndir">
-                                            <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" />
-                                            Excel
-                                        </Button>
-                                    </>
-                                )}
                                 <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => {
                                     setEditingTransaction(null);
                                     setFormDefaultValues(undefined); // Reset defaults

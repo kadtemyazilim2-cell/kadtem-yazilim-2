@@ -15,10 +15,10 @@ export function StoreInitializer({
     fuelTanks,
     fuelLogs,
     fuelTransfers,
-    siteLogEntries, // [NEW]
-    cashTransactions = [], // Default to empty array if not provided
-    yiUfeRates, // [NEW]
-    vehicleAttendance, // [NEW]
+    siteLogEntries,
+    cashTransactions,
+    yiUfeRates,
+    vehicleAttendance,
     currentUser
 }: {
     companies: any[],
@@ -40,73 +40,71 @@ export function StoreInitializer({
     const initialized = useRef(false);
 
     // Better approach:
+    // Build updates object dynamically to avoid overwriting with undefined/empty
+    const updates: any = {};
+    if (companies) updates.companies = companies;
+    if (sites) updates.sites = sites;
+    if (vehicles) updates.vehicles = vehicles;
+    if (personnel) updates.personnel = personnel;
+    if (users) updates.users = users;
+    if (correspondences) updates.correspondences = correspondences;
+    if (institutions) updates.institutions = institutions;
+    if (fuelTanks) updates.fuelTanks = fuelTanks;
+    if (fuelLogs) updates.fuelLogs = fuelLogs;
+    if (fuelTransfers) updates.fuelTransfers = fuelTransfers;
+    if (siteLogEntries) updates.siteLogEntries = siteLogEntries;
+    if (cashTransactions) updates.cashTransactions = cashTransactions;
+    if (yiUfeRates) updates.yiUfeRates = yiUfeRates;
+    if (vehicleAttendance) updates.vehicleAttendance = vehicleAttendance;
+
     if (!initialized.current) {
-        useAppStore.setState({
-            companies,
-            sites,
-            vehicles,
-            personnel,
-            users,
-            correspondences,
-            institutions,
-            fuelTanks,
-            fuelLogs,
-            fuelTransfers,
-            siteLogEntries,
-            cashTransactions,
-            yiUfeRates, // [NEW]
-            vehicleAttendance, // [NEW]
-        });
+        useAppStore.setState(updates);
         initialized.current = true;
     }
 
-    // Sync Data Store reactively when server data changes (e.g. after revalidatePath)
+    // Sync Data Store reactively
     useEffect(() => {
-        useAppStore.setState({
-            companies,
-            sites,
-            vehicles,
-            personnel,
-            users,
-            correspondences,
-            institutions,
-            fuelTanks,
-            fuelLogs,
-            fuelTransfers,
-            siteLogEntries,
-            cashTransactions,
-            yiUfeRates, // [NEW]
-            vehicleAttendance, // [NEW]
-        });
+        const reactiveUpdates: any = {};
+        if (companies) reactiveUpdates.companies = companies;
+        if (sites) reactiveUpdates.sites = sites;
+        if (vehicles) reactiveUpdates.vehicles = vehicles;
+        if (personnel) reactiveUpdates.personnel = personnel;
+        if (users) reactiveUpdates.users = users;
+        if (correspondences) reactiveUpdates.correspondences = correspondences;
+        if (institutions) reactiveUpdates.institutions = institutions;
+        if (fuelTanks) reactiveUpdates.fuelTanks = fuelTanks;
+        if (fuelLogs) reactiveUpdates.fuelLogs = fuelLogs;
+        if (fuelTransfers) reactiveUpdates.fuelTransfers = fuelTransfers;
+        if (siteLogEntries) reactiveUpdates.siteLogEntries = siteLogEntries;
+        if (cashTransactions) reactiveUpdates.cashTransactions = cashTransactions;
+        if (yiUfeRates) reactiveUpdates.yiUfeRates = yiUfeRates;
+        if (vehicleAttendance) reactiveUpdates.vehicleAttendance = vehicleAttendance;
+
+        if (Object.keys(reactiveUpdates).length > 0) {
+            useAppStore.setState(reactiveUpdates);
+        }
     }, [companies, sites, vehicles, personnel, users, correspondences, institutions, fuelTanks, fuelLogs, fuelTransfers, siteLogEntries, cashTransactions, yiUfeRates, vehicleAttendance]);
 
-    // Sync Auth State separately and reactively
-    // Sync Auth State separately and reactively
+    // Sync Auth State separately
     useEffect(() => {
         if (currentUser) {
-            // [SELF-HEALING] Check for stale "fake" admin session
             if (currentUser.id === 'admin-id') {
                 console.warn("Detected stale admin session. Forcing logout...");
-                // Dynamic import to avoid SSR issues with next-auth/react
                 import('next-auth/react').then(mod => mod.signOut());
                 return;
             }
 
-            // [FIX] Hydrate from FRESH `users` array instead of stale session
-            // This ensures permissions are updated immediately without re-login
-            // The `users` prop comes from `getUsers()` in DashboardLayout which is fresh from DB.
-            const freshUser = users.find((u: any) => u.id === currentUser.id) || currentUser;
+            const freshUser = users?.find((u: any) => u.id === currentUser.id) || currentUser;
 
             useAuth.setState({
                 user: freshUser,
                 isAuthenticated: true
             });
-        } else {
-            // [CRITICAL FIX] If server says no user, enforce it on client!
-            useAuth.setState({
-                user: null,
-                isAuthenticated: false
-            });
+        }
+        // NOTE: We do NOT set user to null here automatically to prevent flashing if currentUser is temporarily undefined during revalidation 
+        // unless we are sure. But re-enabling manual logout logic if needed.
+        else if (currentUser === null) {
+            useAuth.setState({ user: null, isAuthenticated: false });
         }
     }, [currentUser, users]);
 
