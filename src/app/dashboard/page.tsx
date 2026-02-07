@@ -376,7 +376,7 @@ export default function DashboardPage() {
 
                 {/* 2. Financial Status (Middle - 3/12) - [MOVED HERE] */}
                 {hasPermission('dashboard.financial', 'VIEW') && (
-                    <Card className="col-span-1 md:col-span-1 lg:col-span-3 bg-emerald-50 border-emerald-100 border shadow-sm h-full">
+                    <Card className="col-span-1 md:col-span-1 lg:col-span-4 bg-emerald-50 border-emerald-100 border shadow-sm h-full">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600">
                                 Şantiye Kasaları (Personel)
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                 {/* 3. Upcoming Payments (Right - 6/12 - Wide) */}
                 {
                     hasPermission('dashboard.upcoming-payments', 'VIEW') && (
-                        <Card className="col-span-1 md:col-span-2 lg:col-span-6 bg-red-50 border-red-100 border shadow-sm h-full flex flex-col">
+                        <Card className="col-span-1 md:col-span-2 lg:col-span-5 bg-red-50 border-red-100 border shadow-sm h-full flex flex-col">
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 shrink-0">
                                 <CardTitle className="text-sm font-medium text-slate-600 flex items-center gap-2">
                                     <AlertTriangle className="h-4 w-4 text-red-600" />
