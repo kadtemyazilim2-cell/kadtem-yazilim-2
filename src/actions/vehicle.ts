@@ -33,6 +33,9 @@ const getVehiclesFromDb = unstable_cache(
                 fuelType: true,
                 lastInspectionDate: true,
 
+                lastTrafficProposalDate: true,
+                lastTrafficProposalAgencies: true,
+                lastKaskoProposalDate: true,
                 lastKaskoProposalAgencies: true,
 
                 // licenseFile: false, // EXCLUDED to prevent 2MB cache limit error
