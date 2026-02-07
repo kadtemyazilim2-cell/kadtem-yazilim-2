@@ -128,6 +128,15 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
         setQuickYear(year);
     };
 
+    // [FIX] Auto-switch to 'all' if Admin View is detected later (after mount)
+    useEffect(() => {
+        // If user has Admin View, and current selection is self (default), switch to 'all'
+        // Check if selectedUserId matches user.id OR if it's implicitly set to user.id via initial state
+        if (canViewAll && user?.id && (selectedUserId === user.id)) {
+            setSelectedUserId('all');
+        }
+    }, [canViewAll, user?.id, selectedUserId]);
+
     // Helper for safe date formatting
     const safeFormat = (dateStr: string | Date | number | null | undefined, fmt: string) => {
         if (!dateStr) return '-';
