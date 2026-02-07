@@ -164,12 +164,19 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         console.log('[updateFuelLog] Transaction committed:', updatedLog.id);
 
         // Force Revalidation
-        revalidateTag('fuel-logs');
-        revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel', 'page'); // Specific page
-        revalidatePath('/dashboard', 'layout'); // [NEW] Force Dashboard Layout refresh
-        revalidatePath('/dashboard/fuel/movement', 'page'); // Movement page
-        revalidatePath('/', 'layout'); // Global layout refresh
+        try {
+            console.log('[updateFuelLog] Starting revalidation...');
+            revalidateTag('fuel-logs');
+            revalidateTag('fuel-tanks');
+            revalidatePath('/dashboard/fuel', 'page'); // Specific page
+            revalidatePath('/dashboard', 'layout'); // [NEW] Force Dashboard Layout refresh
+            revalidatePath('/dashboard/fuel/movement', 'page'); // Movement page
+            revalidatePath('/', 'layout'); // Global layout refresh
+            console.log('[updateFuelLog] Revalidation complete.');
+        } catch (revalError) {
+            console.error('[updateFuelLog] Revalidation failed:', revalError);
+            // Continue execution, don't fail the request just because revalidation failed
+        }
 
         return { success: true, data: updatedLog };
 

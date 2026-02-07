@@ -170,15 +170,25 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         console.log('Updating Fuel Record:', editingLog.id, editForm);
         setIsUpdating(true); // [NEW] Start Loading
 
+        // Safety Timeout (10 seconds)
+        const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (Sunucu yanıt vermedi).')), 10000)
+        );
+
         try {
             if ((editingLog as any).recordType === 'TRANSFER') {
                 // Update Transfer
                 // Call Server Action
-                const res = await updateFuelTransferAction(editingLog.id, {
-                    ...editForm,
-                    date: editForm.date ? new Date(editForm.date) : undefined,
-                    amount: editForm.liters
-                } as any);
+                const updatePromise = async () => {
+                    return await updateFuelTransferAction(editingLog.id, {
+                        ...editForm,
+                        date: editForm.date ? new Date(editForm.date) : undefined,
+                        amount: editForm.liters
+                    } as any);
+                };
+
+                // Race against timeout
+                const res: any = await Promise.race([updatePromise(), timeoutPromise]);
 
                 if (res.success) {
                     updateFuelTransfer(editingLog.id, {
@@ -196,10 +206,17 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             } else {
                 // Update Log
                 // Call Server Action
-                const res = await updateFuelLogAction(editingLog.id, {
-                    ...editForm,
-                    date: editForm.date ? new Date(editForm.date) : undefined
-                } as any);
+                console.log('Sending Update Log Action...');
+                const updatePromise = async () => {
+                    return await updateFuelLogAction(editingLog.id, {
+                        ...editForm,
+                        date: editForm.date ? new Date(editForm.date) : undefined
+                    } as any);
+                };
+
+                // Race against timeout
+                const res: any = await Promise.race([updatePromise(), timeoutPromise]);
+                console.log('Update Log Action Result:', res);
 
                 if (res.success && res.data) {
                     updateFuelLog(editingLog.id, res.data as any);
@@ -208,12 +225,13 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     router.refresh();
                     setRefreshKey(prev => prev + 1);
                 } else {
+                    console.error('Update Failed:', res.error);
                     alert(res.error || 'Güncelleme başarısız.');
                 }
             }
-        } catch (error) {
-            console.error(error);
-            alert('Bir hata oluştu.');
+        } catch (error: any) {
+            console.error('HandleUpdate Error:', error);
+            alert(error.message || 'Bir hata oluştu.');
         } finally {
             setIsUpdating(false); // [NEW] Stop Loading
         }
