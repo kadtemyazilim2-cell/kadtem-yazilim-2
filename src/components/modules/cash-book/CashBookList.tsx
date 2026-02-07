@@ -20,7 +20,7 @@ import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
 import { Button } from '@/components/ui/button';
 import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
-import { deleteTransaction, getTransaction } from '@/actions/transaction';
+import { deleteTransaction } from '@/actions/transaction';
 
 interface CashBookListProps {
     siteId?: string;

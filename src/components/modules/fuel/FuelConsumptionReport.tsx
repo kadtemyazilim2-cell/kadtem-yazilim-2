@@ -18,7 +18,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useState } from 'react';
 import { normalizeSearchText, cn } from '@/lib/utils';
-import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction } from '@/actions/fuel';
+import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction, updateFuelLog as updateFuelLogAction, updateFuelTransfer as updateFuelTransferAction } from '@/actions/fuel';
+
+// ...
+
+const handleUpdate = async () => {
+    if (!editingLog) return;
+
+    let success = false;
+    let errorMsg = '';
+
+    if ((editingLog as any).recordType === 'TRANSFER') {
+        // Update Transfer
+        // ... (keep existing logic but use Server Action)
+        const res = await updateFuelTransferAction(editingLog.id, {
+            date: editForm.date,
+            amount: editForm.liters
+        });
+        if (res.success && res.data) {
+            updateFuelTransfer(editingLog.id, {
+                date: editForm.date,
+                amount: editForm.liters
+            });
+            success = true;
+        } else {
+            errorMsg = res.error || 'Güncelleme başarısız';
+        }
+    } else {
+        // Update Log
+        const res = await updateFuelLogAction(editingLog.id, editForm);
+        if (res.success && res.data) {
+            // Update Store with Server Response to be sure
+            updateFuelLog(editingLog.id, res.data as any);
+            success = true;
+        } else {
+            errorMsg = res.error || 'Güncelleme başarısız';
+        }
+    }
+
+    if (success) {
+        setIsEditOpen(false);
+        setEditingLog(null);
+        toast.success('Kayıt güncellendi.');
+    } else {
+        alert(errorMsg);
+    }
+};
 
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
 
@@ -130,24 +175,44 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         setIsEditOpen(true);
     };
 
-    const handleUpdate = () => {
+    const handleUpdate = async () => {
         if (!editingLog) return;
 
-        if ((editingLog as any).recordType === 'TRANSFER') {
-            // Update Transfer
-            // Mapping editForm back to Transfer properties
-            // Note: We only support Date and Amount (Liters) update here to keep it safe.
-            // Site update is risky for Transfers (changes From/To tanks logic).
-            updateFuelTransfer(editingLog.id, {
-                date: editForm.date,
-                amount: editForm.liters
-            });
-        } else {
-            // Update Log
-            updateFuelLog(editingLog.id, editForm);
+        try {
+            if ((editingLog as any).recordType === 'TRANSFER') {
+                // Update Transfer
+                // Call Server Action
+                const res = await updateFuelTransferAction(editingLog.id, {
+                    date: editForm.date,
+                    amount: editForm.liters
+                });
+
+                if (res.success) {
+                    updateFuelTransfer(editingLog.id, {
+                        date: editForm.date,
+                        amount: editForm.liters
+                    });
+                    setIsEditOpen(false);
+                    setEditingLog(null);
+                } else {
+                    alert(res.error || 'Güncelleme başarısız.');
+                }
+            } else {
+                // Update Log
+                // Call Server Action
+                const res = await updateFuelLogAction(editingLog.id, editForm);
+                if (res.success && res.data) {
+                    updateFuelLog(editingLog.id, res.data as any);
+                    setIsEditOpen(false);
+                    setEditingLog(null);
+                } else {
+                    alert(res.error || 'Güncelleme başarısız.');
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Bir hata oluştu.');
         }
-        setIsEditOpen(false);
-        setEditingLog(null);
     };
 
     // Group logs by vehicle

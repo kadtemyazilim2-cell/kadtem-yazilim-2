@@ -19,6 +19,8 @@ import { FuelGivenList } from '@/components/modules/fuel/FuelGivenList'; // [NEW
 import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList'; // [NEW]
 import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList'; // [NEW]
 
+export const dynamic = 'force-dynamic';
+
 export default function FuelMovementPage() {
     const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
     const { hasPermission, user, refreshSession } = useAuth(); // [NEW] refreshSession
