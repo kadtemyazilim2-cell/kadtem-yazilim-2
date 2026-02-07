@@ -163,19 +163,17 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 
         console.log('[updateFuelLog] Transaction committed:', updatedLog.id);
 
-        // Force Revalidation
+        // Optimized Revalidation
         try {
             console.log('[updateFuelLog] Starting revalidation...');
             revalidateTag('fuel-logs');
             revalidateTag('fuel-tanks');
-            revalidatePath('/dashboard/fuel', 'page'); // Specific page
-            revalidatePath('/dashboard', 'layout'); // [NEW] Force Dashboard Layout refresh
-            revalidatePath('/dashboard/fuel/movement', 'page'); // Movement page
-            revalidatePath('/', 'layout'); // Global layout refresh
+            // revalidatePath('/dashboard', 'layout'); // [FIX] Removed heavy layout revalidation
+            revalidatePath('/dashboard/fuel', 'page');
+            revalidatePath('/dashboard/fuel/movement', 'page');
             console.log('[updateFuelLog] Revalidation complete.');
         } catch (revalError) {
             console.error('[updateFuelLog] Revalidation failed:', revalError);
-            // Continue execution, don't fail the request just because revalidation failed
         }
 
         return { success: true, data: updatedLog };
@@ -397,8 +395,10 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
     } finally {
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
+        revalidateTag('fuel-logs'); // [NEW] Ensure logs updated
+        // revalidatePath('/dashboard', 'layout'); // [FIX] Removed heavy layout revalidation
         revalidatePath('/dashboard/fuel', 'page');
-        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
+        revalidatePath('/dashboard/fuel/movement', 'page');
     }
 }
 
