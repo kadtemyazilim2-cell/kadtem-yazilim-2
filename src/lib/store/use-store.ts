@@ -329,6 +329,10 @@ export const useAppStore = create<AppState>()(
 
             storage: createJSONStorage(() => indexedDBStorage), // Use IndexedDB instead of localStorage
             skipHydration: true, // We will hydrate manually to avoid hydration errors in Next.js
+            partialize: (state) => {
+                const { cashTransactions, ...rest } = state;
+                return rest;
+            }
         }
     )
 );
