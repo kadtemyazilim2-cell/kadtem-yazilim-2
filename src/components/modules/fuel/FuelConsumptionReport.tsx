@@ -172,7 +172,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
         // Safety Timeout (30 seconds)
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (v1.9 - Sunucu yanıt vermedi).')), 30000)
+            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (Sunucu yanıt vermedi).')), 30000)
         );
 
         try {
@@ -884,7 +884,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Yakıt Kaydını Düzenle <span className="text-xs text-muted-foreground ml-2">(v1.7 - MOCK MODE)</span></DialogTitle>
+                            <DialogTitle>Yakıt Kaydını Düzenle</DialogTitle>
                         </DialogHeader>
                         {editingLog && (
                             <div className="grid gap-4 py-4">
