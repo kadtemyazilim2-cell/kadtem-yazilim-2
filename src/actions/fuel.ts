@@ -163,15 +163,17 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 
         console.log('[updateFuelLog] Transaction committed:', updatedLog.id);
 
-        // Optimized Revalidation
+        // Server Revalidation - TEMPORARILY DISABLED
+        // We will rely on router.refresh() from client for now to avoid Vercel Timeouts
         try {
+            /*
             console.log('[updateFuelLog] Starting revalidation...');
             revalidateTag('fuel-logs');
             revalidateTag('fuel-tanks');
-            // revalidatePath('/dashboard', 'layout'); // [FIX] Removed heavy layout revalidation
-            revalidatePath('/dashboard/fuel', 'page');
-            revalidatePath('/dashboard/fuel/movement', 'page');
+            // revalidatePath('/dashboard/fuel', 'page');
+            // revalidatePath('/dashboard/fuel/movement', 'page');
             console.log('[updateFuelLog] Revalidation complete.');
+            */
         } catch (revalError) {
             console.error('[updateFuelLog] Revalidation failed:', revalError);
         }
@@ -393,12 +395,14 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
         console.error('updateFuelTransfer Error:', error);
         return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
     } finally {
+        /*
         revalidateTag('fuel-transfers');
         revalidateTag('fuel-tanks');
         revalidateTag('fuel-logs'); // [NEW] Ensure logs updated
         // revalidatePath('/dashboard', 'layout'); // [FIX] Removed heavy layout revalidation
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page');
+        */
     }
 }
 
