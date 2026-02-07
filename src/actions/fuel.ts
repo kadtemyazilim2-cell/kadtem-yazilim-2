@@ -98,7 +98,8 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 
         console.log('updateFuelLog: Starting update for ID:', id, data);
 
-        const result = await prisma.$transaction(async (tx) => {
+        // Execute Transaction
+        const updatedLog = await prisma.$transaction(async (tx) => {
             const existing = await tx.fuelLog.findUnique({ where: { id } });
             if (!existing) throw new Error('Kayıt bulunamadı.');
 
@@ -124,6 +125,12 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
                     mileage: data.mileage,
                     fullTank: data.fullTank,
                     description: data.description,
+                },
+                include: { // [NEW] Return full object with relations to update Store immediately
+                    vehicle: true,
+                    site: true,
+                    filledByUser: true,
+                    tank: true
                 }
             });
 
@@ -151,12 +158,16 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
             return log;
         });
 
+        console.log('[updateFuelLog] Transaction committed:', updatedLog.id);
+
+        // Force Revalidation
         revalidateTag('fuel-logs');
         revalidateTag('fuel-tanks');
-        revalidatePath('/dashboard/fuel', 'page');
-        revalidatePath('/', 'layout'); // Force global refresh
+        revalidatePath('/dashboard/fuel', 'page'); // Specific page
+        revalidatePath('/dashboard/fuel/movement', 'page'); // Movement page
+        revalidatePath('/', 'layout'); // Global layout refresh
 
-        return { success: true, data: result };
+        return { success: true, data: updatedLog };
 
     } catch (error: any) {
         console.error('updateFuelLog Error:', error);
