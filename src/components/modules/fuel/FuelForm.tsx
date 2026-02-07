@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ interface FuelFormProps {
 }
 
 export function FuelForm({ initialData, open: externalOpen, onOpenChange: externalOnOpenChange, onSuccess }: FuelFormProps) {
+    const router = useRouter();
     const [internalOpen, setInternalOpen] = useState(false);
     const open = externalOpen !== undefined ? externalOpen : internalOpen;
     const setOpen = externalOnOpenChange || setInternalOpen;
@@ -161,6 +163,7 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
                     // Actually, let's just close. Store update usually enough for UI.
 
                     setOpen(false);
+                    router.refresh();
                     if (onSuccess) onSuccess();
                 } else {
                     alert(result.error || 'Güncelleme başarısız.');
@@ -177,6 +180,7 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
                     addFuelLog(result.data as any);
                     setOpen(false);
                     resetForm();
+                    router.refresh();
                     if (onSuccess) onSuccess();
                 } else {
                     alert(result.error || 'Kayıt başarısız.');

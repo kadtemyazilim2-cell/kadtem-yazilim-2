@@ -9,6 +9,7 @@ import { revalidatePath, revalidateTag, unstable_cache, unstable_noStore as noSt
 
 export async function getFuelLogs() {
     noStore(); // [CRITICAL] Opt out of static caching
+    console.log('[getFuelLogs] Fetching fresh fuel logs at', new Date().toISOString());
     try {
         const logs = await prisma.fuelLog.findMany({
             orderBy: { date: 'desc' },

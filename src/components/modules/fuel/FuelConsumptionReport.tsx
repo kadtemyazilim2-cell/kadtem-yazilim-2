@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useState } from 'react';
 import { normalizeSearchText, cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelTransferAction, updateFuelLog as updateFuelLogAction, updateFuelTransfer as updateFuelTransferAction } from '@/actions/fuel';
 
 // ...
@@ -59,6 +60,7 @@ const handleUpdate = async () => {
     if (success) {
         setIsEditOpen(false);
         setEditingLog(null);
+        router.refresh();
         toast.success('Kayıt güncellendi.');
     } else {
         alert(errorMsg);
@@ -72,6 +74,7 @@ interface FuelConsumptionReportProps {
 }
 
 export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportProps = {}) {
+    const router = useRouter();
     // [UPDATED] Include fuelTransfers and tanks
     const {
         fuelLogs, vehicles, deleteFuelLog, updateFuelLog,
