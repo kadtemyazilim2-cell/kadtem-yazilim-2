@@ -65,6 +65,7 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
     const [showReport, setShowReport] = useState(false); // [NEW] Toggle report view for restricted users
 
     // Date Filters
+    const currentDate = new Date();
     // [FIX] Initialize with empty string to show ALL history by default
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
