@@ -198,8 +198,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     } as any);
                     setIsEditOpen(false);
                     setEditingLog(null);
-                    router.refresh();
-                    setRefreshKey(prev => prev + 1);
+                    // router.refresh(); // [DEBUG] Disabled to prevent hang
+                    // setRefreshKey(prev => prev + 1);
                 } else {
                     alert(res.error || 'Güncelleme başarısız.');
                 }
@@ -222,8 +222,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     updateFuelLog(editingLog.id, res.data as any);
                     setIsEditOpen(false);
                     setEditingLog(null);
-                    router.refresh();
-                    setRefreshKey(prev => prev + 1);
+                    // router.refresh(); // [DEBUG] Disabled to prevent hang
+                    // setRefreshKey(prev => prev + 1);
                 } else {
                     console.error('Update Failed:', res.error);
                     alert(res.error || 'Güncelleme başarısız.');
@@ -891,7 +891,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Yakıt Kaydını Düzenle <span className="text-xs text-muted-foreground ml-2">(v1.4 - TEST MODE)</span></DialogTitle>
+                            <DialogTitle>Yakıt Kaydını Düzenle <span className="text-xs text-muted-foreground ml-2">(v1.5 - YENİLEME YOK)</span></DialogTitle>
                         </DialogHeader>
                         {editingLog && (
                             <div className="grid gap-4 py-4">
