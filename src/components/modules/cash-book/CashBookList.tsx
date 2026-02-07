@@ -67,12 +67,9 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
     // Date Filters
     const currentDate = new Date();
     // [FIX] Initialize with empty string to avoid hydration mismatch
-    const [startDate, setStartDate] = useState<string>('');
-    const [endDate, setEndDate] = useState<string>('');
-
     // [FIX] Initialize with empty string to show ALL history by default
-    const [startDate, setStartDate] = useState<string>('');
-    const [endDate, setEndDate] = useState<string>('');
+    // Removed useEffect that forced current month default checking
+
 
     // Removed useEffect that forced current month default
 
