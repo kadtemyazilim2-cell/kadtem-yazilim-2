@@ -42,9 +42,11 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
     const { user, hasPermission } = useAuth();
 
     // [NEW] Client-side fresh fetch to bypass server cache issues
+    const [refreshKey, setRefreshKey] = useState(0); // [FIX] Manual Refresh Trigger
+
     useEffect(() => {
         const fetchData = async () => {
-            console.log('Fetching fresh fuel data on client...');
+            console.log('Fetching fresh fuel data on client (Key:', refreshKey, ')...');
             const [logsRes, transfersRes, tanksRes] = await Promise.all([
                 getFuelLogs(),
                 getFuelTransfers(),
@@ -62,7 +64,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             }
         };
         fetchData();
-    }, []);
+    }, [refreshKey]); // [FIX] Add refreshKey dependency
 
     // Permission Check
     const canEditFuel = hasPermission('fuel.consumption', 'EDIT');
@@ -170,30 +172,38 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 // Update Transfer
                 // Call Server Action
                 const res = await updateFuelTransferAction(editingLog.id, {
-                    date: editForm.date,
+                    ...editForm,
+                    date: editForm.date ? new Date(editForm.date) : undefined, // [FIX] Convert string to Date
                     amount: editForm.liters
                 });
 
                 if (res.success) {
                     updateFuelTransfer(editingLog.id, {
-                        date: editForm.date,
+                        ...editForm,
+                        date: editForm.date ? new Date(editForm.date) : undefined,
                         amount: editForm.liters
                     });
                     setIsEditOpen(false);
                     setEditingLog(null);
-                    router.refresh(); // [FIX] Added refresh
+                    router.refresh();
+                    setRefreshKey(prev => prev + 1);
                 } else {
                     alert(res.error || 'Güncelleme başarısız.');
                 }
             } else {
                 // Update Log
                 // Call Server Action
-                const res = await updateFuelLogAction(editingLog.id, editForm);
+                const res = await updateFuelLogAction(editingLog.id, {
+                    ...editForm,
+                    date: editForm.date ? new Date(editForm.date) : undefined // [FIX] Convert string to Date
+                } as any);
+
                 if (res.success && res.data) {
                     updateFuelLog(editingLog.id, res.data as any);
                     setIsEditOpen(false);
                     setEditingLog(null);
-                    router.refresh(); // [FIX] Added refresh
+                    router.refresh();
+                    setRefreshKey(prev => prev + 1);
                 } else {
                     alert(res.error || 'Güncelleme başarısız.');
                 }

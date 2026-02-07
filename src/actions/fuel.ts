@@ -99,7 +99,7 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         const session = await import('@/auth').then(m => m.auth()); // Simple auth check
         if (!session?.user) return { success: false, error: 'Yetkisiz işlem.' };
 
-        console.log('updateFuelLog: Starting update for ID:', id, data);
+        console.log('updateFuelLog: Starting update for ID:', id, 'Payload:', JSON.stringify(data)); // [DEBUG] Log Payload
 
         // Execute Transaction
         const updatedLog = await prisma.$transaction(async (tx) => {
