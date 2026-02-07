@@ -172,7 +172,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
         // Safety Timeout (30 seconds)
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (v1.8 - Sunucu yanıt vermedi).')), 30000)
+            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (v1.9 - Sunucu yanıt vermedi).')), 30000)
         );
 
         try {
@@ -214,7 +214,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
                 setIsEditOpen(false);
                 setEditingLog(null);
-                // router.refresh(); // Disabled
+
+                // [STABLE] Refresh data from server to reflect DB changes
+                router.refresh();
             } else {
                 console.error('Update Failed:', res.error);
                 alert(res.error || 'Güncelleme başarısız.');
