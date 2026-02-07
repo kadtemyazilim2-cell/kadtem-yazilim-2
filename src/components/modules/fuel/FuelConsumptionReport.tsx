@@ -163,9 +163,12 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         setIsEditOpen(true);
     };
 
+    const [isUpdating, setIsUpdating] = useState(false); // [NEW] Loading State
+
     const handleUpdate = async () => {
         if (!editingLog) return;
         console.log('Updating Fuel Record:', editingLog.id, editForm);
+        setIsUpdating(true); // [NEW] Start Loading
 
         try {
             if ((editingLog as any).recordType === 'TRANSFER') {
@@ -180,7 +183,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 if (res.success) {
                     updateFuelTransfer(editingLog.id, {
                         ...editForm,
-                        date: editForm.date ? new Date(editForm.date) : undefined, // Store might expect Date or String, let's pass date object
+                        date: editForm.date ? new Date(editForm.date) : undefined,
                         amount: editForm.liters
                     } as any);
                     setIsEditOpen(false);
@@ -211,6 +214,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         } catch (error) {
             console.error(error);
             alert('Bir hata oluştu.');
+        } finally {
+            setIsUpdating(false); // [NEW] Stop Loading
         }
     };
 
@@ -931,8 +936,10 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                             </div>
                         )}
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsEditOpen(false)}>İptal</Button>
-                            <Button onClick={handleUpdate}>Güncelle</Button>
+                            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>İptal</Button>
+                            <Button onClick={handleUpdate} disabled={isUpdating}>
+                                {isUpdating ? 'Güncelleniyor...' : 'Güncelle'}
+                            </Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
