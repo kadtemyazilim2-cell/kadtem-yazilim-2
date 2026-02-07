@@ -26,7 +26,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [], vehicleAttendance = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes, vehicleAttendanceRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, yiUfeRes, vehicleAttendanceRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
@@ -38,7 +38,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getFuelLogs(),
             getFuelTransfers(),
             getSiteLogEntries(),
-            getAllTransactions(),
+            // getAllTransactions(), // [MOVED] To Page
             getYiUfeRates(),
             getVehicleAttendanceList()
         ]);
@@ -54,7 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         fuelLogs = serializeData(fuelLogsRes?.data || []);
         fuelTransfers = serializeData(fuelTransfersRes?.data || []);
         siteLogEntries = serializeData(siteLogsRes?.data || []);
-        cashTransactions = serializeData(transactionsRes?.data || []);
+        // cashTransactions = serializeData(transactionsRes?.data || []); // [MOVED]
         yiUfeRates = serializeData(yiUfeRes?.data || []);
         vehicleAttendance = serializeData(vehicleAttendanceRes?.data || []);
 
@@ -76,7 +76,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 fuelLogs={fuelLogs}
                 fuelTransfers={fuelTransfers}
                 siteLogEntries={siteLogEntries}
-                cashTransactions={cashTransactions}
+                // cashTransactions={cashTransactions} // [MOVED]
                 yiUfeRates={yiUfeRates}
                 vehicleAttendance={vehicleAttendance}
                 currentUser={session?.user}

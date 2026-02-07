@@ -16,7 +16,7 @@ export function StoreInitializer({
     fuelLogs,
     fuelTransfers,
     siteLogEntries, // [NEW]
-    cashTransactions,
+    cashTransactions = [], // Default to empty array if not provided
     yiUfeRates, // [NEW]
     vehicleAttendance, // [NEW]
     currentUser
@@ -32,7 +32,7 @@ export function StoreInitializer({
     fuelLogs: any[],
     fuelTransfers: any[],
     siteLogEntries: any[],
-    cashTransactions: any[],
+    cashTransactions?: any[], // [OPTIONAL] Fetched in page
     yiUfeRates: any[], // [NEW]
     vehicleAttendance: any[], // [NEW]
     currentUser?: any

@@ -26,10 +26,19 @@ interface CashBookListProps {
     siteId?: string;
     userId?: string; // [NEW]
     type?: 'INCOME' | 'EXPENSE' | 'ALL';
+    initialData?: any[]; // [NEW] Server fetched data
 }
 
-export function CashBookList({ siteId, userId, type }: CashBookListProps) {
+export function CashBookList({ siteId, userId, type, initialData }: CashBookListProps) {
     const { cashTransactions, sites, users, deleteCashTransaction } = useAppStore();
+
+    // [NEW] Sync Server Data to Store
+    useEffect(() => {
+        if (initialData) {
+            useAppStore.setState({ cashTransactions: initialData });
+        }
+    }, [initialData]);
+
     const { user, hasPermission } = useAuth();
     const [selectedUserId, setSelectedUserId] = useState<string>(userId || 'all');
     const [selectedSiteId, setSelectedSiteId] = useState<string>(siteId || 'all');
