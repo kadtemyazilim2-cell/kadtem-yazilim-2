@@ -70,12 +70,12 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
 
-    useEffect(() => {
-        if (!startDate) {
-            setStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
-            setEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
-        }
-    }, []);
+    // [FIX] Initialize with empty string to show ALL history by default
+    const [startDate, setStartDate] = useState<string>('');
+    const [endDate, setEndDate] = useState<string>('');
+
+    // Removed useEffect that forced current month default
+
 
     // [NEW] Enforce default Payment Method for restricted users
     useEffect(() => {
