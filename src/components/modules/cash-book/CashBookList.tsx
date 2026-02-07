@@ -144,12 +144,11 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
         // Ensure valid objects
         result = result.filter(t => t && typeof t === 'object');
 
-        // [NEW] Isolation Logic: If not ADMIN and no Admin View Perm, only see own transactions
-        if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
-            // Strictly filter by responsibleUserId to ensure "My Cash" balance is correct.
-            // We ignore createdByUserId because if I created a record for someone else, it shouldn't show in MY balance.
-            result = result.filter(t => t.responsibleUserId === user.id);
-        } else if (selectedUserId !== 'all') {
+        // [REMOVED] Client-side isolation logic. 
+        // Server already filters data based on permissions in getAllTransactions.
+        // Doing it here again causes issues if user role is delayed or mismatched.
+
+        if (selectedUserId !== 'all') {
             // Admin filtering by user
             result = result.filter(t => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
         }
@@ -242,9 +241,7 @@ export function CashBookList({ siteId, userId, type, initialData }: CashBookList
             return d < start;
         });
 
-        if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
-            preTransactions = preTransactions.filter((t: any) => t.responsibleUserId === user.id);
-        } else if (selectedUserId !== 'all') {
+        if (selectedUserId !== 'all') {
             preTransactions = preTransactions.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
         }
 
