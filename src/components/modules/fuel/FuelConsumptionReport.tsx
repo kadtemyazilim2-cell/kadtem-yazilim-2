@@ -23,49 +23,7 @@ import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelT
 
 // ...
 
-const handleUpdate = async () => {
-    if (!editingLog) return;
-
-    let success = false;
-    let errorMsg = '';
-
-    if ((editingLog as any).recordType === 'TRANSFER') {
-        // Update Transfer
-        // ... (keep existing logic but use Server Action)
-        const res = await updateFuelTransferAction(editingLog.id, {
-            date: editForm.date,
-            amount: editForm.liters
-        });
-        if (res.success && res.data) {
-            updateFuelTransfer(editingLog.id, {
-                date: editForm.date,
-                amount: editForm.liters
-            });
-            success = true;
-        } else {
-            errorMsg = res.error || 'Güncelleme başarısız';
-        }
-    } else {
-        // Update Log
-        const res = await updateFuelLogAction(editingLog.id, editForm);
-        if (res.success && res.data) {
-            // Update Store with Server Response to be sure
-            updateFuelLog(editingLog.id, res.data as any);
-            success = true;
-        } else {
-            errorMsg = res.error || 'Güncelleme başarısız';
-        }
-    }
-
-    if (success) {
-        setIsEditOpen(false);
-        setEditingLog(null);
-        router.refresh();
-        toast.success('Kayıt güncellendi.');
-    } else {
-        alert(errorMsg);
-    }
-};
+// Rogue handleUpdate removed
 
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
 
@@ -191,13 +149,13 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             // Fuel Log
             setEditingLog({ ...row, recordType: 'LOG' });
             setEditForm({
-                date: row.date,
+                date: row.date ? format(new Date(row.date), 'yyyy-MM-dd') : '', // [FIX] Format for Input
                 mileage: row.mileage,
                 liters: row.liters,
                 cost: row.cost,
                 siteId: row.siteId,
-                tankId: row.tankId, // [FIX]
-                vehicleId: row.vehicleId // [FIX]
+                tankId: row.tankId,
+                vehicleId: row.vehicleId
             });
         }
         setIsEditOpen(true);
@@ -205,6 +163,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
     const handleUpdate = async () => {
         if (!editingLog) return;
+        console.log('Updating Fuel Record:', editingLog.id, editForm);
 
         try {
             if ((editingLog as any).recordType === 'TRANSFER') {
@@ -222,6 +181,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     });
                     setIsEditOpen(false);
                     setEditingLog(null);
+                    router.refresh(); // [FIX] Added refresh
                 } else {
                     alert(res.error || 'Güncelleme başarısız.');
                 }
@@ -233,6 +193,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     updateFuelLog(editingLog.id, res.data as any);
                     setIsEditOpen(false);
                     setEditingLog(null);
+                    router.refresh(); // [FIX] Added refresh
                 } else {
                     alert(res.error || 'Güncelleme başarısız.');
                 }
