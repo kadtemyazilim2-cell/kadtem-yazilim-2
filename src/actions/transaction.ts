@@ -14,9 +14,23 @@ export async function getAllTransactions() {
             return { success: false, error: 'Oturum bulunamadı.' };
         }
 
-        const user = session.user;
-        const isAdmin = user.role === 'ADMIN';
-        const perms = (user.permissions as any) || {};
+        // [SECURE] Fetch Fresh Permissions from DB instead of relying on stale Session
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true, permissions: true, status: true }
+        });
+
+        if (!dbUser) {
+            return { success: false, error: 'Kullanıcı bulunamadı.' };
+        }
+
+        if (dbUser.status !== 'ACTIVE') {
+            return { success: false, error: 'Hesabınız pasif durumdadır.' };
+        }
+
+        const isAdmin = dbUser.role === 'ADMIN';
+        const perms: any = dbUser.permissions || {};
+
         const canViewAll = isAdmin ||
             (perms['cash-book.admin-view']?.includes('VIEW')) ||
             (perms['cash-book.reports']?.includes('VIEW')) ||
@@ -27,8 +41,8 @@ export async function getAllTransactions() {
             // Restriction: Only see transactions where user is responsible (or created)
             // Added createdByUserId to be safe so they see what they entered even if assigned to someone else (rare)
             where.OR = [
-                { responsibleUserId: user.id },
-                { createdByUserId: user.id }
+                { responsibleUserId: session.user.id },
+                { createdByUserId: session.user.id }
             ];
         }
 
@@ -66,6 +80,16 @@ export async function createTransaction(data: Partial<CashTransaction>) {
         const session = await import('@/auth').then(m => m.auth());
         if (!session?.user?.id) {
             return { success: false, error: 'Oturum süreniz dolmuş. Lütfen sayfayı yenileyip tekrar giriş yapın.' };
+        }
+
+        // [SECURE] Validate User Status
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { status: true }
+        });
+
+        if (!dbUser || dbUser.status !== 'ACTIVE') {
+            return { success: false, error: 'Hesabınız aktif durumda değildir.' };
         }
 
         const creatorId = session.user.id;
@@ -135,8 +159,18 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             return { success: false, error: 'Kayıt bulunamadı.' };
         }
 
+        // [SECURE] Fetch Fresh Role & Status
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true, status: true }
+        });
+
+        if (!dbUser || dbUser.status !== 'ACTIVE') {
+            return { success: false, error: 'Hesabınız aktif değil veya bulunamadı.' };
+        }
+
         // 3. Permission: Admin or Owner or Responsible
-        const isAdmin = session.user.role === 'ADMIN';
+        const isAdmin = dbUser.role === 'ADMIN';
         // Check if user is creator OR responsible
         const isOwner = existing.createdByUserId === session.user.id || existing.responsibleUserId === session.user.id;
 
@@ -194,6 +228,31 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
 
 export async function deleteTransaction(id: string) {
     try {
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) {
+            return { success: false, error: 'Oturum bulunamadı.' };
+        }
+
+        const existing = await prisma.cashTransaction.findUnique({ where: { id } });
+        if (!existing) {
+            return { success: false, error: 'Kayıt bulunamadı.' };
+        }
+
+        // [SECURE] Permission Check
+        // Allow if Admin, or Creator, or Responsible
+        // We also check DB for Role to be safe against stale session
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true }
+        });
+
+        const isAdmin = dbUser?.role === 'ADMIN';
+        const isOwner = existing.createdByUserId === session.user.id || existing.responsibleUserId === session.user.id;
+
+        if (!isAdmin && !isOwner) {
+            return { success: false, error: 'Bu kaydı silme yetkiniz yok.' };
+        }
+
         await prisma.cashTransaction.delete({
             where: { id }
         });
