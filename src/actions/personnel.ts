@@ -159,6 +159,7 @@ export async function upsertPersonnelAttendance(
             log('[ERROR] No Session User ID');
             return { success: false, error: 'Oturum bulunamadı.' };
         }
+        log(`[INFO] User ID: ${session.user.id}`);
 
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },
@@ -169,9 +170,11 @@ export async function upsertPersonnelAttendance(
             log('[ERROR] User Inactive or invalid');
             return { success: false, error: 'Hesabınız aktif değil.' };
         }
+        log(`[INFO] User Role: ${dbUser.role}, Status: ${dbUser.status}`);
 
         // [SECURE] Date Restriction Check
         if (dbUser.role !== 'ADMIN') {
+
             const limit = dbUser.editLookbackDays ?? 3; // [FIX] Default to 3 days to match Client
 
             // [FIX] Robust Day Difference Check
