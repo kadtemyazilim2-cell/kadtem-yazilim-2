@@ -1059,29 +1059,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
 
 
 
-            {/* [DEBUG] Refresh Issue Debugger */}
-            <div className="mt-8 p-4 border-2 border-dashed border-red-300 bg-red-50 rounded text-xs font-mono text-red-800">
-                <h4 className="font-bold border-b border-red-200 mb-2 pb-1">🔧 YENİLEME HATASI TAKİP (Yönetici Görünümü)</h4>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <p><strong>Sunucudan Gelen Veri:</strong> {initialData?.length || 0}</p>
-                        <p><strong>İstemci State Verisi:</strong> {cashTransactions?.length || 0}</p>
-                        <p><strong>Filtre Sonrası Veri:</strong> {filteredTransactions?.length || 0}</p>
-                        <p><strong>Seçili Personel:</strong> {selectedUserId}</p>
-                        <p><strong>Seçili Şantiye:</strong> {selectedSiteId}</p>
-                        <p><strong>Tarih Aralığı:</strong> {startDate} - {endDate}</p>
-                    </div>
-                    <div>
-                        <p><strong>Yönetici Görünümü (canViewAll):</strong> {canViewAll ? "✅ EVET" : "❌ HAYIR"}</p>
-                        <p><strong>Current User ID:</strong> {user?.id}</p>
-                        <p><strong>Yetkiler:</strong></p>
-                        <pre className="whitespace-pre-wrap break-all max-h-32 overflow-auto bg-white p-1 border rounded">
-                            {JSON.stringify(user?.permissions ? user.permissions['cash-book.admin-view'] : 'YOK', null, 2)}
-                        </pre>
-                    </div>
-                </div>
-                <p className="mt-2 text-[10px] opacity-75">* Verilerin neden kaybolduğunu anlamak için eklenmiştir.</p>
-            </div>
+
         </Card >
     );
 }
