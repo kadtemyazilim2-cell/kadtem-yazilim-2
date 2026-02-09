@@ -1736,14 +1736,7 @@ export default function NewPage() {
         <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
 
-                {/* DEBUG HEADER - REMOVE AFTER FIX */}
-                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 w-full">
-                    <p className="font-bold">DEBUG INFO (Puantaj Sayfası)</p>
-                    <p>Kullanıcı: {user?.name} ({user?.role})</p>
-                    <p>Erişilebilir Şantiyeler: {availableSites.length}</p>
-                    <p>Seçili Şantiye ID: {selectedSiteId}</p>
-                    <p>İzinler: {JSON.stringify(Object.keys(perms).filter(k => k.startsWith('new-tab')))}</p>
-                </div>
+                {/* Debug info removed */}
 
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Personel Puantaj</h1>
