@@ -92,6 +92,32 @@ export async function upsertPersonnelAttendance(
     }
 ) {
     try {
+        // [FIX] Valid SiteId Check
+        let targetSiteId = data.siteId;
+
+        // If siteId is empty or invalid, try to fetch from Personnel
+        if (!targetSiteId || targetSiteId.trim() === '') {
+            const person = await prisma.personnel.findUnique({
+                where: { id: personnelId },
+                select: { siteId: true, assignedSites: { take: 1, select: { id: true } } }
+            });
+
+            if (person) {
+                if (person.siteId) {
+                    targetSiteId = person.siteId;
+                } else if (person.assignedSites.length > 0) {
+                    targetSiteId = person.assignedSites[0].id;
+                }
+            }
+        }
+
+        // Final check - if still no siteId, we can't save (or it will save with empty string if DB allows but Logic breaks)
+        // DB allows empty string from test, but let's enforce Logic.
+        if (!targetSiteId) {
+            return { success: false, error: 'Puantaj girişi için personelin bir şantiyesi olmalıdır.' };
+        }
+
+
         // [FIX] Handle Date normalization safely
         let dateObj: Date;
         if (typeof dateInput === 'string') {
@@ -180,7 +206,7 @@ export async function upsertPersonnelAttendance(
                         hours: data.hours !== undefined ? data.hours : existing.hours,
                         overtime: data.overtime,
                         note: data.note,
-                        siteId: data.siteId
+                        siteId: targetSiteId // Use validated SiteId
                     }
                 });
             } else {
@@ -192,7 +218,7 @@ export async function upsertPersonnelAttendance(
                         hours: data.hours || 0,
                         overtime: data.overtime,
                         note: data.note,
-                        siteId: data.siteId
+                        siteId: targetSiteId // Use validated SiteId
                     }
                 });
             }
