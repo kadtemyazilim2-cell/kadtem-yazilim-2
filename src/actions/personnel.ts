@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { Personnel } from '@prisma/client';
-import { revalidatePath, revalidateTag, unstable_cache, unstable_noStore } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 
 
 // [PERFORMANCE] Cached personnel query
@@ -88,7 +88,6 @@ export async function upsertPersonnelAttendance(...) { ... }
 
 // [NEW] Get Personnel WITH Attendance (For the Grid)
 export async function getPersonnelWithAttendance(month: Date | string, siteId?: string) {
-    unstable_noStore();
     try {
         const monthDate = new Date(month);
         const startOfMonth = new Date(Date.UTC(monthDate.getFullYear(), monthDate.getMonth(), 1));
