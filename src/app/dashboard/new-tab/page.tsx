@@ -343,7 +343,10 @@ export default function NewPage() {
                 const mapped: IndependentPerson[] = res.data.map((p: any) => {
                     const attendanceMap: Record<string, AttendanceRecord> = {};
                     p.attendance.forEach((a: any) => {
-                        const dateKey = format(new Date(a.date), 'yyyy-MM-dd');
+                        // [FIX] Use string split to get YYYY-MM-DD from ISO string safely
+                        // e.g. "2026-02-09T00:00:00.000Z" -> "2026-02-09"
+                        const dateVal = a.date instanceof Date ? a.date.toISOString() : a.date.toString();
+                        const dateKey = dateVal.split('T')[0];
                         attendanceMap[dateKey] = {
                             status: a.status,
                             overtime: a.overtime ? a.overtime.toString() : undefined,

@@ -141,11 +141,8 @@ export async function upsertPersonnelAttendance(
             const diffTime = todayUtc.getTime() - startOfDay.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            console.log(`[UPSERT_DEBUG] User: ${dbUser.role}, Limit: ${limit}, Target: ${startOfDay.toISOString()}, Today: ${todayUtc.toISOString()}, Diff: ${diffDays}`);
-
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
-                console.log(`[UPSERT_DEBUG] BLOCKED: ${msg}`);
                 return { success: false, error: msg };
             }
         }
@@ -273,8 +270,8 @@ export async function getPersonnelWithAttendance(month: Date | string, siteId?: 
                 attendance: {
                     where: {
                         date: {
-                            gte: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1), // Start of Month
-                            lte: new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0) // End of Month
+                            gte: new Date(Date.UTC(monthDate.getFullYear(), monthDate.getMonth(), 1)), // Start of Month (UTC)
+                            lte: new Date(Date.UTC(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999)) // End of Month (UTC)
                         }
                     }
                 },
