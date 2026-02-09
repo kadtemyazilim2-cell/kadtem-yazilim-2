@@ -270,14 +270,21 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         if (!user || isSubmitting) return;
 
         // Date Restriction Check
-        if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined) {
+        // Explicitly check for not undefined and not null to catch 0 correctly
+        if (user.role !== 'ADMIN' && user.editLookbackDays !== undefined && user.editLookbackDays !== null) {
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const target = new Date(formData.date);
             target.setHours(0, 0, 0, 0);
-            const diff = (today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24);
 
-            if (diff > user.editLookbackDays) {
+            // Calculate difference in milliseconds
+            const diffTime = today.getTime() - target.getTime();
+            // Convert to days (floor to be safe, but since hours are 0, it should be exact)
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            console.log('Client Date Check:', { role: user.role, lookback: user.editLookbackDays, diffDays });
+
+            if (diffDays > user.editLookbackDays) {
                 alert(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
                 return;
             }
@@ -358,7 +365,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     updateCashTransaction(initialData.id, {
                         ...res.data,
                         date: new Date(res.data.date).toISOString(),
-                    });
+                    } as any);
                 }
 
                 setOpen(false);

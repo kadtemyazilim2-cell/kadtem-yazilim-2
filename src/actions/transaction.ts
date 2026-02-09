@@ -111,6 +111,8 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             const diffTime = today.getTime() - target.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+            console.log(`[DateCheck] User: ${dbUser.role}, Lookback: ${dbUser.editLookbackDays}, Diff: ${diffDays}`);
+
             if (diffDays > dbUser.editLookbackDays) {
                 return { success: false, error: `Geriye dönük en fazla ${dbUser.editLookbackDays} gün işlem yapabilirsiniz.` };
             }
@@ -196,6 +198,8 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             existingDate.setHours(0, 0, 0, 0);
             const diffExisting = Math.floor((today.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24));
 
+            console.log(`[UpdateCheck] User: ${dbUser.role}, Lookback: ${dbUser.editLookbackDays}, DiffExisting: ${diffExisting}`);
+
             if (diffExisting > dbUser.editLookbackDays) {
                 return { success: false, error: `Bu kayıt ${dbUser.editLookbackDays} günden eski olduğu için düzenlenemez.` };
             }
@@ -205,6 +209,8 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
                 const newDate = new Date(data.date);
                 newDate.setHours(0, 0, 0, 0);
                 const diffNew = Math.floor((today.getTime() - newDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                console.log(`[UpdateCheck] DiffNew: ${diffNew}`);
 
                 if (diffNew > dbUser.editLookbackDays) {
                     return { success: false, error: `Geriye dönük en fazla ${dbUser.editLookbackDays} gün işlem yapabilirsiniz.` };
