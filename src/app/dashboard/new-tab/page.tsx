@@ -27,7 +27,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
 import { getPersonnelWithAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
-import { testPing } from '@/actions/debug';
+import { debugFetchPersonnel } from '@/actions/debug-fetch';
 
 
 
@@ -1023,6 +1023,17 @@ export default function NewPage() {
 
             if (!apiRes.ok) {
                 const errText = await apiRes.text();
+
+                // Debug Call
+                debugFetchPersonnel(selectedSiteId).then(res => {
+                    console.log('Debug Fetch Result:', res);
+                    if (res.success) {
+                        toast.info(`Debug: Toplam ${res.total}, Şantiye: ${res.siteCount}, Örnek: ${res.sample?.map((s: any) => s.fullName).join(', ')}`);
+                    } else {
+                        toast.error(`Debug Hata: ${res.error}`);
+                    }
+                });
+
                 try {
                     const errJson = JSON.parse(errText);
                     throw new Error(errJson.error || errText);
