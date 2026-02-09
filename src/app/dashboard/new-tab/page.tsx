@@ -1010,9 +1010,16 @@ export default function NewPage() {
 
             // [DEBUG] Probe
             console.log('[CLIENT] Probing server with testPing...');
-            const pong = await testPing();
-            console.log('[CLIENT] Ping result:', pong);
-            alert("DEBUG: Sunucu Erişimi Başarılı! (Ping: " + (pong?.success ? "OK" : "FAIL") + ")");
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Ping Timeout (Client)")), 5000));
+
+            try {
+                const pong: any = await Promise.race([testPing(), timeoutPromise]);
+                console.log('[CLIENT] Ping result:', pong);
+                alert("DEBUG: Sunucu Erişimi Başarılı! (Ping: " + (pong?.success ? "OK" : "FAIL") + ")");
+            } catch (pingError: any) {
+                alert("DEBUG HATA: Sunucuya erişilemedi! -> " + pingError.message);
+                throw pingError; // Stop flow
+            }
 
             const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
 
