@@ -1766,8 +1766,10 @@ export default function NewPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="text-xs text-slate-400">
-                                Yüklenen: {names.length} / Gösterilen: {filteredNames.length}
+                            <div className="text-xs text-slate-400 flex flex-col">
+                                <span>Yüklenen: {names.length} / Gösterilen: {filteredNames.length}</span>
+                                <span>Site ID: {selectedSiteId}</span>
+                                <span>Tarih: {date.toISOString()}</span>
                             </div>
                         </div>
 
