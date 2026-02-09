@@ -9,6 +9,8 @@ declare module "next-auth" {
             role: Role
             permissions: any
             username: string
+            assignedSiteIds: string[]
+            editLookbackDays: number | null
         } & DefaultSession["user"]
     }
 
@@ -16,6 +18,8 @@ declare module "next-auth" {
         role: Role
         permissions: any
         username: string
+        assignedSiteIds: string[]
+        editLookbackDays: number | null
     }
 }
 
@@ -24,5 +28,7 @@ declare module "next-auth/jwt" {
         role: Role
         permissions: any
         username: string
+        assignedSiteIds: string[]
+        editLookbackDays: number | null
     }
 }

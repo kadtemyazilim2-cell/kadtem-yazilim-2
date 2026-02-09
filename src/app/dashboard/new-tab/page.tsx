@@ -926,6 +926,10 @@ export default function NewPage() {
         }
 
         // [SECURE] Client-Side Date Restriction Check
+        console.log('[DEBUG_ATTENDANCE] User Role:', user?.role);
+        console.log('[DEBUG_ATTENDANCE] Lookback Setting:', (user as any).editLookbackDays);
+        console.log('[DEBUG_ATTENDANCE] User Object:', user);
+
         if (user?.role !== 'ADMIN') {
             const limit = (user as any).editLookbackDays ?? 0;
             const today = new Date();
