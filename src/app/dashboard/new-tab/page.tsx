@@ -1003,16 +1003,7 @@ export default function NewPage() {
 
         // Server Call
         try {
-            // [DEBUG] Explicit alert flow
-            alert("DEBUG: Kayıt işlemi başlatılıyor... (Sunucu Kontrolü)");
-
-            console.log('[CLIENT] Calling upsertPersonnelAttendance...', { personId: person.id, date: format(selectedCell.date, 'yyyy-MM-dd'), siteId: person.siteId });
-
-            // [DEBUG] Probe Removed - Direct API Call
-            console.log('[CLIENT] Using API Route directly...');
-
             // [FIX] Use API Route instead of Server Action
-            // Using API Route provides better stability for Auth/DB connections compared to Server Actions
             const apiRes = await fetch('/api/personnel/attendance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1035,21 +1026,21 @@ export default function NewPage() {
                     const errJson = JSON.parse(errText);
                     throw new Error(errJson.error || errText);
                 } catch (e) {
-                    throw new Error("API Error: " + apiRes.status + " " + errText);
+                    throw new Error("İşlem başarısız: " + apiRes.status);
                 }
             }
 
             const res = await apiRes.json();
 
-
             if (!res.success) {
-                alert("HATA: Kaydedilemedi -> " + res.error);
+                alert("HATA: " + res.error);
                 refreshData(); // Revert
             } else {
-                alert(`DEBUG: Kayıt Başarılı! (ID: ${res.recordId})`);
+                // Success - Optimistic update already applied
+                console.log('Attendance saved successfully.');
             }
         } catch (err: any) {
-            alert("KRİTİK HATA: " + err.message);
+            alert("Bir hata oluştu: " + err.message);
             console.error(err);
             refreshData(); // Revert
         }
