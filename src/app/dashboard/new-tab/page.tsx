@@ -147,6 +147,7 @@ export default function NewPage() {
 
 
     const [names, setNames] = useState<IndependentPerson[]>([]);
+    const [debugInfo, setDebugInfo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     // Site Filter State
