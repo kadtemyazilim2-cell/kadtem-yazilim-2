@@ -101,6 +101,8 @@ export async function createTransaction(data: Partial<CashTransaction>) {
         }
 
         // [SECURE] Date Restriction Check
+        console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback:', dbUser.editLookbackDays);
+
         if (dbUser.role !== 'ADMIN' && dbUser.editLookbackDays !== null && dbUser.editLookbackDays !== undefined) {
             const targetDate = data.date ? new Date(data.date) : new Date();
             const today = new Date();
@@ -111,11 +113,14 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             const diffTime = today.getTime() - target.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            console.log(`[DateCheck] User: ${dbUser.role}, Lookback: ${dbUser.editLookbackDays}, Diff: ${diffDays}`);
+            console.log(`[DEBUG_DATE] Logic Check: ${diffDays} > ${dbUser.editLookbackDays} ? ${diffDays > dbUser.editLookbackDays}`);
 
             if (diffDays > dbUser.editLookbackDays) {
-                return { success: false, error: `Geriye dönük en fazla ${dbUser.editLookbackDays} gün işlem yapabilirsiniz.` };
+                console.log('[DEBUG_DATE] BLOCKED!');
+                return { success: false, error: `[DEBUG: BLOCKED] Rol: ${dbUser.role}, Limit: ${dbUser.editLookbackDays}, Gün: ${diffDays}.` };
             }
+        } else {
+            console.log('[DEBUG_DATE] SKIPPED CHECK! Why?', { role: dbUser.role, lookback: dbUser.editLookbackDays });
         }
 
         const creatorId = session.user.id;
