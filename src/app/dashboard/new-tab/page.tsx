@@ -1001,6 +1001,7 @@ export default function NewPage() {
 
         // Server Call
         try {
+            console.log('[CLIENT] Calling upsertPersonnelAttendance...', { personId: person.id, date: format(selectedCell.date, 'yyyy-MM-dd'), siteId: person.siteId });
             const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
                 status: finalStatus,
                 hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
