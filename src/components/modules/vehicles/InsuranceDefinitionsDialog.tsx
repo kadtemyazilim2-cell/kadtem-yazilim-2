@@ -25,7 +25,9 @@ interface InsuranceDefinitionsDialogProps {
     onOpenChange: (open: boolean) => void;
     type: 'INSURANCE_COMPANY' | 'INSURANCE_AGENCY';
 }
-open,
+
+export function InsuranceDefinitionsDialog({
+    open,
     onOpenChange,
     type,
 }: InsuranceDefinitionsDialogProps) {
@@ -39,7 +41,7 @@ open,
 
     // Filter based on the passed type and sort alphabetically
     const items = institutions
-        .filter((i: Institution) => i.category === type)
+        .filter((i: any) => i.category === type)
         .sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'))
 
     const title = type === 'INSURANCE_COMPANY' ? 'Sigorta Firmaları' : 'Sigorta Acenteleri'
@@ -126,7 +128,7 @@ open,
         }
     }
 
-    const handleEdit = (item: Institution) => {
+    const handleEdit = (item: any) => {
         setEditingId(item.id)
         setNewName(item.name)
         setEmail(item.email || "")
@@ -316,7 +318,7 @@ open,
                                 <span className="text-muted-foreground">Henüz eklenmiş kayıt yok.</span>
                             </div>
                         ) : (
-                            items.map((item: Institution) => (
+                            items.map((item: any) => (
                                 <div
                                     key={item.id}
                                     className={`flex items-center justify-between p-3 hover:bg-muted/50 group ${editingId === item.id ? 'bg-blue-50' : ''}`}
