@@ -343,6 +343,8 @@ export default function NewPage() {
             const res: any = await getPersonnelWithAttendance(date, selectedSiteId);
             if (res.queryDebug) {
                 setDebugInfo(res.queryDebug);
+            } else if (!res.success) {
+                setDebugInfo({ error: res.error, stack: res.debugStack });
             }
             if (res.success && res.data) {
                 // Map DB Personnel to IndependentPerson format
@@ -1784,7 +1786,7 @@ export default function NewPage() {
                             <div className="text-xs text-slate-400 flex flex-col">
                                 <span>Yüklenen: {names.length} / Gösterilen: {filteredNames.length}</span>
                                 <span>Site ID: {selectedSiteId}</span>
-                                <span>Server: {debugInfo ? `${debugInfo.start.substring(0, 10)} Count:${debugInfo.count}` : 'Yok'}</span>
+                                <span>Server: {debugInfo ? `${debugInfo.start.substring(0, 10)} Count:${debugInfo.count}` : (loading ? 'Yükleniyor...' : 'HATA: ' + (names.length === 0 ? 'Veri Yok/Hata' : ''))}</span>
                             </div>
                         </div>
 

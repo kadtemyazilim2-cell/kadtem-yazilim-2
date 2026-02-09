@@ -155,7 +155,11 @@ export async function getPersonnelWithAttendance(month: Date | string, siteId?: 
         };
     } catch (error) {
         console.error('getPersonnelWithAttendance Error:', error);
-        return { success: false, error: 'Veri alınamadı.' };
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown Error',
+            debugStack: error instanceof Error ? error.stack : undefined
+        };
     }
 }
 
