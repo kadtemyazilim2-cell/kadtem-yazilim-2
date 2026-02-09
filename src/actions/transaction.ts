@@ -218,6 +218,12 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             return { success: false, error: 'Hesabınız aktif değil veya bulunamadı.' };
         }
 
+        // [DEBUG] FORCE STOP FOR EVERYONE
+        return {
+            success: false,
+            error: `[DEBUG STOP] ID: ${session.user.id} | Role: ${dbUser.role} | Lookback: ${dbUser.editLookbackDays}`
+        };
+
         // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
         // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).
         // Check 1: Can I touch this OLD record?
