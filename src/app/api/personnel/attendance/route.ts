@@ -9,11 +9,17 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { personnelId, date, data } = body;
 
-        console.log(`[API] Upsert Request: ${personnelId}, ${date}`);
+        const fs = await import('fs');
+        const logFile = 'C:\\Users\\Drone\\Desktop\\takip-sistemi\\debug-api.log';
+        const log = (msg: string) => { try { fs.appendFileSync(logFile, `${new Date().toISOString()} - ${msg}\n`); } catch (e) { } };
+
+        log(`[API] Upsert Request: ${personnelId}, ${date}`);
 
         if (!personnelId || !date || !data) {
+            log('[API] Error: Missing parameters');
             return NextResponse.json({ success: false, error: 'Eksik parametreler.' }, { status: 400 });
         }
+
 
         // [SECURE] Auth Check
         const session = await auth();
@@ -89,7 +95,7 @@ export async function POST(req: NextRequest) {
                 overtime: data.overtime,
                 note: data.note,
                 siteId: targetSiteId, // Use resolved siteId
-                createdById: session.user.id
+                createdByUserId: session.user.id
             },
             create: {
                 personnelId: personnelId,
@@ -99,7 +105,7 @@ export async function POST(req: NextRequest) {
                 overtime: data.overtime,
                 note: data.note,
                 siteId: targetSiteId,
-                createdById: session.user.id
+                createdByUserId: session.user.id
             }
         });
 

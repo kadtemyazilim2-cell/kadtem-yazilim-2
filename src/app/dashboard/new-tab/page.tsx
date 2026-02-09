@@ -1021,14 +1021,36 @@ export default function NewPage() {
                 throw pingError; // Stop flow
             }
 
-            const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
-
-                status: finalStatus,
-                hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
-                overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,
-                note: attendanceForm.note,
-                siteId: person.siteId
+            // [FIX] Use API Route instead of Server Action
+            // Using API Route provides better stability for Auth/DB connections compared to Server Actions
+            const apiRes = await fetch('/api/personnel/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    personnelId: person.id,
+                    date: format(selectedCell.date, 'yyyy-MM-dd'),
+                    data: {
+                        status: finalStatus,
+                        hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
+                        overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,
+                        note: attendanceForm.note,
+                        siteId: person.siteId
+                    }
+                })
             });
+
+            if (!apiRes.ok) {
+                const errText = await apiRes.text();
+                try {
+                    const errJson = JSON.parse(errText);
+                    throw new Error(errJson.error || errText);
+                } catch (e) {
+                    throw new Error("API Error: " + apiRes.status + " " + errText);
+                }
+            }
+
+            const res = await apiRes.json();
+
 
             if (!res.success) {
                 alert("HATA: Kaydedilemedi -> " + res.error);
