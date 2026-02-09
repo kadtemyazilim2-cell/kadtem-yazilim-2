@@ -5,7 +5,6 @@ import { prisma } from '@/lib/db';
 import { unstable_noStore } from 'next/cache';
 
 export async function debugFetchPersonnel(siteId?: string) {
-    unstable_noStore();
     try {
         // 1. Count Total Personnel
         const total = await prisma.personnel.count();
