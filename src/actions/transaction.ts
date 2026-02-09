@@ -233,8 +233,11 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
 
             if (diffExisting > limit) {
                 const msg = limit === 0 ? 'Bugünden eski kayıtları düzenleyemezsiniz.' : `Bu kayıt ${limit} günden eski olduğu için düzenlenemez.`;
-                return { success: false, error: msg };
+                return { success: false, error: `[BLOCKED] ${msg} | DBG: Role=${dbUser.role}, Limit=${limit}, Diff=${diffExisting}` };
             }
+
+            // FORCE STOP to see values even if allowed
+            return { success: false, error: `[ALLOWED-BUT-STOPPED] Existing Check Passed! Role=${dbUser.role}, Limit=${limit}, Diff=${diffExisting}, Date=${existingDate.toISOString()}` };
 
             // Check New Date (if changing)
             if (data.date) {
