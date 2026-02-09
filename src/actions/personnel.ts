@@ -230,44 +230,51 @@ export async function upsertPersonnelAttendance(
 }
 
 // [NEW] Get Personnel WITH Attendance (For the Grid)
-export async function getPersonnelWithAttendance(month: Date, siteId?: string) {
+export async function getPersonnelWithAttendance(month: Date | string, siteId?: string) {
     try {
-        console.log('[getPersonnelWithAttendance] Start', { month, siteId });
+        const monthDate = new Date(month);
+        console.log('[getPersonnelWithAttendance] Start:', { monthDate, siteId });
+
         const stablePersonnel = await prisma.personnel.findMany({
             where: {
                 AND: [
                     {
                         OR: [
                             { status: 'ACTIVE' },
-                            { leftDate: { gte: new Date(month.getFullYear(), month.getMonth(), 1) } },
+                            { leftDate: { gte: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1) } },
                             {
                                 attendance: {
                                     some: {
                                         date: {
-                                            gte: new Date(month.getFullYear(), month.getMonth(), 1),
-                                            lte: new Date(month.getFullYear(), month.getMonth() + 1, 0)
+                                            gte: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1),
+                                            lte: new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
                                         }
                                     }
                                 }
                             }
                         ]
                     },
-                    (siteId && siteId !== 'all') ? { siteId } : {}
+                    (siteId && siteId !== 'all') ? {
+                        OR: [
+                            { siteId },
+                            { assignedSites: { some: { id: siteId } } }
+                        ]
+                    } : {}
                 ]
             },
             include: {
                 attendance: {
                     where: {
                         date: {
-                            gte: new Date(month.getFullYear(), month.getMonth(), 1), // Start of Month
-                            lte: new Date(month.getFullYear(), month.getMonth() + 1, 0) // End of Month
+                            gte: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1), // Start of Month
+                            lte: new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0) // End of Month
                         }
                     }
                 },
                 salaryAdjustments: {
                     where: {
-                        year: month.getFullYear(),
-                        month: month.getMonth() + 1
+                        year: monthDate.getFullYear(),
+                        month: monthDate.getMonth() + 1
                     }
                 }
             },
