@@ -933,13 +933,12 @@ export default function NewPage() {
         if (user?.role !== 'ADMIN') {
             const limit = (user as any).editLookbackDays ?? 0;
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
             const target = new Date(selectedCell.date);
-            target.setHours(0, 0, 0, 0);
 
-            const diffTime = today.getTime() - target.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            // Use differenceInCalendarDays to ignore time/timezone
+            const diffDays = differenceInCalendarDays(today, target);
+
+            console.log(`[DEBUG_ATTENDANCE] Diff: ${diffDays}, Limit: ${limit}, Blocked: ${diffDays > limit}`);
 
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz.`;

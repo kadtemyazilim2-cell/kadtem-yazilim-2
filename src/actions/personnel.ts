@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { Personnel } from '@prisma/client';
 import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { differenceInCalendarDays } from 'date-fns';
 
 // [PERFORMANCE] Cached personnel query
 const getPersonnelFromDb = unstable_cache(
@@ -119,13 +120,9 @@ export async function upsertPersonnelAttendance(
         if (dbUser.role !== 'ADMIN') {
             const limit = dbUser.editLookbackDays ?? 0;
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
             const target = new Date(dateObj);
-            target.setHours(0, 0, 0, 0);
 
-            const diffTime = today.getTime() - target.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = differenceInCalendarDays(today, target);
 
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
