@@ -1790,1092 +1790,1093 @@ export default function NewPage() {
                             </div>
                         </div>
 
-                        <Button variant="outline" onClick={() => refreshData()}>
-                            <ArrowRightLeft className="w-4 h-4 mr-2" />
-                            Yenile
-                        </Button>
-                        <Button variant="outline" onClick={async () => {
-                            toast.info("Debug Test Başlatılıyor...");
-                            const res = await debugFetchPersonnel(selectedSiteId);
-                            toast.info(`Debug Sonuç: ${res.success ? 'Başarılı' : 'Hata'} - Sayı: ${res.siteCount}`);
-                        }}>
-                            <Settings className="w-4 h-4 mr-2" />
-                            Debug
-                        </Button>
-                        {canExport && (
-                            <>
-                                <Button variant="outline" onClick={handleExportExcel}>
-                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                    Excel
-                                </Button>
-                                <Button variant="outline" onClick={handleExportPDF}>
-                                    <Download className="w-4 h-4 mr-2 text-red-600" />
-                                    PDF
-                                </Button>
-                            </>
-                        )}
-
-
-
-                        {canCreatePersonnel && (
-                            <Button onClick={() => {
-                                setEditingId(null);
-                                setFormData({
-                                    siteId: selectedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''),
-                                    tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
-                                    inputDate: format(new Date(), 'yyyy-MM-dd'),
-                                    salaryHistory: []
-                                });
-                                setShowSalaryInput(false);
-                                setIsDialogOpen(true);
-                            }}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                Personel Ekle
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => refreshData()}>
+                                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                Yenile
                             </Button>
-                        )}
-                    </div>
-                </div>
-
-                <Tabs defaultValue="grid" className="w-full">
-                    <div className="flex justify-between items-center mb-4">
-                        <TabsList>
-                            <TabsTrigger value="grid">Puantaj Tablosu</TabsTrigger>
-                            {canViewSalary && <TabsTrigger value="salary-list">Maaş Tablosu</TabsTrigger>}
-                            {canViewAllPersonnel && <TabsTrigger value="site-list">Şantiye Personel Listesi</TabsTrigger>}
-                            {canViewAllPersonnel && <TabsTrigger value="all-list">Tüm Personel</TabsTrigger>}
-                        </TabsList>
-                    </div>
-
-                    <TabsContent value="grid" className="space-y-4">
-                        <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-slate-50/50 p-2 rounded-lg border">
-                            <div className="flex flex-wrap gap-1">
-                                {["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"].map((month, index) => (
-                                    <Button
-                                        key={month}
-                                        variant={date.getMonth() === index ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => {
-                                            const newDate = new Date(date);
-                                            newDate.setMonth(index);
-                                            setDate(newDate);
-                                        }}
-                                        className={`h-8 ${date.getMonth() === index ? "bg-blue-600 hover:bg-blue-700 border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
-                                    >
-                                        {month}
+                            <Button variant="outline" onClick={async () => {
+                                toast.info("Debug Test Başlatılıyor...");
+                                const res = await debugFetchPersonnel(selectedSiteId);
+                                toast.info(`Debug Sonuç: ${res.success ? 'Başarılı' : 'Hata'} - Sayı: ${res.siteCount}`);
+                            }}>
+                                <Settings className="w-4 h-4 mr-2" />
+                                Debug
+                            </Button>
+                            {canExport && (
+                                <>
+                                    <Button variant="outline" onClick={handleExportExcel}>
+                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                        Excel
                                     </Button>
-                                ))}
-                            </div>
+                                    <Button variant="outline" onClick={handleExportPDF}>
+                                        <Download className="w-4 h-4 mr-2 text-red-600" />
+                                        PDF
+                                    </Button>
+                                </>
+                            )}
 
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setDate(new Date())}
-                                    className="h-8 px-3 bg-white text-blue-600 border-blue-200 hover:bg-blue-50 shadow-sm font-semibold"
-                                >
-                                    Bugün
+
+
+                            {canCreatePersonnel && (
+                                <Button onClick={() => {
+                                    setEditingId(null);
+                                    setFormData({
+                                        siteId: selectedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''),
+                                        tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
+                                        inputDate: format(new Date(), 'yyyy-MM-dd'),
+                                        salaryHistory: []
+                                    });
+                                    setShowSalaryInput(false);
+                                    setIsDialogOpen(true);
+                                }}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Personel Ekle
                                 </Button>
-                                <div className="flex items-center gap-1 bg-white p-1 rounded-md border shadow-sm">
-                                    {[2024, 2025, 2026, 2027].map(year => (
+                            )}
+                        </div>
+                    </div>
+
+                    <Tabs defaultValue="grid" className="w-full">
+                        <div className="flex justify-between items-center mb-4">
+                            <TabsList>
+                                <TabsTrigger value="grid">Puantaj Tablosu</TabsTrigger>
+                                {canViewSalary && <TabsTrigger value="salary-list">Maaş Tablosu</TabsTrigger>}
+                                {canViewAllPersonnel && <TabsTrigger value="site-list">Şantiye Personel Listesi</TabsTrigger>}
+                                {canViewAllPersonnel && <TabsTrigger value="all-list">Tüm Personel</TabsTrigger>}
+                            </TabsList>
+                        </div>
+
+                        <TabsContent value="grid" className="space-y-4">
+                            <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-slate-50/50 p-2 rounded-lg border">
+                                <div className="flex flex-wrap gap-1">
+                                    {["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"].map((month, index) => (
                                         <Button
-                                            key={year}
-                                            variant={date.getFullYear() === year ? "secondary" : "ghost"}
+                                            key={month}
+                                            variant={date.getMonth() === index ? "default" : "outline"}
                                             size="sm"
                                             onClick={() => {
                                                 const newDate = new Date(date);
-                                                newDate.setFullYear(year);
+                                                newDate.setMonth(index);
                                                 setDate(newDate);
                                             }}
-                                            className={`h-8 px-3 font-semibold ${date.getFullYear() === year ? "bg-slate-800 text-white hover:bg-slate-700" : "text-slate-500 hover:bg-slate-100"}`}
+                                            className={`h-8 ${date.getMonth() === index ? "bg-blue-600 hover:bg-blue-700 border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
                                         >
-                                            {year}
+                                            {month}
                                         </Button>
                                     ))}
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="border rounded-md overflow-hidden bg-white">
-                            <Table className="hidden md:table">
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[200px]">Ad Soyad</TableHead>
-                                        {days.map(d => (
-                                            <TableHead key={d.toString()} className="p-0 w-8 text-center text-[10px] text-muted-foreground font-normal">
-                                                <div className="flex flex-col items-center justify-center py-1">
-                                                    <span className="font-bold text-slate-700">{format(d, 'd')}</span>
-                                                    <span>{format(d, 'EEE', { locale: tr }).substring(0, 1)}</span>
-                                                </div>
-                                            </TableHead>
-                                        ))}
-                                        <TableHead className="w-16 text-xs text-center font-bold bg-slate-50 border-l text-slate-700">Çalışma</TableHead>
-                                        <TableHead className="w-16 text-xs text-center font-bold bg-blue-50 border-l text-blue-700">Mesai</TableHead>
-                                        <TableHead className="w-16 text-xs text-center font-bold bg-orange-50 border-l text-orange-700">Kalan İzin</TableHead>
-                                        <TableHead className="w-10"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredNames.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={days.length + 5} className="h-24 text-center text-muted-foreground">
-                                                Bu şantiyede personel bulunamadı.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        filteredNames.map(person => {
-                                            const stats = calculateStats(person, date);
-                                            // Track exit state sequentially for this person
-                                            let isExited = false;
-
-                                            return (
-                                                <TableRow key={person.id} className="hover:bg-slate-50">
-                                                    <TableCell className="font-medium">
-                                                        <div className="flex flex-col">
-                                                            <span>{person.name}</span>
-                                                            <span className="text-[10px] text-muted-foreground">{person.role}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    {days.map(d => {
-                                                        const dateKey = format(d, 'yyyy-MM-dd');
-                                                        const record = (person.attendance || {})[dateKey];
-                                                        const isLocked = !canEditRecord(person, record, d);
-
-                                                        // Sequential Logic:
-                                                        const showLine = !record && isExited;
-                                                        const isStartDate = person.inputDate === dateKey;
-
-                                                        // Update State for NEXT iteration (or subsequent empty cells)
-                                                        if (record?.status === 'EXIT') {
-                                                            isExited = true;
-                                                        } else if (record?.status) {
-                                                            isExited = false;
-                                                        }
-
-                                                        let cellClass = "";
-                                                        if ([0, 6].includes(d.getDay())) cellClass = "bg-slate-50";
-
-                                                        // Visual feedback for locked cells (only if they have content)
-                                                        if (isLocked && record) {
-                                                            cellClass += " opacity-60 cursor-not-allowed";
-                                                        }
-
-                                                        // Default empty state: Centered dot
-                                                        let cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-lg select-none">·</div>;
-
-                                                        if (showLine) {
-                                                            cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
-                                                        }
-
-                                                        // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
-                                                        if (isStartDate && !record) {
-                                                            // Treat as FULL WORK
-                                                            cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
-                                                        }
-
-                                                        if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'HALF') cellContent = <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-500"><Clock className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'ABSENT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><XCircle className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
-                                                        if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
-
-                                                        // (Logic handled sequentially above via showLine)
-
-                                                        return (
-                                                            <TableCell
-                                                                key={d.toString()}
-                                                                className={`p-0 border-l text-center transition-colors hover:opacity-80 h-10 w-8 ${cellClass} relative`}
-                                                                onClick={() => {
-                                                                    if (isLocked) {
-                                                                        alert("Bu kaydı düzenleme yetkiniz yok veya süre doldu.");
-                                                                    } else {
-                                                                        setSelectedCell({ personId: person.id, date: d });
-                                                                    }
-                                                                }}
-                                                                onMouseEnter={(e) => {
-                                                                    const rect = e.currentTarget.getBoundingClientRect();
-                                                                    setHoveredData({
-                                                                        x: rect.left + rect.width / 2,
-                                                                        y: rect.top,
-                                                                        record: record,
-                                                                        date: d
-                                                                    });
-                                                                }}
-                                                                onMouseLeave={() => setHoveredData(null)}
-                                                            >
-                                                                {cellContent}
-                                                                {record?.note && (
-                                                                    <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-blue-600 z-20"></div>
-                                                                )}
-                                                                {record?.overtime && (
-                                                                    <span className="absolute bottom-0.5 left-0.5 text-[8px] font-bold bg-blue-600 text-white px-0.5 rounded shadow-sm z-10">
-                                                                        +{record.overtime}
-                                                                    </span>
-                                                                )}
-                                                                {isLocked && record && (
-                                                                    <Lock className="absolute top-0.5 right-0.5 w-3 h-3 text-slate-400 opacity-70" />
-                                                                )}
-                                                            </TableCell>
-                                                        );
-                                                    })}
-
-                                                    <TableCell className="text-center font-bold text-slate-700 border-l bg-slate-50">
-                                                        {stats.workedDays}
-                                                    </TableCell>
-                                                    <TableCell className="text-center font-bold text-blue-700 border-l bg-blue-50">
-                                                        {stats.overtimeTotal > 0 ? stats.overtimeTotal : '-'}
-                                                    </TableCell>
-                                                    <TableCell className="text-center font-bold text-orange-700 border-l bg-orange-50">
-                                                        {stats.remainingLeave}
-                                                    </TableCell>
-
-                                                    <TableCell className="text-right whitespace-nowrap">
-                                                        {canTransfer && (
-                                                            <Button variant="ghost" size="icon" onClick={() => openTransferModal(person)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 mr-1" title="Transfer Et">
-                                                                <ArrowRightLeft className="w-4 h-4" />
-                                                            </Button>
-                                                        )}
-                                                        {canEditPersonnel && (
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDelete(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" title="Sil">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        )}
-                                                    </TableCell>
-                                                </TableRow>
-                                            )
-                                        })
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </TabsContent>
-
-
-
-                    <TabsContent value="site-list">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-base font-semibold text-slate-700">Şantiye Personel Özeti</CardTitle>
-                                    <CardDescription>Şantiyelere göre toplam personel ve maaş dağılımı.</CardDescription>
-                                </div>
                                 <div className="flex items-center gap-2">
-                                    {/* Optional: Add Export for Summary */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDate(new Date())}
+                                        className="h-8 px-3 bg-white text-blue-600 border-blue-200 hover:bg-blue-50 shadow-sm font-semibold"
+                                    >
+                                        Bugün
+                                    </Button>
+                                    <div className="flex items-center gap-1 bg-white p-1 rounded-md border shadow-sm">
+                                        {[2024, 2025, 2026, 2027].map(year => (
+                                            <Button
+                                                key={year}
+                                                variant={date.getFullYear() === year ? "secondary" : "ghost"}
+                                                size="sm"
+                                                onClick={() => {
+                                                    const newDate = new Date(date);
+                                                    newDate.setFullYear(year);
+                                                    setDate(newDate);
+                                                }}
+                                                className={`h-8 px-3 font-semibold ${date.getFullYear() === year ? "bg-slate-800 text-white hover:bg-slate-700" : "text-slate-500 hover:bg-slate-100"}`}
+                                            >
+                                                {year}
+                                            </Button>
+                                        ))}
+                                    </div>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="p-0">
-                                <Table>
-                                    <TableHeader className="bg-slate-50">
+                            </div>
+
+                            <div className="border rounded-md overflow-hidden bg-white">
+                                <Table className="hidden md:table">
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableHead className="font-semibold text-slate-600 pl-6">Şantiye Adı</TableHead>
-                                            <TableHead className="font-semibold text-slate-600 text-center w-[150px]">
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <Users className="h-4 w-4 text-slate-500" /> Çalışan Sayısı
-                                                </div>
-                                            </TableHead>
-                                            <TableHead className="font-semibold text-slate-600 text-right pr-6 w-[200px]">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <ReceiptTurkishLira className="h-4 w-4 text-slate-500" /> Toplam Maaş
-                                                </div>
-                                            </TableHead>
+                                            <TableHead className="w-[200px]">Ad Soyad</TableHead>
+                                            {days.map(d => (
+                                                <TableHead key={d.toString()} className="p-0 w-8 text-center text-[10px] text-muted-foreground font-normal">
+                                                    <div className="flex flex-col items-center justify-center py-1">
+                                                        <span className="font-bold text-slate-700">{format(d, 'd')}</span>
+                                                        <span>{format(d, 'EEE', { locale: tr }).substring(0, 1)}</span>
+                                                    </div>
+                                                </TableHead>
+                                            ))}
+                                            <TableHead className="w-16 text-xs text-center font-bold bg-slate-50 border-l text-slate-700">Çalışma</TableHead>
+                                            <TableHead className="w-16 text-xs text-center font-bold bg-blue-50 border-l text-blue-700">Mesai</TableHead>
+                                            <TableHead className="w-16 text-xs text-center font-bold bg-orange-50 border-l text-orange-700">Kalan İzin</TableHead>
+                                            <TableHead className="w-10"></TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {(() => {
-                                            // Calculate Summary on the fly
-                                            const summary: Record<string, { name: string; count: number; totalSalary: number }> = {};
-
-                                            // 1. Initialize with active sites (to show empty ones if "All" is selected)
-                                            // Only if showing ALL sites, otherwise just show filtered
-                                            const showAllSites = !selectedSiteId || selectedSiteId === 'all';
-
-                                            if (showAllSites) {
-                                                sites.filter((s: any) => s.status === 'ACTIVE').forEach((s: any) => {
-                                                    summary[s.id] = { name: s.name, count: 0, totalSalary: 0 };
-                                                });
-                                            }
-
-                                            // 2. Aggregate from filtered list
-                                            // [FIX] Use 'names' directly to avoid TC Deduplication merging (which hides multi-site personnel)
-                                            // We want to count every active active record per site.
-                                            const sourceList = names;
-
-                                            sourceList.forEach(p => {
-                                                // 1. Basic Date Visibility Filter
-                                                // Skip if start date is strictly in the future (next month or later)
-                                                if (p.inputDate) {
-                                                    const startDate = new Date(p.inputDate);
-                                                    // If View Month is BEFORE Start Month
-                                                    if (differenceInCalendarMonths(startOfMonth(date), startDate) < 0) {
-                                                        // Check if they have unexpected attendance this month (e.g. started early)
-                                                        const hasAtt = Object.keys(p.attendance).some(k => k.startsWith(format(date, 'yyyy-MM')));
-                                                        if (!hasAtt) return;
-                                                    }
-                                                }
-
-                                                const sId = p.siteId || 'unknown';
-
-                                                // Initialize if missing (e.g. Passive site or Unknown)
-                                                if (!summary[sId]) {
-                                                    const sName = sites.find((s: any) => s.id === sId)?.name || 'Bilinmeyen Şantiye';
-                                                    summary[sId] = { name: sName, count: 0, totalSalary: 0 };
-                                                }
-
-                                                summary[sId].count += 1;
-                                                summary[sId].totalSalary += parseCurrency(p.salary);
-                                            });
-
-                                            // 3. Convert to Array & Sort
-                                            // Filter out empty sites ONLY if we are filtering? No, usually summarized view shows 0 counts nicely.
-                                            // But let's keep it clean.
-                                            const summaryList = Object.values(summary).sort((a, b) => b.totalSalary - a.totalSalary);
-
-                                            const grandTotalCount = summaryList.reduce((acc, curr) => acc + curr.count, 0);
-                                            const grandTotalSalary = summaryList.reduce((acc, curr) => acc + curr.totalSalary, 0);
-
-                                            if (summaryList.length === 0) {
-                                                return (
-                                                    <TableRow>
-                                                        <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Veri bulunamadı.</TableCell>
-                                                    </TableRow>
-                                                );
-                                            }
-
-                                            return (
-                                                <>
-                                                    {summaryList.map((item) => (
-                                                        <TableRow key={item.name} className="hover:bg-slate-50">
-                                                            <TableCell className="font-medium text-slate-700 pl-6">
-                                                                {item.name}
-                                                            </TableCell>
-                                                            <TableCell className="text-center">
-                                                                <Badge variant="secondary" className="font-mono text-sm px-3">
-                                                                    {item.count}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right font-mono font-medium text-slate-700 pr-6">
-                                                                {item.totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                    <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
-                                                        <TableCell className="font-bold text-slate-800 pl-6">GENEL TOPLAM</TableCell>
-                                                        <TableCell className="font-bold text-slate-800 text-center">
-                                                            <Badge className="font-mono text-sm px-3 bg-slate-800 hover:bg-slate-700">
-                                                                {grandTotalCount}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell className="font-bold text-emerald-700 text-right font-mono pr-6 text-lg">
-                                                            {grandTotalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                                        </TableCell>
-                                                    </TableRow>
-                                                </>
-                                            );
-                                        })()}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="all-list">
-                        <div className="border rounded-md overflow-hidden bg-white">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('tc', e)}>
-                                                    TC Kimlik {sortConfig.find(s => s.key === 'tc') && (sortConfig.find(s => s.key === 'tc')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                </div>
-                                                <ColumnFilter
-                                                    title="TC"
-                                                    options={names.map(n => ({ label: n.tc, value: n.tc }))}
-                                                    selectedValues={columnFilters['tc'] || []}
-                                                    onSelect={(v) => handleFilterChange('tc', v)}
-                                                    onClear={() => clearFilter('tc')}
-                                                />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('name', e)}>
-                                                    Ad Soyad {sortConfig.find(s => s.key === 'name') && (sortConfig.find(s => s.key === 'name')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                </div>
-                                                <ColumnFilter
-                                                    title="İsim"
-                                                    options={names.map(n => ({ label: n.name, value: n.name }))}
-                                                    selectedValues={columnFilters['name'] || []}
-                                                    onSelect={(v) => handleFilterChange('name', v)}
-                                                    onClear={() => clearFilter('name')}
-                                                />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('profession', e)}>
-                                                    Meslek {sortConfig.find(s => s.key === 'profession') && (sortConfig.find(s => s.key === 'profession')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                </div>
-                                                <ColumnFilter
-                                                    title="Meslek"
-                                                    options={professionOptions}
-                                                    selectedValues={columnFilters['profession'] || []}
-                                                    onSelect={(v) => handleFilterChange('profession', v)}
-                                                    onClear={() => clearFilter('profession')}
-                                                />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('role', e)}>
-                                                    Görev {sortConfig.find(s => s.key === 'role') && (sortConfig.find(s => s.key === 'role')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                </div>
-                                                <ColumnFilter
-                                                    title="Görev"
-                                                    options={roleOptions}
-                                                    selectedValues={columnFilters['role'] || []}
-                                                    onSelect={(v) => handleFilterChange('role', v)}
-                                                    onClear={() => clearFilter('role')}
-                                                />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('siteName', e)}>
-                                                    Şantiye {sortConfig.find(s => s.key === 'siteName') && (sortConfig.find(s => s.key === 'siteName')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                </div>
-                                                <ColumnFilter
-                                                    title="Şantiye"
-                                                    options={siteOptions}
-                                                    selectedValues={columnFilters['siteName'] || []}
-                                                    onSelect={(v) => handleFilterChange('siteName', v)}
-                                                    onClear={() => clearFilter('siteName')}
-                                                />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>
-                                            <div className="flex items-center space-x-2 justify-center">
-                                                <div className="flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('hasOvertime', e)}>
-                                                    Mesai? {sortConfig.find(s => s.key === 'hasOvertime') && (sortConfig.find(s => s.key === 'hasOvertime')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                </div>
-                                                <ColumnFilter
-                                                    title="Mesai"
-                                                    options={overtimeOptions}
-                                                    selectedValues={columnFilters['hasOvertime'] || []}
-                                                    onSelect={(v) => handleFilterChange('hasOvertime', v)}
-                                                    onClear={() => clearFilter('hasOvertime')}
-                                                />
-                                            </div>
-                                        </TableHead>
-                                        {canViewSalary && (
-                                            <TableHead className="cursor-pointer hover:bg-slate-100 select-none" onClick={(e) => handleSort('salary', e)}>
-                                                <div className="flex items-center gap-1">Maaş {sortConfig.find(s => s.key === 'salary') && (sortConfig.find(s => s.key === 'salary')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}</div>
-                                            </TableHead>
-                                        )}
-                                        <TableHead>İzin</TableHead>
-                                        <TableHead className="text-right">İşlem</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {allList.length === 0 ? (
-                                        <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">Kayıt Yok</TableCell></TableRow>
-                                    ) : allList.map(p => (
-                                        <TableRow key={p.id}>
-                                            <TableCell className="font-mono">{p.tc}</TableCell>
-                                            <TableCell className="font-medium">{p.name}</TableCell>
-                                            <TableCell>{p.profession}</TableCell>
-                                            <TableCell>{p.role}</TableCell>
-                                            <TableCell className="max-w-[120px] truncate" title={sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}>
-                                                {sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
-                                            </TableCell>
-                                            {canViewSalary && <TableCell>{formatCurrency(p.salary)}</TableCell>}
-                                            <TableCell>{p.leaveAllowance} Gün</TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {canTransfer && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => openTransferModal(p)}
-                                                            title="Şantiye Ata"
-                                                        >
-                                                            <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                            Şantiye Ata
-                                                        </Button>
-                                                    )}
-                                                    {canEditPersonnel && (
-                                                        <>
-                                                            <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
-                                                            <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        {/* LEGEND (Antet) */}
-                        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-4 p-2 bg-slate-50 rounded border border-slate-100 w-fit">
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-green-50 text-green-600 flex items-center justify-center"><CheckCircle2 className="w-3 h-3" /></div> Çalıştı</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center"><Clock className="w-3 h-3" /></div> Yarım Gün</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><XCircle className="w-3 h-3" /></div> Gelmedi</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center"><Umbrella className="w-3 h-3" /></div> İzinli</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><FileText className="w-3 h-3" /></div> Raporlu</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-cyan-50 text-cyan-500 flex items-center justify-center"><Car className="w-3 h-3" /></div> Dış Görev</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-slate-50 text-slate-400 flex items-center justify-center"><Plane className="w-3 h-3" /></div> Transfer</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-red-50 text-red-500 flex items-center justify-center"><LogOut className="w-3 h-3" /></div> İşten Çıkış</div>
-                            <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded flex items-center justify-center"><LogIn className="w-3 h-3 text-green-600" /></div> İşe Giriş</div>
-                        </div>
-                    </TabsContent>
-
-                    {/* SALARY TABLE */}
-                    <TabsContent value="salary-list" className="space-y-4">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle>Maaş Hesaplama Tablosu</CardTitle>
-                                <Button variant="outline" size="sm" onClick={handleExportSalaryExcel}>
-                                    <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                    Excel İndir
-                                </Button>
-                            </CardHeader>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[50px]">#</TableHead>
-                                        <TableHead>Ad Soyad</TableHead>
-                                        <TableHead>Maaş</TableHead>
-                                        <TableHead className="text-center">Gün</TableHead>
-                                        <TableHead className="text-center">Mesai</TableHead>
-                                        <TableHead className="text-right">Hakediş</TableHead>
-                                        <TableHead className="text-right">Mesai Tutarı</TableHead>
-                                        <TableHead className="text-right bg-green-50/50">Prim</TableHead>
-                                        <TableHead className="text-right bg-red-50/50">Kesinti</TableHead>
-                                        <TableHead className="text-right font-bold">TOPLAM</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredNames.map((person, index) => {
-                                        const stats = calculateStats(person, date);
-                                        const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-                                        return (
-                                            <TableRow key={person.id}>
-                                                <TableCell>{index + 1}</TableCell>
-                                                <TableCell className="font-medium">{person.name}</TableCell>
-                                                <TableCell>{formatCurrency(person.salary)}</TableCell>
-                                                <TableCell className="text-center">{stats.workedDays}</TableCell>
-                                                <TableCell className="text-center">{stats.overtimeTotal || '-'}</TableCell>
-                                                <TableCell className="text-right">{fmt(stats.basePay)} ₺</TableCell>
-                                                <TableCell className="text-right">{fmt(stats.overtimePay)} ₺</TableCell>
-                                                <TableCell className="p-0 bg-green-50/30">
-                                                    <SalaryEditableCell
-                                                        value={stats.bonus}
-                                                        type="Prim"
-                                                        colorClass="text-green-700"
-                                                        onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="p-0 bg-red-50/30">
-                                                    <SalaryEditableCell
-                                                        value={stats.deduction}
-                                                        type="Kesinti"
-                                                        colorClass="text-red-700"
-                                                        onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-right font-bold text-blue-700">
-                                                    {fmt(stats.totalPay)} ₺
+                                        {filteredNames.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={days.length + 5} className="h-24 text-center text-muted-foreground">
+                                                    Bu şantiyede personel bulunamadı.
                                                 </TableCell>
                                             </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                                        ) : (
+                                            filteredNames.map(person => {
+                                                const stats = calculateStats(person, date);
+                                                // Track exit state sequentially for this person
+                                                let isExited = false;
 
-                <Dialog open={!!selectedCell} onOpenChange={(open) => !open && setSelectedCell(null)}>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Puantaj Detayı</DialogTitle>
-                        </DialogHeader>
-                        {selectedCell && (
-                            <div className="space-y-4 py-4">
-                                <div className="bg-slate-50 p-3 rounded-lg text-center border pb-4">
-                                    <p className="font-bold text-lg">{names.find(n => n.id === selectedCell.personId)?.name}</p>
-                                    <p className="text-muted-foreground text-sm">{format(selectedCell.date, 'd MMMM yyyy', { locale: tr })}</p>
-                                </div>
+                                                return (
+                                                    <TableRow key={person.id} className="hover:bg-slate-50">
+                                                        <TableCell className="font-medium">
+                                                            <div className="flex flex-col">
+                                                                <span>{person.name}</span>
+                                                                <span className="text-[10px] text-muted-foreground">{person.role}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        {days.map(d => {
+                                                            const dateKey = format(d, 'yyyy-MM-dd');
+                                                            const record = (person.attendance || {})[dateKey];
+                                                            const isLocked = !canEditRecord(person, record, d);
 
-                                <div className="space-y-3">
-                                    <Label>Durum Seçiniz (Seçim anında kaydedilir)</Label>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <Button
-                                            variant={attendanceForm.status === 'FULL' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'FULL' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-green-50 text-green-700 border-green-200'}`}
-                                            onClick={() => saveAttendance('FULL')}
-                                        >
-                                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                                            Çalıştı
-                                        </Button>
-                                        <Button
-                                            variant={attendanceForm.status === 'HALF' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'HALF' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50 text-orange-700 border-orange-200'}`}
-                                            onClick={() => saveAttendance('HALF')}
-                                        >
-                                            <Clock className="w-4 h-4 mr-2" />
-                                            Yarım Gün
-                                        </Button>
-                                        <Button
-                                            variant={attendanceForm.status === 'ABSENT' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'ABSENT' ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-50 text-red-700 border-red-200'}`}
-                                            onClick={() => saveAttendance('ABSENT')}
-                                        >
-                                            <XCircle className="w-4 h-4 mr-2" />
-                                            Gelmedi
-                                        </Button>
-                                        <Button
-                                            variant={attendanceForm.status === 'LEAVE' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'LEAVE' ? 'bg-blue-500 hover:bg-blue-600' : 'hover:bg-blue-50 text-blue-700 border-blue-200'}`}
-                                            onClick={() => saveAttendance('LEAVE')}
-                                        >
-                                            <Umbrella className="w-4 h-4 mr-2" />
-                                            İzinli
-                                        </Button>
-                                        <Button
-                                            variant={attendanceForm.status === 'REPORT' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'REPORT' ? 'bg-purple-500 hover:bg-purple-600' : 'hover:bg-purple-50 text-purple-700 border-purple-200'}`}
-                                            onClick={() => saveAttendance('REPORT')}
-                                        >
-                                            <FileText className="w-4 h-4 mr-2" />
-                                            Raporlu
-                                        </Button>
-                                        <Button
-                                            variant={attendanceForm.status === 'OUT' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'OUT' ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50 text-cyan-700 border-cyan-200'}`}
-                                            onClick={() => saveAttendance('OUT')}
-                                        >
-                                            <Car className="w-4 h-4 mr-2" />
-                                            Dış Görev
-                                        </Button>
-                                        <Button
-                                            variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
-                                            className={`justify-start ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-3 font-bold transition-colors shadow-sm`}
-                                            onClick={() => {
-                                                if (window.confirm("Bu personeli işten çıkarmak istediğinize emin misiniz?")) {
-                                                    saveAttendance('EXIT');
-                                                }
-                                            }}
-                                        >
-                                            <LogOut className="w-4 h-4 mr-2" />
-                                            İşten Ayrıldı
-                                        </Button>
+                                                            // Sequential Logic:
+                                                            const showLine = !record && isExited;
+                                                            const isStartDate = person.inputDate === dateKey;
+
+                                                            // Update State for NEXT iteration (or subsequent empty cells)
+                                                            if (record?.status === 'EXIT') {
+                                                                isExited = true;
+                                                            } else if (record?.status) {
+                                                                isExited = false;
+                                                            }
+
+                                                            let cellClass = "";
+                                                            if ([0, 6].includes(d.getDay())) cellClass = "bg-slate-50";
+
+                                                            // Visual feedback for locked cells (only if they have content)
+                                                            if (isLocked && record) {
+                                                                cellClass += " opacity-60 cursor-not-allowed";
+                                                            }
+
+                                                            // Default empty state: Centered dot
+                                                            let cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-lg select-none">·</div>;
+
+                                                            if (showLine) {
+                                                                cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
+                                                            }
+
+                                                            // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
+                                                            if (isStartDate && !record) {
+                                                                // Treat as FULL WORK
+                                                                cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                            }
+
+                                                            if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'HALF') cellContent = <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-500"><Clock className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'ABSENT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><XCircle className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
+                                                            if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
+
+                                                            // (Logic handled sequentially above via showLine)
+
+                                                            return (
+                                                                <TableCell
+                                                                    key={d.toString()}
+                                                                    className={`p-0 border-l text-center transition-colors hover:opacity-80 h-10 w-8 ${cellClass} relative`}
+                                                                    onClick={() => {
+                                                                        if (isLocked) {
+                                                                            alert("Bu kaydı düzenleme yetkiniz yok veya süre doldu.");
+                                                                        } else {
+                                                                            setSelectedCell({ personId: person.id, date: d });
+                                                                        }
+                                                                    }}
+                                                                    onMouseEnter={(e) => {
+                                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                                        setHoveredData({
+                                                                            x: rect.left + rect.width / 2,
+                                                                            y: rect.top,
+                                                                            record: record,
+                                                                            date: d
+                                                                        });
+                                                                    }}
+                                                                    onMouseLeave={() => setHoveredData(null)}
+                                                                >
+                                                                    {cellContent}
+                                                                    {record?.note && (
+                                                                        <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-blue-600 z-20"></div>
+                                                                    )}
+                                                                    {record?.overtime && (
+                                                                        <span className="absolute bottom-0.5 left-0.5 text-[8px] font-bold bg-blue-600 text-white px-0.5 rounded shadow-sm z-10">
+                                                                            +{record.overtime}
+                                                                        </span>
+                                                                    )}
+                                                                    {isLocked && record && (
+                                                                        <Lock className="absolute top-0.5 right-0.5 w-3 h-3 text-slate-400 opacity-70" />
+                                                                    )}
+                                                                </TableCell>
+                                                            );
+                                                        })}
+
+                                                        <TableCell className="text-center font-bold text-slate-700 border-l bg-slate-50">
+                                                            {stats.workedDays}
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-bold text-blue-700 border-l bg-blue-50">
+                                                            {stats.overtimeTotal > 0 ? stats.overtimeTotal : '-'}
+                                                        </TableCell>
+                                                        <TableCell className="text-center font-bold text-orange-700 border-l bg-orange-50">
+                                                            {stats.remainingLeave}
+                                                        </TableCell>
+
+                                                        <TableCell className="text-right whitespace-nowrap">
+                                                            {canTransfer && (
+                                                                <Button variant="ghost" size="icon" onClick={() => openTransferModal(person)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 mr-1" title="Transfer Et">
+                                                                    <ArrowRightLeft className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                            {canEditPersonnel && (
+                                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" title="Sil">
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </TabsContent>
+
+
+
+                        <TabsContent value="site-list">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+                                    <div className="space-y-1">
+                                        <CardTitle className="text-base font-semibold text-slate-700">Şantiye Personel Özeti</CardTitle>
+                                        <CardDescription>Şantiyelere göre toplam personel ve maaş dağılımı.</CardDescription>
                                     </div>
-                                </div>
+                                    <div className="flex items-center gap-2">
+                                        {/* Optional: Add Export for Summary */}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0">
+                                    <Table>
+                                        <TableHeader className="bg-slate-50">
+                                            <TableRow>
+                                                <TableHead className="font-semibold text-slate-600 pl-6">Şantiye Adı</TableHead>
+                                                <TableHead className="font-semibold text-slate-600 text-center w-[150px]">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <Users className="h-4 w-4 text-slate-500" /> Çalışan Sayısı
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead className="font-semibold text-slate-600 text-right pr-6 w-[200px]">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <ReceiptTurkishLira className="h-4 w-4 text-slate-500" /> Toplam Maaş
+                                                    </div>
+                                                </TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {(() => {
+                                                // Calculate Summary on the fly
+                                                const summary: Record<string, { name: string; count: number; totalSalary: number }> = {};
 
-                                {names.find(n => n.id === selectedCell.personId)?.hasOvertime && (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Mesai (Saat)</Label>
-                                            <Input
-                                                type="number"
-                                                placeholder="0"
-                                                value={attendanceForm.overtime}
-                                                onChange={e => setAttendanceForm({ ...attendanceForm, overtime: e.target.value })}
-                                            />
+                                                // 1. Initialize with active sites (to show empty ones if "All" is selected)
+                                                // Only if showing ALL sites, otherwise just show filtered
+                                                const showAllSites = !selectedSiteId || selectedSiteId === 'all';
+
+                                                if (showAllSites) {
+                                                    sites.filter((s: any) => s.status === 'ACTIVE').forEach((s: any) => {
+                                                        summary[s.id] = { name: s.name, count: 0, totalSalary: 0 };
+                                                    });
+                                                }
+
+                                                // 2. Aggregate from filtered list
+                                                // [FIX] Use 'names' directly to avoid TC Deduplication merging (which hides multi-site personnel)
+                                                // We want to count every active active record per site.
+                                                const sourceList = names;
+
+                                                sourceList.forEach(p => {
+                                                    // 1. Basic Date Visibility Filter
+                                                    // Skip if start date is strictly in the future (next month or later)
+                                                    if (p.inputDate) {
+                                                        const startDate = new Date(p.inputDate);
+                                                        // If View Month is BEFORE Start Month
+                                                        if (differenceInCalendarMonths(startOfMonth(date), startDate) < 0) {
+                                                            // Check if they have unexpected attendance this month (e.g. started early)
+                                                            const hasAtt = Object.keys(p.attendance).some(k => k.startsWith(format(date, 'yyyy-MM')));
+                                                            if (!hasAtt) return;
+                                                        }
+                                                    }
+
+                                                    const sId = p.siteId || 'unknown';
+
+                                                    // Initialize if missing (e.g. Passive site or Unknown)
+                                                    if (!summary[sId]) {
+                                                        const sName = sites.find((s: any) => s.id === sId)?.name || 'Bilinmeyen Şantiye';
+                                                        summary[sId] = { name: sName, count: 0, totalSalary: 0 };
+                                                    }
+
+                                                    summary[sId].count += 1;
+                                                    summary[sId].totalSalary += parseCurrency(p.salary);
+                                                });
+
+                                                // 3. Convert to Array & Sort
+                                                // Filter out empty sites ONLY if we are filtering? No, usually summarized view shows 0 counts nicely.
+                                                // But let's keep it clean.
+                                                const summaryList = Object.values(summary).sort((a, b) => b.totalSalary - a.totalSalary);
+
+                                                const grandTotalCount = summaryList.reduce((acc, curr) => acc + curr.count, 0);
+                                                const grandTotalSalary = summaryList.reduce((acc, curr) => acc + curr.totalSalary, 0);
+
+                                                if (summaryList.length === 0) {
+                                                    return (
+                                                        <TableRow>
+                                                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Veri bulunamadı.</TableCell>
+                                                        </TableRow>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <>
+                                                        {summaryList.map((item) => (
+                                                            <TableRow key={item.name} className="hover:bg-slate-50">
+                                                                <TableCell className="font-medium text-slate-700 pl-6">
+                                                                    {item.name}
+                                                                </TableCell>
+                                                                <TableCell className="text-center">
+                                                                    <Badge variant="secondary" className="font-mono text-sm px-3">
+                                                                        {item.count}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right font-mono font-medium text-slate-700 pr-6">
+                                                                    {item.totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                        <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+                                                            <TableCell className="font-bold text-slate-800 pl-6">GENEL TOPLAM</TableCell>
+                                                            <TableCell className="font-bold text-slate-800 text-center">
+                                                                <Badge className="font-mono text-sm px-3 bg-slate-800 hover:bg-slate-700">
+                                                                    {grandTotalCount}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="font-bold text-emerald-700 text-right font-mono pr-6 text-lg">
+                                                                {grandTotalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    </>
+                                                );
+                                            })()}
+                                        </TableBody>
+                                    </Table>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="all-list">
+                            <div className="border rounded-md overflow-hidden bg-white">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('tc', e)}>
+                                                        TC Kimlik {sortConfig.find(s => s.key === 'tc') && (sortConfig.find(s => s.key === 'tc')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                                                    </div>
+                                                    <ColumnFilter
+                                                        title="TC"
+                                                        options={names.map(n => ({ label: n.tc, value: n.tc }))}
+                                                        selectedValues={columnFilters['tc'] || []}
+                                                        onSelect={(v) => handleFilterChange('tc', v)}
+                                                        onClear={() => clearFilter('tc')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('name', e)}>
+                                                        Ad Soyad {sortConfig.find(s => s.key === 'name') && (sortConfig.find(s => s.key === 'name')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                                                    </div>
+                                                    <ColumnFilter
+                                                        title="İsim"
+                                                        options={names.map(n => ({ label: n.name, value: n.name }))}
+                                                        selectedValues={columnFilters['name'] || []}
+                                                        onSelect={(v) => handleFilterChange('name', v)}
+                                                        onClear={() => clearFilter('name')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('profession', e)}>
+                                                        Meslek {sortConfig.find(s => s.key === 'profession') && (sortConfig.find(s => s.key === 'profession')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                                                    </div>
+                                                    <ColumnFilter
+                                                        title="Meslek"
+                                                        options={professionOptions}
+                                                        selectedValues={columnFilters['profession'] || []}
+                                                        onSelect={(v) => handleFilterChange('profession', v)}
+                                                        onClear={() => clearFilter('profession')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('role', e)}>
+                                                        Görev {sortConfig.find(s => s.key === 'role') && (sortConfig.find(s => s.key === 'role')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                                                    </div>
+                                                    <ColumnFilter
+                                                        title="Görev"
+                                                        options={roleOptions}
+                                                        selectedValues={columnFilters['role'] || []}
+                                                        onSelect={(v) => handleFilterChange('role', v)}
+                                                        onClear={() => clearFilter('role')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('siteName', e)}>
+                                                        Şantiye {sortConfig.find(s => s.key === 'siteName') && (sortConfig.find(s => s.key === 'siteName')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                                                    </div>
+                                                    <ColumnFilter
+                                                        title="Şantiye"
+                                                        options={siteOptions}
+                                                        selectedValues={columnFilters['siteName'] || []}
+                                                        onSelect={(v) => handleFilterChange('siteName', v)}
+                                                        onClear={() => clearFilter('siteName')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center space-x-2 justify-center">
+                                                    <div className="flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('hasOvertime', e)}>
+                                                        Mesai? {sortConfig.find(s => s.key === 'hasOvertime') && (sortConfig.find(s => s.key === 'hasOvertime')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                                                    </div>
+                                                    <ColumnFilter
+                                                        title="Mesai"
+                                                        options={overtimeOptions}
+                                                        selectedValues={columnFilters['hasOvertime'] || []}
+                                                        onSelect={(v) => handleFilterChange('hasOvertime', v)}
+                                                        onClear={() => clearFilter('hasOvertime')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            {canViewSalary && (
+                                                <TableHead className="cursor-pointer hover:bg-slate-100 select-none" onClick={(e) => handleSort('salary', e)}>
+                                                    <div className="flex items-center gap-1">Maaş {sortConfig.find(s => s.key === 'salary') && (sortConfig.find(s => s.key === 'salary')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}</div>
+                                                </TableHead>
+                                            )}
+                                            <TableHead>İzin</TableHead>
+                                            <TableHead className="text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {allList.length === 0 ? (
+                                            <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">Kayıt Yok</TableCell></TableRow>
+                                        ) : allList.map(p => (
+                                            <TableRow key={p.id}>
+                                                <TableCell className="font-mono">{p.tc}</TableCell>
+                                                <TableCell className="font-medium">{p.name}</TableCell>
+                                                <TableCell>{p.profession}</TableCell>
+                                                <TableCell>{p.role}</TableCell>
+                                                <TableCell className="max-w-[120px] truncate" title={sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}>
+                                                    {sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
+                                                </TableCell>
+                                                {canViewSalary && <TableCell>{formatCurrency(p.salary)}</TableCell>}
+                                                <TableCell>{p.leaveAllowance} Gün</TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        {canTransfer && (
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => openTransferModal(p)}
+                                                                title="Şantiye Ata"
+                                                            >
+                                                                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                                                Şantiye Ata
+                                                            </Button>
+                                                        )}
+                                                        {canEditPersonnel && (
+                                                            <>
+                                                                <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
+                                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            {/* LEGEND (Antet) */}
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-4 p-2 bg-slate-50 rounded border border-slate-100 w-fit">
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-green-50 text-green-600 flex items-center justify-center"><CheckCircle2 className="w-3 h-3" /></div> Çalıştı</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center"><Clock className="w-3 h-3" /></div> Yarım Gün</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><XCircle className="w-3 h-3" /></div> Gelmedi</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center"><Umbrella className="w-3 h-3" /></div> İzinli</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><FileText className="w-3 h-3" /></div> Raporlu</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-cyan-50 text-cyan-500 flex items-center justify-center"><Car className="w-3 h-3" /></div> Dış Görev</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-slate-50 text-slate-400 flex items-center justify-center"><Plane className="w-3 h-3" /></div> Transfer</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-red-50 text-red-500 flex items-center justify-center"><LogOut className="w-3 h-3" /></div> İşten Çıkış</div>
+                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded flex items-center justify-center"><LogIn className="w-3 h-3 text-green-600" /></div> İşe Giriş</div>
+                            </div>
+                        </TabsContent>
+
+                        {/* SALARY TABLE */}
+                        <TabsContent value="salary-list" className="space-y-4">
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                    <CardTitle>Maaş Hesaplama Tablosu</CardTitle>
+                                    <Button variant="outline" size="sm" onClick={handleExportSalaryExcel}>
+                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                        Excel İndir
+                                    </Button>
+                                </CardHeader>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[50px]">#</TableHead>
+                                            <TableHead>Ad Soyad</TableHead>
+                                            <TableHead>Maaş</TableHead>
+                                            <TableHead className="text-center">Gün</TableHead>
+                                            <TableHead className="text-center">Mesai</TableHead>
+                                            <TableHead className="text-right">Hakediş</TableHead>
+                                            <TableHead className="text-right">Mesai Tutarı</TableHead>
+                                            <TableHead className="text-right bg-green-50/50">Prim</TableHead>
+                                            <TableHead className="text-right bg-red-50/50">Kesinti</TableHead>
+                                            <TableHead className="text-right font-bold">TOPLAM</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredNames.map((person, index) => {
+                                            const stats = calculateStats(person, date);
+                                            const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                                            return (
+                                                <TableRow key={person.id}>
+                                                    <TableCell>{index + 1}</TableCell>
+                                                    <TableCell className="font-medium">{person.name}</TableCell>
+                                                    <TableCell>{formatCurrency(person.salary)}</TableCell>
+                                                    <TableCell className="text-center">{stats.workedDays}</TableCell>
+                                                    <TableCell className="text-center">{stats.overtimeTotal || '-'}</TableCell>
+                                                    <TableCell className="text-right">{fmt(stats.basePay)} ₺</TableCell>
+                                                    <TableCell className="text-right">{fmt(stats.overtimePay)} ₺</TableCell>
+                                                    <TableCell className="p-0 bg-green-50/30">
+                                                        <SalaryEditableCell
+                                                            value={stats.bonus}
+                                                            type="Prim"
+                                                            colorClass="text-green-700"
+                                                            onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="p-0 bg-red-50/30">
+                                                        <SalaryEditableCell
+                                                            value={stats.deduction}
+                                                            type="Kesinti"
+                                                            colorClass="text-red-700"
+                                                            onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-bold text-blue-700">
+                                                        {fmt(stats.totalPay)} ₺
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
+
+                    <Dialog open={!!selectedCell} onOpenChange={(open) => !open && setSelectedCell(null)}>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Puantaj Detayı</DialogTitle>
+                            </DialogHeader>
+                            {selectedCell && (
+                                <div className="space-y-4 py-4">
+                                    <div className="bg-slate-50 p-3 rounded-lg text-center border pb-4">
+                                        <p className="font-bold text-lg">{names.find(n => n.id === selectedCell.personId)?.name}</p>
+                                        <p className="text-muted-foreground text-sm">{format(selectedCell.date, 'd MMMM yyyy', { locale: tr })}</p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label>Durum Seçiniz (Seçim anında kaydedilir)</Label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <Button
+                                                variant={attendanceForm.status === 'FULL' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'FULL' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-green-50 text-green-700 border-green-200'}`}
+                                                onClick={() => saveAttendance('FULL')}
+                                            >
+                                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                                Çalıştı
+                                            </Button>
+                                            <Button
+                                                variant={attendanceForm.status === 'HALF' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'HALF' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50 text-orange-700 border-orange-200'}`}
+                                                onClick={() => saveAttendance('HALF')}
+                                            >
+                                                <Clock className="w-4 h-4 mr-2" />
+                                                Yarım Gün
+                                            </Button>
+                                            <Button
+                                                variant={attendanceForm.status === 'ABSENT' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'ABSENT' ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-50 text-red-700 border-red-200'}`}
+                                                onClick={() => saveAttendance('ABSENT')}
+                                            >
+                                                <XCircle className="w-4 h-4 mr-2" />
+                                                Gelmedi
+                                            </Button>
+                                            <Button
+                                                variant={attendanceForm.status === 'LEAVE' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'LEAVE' ? 'bg-blue-500 hover:bg-blue-600' : 'hover:bg-blue-50 text-blue-700 border-blue-200'}`}
+                                                onClick={() => saveAttendance('LEAVE')}
+                                            >
+                                                <Umbrella className="w-4 h-4 mr-2" />
+                                                İzinli
+                                            </Button>
+                                            <Button
+                                                variant={attendanceForm.status === 'REPORT' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'REPORT' ? 'bg-purple-500 hover:bg-purple-600' : 'hover:bg-purple-50 text-purple-700 border-purple-200'}`}
+                                                onClick={() => saveAttendance('REPORT')}
+                                            >
+                                                <FileText className="w-4 h-4 mr-2" />
+                                                Raporlu
+                                            </Button>
+                                            <Button
+                                                variant={attendanceForm.status === 'OUT' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'OUT' ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50 text-cyan-700 border-cyan-200'}`}
+                                                onClick={() => saveAttendance('OUT')}
+                                            >
+                                                <Car className="w-4 h-4 mr-2" />
+                                                Dış Görev
+                                            </Button>
+                                            <Button
+                                                variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
+                                                className={`justify-start ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-3 font-bold transition-colors shadow-sm`}
+                                                onClick={() => {
+                                                    if (window.confirm("Bu personeli işten çıkarmak istediğinize emin misiniz?")) {
+                                                        saveAttendance('EXIT');
+                                                    }
+                                                }}
+                                            >
+                                                <LogOut className="w-4 h-4 mr-2" />
+                                                İşten Ayrıldı
+                                            </Button>
                                         </div>
                                     </div>
-                                )}
+
+                                    {names.find(n => n.id === selectedCell.personId)?.hasOvertime && (
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Mesai (Saat)</Label>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    value={attendanceForm.overtime}
+                                                    onChange={e => setAttendanceForm({ ...attendanceForm, overtime: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <Label>
+                                            Açıklama
+                                            {names.find(n => n.id === selectedCell.personId)?.hasOvertime && attendanceForm.overtime && <span className="text-red-500 ml-1">(Mesai için zorunlu *)</span>}
+                                        </Label>
+                                        <Textarea
+                                            placeholder="Not giriniz..."
+                                            value={attendanceForm.note}
+                                            onChange={e => setAttendanceForm({ ...attendanceForm, note: e.target.value })}
+                                            className="resize-none"
+                                        />
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <Button variant="ghost" className="w-full text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => { setAttendanceForm({ status: '', overtime: '', note: '' }); saveAttendance(''); }}>
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Kaydı Temizle
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Personel Transfer İşlemi</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>Transfer Edilecek Personel</Label>
+                                    <Input disabled value={names.find(n => n.id === transferData.personId)?.name || ''} className="bg-muted" />
+                                </div>
 
                                 <div className="space-y-2">
-                                    <Label>
-                                        Açıklama
-                                        {names.find(n => n.id === selectedCell.personId)?.hasOvertime && attendanceForm.overtime && <span className="text-red-500 ml-1">(Mesai için zorunlu *)</span>}
-                                    </Label>
-                                    <Textarea
-                                        placeholder="Not giriniz..."
-                                        value={attendanceForm.note}
-                                        onChange={e => setAttendanceForm({ ...attendanceForm, note: e.target.value })}
-                                        className="resize-none"
-                                    />
-                                </div>
-
-                                <div className="pt-2">
-                                    <Button variant="ghost" className="w-full text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => { setAttendanceForm({ status: '', overtime: '', note: '' }); saveAttendance(''); }}>
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Kaydı Temizle
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </DialogContent>
-                </Dialog>
-
-                <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Personel Transfer İşlemi</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label>Transfer Edilecek Personel</Label>
-                                <Input disabled value={names.find(n => n.id === transferData.personId)?.name || ''} className="bg-muted" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Hedef Şantiye</Label>
-                                <Select
-                                    value={transferData.targetSiteId}
-                                    onValueChange={(val) => setTransferData({ ...transferData, targetSiteId: val })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Şantiye Seçiniz" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableSites
-                                            .filter(s => s.id !== names.find(n => n.id === transferData.personId)?.siteId)
-                                            .map(s => (
-                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                            ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Transfer Tarihi (Bu tarih ve sonrası yeni şantiyeye geçer)</Label>
-                                <Input
-                                    type="date"
-                                    value={transferData.transferDate instanceof Date && !isNaN(transferData.transferDate.getTime()) ? format(transferData.transferDate, 'yyyy-MM-dd') : ''}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        if (val) {
-                                            const [y, m, d] = val.split('-').map(Number);
-                                            const date = new Date(y, m - 1, d);
-                                            setTransferData({ ...transferData, transferDate: date });
-                                        }
-                                    }}
-                                />
-                            </div>
-
-                            <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 border">
-                                <p className="flex items-center gap-2 font-bold mb-1"><Plane className="w-4 h-4" /> Transfer Bilgisi:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                    <li>Seçilen tarihten <b>önceki</b> günler bu şantiyede kalır.</li>
-                                    <li>Seçilen tarih ve <b>sonrası</b> yeni şantiyeye taşınır.</li>
-                                    <li>Boş kalan günler "Transfer" (Uçak) simgesi ile doldurulur.</li>
-                                </ul>
-                            </div>
-
-                            <div className="pt-4 flex justify-end">
-                                <Button onClick={handleTransferSubmit} disabled={!transferData.targetSiteId}>
-                                    Transfer Et
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-
-
-
-
-                {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
-                <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                    setIsDialogOpen(open);
-                    if (!open) setEditingId(null);
-                }}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label>İşe Giriş Tarihi</Label>
-                                <Input
-                                    type="date"
-                                    value={formData.inputDate}
-                                    onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
-                                <Input
-                                    value={formData.tc}
-                                    onChange={e => setFormData({ ...formData, tc: e.target.value })}
-                                    placeholder="11 haneli TC no"
-                                    maxLength={11}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
-                                <Input
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="Ad Soyad"
-                                />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>Mesleği <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.profession}
-                                        onChange={e => setFormData({ ...formData, profession: e.target.value })}
-                                        placeholder="Örn: Kalıpçı"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Görevi <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.role}
-                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                        placeholder="Örn: Usta"
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Şantiye <span className="text-red-500">*</span></Label>
-                                {availableSites.length > 1 ? (
+                                    <Label>Hedef Şantiye</Label>
                                     <Select
-                                        value={formData.siteId}
-                                        onValueChange={(val) => setFormData({ ...formData, siteId: val })}
+                                        value={transferData.targetSiteId}
+                                        onValueChange={(val) => setTransferData({ ...transferData, targetSiteId: val })}
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Şantiye Seçiniz" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableSites.map(s => (
-                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                            ))}
+                                            {availableSites
+                                                .filter(s => s.id !== names.find(n => n.id === transferData.personId)?.siteId)
+                                                .map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
                                         </SelectContent>
                                     </Select>
-                                ) : (
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Transfer Tarihi (Bu tarih ve sonrası yeni şantiyeye geçer)</Label>
                                     <Input
-                                        value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
-                                        disabled
-                                        className="bg-muted"
-                                    />
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Maaşı (₺) <span className="text-red-500">*</span></Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="text"
-                                        value={formData.salary}
-                                        onChange={e => {
-                                            const formatted = formatMoneyInput(e.target.value);
-                                            setFormData({ ...formData, salary: formatted });
+                                        type="date"
+                                        value={transferData.transferDate instanceof Date && !isNaN(transferData.transferDate.getTime()) ? format(transferData.transferDate, 'yyyy-MM-dd') : ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val) {
+                                                const [y, m, d] = val.split('-').map(Number);
+                                                const date = new Date(y, m - 1, d);
+                                                setTransferData({ ...transferData, transferDate: date });
+                                            }
                                         }}
-                                        placeholder="0,00"
-                                        disabled={!!editingId}
-                                        className={editingId ? "bg-slate-100" : ""}
                                     />
-                                    {editingId && (
-                                        <Button
-                                            type="button"
-                                            variant={showSalaryInput ? "secondary" : "outline"}
-                                            onClick={() => setShowSalaryInput(!showSalaryInput)}
+                                </div>
+
+                                <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 border">
+                                    <p className="flex items-center gap-2 font-bold mb-1"><Plane className="w-4 h-4" /> Transfer Bilgisi:</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        <li>Seçilen tarihten <b>önceki</b> günler bu şantiyede kalır.</li>
+                                        <li>Seçilen tarih ve <b>sonrası</b> yeni şantiyeye taşınır.</li>
+                                        <li>Boş kalan günler "Transfer" (Uçak) simgesi ile doldurulur.</li>
+                                    </ul>
+                                </div>
+
+                                <div className="pt-4 flex justify-end">
+                                    <Button onClick={handleTransferSubmit} disabled={!transferData.targetSiteId}>
+                                        Transfer Et
+                                    </Button>
+                                </div>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
+
+
+
+
+                    {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
+                    <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                        setIsDialogOpen(open);
+                        if (!open) setEditingId(null);
+                    }}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label>İşe Giriş Tarihi</Label>
+                                    <Input
+                                        type="date"
+                                        value={formData.inputDate}
+                                        onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={formData.tc}
+                                        onChange={e => setFormData({ ...formData, tc: e.target.value })}
+                                        placeholder="11 haneli TC no"
+                                        maxLength={11}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="Ad Soyad"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Mesleği <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={formData.profession}
+                                            onChange={e => setFormData({ ...formData, profession: e.target.value })}
+                                            placeholder="Örn: Kalıpçı"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Görevi <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            value={formData.role}
+                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                            placeholder="Örn: Usta"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Şantiye <span className="text-red-500">*</span></Label>
+                                    {availableSites.length > 1 ? (
+                                        <Select
+                                            value={formData.siteId}
+                                            onValueChange={(val) => setFormData({ ...formData, siteId: val })}
                                         >
-                                            {showSalaryInput ? "İptal" : "Yeni Maaş"}
-                                        </Button>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Şantiye Seçiniz" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availableSites.map(s => (
+                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input
+                                            value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
+                                            disabled
+                                            className="bg-muted"
+                                        />
                                     )}
                                 </div>
-
-                                {showSalaryInput && editingId && (
-                                    <div className="mt-2 p-3 bg-slate-50 border rounded-md animate-in fade-in slide-in-from-top-2 space-y-2">
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-slate-500 block">Yeni Maaş Tutarı</Label>
-                                            <Input
-                                                type="text"
-                                                value={formData.newSalary}
-                                                onChange={e => {
-                                                    const formatted = formatMoneyInput(e.target.value);
-                                                    setFormData({ ...formData, newSalary: formatted });
-                                                }}
-                                                placeholder="Yeni tutarı giriniz..."
-                                                autoFocus
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <Label className="text-xs text-slate-500 block">Güncelleme Tarihi</Label>
-                                            <Input
-                                                type="date"
-                                                value={formData.newSalaryDate}
-                                                onChange={e => setFormData({ ...formData, newSalaryDate: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-
-
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.leaveAllowance}
-                                        onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div className="flex items-end pb-2">
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="overtime"
-                                            checked={formData.hasOvertime}
-                                            onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
+                                    <Label>Maaşı (₺) <span className="text-red-500">*</span></Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            type="text"
+                                            value={formData.salary}
+                                            onChange={e => {
+                                                const formatted = formatMoneyInput(e.target.value);
+                                                setFormData({ ...formData, salary: formatted });
+                                            }}
+                                            placeholder="0,00"
+                                            disabled={!!editingId}
+                                            className={editingId ? "bg-slate-100" : ""}
                                         />
-                                        <Label htmlFor="overtime">Mesai Hakkı Var</Label>
+                                        {editingId && (
+                                            <Button
+                                                type="button"
+                                                variant={showSalaryInput ? "secondary" : "outline"}
+                                                onClick={() => setShowSalaryInput(!showSalaryInput)}
+                                            >
+                                                {showSalaryInput ? "İptal" : "Yeni Maaş"}
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {showSalaryInput && editingId && (
+                                        <div className="mt-2 p-3 bg-slate-50 border rounded-md animate-in fade-in slide-in-from-top-2 space-y-2">
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-slate-500 block">Yeni Maaş Tutarı</Label>
+                                                <Input
+                                                    type="text"
+                                                    value={formData.newSalary}
+                                                    onChange={e => {
+                                                        const formatted = formatMoneyInput(e.target.value);
+                                                        setFormData({ ...formData, newSalary: formatted });
+                                                    }}
+                                                    placeholder="Yeni tutarı giriniz..."
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label className="text-xs text-slate-500 block">Güncelleme Tarihi</Label>
+                                                <Input
+                                                    type="date"
+                                                    value={formData.newSalaryDate}
+                                                    onChange={e => setFormData({ ...formData, newSalaryDate: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
+                                        <Input
+                                            type="number"
+                                            value={formData.leaveAllowance}
+                                            onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div className="flex items-end pb-2">
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="overtime"
+                                                checked={formData.hasOvertime}
+                                                onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
+                                            />
+                                            <Label htmlFor="overtime">Mesai Hakkı Var</Label>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Notlar</Label>
-                                <Textarea
-                                    value={formData.note}
-                                    onChange={e => setFormData({ ...formData, note: e.target.value })}
-                                    placeholder="Kısa notlar..."
-                                />
-                            </div>
-                            <div className="pt-4 flex justify-end">
-                                <Button onClick={handleAdd}>
-                                    {editingId ? 'Güncelle' : 'Kaydet'}
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Salary Adjustment Dialog */}
-                <Dialog open={isSalaryAdjustmentOpen} onOpenChange={setIsSalaryAdjustmentOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Maaş Düzenlemesi ({salaryAdjustmentForm.dateKey})</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-4">
-                                Bu ay için hesaplanan değerleri buradan manuel olarak değiştirebilirsiniz. Değişiklikler sadece bu ay için geçerli olacaktır.
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Çalışılan Gün</Label>
-                                    <Input
-                                        type="number"
-                                        value={salaryAdjustmentForm.workedDays}
-                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, workedDays: e.target.value })}
+                                    <Label>Notlar</Label>
+                                    <Textarea
+                                        value={formData.note}
+                                        onChange={e => setFormData({ ...formData, note: e.target.value })}
+                                        placeholder="Kısa notlar..."
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>Mesai Saati</Label>
-                                    <Input
-                                        type="number"
-                                        value={salaryAdjustmentForm.overtimeHours}
-                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, overtimeHours: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Ekstra Prim (₺)</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        value={salaryAdjustmentForm.bonus}
-                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, bonus: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Kesinti / Avans (₺)</Label>
-                                    <Input
-                                        type="number"
-                                        placeholder="0"
-                                        value={salaryAdjustmentForm.deduction}
-                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, deduction: e.target.value })}
-                                    />
+                                <div className="pt-4 flex justify-end">
+                                    <Button onClick={handleAdd}>
+                                        {editingId ? 'Güncelle' : 'Kaydet'}
+                                    </Button>
                                 </div>
                             </div>
+                        </DialogContent>
+                    </Dialog>
 
-                            <div className="space-y-2">
-                                <Label>Not</Label>
-                                <Textarea
-                                    placeholder="Düzenleme nedeni..."
-                                    value={salaryAdjustmentForm.note}
-                                    onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, note: e.target.value })}
-                                />
-                            </div>
+                    {/* Salary Adjustment Dialog */}
+                    <Dialog open={isSalaryAdjustmentOpen} onOpenChange={setIsSalaryAdjustmentOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Maaş Düzenlemesi ({salaryAdjustmentForm.dateKey})</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-4">
+                                    Bu ay için hesaplanan değerleri buradan manuel olarak değiştirebilirsiniz. Değişiklikler sadece bu ay için geçerli olacaktır.
+                                </div>
 
-                            <div className="flex justify-end pt-4">
-                                <Button onClick={() => {
-                                    setNames(prev => prev.map(p => {
-                                        if (p.id === salaryAdjustmentForm.personId) {
-                                            return {
-                                                ...p,
-                                                salaryAdjustments: {
-                                                    ...p.salaryAdjustments,
-                                                    [salaryAdjustmentForm.dateKey]: {
-                                                        workedDays: salaryAdjustmentForm.workedDays ? parseFloat(salaryAdjustmentForm.workedDays) : undefined,
-                                                        overtimeHours: salaryAdjustmentForm.overtimeHours ? parseFloat(salaryAdjustmentForm.overtimeHours) : undefined,
-                                                        bonus: salaryAdjustmentForm.bonus ? parseFloat(salaryAdjustmentForm.bonus) : undefined,
-                                                        deduction: salaryAdjustmentForm.deduction ? parseFloat(salaryAdjustmentForm.deduction) : undefined,
-                                                        note: salaryAdjustmentForm.note
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Çalışılan Gün</Label>
+                                        <Input
+                                            type="number"
+                                            value={salaryAdjustmentForm.workedDays}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, workedDays: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Mesai Saati</Label>
+                                        <Input
+                                            type="number"
+                                            value={salaryAdjustmentForm.overtimeHours}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, overtimeHours: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Ekstra Prim (₺)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={salaryAdjustmentForm.bonus}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, bonus: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Kesinti / Avans (₺)</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={salaryAdjustmentForm.deduction}
+                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, deduction: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Not</Label>
+                                    <Textarea
+                                        placeholder="Düzenleme nedeni..."
+                                        value={salaryAdjustmentForm.note}
+                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, note: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="flex justify-end pt-4">
+                                    <Button onClick={() => {
+                                        setNames(prev => prev.map(p => {
+                                            if (p.id === salaryAdjustmentForm.personId) {
+                                                return {
+                                                    ...p,
+                                                    salaryAdjustments: {
+                                                        ...p.salaryAdjustments,
+                                                        [salaryAdjustmentForm.dateKey]: {
+                                                            workedDays: salaryAdjustmentForm.workedDays ? parseFloat(salaryAdjustmentForm.workedDays) : undefined,
+                                                            overtimeHours: salaryAdjustmentForm.overtimeHours ? parseFloat(salaryAdjustmentForm.overtimeHours) : undefined,
+                                                            bonus: salaryAdjustmentForm.bonus ? parseFloat(salaryAdjustmentForm.bonus) : undefined,
+                                                            deduction: salaryAdjustmentForm.deduction ? parseFloat(salaryAdjustmentForm.deduction) : undefined,
+                                                            note: salaryAdjustmentForm.note
+                                                        }
                                                     }
-                                                }
-                                            };
-                                        }
-                                        return p;
-                                    }));
-                                    setIsSalaryAdjustmentOpen(false);
-                                }}>
-                                    Kaydet
-                                </Button>
+                                                };
+                                            }
+                                            return p;
+                                        }));
+                                        setIsSalaryAdjustmentOpen(false);
+                                    }}>
+                                        Kaydet
+                                    </Button>
+                                </div>
                             </div>
+                        </DialogContent>
+                    </Dialog>
+
+                    {/* Rich Tooltip Overlay */}
+                    {hoveredData && (hoveredData.record?.note || hoveredData.record?.overtime) && (
+                        <div
+                            className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
+                            style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
+                        >
+                            <div className="font-bold text-center mb-1 text-slate-100 text-sm">
+                                {hoveredData.record?.status === 'FULL' && 'Tam Gün'}
+                                {hoveredData.record?.status === 'HALF' && 'Yarım Gün'}
+                                {hoveredData.record?.status === 'ABSENT' && 'Gelmedi'}
+                                {hoveredData.record?.status === 'LEAVE' && 'İzinli'}
+                                {hoveredData.record?.status === 'REPORT' && 'Raporlu'}
+                                {hoveredData.record?.status === 'OUT' && 'Dış Görev'}
+                                {hoveredData.record?.status === 'EXIT' && 'İşten Çıkış'}
+                                {hoveredData.record?.status === 'TRANSFER' && 'Transfer'}
+                                {!hoveredData.record && 'Kayıt Yok'}
+                            </div>
+
+                            {hoveredData.record?.overtime && (
+                                <div className="text-orange-400 font-extrabold text-center text-sm border-b border-slate-700/50 pb-1 mb-1">
+                                    +{hoveredData.record.overtime} Saat Mesai
+                                </div>
+                            )}
+
+                            {hoveredData.record?.note && (
+                                <div className={`italic text-white break-words leading-relaxed text-sm font-medium ${hoveredData.record.overtime ? 'mt-1' : 'border-t border-slate-700/50 pt-1 mt-1'}`}>
+                                    {hoveredData.record.note}
+                                </div>
+                            )}
+
+                            {/* Tooltip Arrow */}
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
                         </div>
-                    </DialogContent>
-                </Dialog>
-
-                {/* Rich Tooltip Overlay */}
-                {hoveredData && (hoveredData.record?.note || hoveredData.record?.overtime) && (
-                    <div
-                        className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
-                        style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
-                    >
-                        <div className="font-bold text-center mb-1 text-slate-100 text-sm">
-                            {hoveredData.record?.status === 'FULL' && 'Tam Gün'}
-                            {hoveredData.record?.status === 'HALF' && 'Yarım Gün'}
-                            {hoveredData.record?.status === 'ABSENT' && 'Gelmedi'}
-                            {hoveredData.record?.status === 'LEAVE' && 'İzinli'}
-                            {hoveredData.record?.status === 'REPORT' && 'Raporlu'}
-                            {hoveredData.record?.status === 'OUT' && 'Dış Görev'}
-                            {hoveredData.record?.status === 'EXIT' && 'İşten Çıkış'}
-                            {hoveredData.record?.status === 'TRANSFER' && 'Transfer'}
-                            {!hoveredData.record && 'Kayıt Yok'}
-                        </div>
-
-                        {hoveredData.record?.overtime && (
-                            <div className="text-orange-400 font-extrabold text-center text-sm border-b border-slate-700/50 pb-1 mb-1">
-                                +{hoveredData.record.overtime} Saat Mesai
-                            </div>
-                        )}
-
-                        {hoveredData.record?.note && (
-                            <div className={`italic text-white break-words leading-relaxed text-sm font-medium ${hoveredData.record.overtime ? 'mt-1' : 'border-t border-slate-700/50 pt-1 mt-1'}`}>
-                                {hoveredData.record.note}
-                            </div>
-                        )}
-
-                        {/* Tooltip Arrow */}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
-                    </div>
-                )}
-            </TabsContent>
-        </Tabs>
+                    )}
+                </TabsContent>
+            </Tabs>
         </div >
     );
 }
