@@ -113,6 +113,12 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             return { success: false, error: 'Hesabınız aktif durumda değildir.' };
         }
 
+        // [DEBUG] FORCE STOP FOR EVERYONE to see who is clicking
+        return {
+            success: false,
+            error: `[DEBUG STOP] ID: ${session.user.id} | Role: ${dbUser.role} | Lookback: ${dbUser.editLookbackDays}`
+        };
+
         // [SECURE] Date Restriction Check
         console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback (Raw):', dbUser.editLookbackDays);
         logToDebug(`[DEBUG_DATE] User: ${dbUser.role}, Lookback (Raw): ${dbUser.editLookbackDays}`);
