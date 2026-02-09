@@ -557,9 +557,10 @@ export default function NewPage() {
         });
 
         // 3. Apply Site Filter for GRID View
-        const gridFiltered = (selectedSiteId && selectedSiteId !== 'all')
-            ? processedGlobalList.filter(n => n.siteId === selectedSiteId)
-            : processedGlobalList;
+        // [FIX] Relaxed Filter: reliance on Server-Side Fetching
+        // The server already returns personnel associated with the selectedSiteId (Primary OR Assigned).
+        // Strict client-side filtering (n.siteId === selectedSiteId) hides Assigned personnel.
+        const gridFiltered = processedGlobalList;
 
         // 4. Apply Filtering (Multi-Select)
         let filteredList = [...gridFiltered];
@@ -1734,6 +1735,16 @@ export default function NewPage() {
     return (
         <div className="p-6 space-y-6">
             <div className="flex justify-between items-center">
+
+                {/* DEBUG HEADER - REMOVE AFTER FIX */}
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 w-full">
+                    <p className="font-bold">DEBUG INFO (Puantaj Sayfası)</p>
+                    <p>Kullanıcı: {user?.name} ({user?.role})</p>
+                    <p>Erişilebilir Şantiyeler: {availableSites.length}</p>
+                    <p>Seçili Şantiye ID: {selectedSiteId}</p>
+                    <p>İzinler: {JSON.stringify(Object.keys(perms).filter(k => k.startsWith('new-tab')))}</p>
+                </div>
+
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Personel Puantaj</h1>
                     <p className="text-muted-foreground">Personel ve puantaj yönetimi.</p>
