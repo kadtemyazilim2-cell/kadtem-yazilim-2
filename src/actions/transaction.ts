@@ -114,7 +114,6 @@ export async function createTransaction(data: Partial<CashTransaction>) {
         }
 
         // [SECURE] Date Restriction Check
-        // [SECURE] Date Restriction Check
         console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback (Raw):', dbUser.editLookbackDays);
 
         // Strict Check: If NOT ADMIN, enforce restriction. Treat null/undefined as 0.
@@ -216,8 +215,6 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
         // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
         // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).
         // Check 1: Can I touch this OLD record?
-        // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
-        // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).
 
         // Strict Check: If NOT ADMIN, enforce restriction. Treat null/undefined as 0.
         if (dbUser.role !== 'ADMIN') {
