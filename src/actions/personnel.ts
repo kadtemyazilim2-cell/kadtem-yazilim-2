@@ -92,9 +92,9 @@ export async function upsertPersonnelAttendance(
     }
 ) {
     const fs = await import('fs');
-    const logFile = 'debug-attendance.log';
+    const logFile = 'C:\\Users\\Drone\\Desktop\\takip-sistemi\\debug-attendance.log';
     const log = (msg: string) => {
-        try { fs.appendFileSync(logFile, `${new Date().toISOString()} - ${msg}\n`); } catch (e) { }
+        try { fs.appendFileSync(logFile, `${new Date().toISOString()} - ${msg}\n`); } catch (e) { console.error('LOG FAIL', e); }
     };
 
     try {
