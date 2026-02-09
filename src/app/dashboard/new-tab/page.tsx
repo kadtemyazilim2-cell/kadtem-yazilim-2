@@ -140,6 +140,7 @@ export default function NewPage() {
     const canEditPersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('EDIT'); // For Edit/Delete
     const canEditAttendance = isAdmin || (perms['new-tab.attendance'] || []).includes('EDIT');
     const canTransfer = isAdmin || (perms['new-tab.transfer'] || []).includes('CREATE');
+    const canViewAllPersonnel = isAdmin; // Only Admin can see 'All Personnel' and 'Site List' summary for now
 
 
     const [names, setNames] = useState<IndependentPerson[]>([]);
@@ -1646,44 +1647,49 @@ export default function NewPage() {
             });
         }
 
-        // --- NEW PAGE: Salary & Overtime Summary ---
-        doc.addPage();
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.text(trToAscii("Mesai ve Izin Ozeti"), 14, 15);
+        // [SECURE] Only Show Salary Page if permitted
+        if (canViewSalary) {
+            // --- NEW PAGE: Salary & Overtime Summary ---
+            doc.addPage();
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text(trToAscii("Mesai ve Izin Ozeti"), 14, 15);
 
-        const formatMoneyAscii = (val: number) => {
-            return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
-        };
+            const formatMoneyAscii = (val: number) => {
+                return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
+            };
 
-        const salaryBody = filteredNames.map((p, index) => {
-            const stats = calculateStats(p, date);
-            // Summary should only show Overtime + Unused Leave Pay
-            const summaryTotal = stats.overtimePay + stats.leavePay;
-            return [
-                index + 1,
-                trToAscii(p.name),
-                formatMoneyAscii(stats.leavePay),
-                formatMoneyAscii(stats.overtimePay),
-                formatMoneyAscii(summaryTotal)
-            ];
-        });
+            const salaryBody = filteredNames.map((p, index) => {
+                const stats = calculateStats(p, date);
+                // Summary should only show Overtime + Unused Leave Pay
+                const summaryTotal = stats.overtimePay + stats.leavePay;
+                return [
+                    index + 1,
+                    trToAscii(p.name),
+                    formatMoneyAscii(stats.leavePay),
+                    formatMoneyAscii(stats.overtimePay),
+                    formatMoneyAscii(summaryTotal)
+                ];
+            });
 
-        autoTable(doc, {
-            head: [['Sira No', 'Isim Soyisim', 'Izin Ucreti', 'Mesai Ucreti', 'Toplam Ucret']],
-            body: salaryBody,
-            startY: 20,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-            styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
-            columnStyles: {
-                0: { cellWidth: 20 }, // Sira
-                1: { cellWidth: 80, halign: 'left' }, // Isim
-                2: { halign: 'right' }, // Izin Ucreti
-                3: { halign: 'right' }, // Mesai Ucreti
-                4: { halign: 'right', fontStyle: 'bold' } // Toplam Ucret
-            }
-        });
+            autoTable(doc, {
+                head: [['Sira No', 'Isim Soyisim', 'Izin Ucreti', 'Mesai Ucreti', 'Toplam Ucret']],
+                body: salaryBody,
+                startY: 20,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
+                columnStyles: {
+                    0: { cellWidth: 20 }, // Sira
+                    1: { cellWidth: 80, halign: 'left' }, // Isim
+                    2: { halign: 'right' }, // Izin Ucreti
+                    3: { halign: 'right' }, // Mesai Ucreti
+                    4: { halign: 'right', fontStyle: 'bold' } // Toplam Ucret
+                }
+            });
+        }
+
+        doc.save(`Puantaj_${format(date, 'yyyy_MM')}.pdf`);
 
         doc.save(`Puantaj_${format(date, 'yyyy_MM')}.pdf`);
     };
@@ -1756,9 +1762,9 @@ export default function NewPage() {
                         <div className="flex justify-between items-center mb-4">
                             <TabsList>
                                 <TabsTrigger value="grid">Puantaj Tablosu</TabsTrigger>
-                                <TabsTrigger value="salary-list">Maaş Tablosu</TabsTrigger>
-                                <TabsTrigger value="site-list">Şantiye Personel Listesi</TabsTrigger>
-                                <TabsTrigger value="all-list">Tüm Personel</TabsTrigger>
+                                {canViewSalary && <TabsTrigger value="salary-list">Maaş Tablosu</TabsTrigger>}
+                                {canViewAllPersonnel && <TabsTrigger value="site-list">Şantiye Personel Listesi</TabsTrigger>}
+                                {canViewAllPersonnel && <TabsTrigger value="all-list">Tüm Personel</TabsTrigger>}
                             </TabsList>
                         </div>
 
