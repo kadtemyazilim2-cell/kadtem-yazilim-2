@@ -1,8 +1,21 @@
 'use server';
 
 import { prisma } from '@/lib/db';
-import { CashTransaction, PaymentMethod } from '@prisma/client'; // [FIX] Import Enum
+import { CashTransaction, PaymentMethod } from '@prisma/client';
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const LOG_FILE = path.join(process.cwd(), 'debug_transactions.txt');
+
+function logToDebug(message: string) {
+    try {
+        const timestamp = new Date().toISOString();
+        fs.appendFileSync(LOG_FILE, `[${timestamp}] ${message}\n`);
+    } catch (e) {
+        // ignore
+    }
+}
 
 // ...
 
