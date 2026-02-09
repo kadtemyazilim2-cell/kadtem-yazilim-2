@@ -98,12 +98,14 @@ export async function upsertPersonnelAttendance(
             // Assume YYYY-MM-DD string, parse manually to UTC midnight to avoid local timezone offset
             const [y, m, d] = dateInput.split('-').map(Number);
             dateObj = new Date(Date.UTC(y, m - 1, d)); // UTC Midnight
+            console.log(`[UPSERT] String Input: ${dateInput} -> UTC: ${dateObj.toISOString()}`);
         } else {
             // Fallback for Date object (Legacy or internal calls)
-            // If it's a Date object, it might be shifted. 
+            // If it's a Date object, it might be shifted.
             // We'll trust the caller meant this absolute time, but normalize to UTC midnight for consistency if needed.
-            // But safest is to use the string path. 
+            // But safest is to use the string path.
             dateObj = new Date(dateInput);
+            console.warn(`[UPSERT] Object Input: ${dateInput} -> ${dateObj.toISOString()}`);
         }
 
         // Define Start/End of Day in UTC to ensure we capture the record regardless of slight deviations
@@ -238,6 +240,10 @@ export async function upsertPersonnelAttendance(
 export async function getPersonnelWithAttendance(month: Date | string, siteId?: string) {
     try {
         const monthDate = new Date(month);
+        const startOfMonth = new Date(Date.UTC(monthDate.getFullYear(), monthDate.getMonth(), 1));
+        const endOfMonth = new Date(Date.UTC(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999));
+
+        console.log(`[READ_ATTENDANCE] Input Month: ${month}, Queries: ${startOfMonth.toISOString()} - ${endOfMonth.toISOString()}`);
 
         const stablePersonnel = await prisma.personnel.findMany({
             where: {

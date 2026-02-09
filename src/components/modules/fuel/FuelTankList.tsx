@@ -25,7 +25,12 @@ const parseNumber = (str: string) => {
 
 export function FuelTankList() {
     const { fuelTanks, addFuelTank, deleteFuelTank, sites } = useAppStore();
+    const { hasPermission } = useAuth(); // [NEW]
     const [open, setOpen] = useState(false);
+
+    // [NEW] Permissions
+    const canCreate = hasPermission('fuel', 'CREATE');
+    const canDelete = hasPermission('fuel', 'DELETE');
     const [name, setName] = useState('');
     const [capacity, setCapacity] = useState(''); // [CHANGED] String for formatting
     const [currentLevel, setCurrentLevel] = useState(''); // [CHANGED] String for formatting
@@ -101,11 +106,13 @@ export function FuelTankList() {
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Şantiye Depo Stokları</CardTitle>
                 <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Plus className="w-4 h-4 mr-2" /> Yeni Depo Ekle
-                        </Button>
-                    </DialogTrigger>
+                    {canCreate && (
+                        <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                <Plus className="w-4 h-4 mr-2" /> Yeni Depo Ekle
+                            </Button>
+                        </DialogTrigger>
+                    )}
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>Yeni Depo Tanımla</DialogTitle>
@@ -175,14 +182,16 @@ export function FuelTankList() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Fuel className="w-5 h-5 text-blue-500" />
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
-                                                onClick={() => handleDelete(tank.id)}
-                                            >
-                                                <Trash2 className="w-3 h-3" />
-                                            </Button>
+                                            {canDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={() => handleDelete(tank.id)}
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="space-y-2">

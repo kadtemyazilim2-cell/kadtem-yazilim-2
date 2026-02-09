@@ -13,11 +13,19 @@ import {
 import { Trash2, Plus, Building2, Users, Pencil, X, Download, FileSpreadsheet, FileText } from "lucide-react"
 import { createInstitution, updateInstitution as updateInstitutionAction, deleteInstitution as deleteInstitutionAction } from "@/actions/institution"
 import { toast } from "sonner"
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { fontBase64 } from '@/lib/pdf-font';
+import { format } from 'date-fns';
+import { Institution } from "@prisma/client"; // Assuming Prisma type
 
-// ... imports
-
-export function InsuranceDefinitionsDialog({
-    open,
+interface InsuranceDefinitionsDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    type: 'INSURANCE_COMPANY' | 'INSURANCE_AGENCY';
+}
+open,
     onOpenChange,
     type,
 }: InsuranceDefinitionsDialogProps) {
@@ -92,7 +100,7 @@ export function InsuranceDefinitionsDialog({
             try {
                 const res = await updateInstitutionAction(editingId, payload);
                 if (res.success && res.data) {
-                    updateInstitution(editingId, res.data);
+                    updateInstitution(editingId, res.data as any);
                     toast.success('Kayıt güncellendi.');
                     resetForm();
                 } else {
@@ -106,7 +114,7 @@ export function InsuranceDefinitionsDialog({
             try {
                 const res = await createInstitution(payload);
                 if (res.success && res.data) {
-                    addInstitution(res.data);
+                    addInstitution(res.data as any);
                     toast.success('Kayıt başarıyla eklendi.');
                     resetForm();
                 } else {

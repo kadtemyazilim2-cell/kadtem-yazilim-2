@@ -17,8 +17,13 @@ import { deleteFuelLog } from '@/actions/fuel'; // [NEW]
 export function FuelList() {
     const { fuelLogs, vehicles, users, deleteFuelLog: deleteLocal, fuelTanks } = useAppStore(); // [FIX] Added deleteLocal, fuelTanks
     const availableSites = useUserSites();
-    const { user } = useAuth();
+    const { user, hasPermission } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
+
+    // [NEW] Permissions
+    const canCreate = hasPermission('fuel', 'CREATE');
+    const canEdit = hasPermission('fuel', 'EDIT');
+    const canDelete = hasPermission('fuel', 'DELETE');
     const [filters, setFilters] = useState({
         site: [] as string[],
         vehicle: [] as string[]
@@ -95,9 +100,11 @@ export function FuelList() {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Yakıt Tüketim Kayıtları</CardTitle>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setEditingLog(null); setIsFormOpen(true); }}>
-                    + Yakıt Girişi
-                </Button>
+                {canCreate && (
+                    <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => { setEditingLog(null); setIsFormOpen(true); }}>
+                        + Yakıt Girişi
+                    </Button>
+                )}
             </CardHeader>
             <CardContent>
                 <div className="mb-4">
@@ -167,25 +174,29 @@ export function FuelList() {
                                     <TableCell className="text-xs text-muted-foreground">{users.find((u: any) => u.id === log.filledByUserId)?.name || '-'}</TableCell>
                                     <TableCell className="p-1">
                                         <div className="flex items-center gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                                onClick={() => {
-                                                    setEditingLog(log);
-                                                    setIsFormOpen(true);
-                                                }}
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                onClick={() => handleDelete(log.id)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            {canEdit && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                    onClick={() => {
+                                                        setEditingLog(log);
+                                                        setIsFormOpen(true);
+                                                    }}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            )}
+                                            {canDelete && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleDelete(log.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
