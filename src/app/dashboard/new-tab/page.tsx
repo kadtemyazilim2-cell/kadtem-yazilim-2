@@ -1008,18 +1008,8 @@ export default function NewPage() {
 
             console.log('[CLIENT] Calling upsertPersonnelAttendance...', { personId: person.id, date: format(selectedCell.date, 'yyyy-MM-dd'), siteId: person.siteId });
 
-            // [DEBUG] Probe
-            console.log('[CLIENT] Probing server with testPing...');
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Ping Timeout (Client)")), 5000));
-
-            try {
-                const pong: any = await Promise.race([testPing(), timeoutPromise]);
-                console.log('[CLIENT] Ping result:', pong);
-                alert("DEBUG: Sunucu Erişimi Başarılı! (Ping: " + (pong?.success ? "OK" : "FAIL") + ")");
-            } catch (pingError: any) {
-                alert("DEBUG HATA: Sunucuya erişilemedi! -> " + pingError.message);
-                throw pingError; // Stop flow
-            }
+            // [DEBUG] Probe Removed - Direct API Call
+            console.log('[CLIENT] Using API Route directly...');
 
             // [FIX] Use API Route instead of Server Action
             // Using API Route provides better stability for Auth/DB connections compared to Server Actions
