@@ -101,26 +101,35 @@ export async function createTransaction(data: Partial<CashTransaction>) {
         }
 
         // [SECURE] Date Restriction Check
-        console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback:', dbUser.editLookbackDays);
+        // [SECURE] Date Restriction Check
+        console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback (Raw):', dbUser.editLookbackDays);
 
-        if (dbUser.role !== 'ADMIN' && dbUser.editLookbackDays !== null && dbUser.editLookbackDays !== undefined) {
+        // Strict Check: If NOT ADMIN, enforce restriction. Treat null/undefined as 0.
+        if (dbUser.role !== 'ADMIN') {
+            const limit = dbUser.editLookbackDays ?? 0;
             const targetDate = data.date ? new Date(data.date) : new Date();
+
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+
             const target = new Date(targetDate);
             target.setHours(0, 0, 0, 0);
 
+            // Calculate diff in days
             const diffTime = today.getTime() - target.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            console.log(`[DEBUG_DATE] Logic Check: ${diffDays} > ${dbUser.editLookbackDays} ? ${diffDays > dbUser.editLookbackDays}`);
+            console.log(`[DEBUG_DATE] Logic Check: ${diffDays} > ${limit} ? ${diffDays > limit}`);
 
-            if (diffDays > dbUser.editLookbackDays) {
+            if (diffDays > limit) {
                 console.log('[DEBUG_DATE] BLOCKED!');
-                return { success: false, error: `[DEBUG: BLOCKED] Rol: ${dbUser.role}, Limit: ${dbUser.editLookbackDays}, Gün: ${diffDays}.` };
+                // [CRITICAL] Return error with details
+                // If limit is 0 (today only), text should reflect that.
+                const msg = limit === 0 ? 'Bugünden eski tarihe işlem giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
+                return { success: false, error: msg };
             }
         } else {
-            console.log('[DEBUG_DATE] SKIPPED CHECK! Why?', { role: dbUser.role, lookback: dbUser.editLookbackDays });
+            console.log('[DEBUG_DATE] ADMIN BYPASS');
         }
 
         const creatorId = session.user.id;
@@ -194,7 +203,12 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
         // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
         // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).
         // Check 1: Can I touch this OLD record?
-        if (dbUser.role !== 'ADMIN' && dbUser.editLookbackDays !== null && dbUser.editLookbackDays !== undefined) {
+        // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
+        // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).
+
+        // Strict Check: If NOT ADMIN, enforce restriction. Treat null/undefined as 0.
+        if (dbUser.role !== 'ADMIN') {
+            const limit = dbUser.editLookbackDays ?? 0;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -203,10 +217,11 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             existingDate.setHours(0, 0, 0, 0);
             const diffExisting = Math.floor((today.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24));
 
-            console.log(`[UpdateCheck] User: ${dbUser.role}, Lookback: ${dbUser.editLookbackDays}, DiffExisting: ${diffExisting}`);
+            console.log(`[UpdateCheck] User: ${dbUser.role}, Limit: ${limit}, DiffExisting: ${diffExisting}`);
 
-            if (diffExisting > dbUser.editLookbackDays) {
-                return { success: false, error: `Bu kayıt ${dbUser.editLookbackDays} günden eski olduğu için düzenlenemez.` };
+            if (diffExisting > limit) {
+                const msg = limit === 0 ? 'Bugünden eski kayıtları düzenleyemezsiniz.' : `Bu kayıt ${limit} günden eski olduğu için düzenlenemez.`;
+                return { success: false, error: msg };
             }
 
             // Check New Date (if changing)
@@ -217,8 +232,9 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
 
                 console.log(`[UpdateCheck] DiffNew: ${diffNew}`);
 
-                if (diffNew > dbUser.editLookbackDays) {
-                    return { success: false, error: `Geriye dönük en fazla ${dbUser.editLookbackDays} gün işlem yapabilirsiniz.` };
+                if (diffNew > limit) {
+                    const msg = limit === 0 ? 'Bugünden eski tarihe işlem taşıyamazsınız.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffNew} gün önce)`;
+                    return { success: false, error: msg };
                 }
             }
         }
