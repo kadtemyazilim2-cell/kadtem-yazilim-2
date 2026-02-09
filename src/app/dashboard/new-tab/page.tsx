@@ -1780,7 +1780,7 @@ export default function NewPage() {
                             <div className="text-xs text-slate-400 flex flex-col">
                                 <span>Yüklenen: {names.length} / Gösterilen: {filteredNames.length}</span>
                                 <span>Site ID: {selectedSiteId}</span>
-                                <span>Tarih: {date.toISOString()}</span>
+                                <span>Server Debug: {debugInfo ? `${debugInfo.start} - ${debugInfo.end} (Count: ${debugInfo.count})` : 'Yok'}</span>
                             </div>
                         </div>
 

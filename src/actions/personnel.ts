@@ -142,7 +142,17 @@ export async function getPersonnelWithAttendance(month: Date | string, siteId?: 
             orderBy: { fullName: 'asc' }
         });
 
-        return { success: true, data: stablePersonnel };
+        return {
+            success: true,
+            data: stablePersonnel,
+            queryDebug: {
+                receivedMonth: month,
+                start: startOfMonth.toISOString(),
+                end: endOfMonth.toISOString(),
+                siteId: siteId,
+                count: stablePersonnel.length
+            }
+        };
     } catch (error) {
         console.error('getPersonnelWithAttendance Error:', error);
         return { success: false, error: 'Veri alınamadı.' };
