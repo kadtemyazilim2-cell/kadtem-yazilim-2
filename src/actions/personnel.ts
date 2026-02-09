@@ -91,7 +91,15 @@ export async function upsertPersonnelAttendance(
         siteId: string;
     }
 ) {
+    const fs = await import('fs');
+    const logFile = 'debug-attendance.log';
+    const log = (msg: string) => {
+        try { fs.appendFileSync(logFile, `${new Date().toISOString()} - ${msg}\n`); } catch (e) { }
+    };
+
     try {
+        log(`[START] Upsert for Person: ${personnelId}, Date: ${dateInput}, SiteIn: '${data.siteId}', Status: ${data.status}`);
+
         // [FIX] Valid SiteId Check
         let targetSiteId = data.siteId;
 
@@ -105,8 +113,10 @@ export async function upsertPersonnelAttendance(
             if (person) {
                 if (person.siteId) {
                     targetSiteId = person.siteId;
+                    log(`[INFO] Found Primary Site: ${targetSiteId}`);
                 } else if (person.assignedSites.length > 0) {
                     targetSiteId = person.assignedSites[0].id;
+                    log(`[INFO] Found Assigned Site: ${targetSiteId}`);
                 }
             }
         }
@@ -114,6 +124,7 @@ export async function upsertPersonnelAttendance(
         // Final check - if still no siteId, we can't save (or it will save with empty string if DB allows but Logic breaks)
         // DB allows empty string from test, but let's enforce Logic.
         if (!targetSiteId) {
+            log('[ERROR] No Site ID found.');
             return { success: false, error: 'Puantaj girişi için personelin bir şantiyesi olmalıdır.' };
         }
 
@@ -140,9 +151,12 @@ export async function upsertPersonnelAttendance(
         const endOfDay = new Date(startOfDay);
         endOfDay.setDate(endOfDay.getDate() + 1);
 
+        log(`[INFO] Date Range: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
+
         // [SECURE] Fetch User & Permissions
         const session = await import('@/auth').then(m => m.auth());
         if (!session?.user?.id) {
+            log('[ERROR] No Session User ID');
             return { success: false, error: 'Oturum bulunamadı.' };
         }
 
@@ -152,6 +166,7 @@ export async function upsertPersonnelAttendance(
         });
 
         if (!dbUser || dbUser.status !== 'ACTIVE') {
+            log('[ERROR] User Inactive or invalid');
             return { success: false, error: 'Hesabınız aktif değil.' };
         }
 
@@ -171,13 +186,14 @@ export async function upsertPersonnelAttendance(
 
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
+                log(`[ERROR] Date Restriction: ${msg}`);
                 return { success: false, error: msg };
             }
         }
 
         // If specific status (e.g. '', null) -> DELETE
         if (!data.status) {
-            await prisma.personnelAttendance.deleteMany({
+            const del = await prisma.personnelAttendance.deleteMany({
                 where: {
                     personnelId,
                     date: {
@@ -186,6 +202,7 @@ export async function upsertPersonnelAttendance(
                     }
                 }
             });
+            log(`[SUCCESS] Deleted ${del.count} records.`);
         } else {
             // Manual Upsert to handle lack of composite unique constraint
             const existing = await prisma.personnelAttendance.findFirst({
@@ -199,6 +216,7 @@ export async function upsertPersonnelAttendance(
             });
 
             if (existing) {
+                log(`[INFO] Updating Existing Record: ${existing.id}`);
                 await prisma.personnelAttendance.update({
                     where: { id: existing.id },
                     data: {
@@ -210,6 +228,7 @@ export async function upsertPersonnelAttendance(
                     }
                 });
             } else {
+                log(`[INFO] Creating New Record`);
                 await prisma.personnelAttendance.create({
                     data: {
                         personnelId,
@@ -255,6 +274,7 @@ export async function upsertPersonnelAttendance(
         }
 
         revalidatePath('/dashboard/new-tab');
+        log('[SUCCESS] Transaction Complete');
         return { success: true };
     } catch (error: any) {
         console.error('upsertPersonnelAttendance Error:', error);
