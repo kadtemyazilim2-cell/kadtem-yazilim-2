@@ -153,13 +153,25 @@ export async function upsertPersonnelAttendance(
 
         log(`[INFO] Date Range: ${startOfDay.toISOString()} - ${endOfDay.toISOString()}`);
 
-        // [SECURE] Fetch User & Permissions
-        const session = await import('@/auth').then(m => m.auth());
+        // [SECURE] Fetch User & Permissions with Timeout
+        const sessionPromise = import('@/auth').then(m => m.auth());
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Auth Timeout (5s)')), 5000));
+
+        let session: any = null;
+        try {
+            session = await Promise.race([sessionPromise, timeoutPromise]);
+            log('[INFO] Auth Successful');
+        } catch (authError: any) {
+            log(`[ERROR] Auth Failed: ${authError.message}`);
+            return { success: false, error: 'Oturum kontrolü zaman aşımına uğradı. Lütfen tekrar giriş yapın.' };
+        }
+
         if (!session?.user?.id) {
             log('[ERROR] No Session User ID');
-            return { success: false, error: 'Oturum bulunamadı.' };
+            return { success: false, error: 'Oturum bulunamadı ve ya süresi dolmus.' };
         }
         log(`[INFO] User ID: ${session.user.id}`);
+
 
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },

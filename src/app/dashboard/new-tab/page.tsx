@@ -1000,21 +1000,28 @@ export default function NewPage() {
         setSelectedCell(null);
 
         // Server Call
-        const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
-            status: finalStatus,
-            hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
-            overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,
-            note: attendanceForm.note,
-            siteId: person.siteId
-        });
+        try {
+            const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
+                status: finalStatus,
+                hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
+                overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,
+                note: attendanceForm.note,
+                siteId: person.siteId
+            });
 
-        if (!res.success) {
-            alert("Kaydedilirken hata oluştu: " + res.error);
+            if (!res.success) {
+                alert("Kaydedilirken hata oluştu: " + res.error);
+                refreshData(); // Revert
+            }
+        } catch (err: any) {
+            alert("Beklenmedik bir hata oluştu: " + err.message);
+            console.error(err);
             refreshData(); // Revert
         }
     };
 
     const getStatusIcon = (status: string) => {
+
         switch (status) {
             case 'FULL': return <CheckCircle2 className="w-5 h-5 text-green-600" />;
             case 'HALF': return <Clock className="w-5 h-5 text-orange-500" />;
