@@ -26,7 +26,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
-import { getPersonnelWithAttendance, upsertPersonnelAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
+import { getPersonnelWithAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
 import { testPing } from '@/actions/debug';
 
 

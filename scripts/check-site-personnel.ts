@@ -6,36 +6,63 @@ const prisma = new PrismaClient();
 async function main() {
     const siteId = 'cmkmop5q5000fhgexroggue2m';
 
+    // Simulating Feb 2026
+    const monthDate = new Date(2026, 1, 1); // 0-indexed month, so 1 is Feb
+    const startOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+    const endOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+
     console.log(`Checking personnel for site: ${siteId}`);
+    console.log(`Date Range: ${startOfMonth.toISOString()} - ${endOfMonth.toISOString()}`);
 
     try {
-        // Check main siteId
-        const countMain = await prisma.personnel.count({
-            where: { siteId: siteId }
-        });
-        console.log(`Personnel with main siteId = ${siteId}: ${countMain}`);
-
-        // Check assignedSites
-        const countAssigned = await prisma.personnel.count({
-            where: { assignedSites: { some: { id: siteId } } }
-        });
-        console.log(`Personnel with assignedSites containing ${siteId}: ${countAssigned}`);
-
-        // Check combined logic used in getPersonnelWithAttendance (simplified)
-        const combined = await prisma.personnel.findMany({
+        // Check Status Only
+        const all = await prisma.personnel.findMany({
             where: {
                 OR: [
                     { siteId },
                     { assignedSites: { some: { id: siteId } } }
                 ]
             },
-            select: { id: true, fullName: true, siteId: true }
+            select: { id: true, fullName: true, status: true, leftDate: true }
+        });
+        console.log(`Total Linked Personnel (Without Filters): ${all.length}`);
+        all.forEach(p => console.log(`- ${p.fullName} [${p.status}] (Left: ${p.leftDate})`));
+
+        // Check with Action Logic
+        const filtered = await prisma.personnel.findMany({
+            where: {
+                AND: [
+                    {
+                        OR: [
+                            { status: 'ACTIVE' },
+                            { leftDate: { gte: startOfMonth } },
+                            {
+                                attendance: {
+                                    some: {
+                                        date: {
+                                            gte: startOfMonth,
+                                            lte: endOfMonth
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        OR: [
+                            { siteId },
+                            { assignedSites: { some: { id: siteId } } }
+                        ]
+                    }
+                ]
+            },
+            select: { id: true, fullName: true, status: true }
         });
 
-        console.log('--- Combined Logic Result ---');
-        console.log(`Total Found: ${combined.length}`);
-        combined.forEach(p => {
-            console.log(`- ${p.fullName} (MainSite: ${p.siteId})`);
+        console.log('--- Combined Logic Result (With Action Filters) ---');
+        console.log(`Total Found: ${filtered.length}`);
+        filtered.forEach(p => {
+            console.log(`- ${p.fullName}`);
         });
 
     } catch (e) {
