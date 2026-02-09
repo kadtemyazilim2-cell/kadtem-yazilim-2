@@ -1003,12 +1003,16 @@ export default function NewPage() {
 
         // Server Call
         try {
+            // [DEBUG] Explicit alert flow
+            alert("DEBUG: Kayıt işlemi başlatılıyor... (Sunucu Kontrolü)");
+
             console.log('[CLIENT] Calling upsertPersonnelAttendance...', { personId: person.id, date: format(selectedCell.date, 'yyyy-MM-dd'), siteId: person.siteId });
 
             // [DEBUG] Probe
             console.log('[CLIENT] Probing server with testPing...');
             const pong = await testPing();
             console.log('[CLIENT] Ping result:', pong);
+            alert("DEBUG: Sunucu Erişimi Başarılı! (Ping: " + (pong?.success ? "OK" : "FAIL") + ")");
 
             const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
 
@@ -1020,11 +1024,13 @@ export default function NewPage() {
             });
 
             if (!res.success) {
-                alert("Kaydedilirken hata oluştu: " + res.error);
+                alert("HATA: Kaydedilemedi -> " + res.error);
                 refreshData(); // Revert
+            } else {
+                alert("DEBUG: Kayıt Başarılı! (Veritabanına yazıldı)");
             }
         } catch (err: any) {
-            alert("Beklenmedik bir hata oluştu: " + err.message);
+            alert("KRİTİK HATA: " + err.message);
             console.error(err);
             refreshData(); // Revert
         }
