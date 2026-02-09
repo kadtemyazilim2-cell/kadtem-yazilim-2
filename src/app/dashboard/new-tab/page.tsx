@@ -1056,7 +1056,7 @@ export default function NewPage() {
                 alert("HATA: Kaydedilemedi -> " + res.error);
                 refreshData(); // Revert
             } else {
-                alert("DEBUG: Kayıt Başarılı! (Veritabanına yazıldı)");
+                alert(`DEBUG: Kayıt Başarılı! (ID: ${res.recordId})`);
             }
         } catch (err: any) {
             alert("KRİTİK HATA: " + err.message);
