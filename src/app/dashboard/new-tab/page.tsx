@@ -997,7 +997,7 @@ export default function NewPage() {
         setSelectedCell(null);
 
         // Server Call
-        const res = await upsertPersonnelAttendance(person.id, selectedCell.date, {
+        const res = await upsertPersonnelAttendance(person.id, format(selectedCell.date, 'yyyy-MM-dd'), {
             status: finalStatus,
             hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
             overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,

@@ -82,7 +82,7 @@ export async function createPersonnel(data: Partial<Personnel>) {
 // [NEW] Update Attendance (Single Cell or Range)
 export async function upsertPersonnelAttendance(
     personnelId: string,
-    date: Date,
+    dateInput: Date | string,
     data: {
         status: string;
         hours?: number;
@@ -92,12 +92,23 @@ export async function upsertPersonnelAttendance(
     }
 ) {
     try {
-        const dateObj = new Date(date);
-        const nextDay = new Date(dateObj);
-        nextDay.setDate(nextDay.getDate() + 1);
+        // [FIX] Handle Date normalization safely
+        let dateObj: Date;
+        if (typeof dateInput === 'string') {
+            // Assume YYYY-MM-DD string, parse manually to UTC midnight to avoid local timezone offset
+            const [y, m, d] = dateInput.split('-').map(Number);
+            dateObj = new Date(Date.UTC(y, m - 1, d)); // UTC Midnight
+        } else {
+            // Fallback for Date object (Legacy or internal calls)
+            // If it's a Date object, it might be shifted. 
+            // We'll trust the caller meant this absolute time, but normalize to UTC midnight for consistency if needed.
+            // But safest is to use the string path. 
+            dateObj = new Date(dateInput);
+        }
 
-        // Normalize for range check
-        const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+        // Define Start/End of Day in UTC to ensure we capture the record regardless of slight deviations
+        // Using UTC boundaries matches the dateObj created above.
+        const startOfDay = new Date(Date.UTC(dateObj.getUTCFullYear(), dateObj.getUTCMonth(), dateObj.getUTCDate()));
         const endOfDay = new Date(startOfDay);
         endOfDay.setDate(endOfDay.getDate() + 1);
 
@@ -120,21 +131,15 @@ export async function upsertPersonnelAttendance(
         if (dbUser.role !== 'ADMIN') {
             const limit = dbUser.editLookbackDays ?? 0;
 
-            // [FIX] Timezone Compensation (TRT is UTC+3)
-            // Client sends midnight TRT (e.g. Feb 8 00:00) as UTC (Feb 7 21:00)
-            // This causes the server to see it as "previous day".
-            // We shift both dates by +3 hours to align with TRT day boundaries.
+            // [FIX] Robust Day Difference Check
+            // Compare UTC Midnight of Today vs Target Date
+            const now = new Date();
+            const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            // dateObj is already UTC Midnight from string logic above
 
-            const today = new Date();
-            today.setTime(today.getTime() + (3 * 60 * 60 * 1000));
-            today.setHours(12, 0, 0, 0);
-
-            const target = new Date(dateObj);
-            target.setTime(target.getTime() + (3 * 60 * 60 * 1000));
-            target.setHours(12, 0, 0, 0);
-
-            const diffTime = today.getTime() - target.getTime();
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            // Calculate diff in days
+            const diffTime = todayUtc.getTime() - startOfDay.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
