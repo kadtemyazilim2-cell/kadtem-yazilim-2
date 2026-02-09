@@ -119,10 +119,18 @@ export async function upsertPersonnelAttendance(
         // [SECURE] Date Restriction Check
         if (dbUser.role !== 'ADMIN') {
             const limit = dbUser.editLookbackDays ?? 0;
+
+            // [FIX] Timezone Compensation (TRT is UTC+3)
+            // Client sends midnight TRT (e.g. Feb 8 00:00) as UTC (Feb 7 21:00)
+            // This causes the server to see it as "previous day".
+            // We shift both dates by +3 hours to align with TRT day boundaries.
+
             const today = new Date();
+            today.setTime(today.getTime() + (3 * 60 * 60 * 1000));
             today.setHours(12, 0, 0, 0);
 
             const target = new Date(dateObj);
+            target.setTime(target.getTime() + (3 * 60 * 60 * 1000));
             target.setHours(12, 0, 0, 0);
 
             const diffTime = today.getTime() - target.getTime();
