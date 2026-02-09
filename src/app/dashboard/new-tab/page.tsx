@@ -1728,14 +1728,18 @@ export default function NewPage() {
                         </div>
 
                         <div className="flex gap-2">
-                            <Button variant="outline" onClick={handleExportExcel}>
-                                <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                Excel
-                            </Button>
-                            <Button variant="outline" onClick={handleExportPDF}>
-                                <Download className="w-4 h-4 mr-2 text-red-600" />
-                                PDF
-                            </Button>
+                            {canEditAttendance && (
+                                <>
+                                    <Button variant="outline" onClick={handleExportExcel}>
+                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                        Excel
+                                    </Button>
+                                    <Button variant="outline" onClick={handleExportPDF}>
+                                        <Download className="w-4 h-4 mr-2 text-red-600" />
+                                        PDF
+                                    </Button>
+                                </>
+                            )}
 
 
 

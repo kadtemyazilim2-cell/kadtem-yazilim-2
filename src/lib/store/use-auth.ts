@@ -9,7 +9,7 @@ interface AuthState {
     login: (username: string, password?: string) => Promise<boolean>;
     logout: () => void;
     hasRole: (role: Role | Role[]) => boolean;
-    hasPermission: (module: string, level: 'VIEW' | 'CREATE' | 'EDIT' | 'EXPORT') => boolean;
+    hasPermission: (module: string, level: 'VIEW' | 'CREATE' | 'EDIT' | 'DELETE' | 'EXPORT') => boolean;
     getAccessibleSites: (allSites: import('../types').Site[]) => import('../types').Site[];
     refreshSession: () => void; // [NEW] force reload user from main store
 }

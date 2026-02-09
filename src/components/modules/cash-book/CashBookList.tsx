@@ -47,6 +47,11 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
 
     const { user, hasPermission } = useAuth();
 
+    // [FIX] Define granular permissions
+    const canCreate = hasPermission('cash-book', 'CREATE');
+    const canEdit = hasPermission('cash-book', 'EDIT');
+    const canDelete = hasPermission('cash-book', 'DELETE');
+
     // [FIX] Consolidate "Admin View" logic
     // Admin or User with explicit 'cash-book.admin-view' permission
     const canViewAll = useMemo(() => {
@@ -720,6 +725,12 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
             }
         }
 
+        // [SECURE] Explicit Permission Check
+        if (!canDelete) {
+            alert('Bu işlemi silme yetkiniz yok.');
+            return;
+        }
+
         if (confirm('Bu işlemi silmek istediğinize emin misiniz?')) {
             try {
                 const res = await deleteTransaction(id);
@@ -801,6 +812,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                         setFormDefaultValues({ type: 'EXPENSE', paymentMethod: 'CREDIT_CARD', description: '' });
                                         setIsFormOpen(true);
                                     }}
+                                    disabled={!canCreate} // Disable if no create permission
                                 >
                                     <CreditCard className="mr-2 h-5 w-5 shrink-0" />
                                     Kredi Kartı ile Ödeme
@@ -822,6 +834,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                         });
                                         setIsFormOpen(true);
                                     }}
+                                    disabled={!canCreate} // Disable if no create permission
                                 >
                                     <Banknote className="mr-2 h-5 w-5 shrink-0" />
                                     Nakit Tahsilat
@@ -999,35 +1012,39 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                         <TableCell>
                                             {item.type !== 'BALANCE_START' && (
                                                 <div className="flex items-center gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                                        onClick={async () => {
-                                                            try {
-                                                                const res = await getTransaction(item.id);
-                                                                if (res.success && res.data) {
-                                                                    setEditingTransaction(res.data);
-                                                                    setIsFormOpen(true);
-                                                                } else {
-                                                                    alert('İşlem detayları alınamadı.');
+                                                    {canEdit && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const res = await getTransaction(item.id);
+                                                                    if (res.success && res.data) {
+                                                                        setEditingTransaction(res.data);
+                                                                        setIsFormOpen(true);
+                                                                    } else {
+                                                                        alert('İşlem detayları alınamadı.');
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error(err);
+                                                                    alert('Bir hata oluştu.');
                                                                 }
-                                                            } catch (err) {
-                                                                console.error(err);
-                                                                alert('Bir hata oluştu.');
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                        onClick={() => handleDelete(item.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                            }}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                    {canDelete && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => handleDelete(item.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             )}
                                         </TableCell>

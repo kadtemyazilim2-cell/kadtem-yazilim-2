@@ -51,17 +51,31 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                 <ul className="space-y-1 px-3">
                     {NAV_ITEMS.map((item) => {
                         // Permission Check
-                        let permissionId = item.href.split('/').pop() || '';
-                        if (item.href === '/dashboard' && permissionId === 'dashboard') permissionId = 'dashboard';
+                        // [FIX] Explicit Permission Mapping
+                        const PERMISSION_MAP: Record<string, string> = {
+                            '/dashboard': 'dashboard',
+                            '/dashboard/correspondence': 'correspondence',
+                            '/dashboard/vehicles': 'vehicles',
+                            '/dashboard/fuel': 'fuel',
+                            '/dashboard/fuel/movement': 'fuel', // Movement is part of Fuel module
+                            '/dashboard/cash-book': 'cash-book',
+                            '/dashboard/new-tab': 'new-tab', // Main Attendance
+                            '/dashboard/vehicle-attendance': 'vehicle-attendance',
+                            '/dashboard/site-log': 'site-log',
+                            '/dashboard/admin': 'admin'
+                        };
+
+                        const permissionId = PERMISSION_MAP[item.href] || '';
 
                         if (user?.role !== 'ADMIN') {
                             // Block Admin Page for non-admins
                             if (item.href === '/dashboard/admin') return null;
 
                             // Block modules if permission is NONE or missing
-                            // [FIX] Dashboard is now also subject to permission check ('dashboard' module)
                             const perms = (user?.permissions || {}) as Record<string, string[]>;
                             const userPerm = perms[permissionId];
+
+                            // If no permission defined or explicitly NONE, hide link
                             if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
                         }
 

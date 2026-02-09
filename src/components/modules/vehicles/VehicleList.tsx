@@ -95,7 +95,7 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
     );
 };
 
-export function VehicleList() {
+export function VehicleList({ currentUser }: { currentUser?: any }) {
     // Rebuild Trigger: Ownership Column Update Verified
     const { vehicles, sites, companies, updateVehicle, vehicleAttendance, fuelLogs, deleteVehicle } = useAppStore();
     const { user, hasPermission } = useAuth();

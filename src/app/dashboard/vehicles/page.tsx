@@ -1,6 +1,17 @@
 import { VehicleList } from '@/components/modules/vehicles/VehicleList';
+import { auth } from '@/auth';
 
-export default function VehiclesPage() {
+export default async function VehiclesPage() {
+    const session = await auth();
+    const user = session?.user;
+
+    const canView = user?.role === 'ADMIN' ||
+        user?.permissions?.['vehicles']?.includes('VIEW');
+
+    if (!canView) {
+        return <div className="p-6 text-center text-muted-foreground">Bu sayfayı görüntüleme yetkiniz yok.</div>;
+    }
+
     return (
         <div className="space-y-6">
             <div>
@@ -9,7 +20,7 @@ export default function VehiclesPage() {
                     Şirket bünyesindeki tüm araç, kamyon ve iş makinelerini buradan yönetebilirsiniz.
                 </p>
             </div>
-            <VehicleList />
+            <VehicleList currentUser={user} />
         </div>
     );
 }

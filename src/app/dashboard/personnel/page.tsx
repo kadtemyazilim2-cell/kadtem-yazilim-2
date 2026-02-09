@@ -9,7 +9,16 @@ import PersonnelAssignment from '@/components/modules/personnel-attendance/Perso
 import { SitePersonnelSummaryTable } from '@/components/modules/personnel/SitePersonnelSummaryTable';
 
 
+import { useAuth } from '@/lib/store/use-auth';
+
 export default function PersonnelPage() {
+    const { user, hasPermission } = useAuth();
+    const canView = user?.role === 'ADMIN' || hasPermission('personnel', 'VIEW');
+
+    if (!canView) {
+        return <div className="p-6 text-center text-muted-foreground">Bu sayfayı görüntüleme yetkiniz yok.</div>;
+    }
+
     return (
         <div className="p-6 space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

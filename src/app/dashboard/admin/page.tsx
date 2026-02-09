@@ -146,6 +146,10 @@ export default function AdminPage() {
         correspondences // [FIX] Added correspondences for delete logic
     } = useAppStore();
     const { user } = useAuth();
+
+    if (user && user.role !== 'ADMIN') {
+        return <div className="p-6 text-center text-red-600 font-bold">Bu alana erişim yetkiniz bulunmamaktadır.</div>;
+    }
     const router = useRouter(); // [NEW] Router for soft refresh
     const searchParams = useSearchParams();
     const currentTab = searchParams.get('tab') || 'users';
