@@ -340,7 +340,8 @@ export default function NewPage() {
 
         setLoading(true);
         try {
-            const res: any = await getPersonnelWithAttendance(date, selectedSiteId);
+            // Pass date as string to avoid serialization issues
+            const res: any = await getPersonnelWithAttendance(date.toISOString(), selectedSiteId);
             if (res.queryDebug) {
                 setDebugInfo(res.queryDebug);
             } else if (!res.success) {
@@ -1786,7 +1787,6 @@ export default function NewPage() {
                             <div className="text-xs text-slate-400 flex flex-col">
                                 <span>Yüklenen: {names.length} / Gösterilen: {filteredNames.length}</span>
                                 <span>Site ID: {selectedSiteId}</span>
-                                <span>Server: {debugInfo ? `${debugInfo.start.substring(0, 10)} Count:${debugInfo.count}` : (loading ? 'Yükleniyor...' : 'HATA: ' + (names.length === 0 ? 'Veri Yok/Hata' : ''))}</span>
                             </div>
                         </div>
 
