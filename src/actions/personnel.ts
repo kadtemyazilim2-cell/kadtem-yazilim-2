@@ -232,6 +232,7 @@ export async function upsertPersonnelAttendance(
 // [NEW] Get Personnel WITH Attendance (For the Grid)
 export async function getPersonnelWithAttendance(month: Date, siteId?: string) {
     try {
+        console.log('[getPersonnelWithAttendance] Start', { month, siteId });
         const stablePersonnel = await prisma.personnel.findMany({
             where: {
                 AND: [
