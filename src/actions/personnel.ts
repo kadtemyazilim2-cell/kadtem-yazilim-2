@@ -278,9 +278,14 @@ export async function upsertPersonnelAttendance(
         return { success: true };
     } catch (error: any) {
         console.error('upsertPersonnelAttendance Error:', error);
+        // Log error to file
+        const fs = await import('fs');
+        const logFile = 'C:\\Users\\Drone\\Desktop\\takip-sistemi\\debug-attendance.log';
+        try { fs.appendFileSync(logFile, `${new Date().toISOString()} - [EXCEPTION] ${error.message}\n${error.stack}\n`); } catch (e) { }
         return { success: false, error: error.message };
     }
 }
+
 
 // [NEW] Get Personnel WITH Attendance (For the Grid)
 export async function getPersonnelWithAttendance(month: Date | string, siteId?: string) {
