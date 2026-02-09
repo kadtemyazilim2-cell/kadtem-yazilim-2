@@ -120,7 +120,10 @@ export async function upsertPersonnelAttendance(
         if (dbUser.role !== 'ADMIN') {
             const limit = dbUser.editLookbackDays ?? 0;
             const today = new Date();
+            today.setHours(12, 0, 0, 0);
+
             const target = new Date(dateObj);
+            target.setHours(12, 0, 0, 0);
 
             const diffDays = differenceInCalendarDays(today, target);
 

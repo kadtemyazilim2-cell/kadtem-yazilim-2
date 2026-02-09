@@ -932,17 +932,24 @@ export default function NewPage() {
 
         if (user?.role !== 'ADMIN') {
             const limit = (user as any).editLookbackDays ?? 0;
+
+            // [FIX] Normalize to Noon to avoid midnight/timezone shifts
             const today = new Date();
+            today.setHours(12, 0, 0, 0);
+
             const target = new Date(selectedCell.date);
+            target.setHours(12, 0, 0, 0);
 
             // Use differenceInCalendarDays to ignore time/timezone
             const diffDays = differenceInCalendarDays(today, target);
 
             console.log(`[DEBUG_ATTENDANCE] Diff: ${diffDays}, Limit: ${limit}, Blocked: ${diffDays > limit}`);
+            console.log(`[DEBUG_ATTENDANCE] Today: ${today.toISOString()}, Target: ${target.toISOString()}`);
 
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz.`;
-                alert(msg);
+                const debugInfo = `\n(Bugün: ${today.toLocaleDateString()}, Hedef: ${target.toLocaleDateString()}, Fark: ${diffDays} gün, Limit: ${limit})`;
+                alert(msg + debugInfo);
                 setSelectedCell(null);
                 return;
             }
