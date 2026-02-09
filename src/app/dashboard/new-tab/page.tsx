@@ -339,7 +339,10 @@ export default function NewPage() {
 
         setLoading(true);
         try {
-            const res = await getPersonnelWithAttendance(date, selectedSiteId);
+            const res: any = await getPersonnelWithAttendance(date, selectedSiteId);
+            if (res.queryDebug) {
+                setDebugInfo(res.queryDebug);
+            }
             if (res.success && res.data) {
                 // Map DB Personnel to IndependentPerson format
                 const mapped: IndependentPerson[] = res.data.map((p: any) => {
@@ -1780,7 +1783,7 @@ export default function NewPage() {
                             <div className="text-xs text-slate-400 flex flex-col">
                                 <span>Yüklenen: {names.length} / Gösterilen: {filteredNames.length}</span>
                                 <span>Site ID: {selectedSiteId}</span>
-                                <span>Server Debug: {debugInfo ? `${debugInfo.start} - ${debugInfo.end} (Count: ${debugInfo.count})` : 'Yok'}</span>
+                                <span>Server: {debugInfo ? `${debugInfo.start.substring(0, 10)} Count:${debugInfo.count}` : 'Yok'}</span>
                             </div>
                         </div>
 
