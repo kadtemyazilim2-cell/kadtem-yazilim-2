@@ -115,6 +115,7 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
         // [SECURE] Date Restriction Check
         console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback (Raw):', dbUser.editLookbackDays);
+        logToDebug(`[DEBUG_DATE] User: ${dbUser.role}, Lookback (Raw): ${dbUser.editLookbackDays}`);
 
         // Strict Check: If NOT ADMIN, enforce restriction. Treat null/undefined as 0.
         if (dbUser.role !== 'ADMIN') {
@@ -228,6 +229,7 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             const diffExisting = Math.floor((today.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24));
 
             console.log(`[UpdateCheck] User: ${dbUser.role}, Limit: ${limit}, DiffExisting: ${diffExisting}`);
+            logToDebug(`[UpdateCheck] User: ${dbUser.role}, Limit: ${limit}, DiffExisting: ${diffExisting}`);
 
             if (diffExisting > limit) {
                 const msg = limit === 0 ? 'Bugünden eski kayıtları düzenleyemezsiniz.' : `Bu kayıt ${limit} günden eski olduğu için düzenlenemez.`;
@@ -241,6 +243,7 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
                 const diffNew = Math.floor((today.getTime() - newDate.getTime()) / (1000 * 60 * 60 * 24));
 
                 console.log(`[UpdateCheck] DiffNew: ${diffNew}`);
+                logToDebug(`[UpdateCheck] DiffNew: ${diffNew}`);
 
                 if (diffNew > limit) {
                     const msg = limit === 0 ? 'Bugünden eski tarihe işlem taşıyamazsınız.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffNew} gün önce)`;
