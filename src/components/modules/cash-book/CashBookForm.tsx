@@ -339,7 +339,6 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
             }
 
             console.log('Submitting Payload:', payload);
-            alert(`[CLIENT DEBUG] Submitting to Server... Type: ${initialData ? 'UPDATE' : 'CREATE'}`);
             setStatusMessage('Sunucuya gönderiliyor...');
 
             // Client-side timeout race to prevention stuck state

@@ -100,6 +100,39 @@ export async function upsertPersonnelAttendance(
         const endOfDay = new Date(startOfDay);
         endOfDay.setDate(endOfDay.getDate() + 1);
 
+        // [SECURE] Fetch User & Permissions
+        const session = await import('@/auth').then(m => m.auth());
+        if (!session?.user?.id) {
+            return { success: false, error: 'Oturum bulunamadı.' };
+        }
+
+        const dbUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { role: true, status: true, editLookbackDays: true }
+        });
+
+        if (!dbUser || dbUser.status !== 'ACTIVE') {
+            return { success: false, error: 'Hesabınız aktif değil.' };
+        }
+
+        // [SECURE] Date Restriction Check
+        if (dbUser.role !== 'ADMIN') {
+            const limit = dbUser.editLookbackDays ?? 0;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const target = new Date(dateObj);
+            target.setHours(0, 0, 0, 0);
+
+            const diffTime = today.getTime() - target.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > limit) {
+                const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
+                return { success: false, error: msg };
+            }
+        }
+
         // If specific status (e.g. '', null) -> DELETE
         if (!data.status) {
             await prisma.personnelAttendance.deleteMany({

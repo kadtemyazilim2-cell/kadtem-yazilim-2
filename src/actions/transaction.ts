@@ -113,15 +113,7 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             return { success: false, error: 'Hesabınız aktif durumda değildir.' };
         }
 
-        // [DEBUG] FORCE STOP FOR EVERYONE to see who is clicking
-        return {
-            success: false,
-            error: `[DEBUG STOP] ID: ${session.user.id} | Role: ${dbUser.role} | Lookback: ${dbUser.editLookbackDays}`
-        };
-
         // [SECURE] Date Restriction Check
-        console.log('[DEBUG_DATE] User:', dbUser.role, 'Lookback (Raw):', dbUser.editLookbackDays);
-        logToDebug(`[DEBUG_DATE] User: ${dbUser.role}, Lookback (Raw): ${dbUser.editLookbackDays}`);
 
         // Strict Check: If NOT ADMIN, enforce restriction. Treat null/undefined as 0.
         if (dbUser.role !== 'ADMIN') {
@@ -138,16 +130,10 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             const diffTime = today.getTime() - target.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            console.log(`[DEBUG_DATE] Logic Check: ${diffDays} > ${limit} ? ${diffDays > limit}`);
-
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihe işlem giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
-                return { success: false, error: `[BLOCKED] ${msg} | DBG: Role=${dbUser.role}, Limit=${limit}, Diff=${diffDays}` };
+                return { success: false, error: msg };
             }
-            // FORCE STOP
-            return { success: false, error: `[ALLOWED-BUT-STOPPED] Check Passed! Role=${dbUser.role}, Limit=${limit}, Diff=${diffDays}, Target=${targetDate.toISOString()}` };
-        } else {
-            console.log('[DEBUG_DATE] ADMIN BYPASS');
         }
 
         const creatorId = session.user.id;
@@ -244,11 +230,8 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
 
             if (diffExisting > limit) {
                 const msg = limit === 0 ? 'Bugünden eski kayıtları düzenleyemezsiniz.' : `Bu kayıt ${limit} günden eski olduğu için düzenlenemez.`;
-                return { success: false, error: `[BLOCKED] ${msg} | DBG: Role=${dbUser.role}, Limit=${limit}, Diff=${diffExisting}` };
+                return { success: false, error: msg };
             }
-
-            // FORCE STOP to see values even if allowed
-            return { success: false, error: `[ALLOWED-BUT-STOPPED] Existing Check Passed! Role=${dbUser.role}, Limit=${limit}, Diff=${diffExisting}, Date=${existingDate.toISOString()}` };
 
             // Check New Date (if changing)
             if (data.date) {

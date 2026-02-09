@@ -925,6 +925,26 @@ export default function NewPage() {
             return;
         }
 
+        // [SECURE] Client-Side Date Restriction Check
+        if (user?.role !== 'ADMIN') {
+            const limit = (user as any).editLookbackDays ?? 0;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const target = new Date(selectedCell.date);
+            target.setHours(0, 0, 0, 0);
+
+            const diffTime = today.getTime() - target.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > limit) {
+                const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz.`;
+                alert(msg);
+                setSelectedCell(null);
+                return;
+            }
+        }
+
         const finalStatus = status !== undefined ? status : attendanceForm.status;
 
         // Validation: Overtime requires note
