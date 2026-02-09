@@ -129,7 +129,7 @@ export async function upsertPersonnelAttendance(
 
         // [SECURE] Date Restriction Check
         if (dbUser.role !== 'ADMIN') {
-            const limit = dbUser.editLookbackDays ?? 0;
+            const limit = dbUser.editLookbackDays ?? 3; // [FIX] Default to 3 days to match Client
 
             // [FIX] Robust Day Difference Check
             // Compare UTC Midnight of Today vs Target Date
@@ -141,8 +141,11 @@ export async function upsertPersonnelAttendance(
             const diffTime = todayUtc.getTime() - startOfDay.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+            console.log(`[UPSERT_DEBUG] User: ${dbUser.role}, Limit: ${limit}, Target: ${startOfDay.toISOString()}, Today: ${todayUtc.toISOString()}, Diff: ${diffDays}`);
+
             if (diffDays > limit) {
                 const msg = limit === 0 ? 'Bugünden eski tarihli puantaj giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
+                console.log(`[UPSERT_DEBUG] BLOCKED: ${msg}`);
                 return { success: false, error: msg };
             }
         }
