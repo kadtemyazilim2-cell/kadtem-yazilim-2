@@ -135,12 +135,11 @@ export async function createTransaction(data: Partial<CashTransaction>) {
             console.log(`[DEBUG_DATE] Logic Check: ${diffDays} > ${limit} ? ${diffDays > limit}`);
 
             if (diffDays > limit) {
-                console.log('[DEBUG_DATE] BLOCKED!');
-                // [CRITICAL] Return error with details
-                // If limit is 0 (today only), text should reflect that.
                 const msg = limit === 0 ? 'Bugünden eski tarihe işlem giremezsiniz.' : `Geriye dönük en fazla ${limit} gün işlem yapabilirsiniz. (Seçilen: ${diffDays} gün önce)`;
-                return { success: false, error: msg };
+                return { success: false, error: `[BLOCKED] ${msg} | DBG: Role=${dbUser.role}, Limit=${limit}, Diff=${diffDays}` };
             }
+            // FORCE STOP
+            return { success: false, error: `[ALLOWED-BUT-STOPPED] Check Passed! Role=${dbUser.role}, Limit=${limit}, Diff=${diffDays}, Target=${targetDate.toISOString()}` };
         } else {
             console.log('[DEBUG_DATE] ADMIN BYPASS');
         }
