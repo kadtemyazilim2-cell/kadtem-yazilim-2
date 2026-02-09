@@ -81,38 +81,49 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // DB Transaction
-        await prisma.personnelAttendance.upsert({
+        // Manual Upsert to avoid "Invalid invocation" due to missing @@unique constraint
+        let result;
+        const existing = await prisma.personnelAttendance.findFirst({
             where: {
-                personnelId_date: {
-                    personnelId: personnelId,
-                    date: startOfDay
+                personnelId,
+                date: {
+                    gte: startOfDay,
+                    lt: endOfDay
                 }
-            },
-            update: {
-                status: data.status,
-                hours: data.hours,
-                overtime: data.overtime,
-                note: data.note,
-                siteId: targetSiteId, // Use resolved siteId
-                createdByUserId: session.user.id
-            },
-            create: {
-                personnelId: personnelId,
-                date: startOfDay,
-                status: data.status,
-                hours: data.hours,
-                overtime: data.overtime,
-                note: data.note,
-                siteId: targetSiteId,
-                createdByUserId: session.user.id
             }
         });
+
+        if (existing) {
+            result = await prisma.personnelAttendance.update({
+                where: { id: existing.id },
+                data: {
+                    status: data.status,
+                    hours: data.hours,
+                    overtime: data.overtime,
+                    note: data.note,
+                    siteId: targetSiteId,
+                    createdByUserId: session.user.id
+                }
+            });
+        } else {
+            result = await prisma.personnelAttendance.create({
+                data: {
+                    personnelId: personnelId,
+                    date: startOfDay,
+                    status: data.status,
+                    hours: data.hours,
+                    overtime: data.overtime,
+                    note: data.note,
+                    siteId: targetSiteId,
+                    createdByUserId: session.user.id
+                }
+            });
+        }
 
         // Trigger Revalidation
         revalidatePath('/dashboard/new-tab');
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, recordId: result.id, date: result.date.toISOString() });
 
     } catch (error: any) {
         console.error('[API] Upsert Error:', error);
