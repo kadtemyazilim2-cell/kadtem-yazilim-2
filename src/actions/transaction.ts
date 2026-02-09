@@ -93,11 +93,27 @@ export async function createTransaction(data: Partial<CashTransaction>) {
         // [SECURE] Validate User Status
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { status: true }
+            select: { status: true, role: true, editLookbackDays: true }
         });
 
         if (!dbUser || dbUser.status !== 'ACTIVE') {
             return { success: false, error: 'Hesabınız aktif durumda değildir.' };
+        }
+
+        // [SECURE] Date Restriction Check
+        if (dbUser.role !== 'ADMIN' && dbUser.editLookbackDays !== null && dbUser.editLookbackDays !== undefined) {
+            const targetDate = data.date ? new Date(data.date) : new Date();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const target = new Date(targetDate);
+            target.setHours(0, 0, 0, 0);
+
+            const diffTime = today.getTime() - target.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > dbUser.editLookbackDays) {
+                return { success: false, error: `Geriye dönük en fazla ${dbUser.editLookbackDays} gün işlem yapabilirsiniz.` };
+            }
         }
 
         const creatorId = session.user.id;
@@ -135,15 +151,6 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
         console.log('[createTransaction] Success:', transaction.id);
 
-        // Revalidate safely - [OPTIMIZATION] Removed to prevent blocking since UI updates optimistically
-        /*
-        try {
-            revalidatePath('/dashboard/cash-book');
-        } catch (e) {
-            console.error('Revalidate failed but transaction created:', e);
-        }
-        */
-
         return { success: true, data: transaction };
     } catch (error: any) {
         console.error('createTransaction Error:', error);
@@ -170,11 +177,39 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
         // [SECURE] Fetch Fresh Role & Status
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { role: true, status: true, permissions: true }
+            select: { role: true, status: true, permissions: true, editLookbackDays: true }
         });
 
         if (!dbUser || dbUser.status !== 'ACTIVE') {
             return { success: false, error: 'Hesabınız aktif değil veya bulunamadı.' };
+        }
+
+        // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
+        // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).
+        // Check 1: Can I touch this OLD record?
+        if (dbUser.role !== 'ADMIN' && dbUser.editLookbackDays !== null && dbUser.editLookbackDays !== undefined) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            // Check Existing Date
+            const existingDate = new Date(existing.date);
+            existingDate.setHours(0, 0, 0, 0);
+            const diffExisting = Math.floor((today.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (diffExisting > dbUser.editLookbackDays) {
+                return { success: false, error: `Bu kayıt ${dbUser.editLookbackDays} günden eski olduğu için düzenlenemez.` };
+            }
+
+            // Check New Date (if changing)
+            if (data.date) {
+                const newDate = new Date(data.date);
+                newDate.setHours(0, 0, 0, 0);
+                const diffNew = Math.floor((today.getTime() - newDate.getTime()) / (1000 * 60 * 60 * 24));
+
+                if (diffNew > dbUser.editLookbackDays) {
+                    return { success: false, error: `Geriye dönük en fazla ${dbUser.editLookbackDays} gün işlem yapabilirsiniz.` };
+                }
+            }
         }
 
         // 3. Permission: Admin or Owner or Responsible or Full Admin View
@@ -249,12 +284,23 @@ export async function deleteTransaction(id: string) {
         }
 
         // [SECURE] Permission Check
-        // Allow if Admin, or Creator, or Responsible
-        // We also check DB for Role to be safe against stale session
         const dbUser = await prisma.user.findUnique({
             where: { id: session.user.id },
-            select: { role: true, permissions: true }
+            select: { role: true, permissions: true, editLookbackDays: true }
         });
+
+        // [SECURE] Date Restriction Check
+        if (dbUser?.role !== 'ADMIN' && dbUser?.editLookbackDays !== null && dbUser?.editLookbackDays !== undefined) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const existingDate = new Date(existing.date);
+            existingDate.setHours(0, 0, 0, 0);
+
+            const diff = Math.floor((today.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (diff > dbUser.editLookbackDays) {
+                return { success: false, error: `Bu kayıt ${dbUser.editLookbackDays} günden eski olduğu için silinemez.` };
+            }
+        }
 
         const isAdmin = dbUser?.role === 'ADMIN';
         const hasAdminView = (dbUser?.permissions as any)?.['cash-book.admin-view']?.includes('VIEW');
