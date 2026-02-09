@@ -129,11 +129,6 @@ export default function NewPage() {
     const { sites } = useAppStore();
     const availableSites = getAccessibleSites(sites);
 
-    console.log('[DEBUG_SITE] Sites in Store:', sites.length);
-    console.log('[DEBUG_SITE] User Role:', user?.role);
-    console.log('[DEBUG_SITE] User Assigned IDs:', (user as any)?.assignedSiteIds);
-    console.log('[DEBUG_SITE] Available Sites:', availableSites.length);
-
     // [NEW] Granular Permissions
     const perms = (user?.permissions || {}) as Record<string, string[]>;
     // Fallback: If user has ADMIN role, all true.

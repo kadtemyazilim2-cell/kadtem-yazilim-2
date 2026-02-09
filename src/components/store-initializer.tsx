@@ -96,6 +96,11 @@ export function StoreInitializer({
 
             const freshUser = users?.find((u: any) => u.id === currentUser.id) || currentUser;
 
+            // [FIX] Ensure assignedSiteIds exists if we picked freshUser from DB which has assignedSites relation
+            if (freshUser && !freshUser.assignedSiteIds && freshUser.assignedSites) {
+                freshUser.assignedSiteIds = freshUser.assignedSites.map((s: any) => s.id);
+            }
+
             useAuth.setState({
                 user: freshUser,
                 isAuthenticated: true
