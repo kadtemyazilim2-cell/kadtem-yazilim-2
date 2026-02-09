@@ -1766,6 +1766,9 @@ export default function NewPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
+                            <div className="text-xs text-slate-400">
+                                Yüklenen: {names.length} / Gösterilen: {filteredNames.length}
+                            </div>
                         </div>
 
                         <div className="flex gap-2">
