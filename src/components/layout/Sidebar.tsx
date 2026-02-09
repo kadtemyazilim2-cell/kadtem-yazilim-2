@@ -76,7 +76,16 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             const userPerm = perms[permissionId];
 
                             // If no permission defined or explicitly NONE, hide link
-                            if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
+                            // [FIX] Special handling for 'new-tab' (Puantaj) to allow specific sub-modules
+                            if (permissionId === 'new-tab') {
+                                // Check if ANY new-tab.* permission exists
+                                const hasAnySubPermission = Object.keys(perms).some(p => p.startsWith('new-tab.') && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE'));
+                                const hasMainPermission = userPerm && userPerm.length > 0 && !userPerm.includes('NONE');
+
+                                if (!hasMainPermission && !hasAnySubPermission) return null;
+                            } else {
+                                if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
+                            }
                         }
 
                         const Icon = item.icon;
