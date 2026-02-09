@@ -139,6 +139,7 @@ export default function NewPage() {
     const canCreatePersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('CREATE');
     const canEditPersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('EDIT'); // For Edit/Delete
     const canEditAttendance = isAdmin || (perms['new-tab.attendance'] || []).includes('EDIT');
+    const canExport = isAdmin || (perms['new-tab.attendance'] || []).includes('EXPORT');
     const canTransfer = isAdmin || (perms['new-tab.transfer'] || []).includes('CREATE');
     const canViewAllPersonnel = isAdmin; // Only Admin can see 'All Personnel' and 'Site List' summary for now
 
@@ -1728,7 +1729,7 @@ export default function NewPage() {
                         </div>
 
                         <div className="flex gap-2">
-                            {canEditAttendance && (
+                            {canExport && (
                                 <>
                                     <Button variant="outline" onClick={handleExportExcel}>
                                         <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
