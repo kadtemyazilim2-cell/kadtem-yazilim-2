@@ -57,7 +57,7 @@ export function StoreInitializer({
     if (cashTransactions) updates.cashTransactions = cashTransactions;
     if (yiUfeRates) updates.yiUfeRates = yiUfeRates;
     if (vehicleAttendance) updates.vehicleAttendance = vehicleAttendance;
-    if (personnelAttendance) updates.personnelAttendance = personnelAttendance;
+    // if (personnelAttendance) updates.personnelAttendance = personnelAttendance; // [DEBUG] REVERTED
 
     if (!initialized.current) {
         useAppStore.setState(updates);
@@ -81,12 +81,12 @@ export function StoreInitializer({
         if (cashTransactions) reactiveUpdates.cashTransactions = cashTransactions;
         if (yiUfeRates) reactiveUpdates.yiUfeRates = yiUfeRates;
         if (vehicleAttendance) reactiveUpdates.vehicleAttendance = vehicleAttendance;
-        if (personnelAttendance) reactiveUpdates.personnelAttendance = personnelAttendance;
+        // if (personnelAttendance) reactiveUpdates.personnelAttendance = personnelAttendance; // [DEBUG] REVERTED
 
         if (Object.keys(reactiveUpdates).length > 0) {
             useAppStore.setState(reactiveUpdates);
         }
-    }, [companies, sites, vehicles, personnel, users, correspondences, institutions, fuelTanks, fuelLogs, fuelTransfers, siteLogEntries, cashTransactions, yiUfeRates, vehicleAttendance, personnelAttendance]);
+    }, [companies, sites, vehicles, personnel, users, correspondences, institutions, fuelTanks, fuelLogs, fuelTransfers, siteLogEntries, cashTransactions, yiUfeRates, vehicleAttendance]);
 
     // Sync Auth State separately
     useEffect(() => {
