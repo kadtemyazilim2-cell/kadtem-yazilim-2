@@ -158,12 +158,29 @@ export default function NewPage() {
     // Site Filter State
     const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
-    // Auto-select site if only one available
+    // [NEW] Persist Selection
+    useEffect(() => {
+        const saved = localStorage.getItem('personnel_selectedSiteId');
+        if (saved && !selectedSiteId) {
+            setSelectedSiteId(saved);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (selectedSiteId) {
+            localStorage.setItem('personnel_selectedSiteId', selectedSiteId);
+        }
+    }, [selectedSiteId]);
+
+    // Auto-select site if only one available (overrides storage if conflict? No, strict restriction)
     useEffect(() => {
         if (availableSites.length === 1) {
-            setSelectedSiteId(availableSites[0].id);
+            const onlySiteId = availableSites[0].id;
+            if (selectedSiteId !== onlySiteId) {
+                setSelectedSiteId(onlySiteId);
+            }
         }
-    }, [availableSites.length]);
+    }, [availableSites.length, availableSites]);
 
 
 
