@@ -221,12 +221,16 @@ export function VehicleAttendanceList() {
         addLocal(optimisticPayload as any);
         setIsDialogOpen(false); // Close immediately
 
+        const [y, m, d] = targetDateStr.split('-').map(Number);
+        // Create UTC Noon Date to ensure server receives correct day
+        const utcDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+
         const payload = {
             vehicleId: editingCell.vehicleId,
             siteId: selectedSiteId,
-            date: new Date(targetDateStr), // [FIX] Pass Date object
+            date: utcDate,
             status: newStatus,
-            hours: 8, // default
+            hours: 8,
             createdByUserId: user?.id
         };
 
