@@ -25,6 +25,7 @@ import { useAuth } from '@/lib/store/use-auth';
 import { useEffect } from 'react';
 import { addVehicleAttendance, deleteVehicleAttendance } from '@/actions/vehicle-attendance';
 import { getVehicleAssignmentHistory } from '@/actions/vehicle';
+import { VehicleForm } from '@/components/modules/vehicles/VehicleForm'; // [NEW] Import
 
 
 export function VehicleAttendanceList() {
@@ -513,6 +514,25 @@ export function VehicleAttendanceList() {
 
                         <div className="flex items-center gap-4">
                             <div className="flex gap-2">
+                                <VehicleForm
+                                    initialOwnership="RENTAL"
+                                    defaultSiteId={selectedSiteId}
+                                    onSuccess={() => {
+                                        // Optional: Trigger revalidation or toast
+                                        // Since store updates might be handled inside VehicleForm or we need manual trigger
+                                    }}
+                                    customTrigger={
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!selectedSiteId}
+                                            className="gap-2"
+                                        >
+                                            <Truck className="w-4 h-4" />
+                                            Kiralık Araç Ekle
+                                        </Button>
+                                    }
+                                />
                                 <Button
                                     variant={showFuel ? "default" : "outline"}
                                     size="sm"

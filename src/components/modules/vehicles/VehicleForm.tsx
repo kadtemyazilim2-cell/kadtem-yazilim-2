@@ -19,6 +19,7 @@ interface VehicleFormProps {
     vehicleToEdit?: Vehicle;
     open?: boolean; // [NEW]
     onOpenChange?: (open: boolean) => void; // [NEW]
+    defaultSiteId?: string; // [NEW]
 }
 
 import { useAuth } from '@/lib/store/use-auth';
@@ -59,7 +60,7 @@ interface VehicleFormData {
     licenseFile: string;
 }
 
-export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSuccess, vehicleToEdit, open: controlledOpen, onOpenChange: controlledOnOpenChange }: VehicleFormProps) {
+export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSuccess, vehicleToEdit, open: controlledOpen, onOpenChange: controlledOnOpenChange, defaultSiteId }: VehicleFormProps) {
     const [internalOpen, setInternalOpen] = useState(false);
     const { hasPermission } = useAuth();
 
@@ -119,7 +120,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         companyId: vehicleToEdit?.companyId || '',
         rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
         rentalContact: vehicleToEdit?.rentalContact || '',
-        assignedSiteId: vehicleToEdit?.assignedSiteId || '',
+        assignedSiteId: vehicleToEdit?.assignedSiteId || defaultSiteId || '',
 
         engineNumber: vehicleToEdit?.engineNumber || '',
         chassisNumber: vehicleToEdit?.chassisNumber || '',
@@ -161,7 +162,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 companyId: vehicleToEdit?.companyId || '',
                 rentalCompanyName: vehicleToEdit?.rentalCompanyName || '',
                 rentalContact: vehicleToEdit?.rentalContact || '',
-                assignedSiteId: vehicleToEdit?.assignedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''), // Auto-select on reset too
+                assignedSiteId: vehicleToEdit?.assignedSiteId || defaultSiteId || (availableSites.length === 1 ? availableSites[0].id : ''), // Auto-select on reset too
 
                 engineNumber: vehicleToEdit?.engineNumber || '',
                 chassisNumber: vehicleToEdit?.chassisNumber || '',
@@ -169,7 +170,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 licenseFile: vehicleToEdit?.licenseFile || '',
             });
         }
-    }, [open, vehicleToEdit, initialOwnership]);
+    }, [open, vehicleToEdit, initialOwnership, defaultSiteId]);
 
     // [NEW] Fetch full details (specifically licenseFile which is excluded from list view)
     useEffect(() => {
