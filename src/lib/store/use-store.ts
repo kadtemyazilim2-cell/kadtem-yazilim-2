@@ -156,6 +156,7 @@ export const useAppStore = create<AppState>()(
                 })
             })),
             addVehicleAttendance: (attendance) => set((state) => ({ vehicleAttendance: [attendance, ...state.vehicleAttendance] })),
+            setVehicleAttendance: (items) => set({ vehicleAttendance: items }), // [NEW]
             deleteVehicleAttendance: (vid, date) => set((state) => ({
                 vehicleAttendance: state.vehicleAttendance.filter(a => !(a.vehicleId === vid && a.date === date))
             })),

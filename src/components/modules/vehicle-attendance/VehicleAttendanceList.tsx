@@ -25,11 +25,12 @@ import { useAuth } from '@/lib/store/use-auth';
 import { useEffect } from 'react';
 import { addVehicleAttendance, deleteVehicleAttendance } from '@/actions/vehicle-attendance';
 import { getVehicleAssignmentHistory } from '@/actions/vehicle';
-import { VehicleForm } from '@/components/modules/vehicles/VehicleForm'; // [NEW] Import
+import { getVehicleAttendanceList } from '@/actions/vehicle-attendance'; // [NEW]
+import { VehicleForm } from '@/components/modules/vehicles/VehicleForm';
 
 
 export function VehicleAttendanceList() {
-    const { vehicles, vehicleAttendance, addVehicleAttendance: addLocal, deleteVehicleAttendance: deleteLocal, deleteVehicleAttendanceById, fuelLogs } = useAppStore();
+    const { vehicles, vehicleAttendance, addVehicleAttendance: addLocal, setVehicleAttendance, deleteVehicleAttendance: deleteLocal, deleteVehicleAttendanceById, fuelLogs } = useAppStore();
     const rawSites = useUserSites();
     const sites = rawSites.filter((s: any) => s.status !== 'INACTIVE');
     const { hasPermission, user } = useAuth(); // [NEW]
@@ -50,9 +51,17 @@ export function VehicleAttendanceList() {
         const start = startOfMonth(selectedDate);
         const end = endOfMonth(selectedDate);
 
+        // Fetch Assignments
         getVehicleAssignmentHistory(selectedSiteId, start, end).then(res => {
             if (res.success) {
                 setAssignmentHistory(res.data || []);
+            }
+        });
+
+        // [NEW] Fetch Attendance
+        getVehicleAttendanceList(selectedSiteId, start, end).then(res => {
+            if (res.success) {
+                setVehicleAttendance((res.data as any) || []);
             }
         });
     }, [selectedSiteId, selectedDate]);

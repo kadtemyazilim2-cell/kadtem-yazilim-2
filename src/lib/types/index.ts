@@ -381,6 +381,7 @@ export interface AppState {
   addPersonnelAttendance: (p: PersonnelAttendance) => void;
   deletePersonnelAttendance: (pid: string, date: string, siteId?: string) => void;
   addVehicleAttendance: (v: VehicleAttendance) => void;
+  setVehicleAttendance: (items: VehicleAttendance[]) => void; // [NEW]
   deleteVehicleAttendance: (vehicleId: string, date: string) => void;
   deleteVehicleAttendanceById: (id: string) => void;
   addSiteLogEntry: (entry: SiteLogEntry) => void;

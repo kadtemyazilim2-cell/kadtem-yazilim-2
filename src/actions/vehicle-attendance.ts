@@ -86,19 +86,40 @@ export async function deleteVehicleAttendance(vehicleId: string, date: string) {
     }
 }
 
-export async function getVehicleAttendanceList() {
+export async function getVehicleAttendanceList(siteId?: string, startDate?: Date, endDate?: Date) {
     try {
-        // [PERFORMANCE] Limit to recent years (2025+) to avoid huge payload
-        const cutoffDate = new Date('2025-01-01');
+        const whereClause: any = {};
+
+        if (siteId) {
+            whereClause.siteId = siteId;
+        }
+
+        if (startDate && endDate) {
+            whereClause.date = {
+                gte: startDate,
+                lte: endDate
+            };
+        } else {
+            // Default to recent if no details provided, as a fallback
+            const cutoffDate = new Date('2025-01-01');
+            whereClause.date = { gte: cutoffDate };
+        }
 
         const records = await prisma.vehicleAttendance.findMany({
-            take: 2000, // [PERFORMANCE] Safety limit
-            where: {
-                date: { gte: cutoffDate }
-            },
+            take: 2000,
+            where: whereClause,
             orderBy: { date: 'desc' }
         });
-        return { success: true, data: records };
+
+        // Convert Date objects to strings for client consumption
+        const serializedRecords = records.map(record => ({
+            ...record,
+            date: record.date.toISOString(),
+            // Ensure other potential dates are stringified if needed, 
+            // but VehicleAttendance only has 'date' as per schema usually.
+        }));
+
+        return { success: true, data: serializedRecords };
     } catch (error: any) {
         console.error('getVehicleAttendanceList Error:', error);
         return { success: false, error: 'Araç puantaj listesi alınamadı.' };
