@@ -1,12 +1,14 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+
 import { useAppStore } from '@/lib/store/use-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PersonnelForm } from './PersonnelForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, differenceInDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -26,7 +28,7 @@ import {
     Sun, CloudRain, CloudSnow, Cloud, MoreHorizontal, FileText, ChevronLeft, ChevronRight,
     CheckCircle2, XCircle, Clock, Umbrella, Stethoscope, Thermometer, Briefcase, Download, Trash2, Pencil
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // [NEW] StatusCell Component using Popover for Tooltip behavior
@@ -115,64 +117,74 @@ export function PersonnelList() {
 
     // [NEW] Client-Side Data Fetching for Attendance
     // This fixes the issue where data is missing after refresh
-    useEffect(() => {
-        const fetchAttendance = async () => {
-            // [FALLBACK] Fetch Personnel List if empty (e.g. Layout fetch failed)
+    // [NEW] Debug State & Fetch Logic
+    const [fetchStatus, setFetchStatus] = useState<string>('IDLE');
+    const [fetchError, setFetchError] = useState<string>('');
+
+    const fetchAttendance = useCallback(async () => {
+        setFetchStatus('LOADING');
+        setFetchError('');
+        console.log("Starting Client-Side Fetch Sequence...");
+
+        try {
+            // [FALLBACK] Fetch Personnel List
             if (personnel.length === 0) {
-                try {
-                    console.log("Fetching personnel list client-side (Fallback)...");
-                    // We need to dynamically import getPersonnel to avoid circular deps if any
-                    const { getPersonnel } = await import('@/actions/personnel');
-                    const res = await getPersonnel();
-                    if (res.success && res.data) {
-                        // [FIX] Handle null values for strictly typed store
-                        const safePersonnel = res.data.map((p: any) => ({
-                            ...p,
-                            tcNumber: p.tcNumber || '',
-                            profession: p.profession || '',
-                            note: p.note || '',
-                            phone: p.phone || '',
-                            email: p.email || '',
-                            address: p.address || '',
-                            bankAccount: p.bankAccount || '', // Fix case sensitivity if needed
-                            iban: p.iban || ''
-                        }));
-                        useAppStore.setState((state) => ({ personnel: safePersonnel }));
-                        console.log("Personnel list fetched:", safePersonnel.length);
-                    }
-                } catch (err) {
-                    console.error("Error fetching personnel list:", err);
+                console.log("Fetching personnel list client-side (Fallback)...");
+                const { getPersonnel } = await import('@/actions/personnel');
+                const res = await getPersonnel();
+                if (res.success && res.data) {
+                    const safePersonnel = res.data.map((p: any) => ({
+                        ...p,
+                        tcNumber: p.tcNumber || '',
+                        profession: p.profession || '',
+                        note: p.note || '',
+                        phone: p.phone || '',
+                        email: p.email || '',
+                        address: p.address || '',
+                        bankAccount: p.bankAccount || '',
+                        iban: p.iban || ''
+                    }));
+                    useAppStore.setState((state) => ({ personnel: safePersonnel }));
+                    console.log("Personnel list fetched:", safePersonnel.length);
+                } else {
+                    console.error("Personnel fallback fetch failed:", res.error);
+                    setFetchError(prev => prev + "Personnel Fetch Failed. ");
                 }
             }
 
             // Fetch Attendance
             if (personnelAttendance.length === 0) {
-                try {
-                    console.log("Fetching personnel attendance client-side...");
-                    // Dynamically import to ensure fresh execution context
-                    // const { getPersonnelAttendanceList } = await import('@/actions/personnel'); // Already imported at top? Global import is better if not circular.
-                    // But to be safe, let's use the imported one.
-                    const res = await getPersonnelAttendanceList();
-                    if (res.success && res.data) {
-                        // [FIX] Convert Date objects to strings for the store
-                        const formattedData = res.data.map((item: any) => ({
-                            ...item,
-                            date: new Date(item.date).toISOString().split('T')[0] // Store as YYYY-MM-DD string
-                        }));
+                console.log("Fetching personnel attendance client-side...");
+                const res = await getPersonnelAttendanceList();
+                if (res.success && res.data) {
+                    const formattedData = res.data.map((item: any) => ({
+                        ...item,
+                        date: new Date(item.date).toISOString().split('T')[0]
+                    }));
 
-                        useAppStore.setState((state) => ({
-                            personnelAttendance: formattedData
-                        }));
-                        console.log("Personnel attendance fetched:", formattedData.length);
-                    }
-                } catch (err) {
-                    console.error("Error fetching personnel attendance:", err);
+                    useAppStore.setState((state) => ({
+                        personnelAttendance: formattedData
+                    }));
+                    console.log("Personnel attendance fetched:", formattedData.length);
+                    setFetchStatus('SUCCESS');
+                } else {
+                    console.error("Attendance fetch failed:", res.error);
+                    setFetchStatus('ERROR');
+                    setFetchError(prev => prev + (res.error || "Attendance Fetch Failed"));
                 }
+            } else {
+                setFetchStatus('SUCCESS (Cached)');
             }
-        };
+        } catch (err: any) {
+            console.error("Critical Fetch Error:", err);
+            setFetchStatus('CRITICAL_ERROR');
+            setFetchError(err.message || 'Unknown Error');
+        }
+    }, [personnel.length, personnelAttendance.length]);
 
+    useEffect(() => {
         fetchAttendance();
-    }, []); // Run once on mount
+    }, [fetchAttendance]);
 
 
 
@@ -283,11 +295,24 @@ export function PersonnelList() {
 
     // [DEBUG] Info Block
     const debugInfo = (
-        <div className="text-xs text-gray-500 mb-2 p-2 border rounded bg-gray-50">
-            DEBUG: Store Personnel: {personnel.length} |
-            Store Attendance: {personnelAttendance.length} |
-            Selected Site: {selectedSiteId || 'None'} |
-            Filtered: {filteredPersonnel.length}
+        <div className={cn(
+            "text-xs mb-2 p-2 border rounded flex items-center justify-between gap-4",
+            fetchStatus.includes('ERROR') ? "bg-red-50 border-red-200 text-red-800" : "bg-gray-50 text-gray-600"
+        )}>
+            <div className="flex flex-col gap-1">
+                <span className="font-bold">DEBUG PANEL</span>
+                <span>STATUS: <strong>{fetchStatus}</strong></span>
+                {fetchError && <span className="text-red-600 font-bold">ERROR: {fetchError}</span>}
+                <span>
+                    Store P: {personnel.length} |
+                    Store Att: {personnelAttendance.length} |
+                    Site: {selectedSiteId || 'NULL'} |
+                    Filtered: {filteredPersonnel.length}
+                </span>
+            </div>
+            <Button size="sm" variant={fetchStatus.includes('ERROR') ? "destructive" : "secondary"} onClick={fetchAttendance} disabled={fetchStatus === 'LOADING'}>
+                {fetchStatus === 'LOADING' ? 'Loading...' : 'Retry Fetch'}
+            </Button>
         </div>
     );
 
