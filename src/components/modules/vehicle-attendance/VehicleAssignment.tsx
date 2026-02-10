@@ -57,7 +57,10 @@ export function VehicleAssignment() {
     // 1. Vehicles in Selected Site
     const assignedVehicles = useMemo(() => {
         if (!selectedSiteId) return [];
-        let list = vehicles.filter((v: any) => v.status !== 'PASSIVE' && v.assignedSiteIds?.includes(selectedSiteId));
+        let list = vehicles.filter((v: any) => {
+            if (v.status === 'PASSIVE') return false;
+            return (v.assignedSiteIds?.includes(selectedSiteId)) || (v.assignedSiteId === selectedSiteId);
+        });
 
         // Filter
         if (ownershipFilter !== 'ALL') {
@@ -78,7 +81,8 @@ export function VehicleAssignment() {
         if (!selectedSiteId) return [];
         let list = vehicles.filter((v: any) => {
             if (v.status === 'PASSIVE') return false;
-            return !v.assignedSiteIds?.includes(selectedSiteId);
+            const isAssignedHere = (v.assignedSiteIds?.includes(selectedSiteId)) || (v.assignedSiteId === selectedSiteId);
+            return !isAssignedHere;
         });
 
         // Filter
