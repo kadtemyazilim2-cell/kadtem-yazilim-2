@@ -30,33 +30,44 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
             }
         }
 
-        // Use UPSERT with the new unique constraint [vehicleId, date]
-        console.log(`Server Action: Upserting record for Vehicle: ${data.vehicleId}, Date: ${startOfDay.toISOString()}`);
+        // Use manual upsert to be robust against stale Prisma Client definitions
+        // (i.e., if 'vehicleId_date' is not yet known to the client)
+        console.log(`Server Action: Checking existence for Vehicle: ${data.vehicleId}, Date: ${startOfDay.toISOString()}`);
 
-        const result = await prisma.vehicleAttendance.upsert({
+        const existingRecord = await prisma.vehicleAttendance.findFirst({
             where: {
-                vehicleId_date: {
-                    vehicleId: data.vehicleId!,
-                    date: startOfDay
-                }
-            },
-            update: {
-                status: data.status,
-                siteId: data.siteId,
-                hours: parseFloat(data.hours?.toString() || '0'),
-                note: data.note,
-                createdByUserId: finalUserId,
-            },
-            create: {
                 vehicleId: data.vehicleId!,
-                siteId: data.siteId!,
-                date: startOfDay,
-                status: data.status || 'WORK',
-                hours: parseFloat(data.hours?.toString() || '0'),
-                note: data.note,
-                createdByUserId: finalUserId,
+                date: startOfDay
             }
         });
+
+        let result;
+        if (existingRecord) {
+            console.log('Server Action: Updating existing record:', existingRecord.id);
+            result = await prisma.vehicleAttendance.update({
+                where: { id: existingRecord.id },
+                data: {
+                    status: data.status,
+                    siteId: data.siteId,
+                    hours: parseFloat(data.hours?.toString() || '0'),
+                    note: data.note,
+                    createdByUserId: finalUserId,
+                }
+            });
+        } else {
+            console.log('Server Action: Creating new record');
+            result = await prisma.vehicleAttendance.create({
+                data: {
+                    vehicleId: data.vehicleId!,
+                    siteId: data.siteId!,
+                    date: startOfDay,
+                    status: data.status || 'WORK',
+                    hours: parseFloat(data.hours?.toString() || '0'),
+                    note: data.note,
+                    createdByUserId: finalUserId,
+                }
+            });
+        }
 
         console.log('Server Action: Saved successfully:', result.id);
 

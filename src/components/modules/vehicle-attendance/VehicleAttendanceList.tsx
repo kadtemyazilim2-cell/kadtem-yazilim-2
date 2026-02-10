@@ -277,40 +277,30 @@ export function VehicleAttendanceList() {
         }
     };
 
+    // [DEBUG] Log the attendance data we have for the current view
+    useEffect(() => {
+        if (vehicleAttendance.length > 0) {
+            console.log('Client: Current Attendance Data (Sample):', vehicleAttendance.slice(0, 3));
+            console.log('Client: Total Records:', vehicleAttendance.length);
+
+            // Allow debugging specific dates
+            const todayStr = format(new Date(), 'yyyy-MM-dd');
+            const todayRecords = vehicleAttendance.filter((r: any) => {
+                const rDate = new Date(r.date).toISOString().split('T')[0];
+                return rDate === todayStr;
+            });
+            console.log(`Client: Records matching Today (${todayStr}):`, todayRecords);
+        }
+    }, [vehicleAttendance]);
+
     const getStatusForDate = (vid: string, date: Date) => {
-        // We know the saved format is ISO string "YYYY-MM-DDTHH:mm:ss.sssZ"
-        // And we force it to be "...T12:00:00.000Z" (Noon UTC)
-        // Locally, we want to match the "YYYY-MM-DD" part relative to the viewing context.
-        // However, robust way is to convert both to "YYYY-MM-DD" strings.
-
         const targetDateStr = format(date, 'yyyy-MM-dd');
-
         return vehicleAttendance.find((a: any) => {
             if (!a.vehicleId || !a.date) return false;
-            // Strong filter by site
             if (a.vehicleId !== vid || a.siteId !== selectedSiteId) return false;
-
             try {
-                // If it's already a Date object (Prisma result might be), use it. 
-                // If it's a string, parse it.
-                // Best way: Slice the first 10 chars if it's a standard ISO string? 
-                // No, timezone shifts might change the date if we just slice (e.g. T23:00 vs T01:00).
-
-                // Since we standardized on T12:00:00Z, slicing is safe IF we know it's UTC.
-                // But let's trust "new Date(a.date)" + "format" as they should respect the browser's view of that instant.
-                // "2026-02-11T12:00:00Z" -> Browser (UTC+3) -> "2026-02-11 15:00:00" -> format -> "2026-02-11"
-                // This matches targetDateStr.
-
-                // Wait! If the record was saved as "2026-02-10T21:00:00Z" (Midnight Local -> Previous day UTC), 
-                // Browser (UTC+3) -> "2026-02-11 00:00:00". format -> "2026-02-11".
-                // So the client logic IS correct for legacy/shifted data too.
-
-                // Why would it fail? 
-                // Maybe `a.date` is not what we think it is?
-
                 const recordDate = new Date(a.date);
                 if (isNaN(recordDate.getTime())) return false;
-
                 return format(recordDate, 'yyyy-MM-dd') === targetDateStr;
             } catch (e) {
                 return false;
