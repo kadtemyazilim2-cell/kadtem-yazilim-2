@@ -12,6 +12,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, diffe
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'; // [NEW]
+import { getPersonnelAttendanceList } from '@/actions/personnel'; // [NEW]
 import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -111,6 +112,41 @@ export function PersonnelList() {
             setSelectedSiteId(availableSites[0].id);
         }
     }, [availableSites, selectedSiteId]);
+
+    // [NEW] Client-Side Data Fetching for Attendance
+    // This fixes the issue where data is missing after refresh
+    useEffect(() => {
+        const fetchAttendance = async () => {
+            // Only fetch if we don't have data or if explicit refresh is needed
+            // But since the store might be empty on refresh, we should fetch.
+            // Limitation: We don't want to fetch if we already have data from server (if we ever go back to that).
+            // For now, let's fetch if the list is empty or minimal.
+
+            if (personnelAttendance.length === 0) {
+                try {
+                    console.log("Fetching personnel attendance client-side...");
+                    const res = await getPersonnelAttendanceList();
+                    if (res.success && res.data) {
+                        // [FIX] Convert Date objects to strings for the store
+                        const formattedData = res.data.map((item: any) => ({
+                            ...item,
+                            date: new Date(item.date).toISOString().split('T')[0] // Store as YYYY-MM-DD string
+                        }));
+
+                        useAppStore.setState((state) => ({
+                            personnelAttendance: formattedData
+                        }));
+                        console.log("Personnel attendance fetched:", formattedData.length);
+                    }
+                } catch (err) {
+                    console.error("Error fetching personnel attendance:", err);
+                }
+            }
+        };
+
+        fetchAttendance();
+    }, []); // Run once on mount
+
 
     // Attendance Entry Modal State
     const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
@@ -393,7 +429,7 @@ export function PersonnelList() {
         const newHistory = [
             ...(person.transferHistory || []),
             {
-                fromSiteId: person.siteId,
+                fromSiteId: person.siteId || '', // [FIX] Handle null case
                 toSiteId: transferTargetSiteId,
                 date: new Date().toISOString()
             }
