@@ -183,6 +183,7 @@ export function PersonnelList() {
     }, [personnel.length, personnelAttendance.length]);
 
     useEffect(() => {
+        console.log("PersonnelList Component MOUNTED - Version 2");
         fetchAttendance();
     }, [fetchAttendance]);
 
@@ -1190,7 +1191,7 @@ export function PersonnelList() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 border-4 border-red-500 p-2 rounded-lg">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center">
