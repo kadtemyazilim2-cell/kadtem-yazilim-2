@@ -95,9 +95,13 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
         }
 
         if (startDate && endDate) {
+            // Ensure inputs are Dates (Next.js serialization sometimes passes strings)
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
             whereClause.date = {
-                gte: startDate,
-                lte: endDate
+                gte: start,
+                lte: end
             };
         } else {
             // Default to recent if no details provided, as a fallback
