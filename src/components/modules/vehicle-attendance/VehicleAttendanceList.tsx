@@ -146,6 +146,15 @@ export function VehicleAttendanceList() {
             const targetDate = new Date(date); // Clone to avoid mutation if any
             targetDate.setHours(0, 0, 0, 0);
 
+            // [DEBUG] Log Date Check
+            console.log('Client: Date Check', {
+                today: format(today, 'yyyy-MM-dd HH:mm'),
+                target: format(targetDate, 'yyyy-MM-dd HH:mm'),
+                isFuture: targetDate > today,
+                lookbackDays: user.editLookbackDays,
+                diff: user.editLookbackDays !== undefined ? differenceInDays(today, targetDate) : 'N/A'
+            });
+
             // 1. Future Block
             if (targetDate > today) {
                 alert('İleri tarihli puantaj girişi yapamazsınız.');
@@ -155,10 +164,15 @@ export function VehicleAttendanceList() {
             // 2. Backdate / Lookback Check
             if (user.editLookbackDays !== undefined) {
                 const diff = differenceInDays(today, targetDate);
+                // Allow today (diff=0) if editLookbackDays is 0. 
+                // diff is positive if target is in past.
                 if (diff > user.editLookbackDays) {
                     if (!record) {
                         // Creating New -> BLOCK
-                        alert(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
+                        const msg = user.editLookbackDays === 0
+                            ? `Sadece bugüne işlem yapabilirsiniz. (Debug: GünFarkı=${diff}, Limit=${user.editLookbackDays})`
+                            : `Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz. (Debug: GünFarkı=${diff}, Limit=${user.editLookbackDays})`;
+                        alert(msg);
                         return;
                     }
                     // Editing Existing -> FORCE READ ONLY (Handled below)

@@ -58,6 +58,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     // For now, simple string comparison as per initial mock auth
                     if (user.password === password) {
                         console.log("Password match!");
+                        console.log("User Debug:", {
+                            id: user.id,
+                            role: user.role,
+                            editLookbackDays: user.editLookbackDays
+                        });
+
                         // Flatten assignedSites to assignedSiteIds
                         const assignedSiteIds = user.assignedSites ? user.assignedSites.map((s: any) => s.id) : [];
                         return { ...user, assignedSiteIds };
