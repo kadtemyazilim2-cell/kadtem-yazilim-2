@@ -372,6 +372,8 @@ model VehicleAttendance {
   
   createdByUserId String?
   createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
+
+  @@unique([vehicleId, date])
 }
 
 model FuelTank {

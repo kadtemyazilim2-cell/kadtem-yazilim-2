@@ -20,72 +20,52 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
 
         console.log('Server Action: Normalized Date:', startOfDay.toISOString());
 
-        // Check for existing record
-        const existing = await prisma.vehicleAttendance.findFirst({
+        // Validate createdByUserId if present
+        let finalUserId = data.createdByUserId;
+        if (finalUserId) {
+            const userExists = await prisma.user.findUnique({ where: { id: finalUserId } });
+            if (!userExists) {
+                console.warn(`Server Action: User ${finalUserId} not found, stripping ID.`);
+                finalUserId = null; // or undefined, to avoid FK error
+            }
+        }
+
+        // Use UPSERT with the new unique constraint [vehicleId, date]
+        console.log(`Server Action: Upserting record for Vehicle: ${data.vehicleId}, Date: ${startOfDay.toISOString()}`);
+
+        const result = await prisma.vehicleAttendance.upsert({
             where: {
-                vehicleId: data.vehicleId,
-                date: startOfDay
+                vehicleId_date: {
+                    vehicleId: data.vehicleId!,
+                    date: startOfDay
+                }
+            },
+            update: {
+                status: data.status,
+                siteId: data.siteId,
+                hours: parseFloat(data.hours?.toString() || '0'),
+                note: data.note,
+                createdByUserId: finalUserId,
+            },
+            create: {
+                vehicleId: data.vehicleId!,
+                siteId: data.siteId!,
+                date: startOfDay,
+                status: data.status || 'WORK',
+                hours: parseFloat(data.hours?.toString() || '0'),
+                note: data.note,
+                createdByUserId: finalUserId,
             }
         });
 
-        let attendance;
-        const payload = {
-            vehicleId: data.vehicleId,
-            siteId: data.siteId,
-            date: startOfDay,
-            status: data.status || 'WORK',
-            hours: data.hours || 8,
-            note: data.note,
-            createdByUserId: data.createdByUserId
-        };
+        console.log('Server Action: Saved successfully:', result.id);
 
-        if (existing) {
-            console.log('Server Action: Updating existing record:', existing.id);
-            // Update
-            attendance = await prisma.vehicleAttendance.update({
-                where: { id: existing.id },
-                data: {
-                    status: payload.status,
-                    siteId: payload.siteId,
-                    hours: payload.hours,
-                    note: payload.note,
-                    createdByUserId: payload.createdByUserId
-                }
-            });
-        } else {
-            console.log('Server Action: Creating new record');
-            // Create
-            const createData: any = {
-                vehicleId: payload.vehicleId,
-                siteId: payload.siteId,
-                date: payload.date,
-                status: payload.status,
-                hours: payload.hours,
-                note: payload.note
-            };
-
-            if (payload.createdByUserId) {
-                // Check if user exists to avoid FK constraint failure
-                const userExists = await prisma.user.findUnique({ where: { id: payload.createdByUserId as string } });
-                if (userExists) {
-                    createData.createdByUserId = payload.createdByUserId;
-                } else {
-                    console.warn(`Server Action: User ${payload.createdByUserId} not found, skipping.`);
-                }
-            }
-
-            attendance = await prisma.vehicleAttendance.create({
-                data: createData
-            });
-        }
-
-        console.log('Server Action: Operation successful:', attendance);
         revalidatePath('/dashboard/vehicle-attendance');
-        revalidatePath('/dashboard/admin');
-        return { success: true, data: attendance };
+        return { success: true, data: result };
+
     } catch (error: any) {
         console.error('addVehicleAttendance Error:', error);
-        return { success: false, error: 'Kayıt hatası: ' + (error.message || error) };
+        return { success: false, error: 'Kayıt sırasında bir hata oluştu: ' + (error.message || error) };
     }
 }
 
