@@ -29,7 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     }
 
 
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [], vehicleAttendance = [], personnelAttendance = [];
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [], vehicleAttendance = []; //, personnelAttendance = []; [DEBUG] REVERTED
 
     try {
         const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes, vehicleAttendanceRes] = await Promise.all([
