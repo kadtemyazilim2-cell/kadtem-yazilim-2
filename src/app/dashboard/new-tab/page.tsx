@@ -147,7 +147,12 @@ export default function NewPage() {
 
 
     const [names, setNames] = useState<IndependentPerson[]>([]);
-    const [debugInfo, setDebugInfo] = useState<any>(null);
+
+    // [NEW] Enhanced Debug State
+    const [fetchStatus, setFetchStatus] = useState<string>('IDLE');
+    const [fetchError, setFetchError] = useState<string>('');
+    const [debugInfo, setDebugInfo] = useState<any>(null); // Keep original debugInfo for server response
+
     const [loading, setLoading] = useState(true);
 
     // Site Filter State
@@ -332,12 +337,26 @@ export default function NewPage() {
 
     // Fetch from Server (Moved here to access 'date' and 'selectedSiteId')
     const refreshData = async () => {
-        if (!selectedSiteId || selectedSiteId === 'all') {
+        setFetchStatus('LOADING');
+        setFetchError('');
+
+        let targetSiteId = selectedSiteId;
+
+        // [FIX] Handle page refresh where availableSites might be loaded but selectedSiteId is not yet set
+        if (!targetSiteId && availableSites.length === 1) {
+            targetSiteId = availableSites[0].id;
+            setSelectedSiteId(targetSiteId);
+        }
+
+        if (!targetSiteId || targetSiteId === 'all') {
+            console.warn("refreshData: No site selected");
+            setFetchStatus('WAITING_SELECTION');
             setNames([]);
             setLoading(false);
             return;
         }
 
+        console.log(`refreshData: Fetching for site ${targetSiteId} date ${date.toISOString()}`);
         setLoading(true);
         try {
             // Pass date as string to avoid serialization issues
@@ -399,9 +418,15 @@ export default function NewPage() {
                     };
                 });
                 setNames(mapped);
+                setFetchStatus('SUCCESS');
+            } else {
+                setFetchStatus('ERROR');
+                if (res.error) setFetchError(res.error);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
+            setFetchStatus('CRITICAL_ERROR');
+            setFetchError(e.message || 'Unknown Error');
         } finally {
             setLoading(false);
         }
@@ -409,7 +434,7 @@ export default function NewPage() {
 
     useEffect(() => {
         refreshData();
-    }, [date, selectedSiteId]);
+    }, [date, selectedSiteId, availableSites.length]);
 
     // Smart Entry: Auto-fill form on TC match with Duplicate Prevention
     useEffect(() => {
@@ -1752,15 +1777,33 @@ export default function NewPage() {
 
     return (
         <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
-
-                {/* Debug info removed */}
-
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Personel Puantaj</h1>
-                    <p className="text-muted-foreground">Personel ve puantaj yönetimi.</p>
+            <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">Personel Puantaj</h1>
+                        <p className="text-muted-foreground">Personel ve puantaj yönetimi.</p>
+                    </div>
                 </div>
-                {/* Warning Removed */}
+
+                {/* [DEBUG] Info Block - Re-introduced for Troubleshooting */}
+                <div className={cn(
+                    "text-xs p-2 border rounded flex items-center justify-between gap-4",
+                    fetchStatus.includes('ERROR') ? "bg-red-50 border-red-200 text-red-800" : "bg-blue-50 text-blue-800 border-blue-100"
+                )}>
+                    <div className="flex flex-col gap-1">
+                        <span className="font-bold">DEBUG PANEL (NewPage)</span>
+                        <span>STATUS: <strong>{fetchStatus}</strong> {loading ? '(Loading...)' : ''}</span>
+                        {fetchError && <span className="text-red-600 font-bold">ERROR: {fetchError}</span>}
+                        <span>
+                            Loaded Personnel: {names.length} |
+                            Site ID: {selectedSiteId || 'NULL'} |
+                            Available Sites: {availableSites.length}
+                        </span>
+                    </div>
+                    <Button size="sm" variant={fetchStatus.includes('ERROR') ? "destructive" : "secondary"} onClick={() => refreshData()} disabled={loading}>
+                        {loading ? 'Yükleniyor...' : 'Retry Fetch'}
+                    </Button>
+                </div>
             </div>
 
             <Tabs defaultValue="attendance" className="w-full space-y-6">

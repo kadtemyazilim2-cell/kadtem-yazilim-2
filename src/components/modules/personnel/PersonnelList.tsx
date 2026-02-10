@@ -1191,7 +1191,7 @@ export function PersonnelList() {
     };
 
     return (
-        <div className="space-y-6 border-4 border-red-500 p-2 rounded-lg">
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle className="flex justify-between items-center">
