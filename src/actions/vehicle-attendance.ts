@@ -49,8 +49,25 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
             });
         } else {
             // Create
+            const createData: any = {
+                vehicleId: payload.vehicleId,
+                siteId: payload.siteId,
+                date: payload.date,
+                status: payload.status,
+                hours: payload.hours,
+                note: payload.note
+            };
+
+            if (payload.createdByUserId) {
+                // Check if user exists to avoid FK constraint failure
+                const userExists = await prisma.user.findUnique({ where: { id: payload.createdByUserId as string } });
+                if (userExists) {
+                    createData.createdByUserId = payload.createdByUserId;
+                }
+            }
+
             attendance = await prisma.vehicleAttendance.create({
-                data: payload
+                data: createData
             });
         }
 
