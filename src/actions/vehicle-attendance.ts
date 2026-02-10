@@ -11,9 +11,10 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
             return { success: false, error: 'Eksik bilgi (Araç, Tarih veya Şantiye).' };
         }
 
-        // Ensure date is treated as UTC/Midnight
+        // Ensure date is treated as UTC Noon to avoid timezone boundary shifts
+        // (e.g. Midnight UTC might be Previous Day 21:00 in some contexts, but Noon is safe)
         const startOfDay = new Date(data.date);
-        startOfDay.setHours(0, 0, 0, 0);
+        startOfDay.setUTCHours(12, 0, 0, 0);
 
         // Check for existing record
         const existing = await prisma.vehicleAttendance.findFirst({
