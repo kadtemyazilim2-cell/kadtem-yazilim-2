@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/db';
 import { VehicleAttendance } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth'; // Ensure this import exists or use correct auth method
+import { auth as getSession } from '@/auth'; // Ensure this import exists or use correct auth method
 
 export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
     try {
@@ -145,7 +145,6 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             where: whereClause,
             include: {
                 vehicle: true,
-                site: true
             },
             orderBy: {
                 date: 'desc'
