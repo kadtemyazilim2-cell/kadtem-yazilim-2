@@ -117,14 +117,41 @@ export function PersonnelList() {
     // This fixes the issue where data is missing after refresh
     useEffect(() => {
         const fetchAttendance = async () => {
-            // Only fetch if we don't have data or if explicit refresh is needed
-            // But since the store might be empty on refresh, we should fetch.
-            // Limitation: We don't want to fetch if we already have data from server (if we ever go back to that).
-            // For now, let's fetch if the list is empty or minimal.
+            // [FALLBACK] Fetch Personnel List if empty (e.g. Layout fetch failed)
+            if (personnel.length === 0) {
+                try {
+                    console.log("Fetching personnel list client-side (Fallback)...");
+                    // We need to dynamically import getPersonnel to avoid circular deps if any
+                    const { getPersonnel } = await import('@/actions/personnel');
+                    const res = await getPersonnel();
+                    if (res.success && res.data) {
+                        // [FIX] Handle null values for strictly typed store
+                        const safePersonnel = res.data.map((p: any) => ({
+                            ...p,
+                            tcNumber: p.tcNumber || '',
+                            profession: p.profession || '',
+                            note: p.note || '',
+                            phone: p.phone || '',
+                            email: p.email || '',
+                            address: p.address || '',
+                            bankAccount: p.bankAccount || '', // Fix case sensitivity if needed
+                            iban: p.iban || ''
+                        }));
+                        useAppStore.setState((state) => ({ personnel: safePersonnel }));
+                        console.log("Personnel list fetched:", safePersonnel.length);
+                    }
+                } catch (err) {
+                    console.error("Error fetching personnel list:", err);
+                }
+            }
 
+            // Fetch Attendance
             if (personnelAttendance.length === 0) {
                 try {
                     console.log("Fetching personnel attendance client-side...");
+                    // Dynamically import to ensure fresh execution context
+                    // const { getPersonnelAttendanceList } = await import('@/actions/personnel'); // Already imported at top? Global import is better if not circular.
+                    // But to be safe, let's use the imported one.
                     const res = await getPersonnelAttendanceList();
                     if (res.success && res.data) {
                         // [FIX] Convert Date objects to strings for the store
@@ -148,7 +175,8 @@ export function PersonnelList() {
     }, []); // Run once on mount
 
 
-    // Attendance Entry Modal State
+
+
     const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
     const [selectedPersonnelId, setSelectedPersonnelId] = useState('');
     const [modalDate, setModalDate] = useState(''); // Specific date clicked in grid
@@ -252,6 +280,17 @@ export function PersonnelList() {
             return hasAttendance;
         }).sort((a: any, b: any) => a.fullName.localeCompare(b.fullName));
     }, [personnel, selectedSiteId, personnelAttendance, selectedDate]);
+
+    // [DEBUG] Info Block
+    const debugInfo = (
+        <div className="text-xs text-gray-500 mb-2 p-2 border rounded bg-gray-50">
+            DEBUG: Store Personnel: {personnel.length} |
+            Store Attendance: {personnelAttendance.length} |
+            Selected Site: {selectedSiteId || 'None'} |
+            Filtered: {filteredPersonnel.length}
+        </div>
+    );
+
 
     const openAttendanceModal = (pid: string, dateStr: string) => {
         if (!selectedSiteId) return alert('Lütfen önce şantiye seçiniz.');
@@ -1139,6 +1178,7 @@ export function PersonnelList() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {debugInfo}
                     <div className="flex flex-col md:flex-row gap-4 items-end mb-4">
                         <div className="space-y-2 w-full md:w-64">
                             <label className="text-sm font-medium">Şantiye Seçimi</label>

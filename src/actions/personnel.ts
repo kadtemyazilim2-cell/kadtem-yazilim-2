@@ -368,7 +368,7 @@ export async function getPersonnelAttendanceList() {
         const cutoffDate = new Date('2025-01-01');
 
         const records = await prisma.personnelAttendance.findMany({
-            take: 100, // [DEBUG] Reduced limit to test client stability
+            take: 5000, // [PERFORMANCE] Increased limit for production use
             where: {
                 date: { gte: cutoffDate }
             },
