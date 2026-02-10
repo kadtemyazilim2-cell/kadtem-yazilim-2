@@ -47,12 +47,12 @@ export function LimitValueCalculation() {
     const [nCoefficient, setNCoefficient] = useState<string>('1.20');
     const [result, setResult] = useState<CalculationResult | null>(null);
     const [metadata, setMetadata] = useState<TenderMetadata>({});
+    const [rawText, setRawText] = useState<string>(''); // Added missing state
 
     // --- File Handling ---
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
-            // Auto parse on select if desired, but button is safer for now
         }
     };
 
@@ -86,6 +86,8 @@ export function LimitValueCalculation() {
     // --- Parsing Logic ---
     const parseTextContent = (text: string) => {
         const cleanText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        setRawText(cleanText); // Save for debugging
+
         const lines = cleanText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
         console.log("Parsing extract sample:", lines.slice(0, 10));
@@ -96,25 +98,36 @@ export function LimitValueCalculation() {
 
         // Regex Patterns
         const patterns = {
-            cost: /(?:yaklaşık\s*maliyet)(?:[:\s]*)([\d\.]+,[\d]{2})/i,
-            adminName: /(?:İdare\s*Adı|Kurum\s*Adı)(?:[:\s]*)(.+)/i,
-            ikn: /(?:İhale\s*Kayıt\s*Numarası|İKN|Kayıt\s*No)(?:[:\s]*)(.+)/i,
-            tenderName: /(?:İhale\s*Adı|İşin\s*Adı)(?:[:\s]*)(.+)/i,
-            tenderDate: /(?:İhale\s*Tarih(?:i| ve Saati)?)(?:[:\s]*)(.+)/i,
-            openingDate: /(?:Tekliflerin\s*Açıldığı\s*Tarih(?:i| ve Saati)?)(?:[:\s]*)(.+)/i,
-            minutesDate: /(?:Tutanağın\s*Düzenlendiği\s*Tarih(?:i| ve Saati)?)(?:[:\s]*)(.+)/i,
+            // More flexible cost pattern
+            cost: /(?:yaklaşık\s*maliyet|maliyet).*?([\d\.]+,[\d]{2})/i,
 
-            // Bidder Line: "1. Firma Adı ... 123.456,78 TL"
-            // Also looking for extraction of status if "Geçersiz" is in the line
-            bidder: /^(?:\d+\.?\s*)?([^\d].+?)\s+([\d\.]+,[\d]{2})\s*(?:TL|TRY)?/i
+            // Metadata patterns
+            adminName: /(?:İdare|Kurum)\s*Adı\s*[:\s]*\s*(.+)/i,
+            ikn: /(?:İhale\s*Kayıt\s*no|İKN|Kayıt\s*No)\s*[:\s]*\s*(.+)/i,
+            tenderName: /(?:İhale|İşin)\s*Adı\s*[:\s]*\s*(.+)/i,
+            tenderDate: /(?:İhale\s*Tarih|İhale\s*Tarihi).*?[:\s]*\s*(.+)/i,
+            openingDate: /Tekliflerin\s*Açıl.*?[:\s]*\s*(.+)/i,
+
+            // Money Pattern: 1.234,56 or 123,45. (At least one digit before comma, exactly 2 after)
+            money: /([\d\.]+,\d{2})/
         };
 
-        // Scan for Metadata
+        // Scan for Metadata & Cost
         lines.forEach(line => {
-            if (!foundCost) {
-                const match = line.match(patterns.cost);
-                if (match) foundCost = parseTurkishMoney(match[1]);
+            const lower = line.toLowerCase();
+
+            // Approximate Cost
+            if (!foundCost && (lower.includes('maliyet') || lower.includes('yaklaşık'))) {
+                const match = line.match(patterns.money);
+                if (match) {
+                    // Ensure it's not a date (dates often look like money ish but usually 4 digits year)
+                    // Simple check: if it matches money pattern, use it.
+                    const val = parseTurkishMoney(match[1]);
+                    if (val > 0) foundCost = val;
+                }
             }
+
+            // Metadata
             if (!meta.administrationName) {
                 const match = line.match(patterns.adminName);
                 if (match) meta.administrationName = match[1].trim();
@@ -135,43 +148,47 @@ export function LimitValueCalculation() {
                 const match = line.match(patterns.openingDate);
                 if (match) meta.openingDate = match[1].trim();
             }
-            if (!meta.minutesDate) {
-                const match = line.match(patterns.minutesDate);
-                if (match) meta.minutesDate = match[1].trim();
-            }
         });
 
         // Scan for Bidders
-        // We look for lines that contain a money amount at the end
         lines.forEach(line => {
-            // Ignore metadata lines
+            // Ignore metadata lines strongly
             if (line.match(/Yaklaşık Maliyet/i)) return;
             if (line.match(/Sınır Değer/i)) return;
+            if (line.match(/Tarih/i)) return; // Skip date lines 
 
-            const match = line.match(patterns.bidder);
-            if (match) {
-                const rawName = match[1].trim();
-                const amount = parseTurkishMoney(match[2]);
+            // Check if line has money
+            const moneyMatch = line.match(patterns.money);
+            if (moneyMatch) {
+                const amountStr = moneyMatch[1];
+                const amount = parseTurkishMoney(amountStr);
 
-                // Filter out noise (like page numbers, dates looking like money)
-                // Assuming bids are > 1000 TL to be safe
-                if (amount > 1000) {
-                    // Check if "Geçersiz" or "Elenmiş" appears in the line
+                // Safety: Bids are usually significant amounts. 
+                if (amount > 100 && amount !== foundCost) {
+                    // Check context: "Geçersiz", "Elendi"
                     const isInvalid = /geçersiz|elendi|dışı|teminat/i.test(line);
 
-                    // Clean up name (getting rid of trailing separators)
-                    const name = rawName.replace(/[\._\-]+$/, '').trim();
+                    // Name is usually everything BEFORE the money
+                    // We split by the money string
+                    const parts = line.split(amountStr);
+                    let rawName = parts[0].trim();
 
-                    // Ensure we haven't added this exact bid already (dedupe)
-                    // Some docs repeat the list
-                    const exists = foundBidders.some(b => b.name === name && b.amount === amount);
-                    if (!exists) {
-                        foundBidders.push({
-                            name,
-                            amount,
-                            isValid: !isInvalid,
-                            exclusionReason: isInvalid ? 'Tutanakta belirtilen gerekçe' : undefined
-                        });
+                    // Clean up trailing chars from name (like " - ", " : ", or sequence numbers "1. ")
+                    rawName = rawName.replace(/^[\d\-\.\s]+/, ''); // Remove leading ranks like "1. "
+                    rawName = rawName.replace(/[\:\-\.]+$/, '');   // Remove trailing separators
+                    const name = rawName.trim();
+
+                    if (name.length > 2) {
+                        // Dedupe
+                        const exists = foundBidders.some(b => b.name === name && b.amount === amount);
+                        if (!exists) {
+                            foundBidders.push({
+                                name,
+                                amount,
+                                isValid: !isInvalid,
+                                exclusionReason: isInvalid ? 'Tutanakta belirtilen gerekçe' : undefined
+                            });
+                        }
                     }
                 }
             }
@@ -205,8 +222,7 @@ export function LimitValueCalculation() {
         const total = validBids.reduce((sum, b) => sum + b.amount, 0);
         const mean = total / validBids.length;
 
-        // Placeholder Limit Value Logic until exact formula is confirmed
-        // Using 90% of Mean as visual placeholder
+        // Placeholder Limit Value Logic 
         const calculatedLimitValue = mean * 0.9;
 
         const updatedBidders = currentBidders.map(b => ({
