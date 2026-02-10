@@ -32,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [], vehicleAttendance = [], personnelAttendance = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes, vehicleAttendanceRes, personnelAttendanceRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes, vehicleAttendanceRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
@@ -47,7 +47,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getAllTransactions(), // [RESTORED]
             getYiUfeRates(),
             getVehicleAttendanceList(),
-            getPersonnelAttendanceList() // [NEW]
+            // getPersonnelAttendanceList() // [DEBUG] REVERTING
         ]);
 
         companies = serializeData(companiesRes?.data || []);
@@ -64,7 +64,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         cashTransactions = serializeData(transactionsRes?.data || []);
         yiUfeRates = serializeData(yiUfeRes?.data || []);
         vehicleAttendance = serializeData(vehicleAttendanceRes?.data || []);
-        personnelAttendance = serializeData(personnelAttendanceRes?.data || []);
+        // personnelAttendance = serializeData(personnelAttendanceRes?.data || []);
 
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
@@ -87,7 +87,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 cashTransactions={cashTransactions}
                 yiUfeRates={yiUfeRates}
                 vehicleAttendance={vehicleAttendance}
-                // personnelAttendance={personnelAttendance} // [DEBUG] Commented out to test serialization
+                // personnelAttendance={personnelAttendance} // [DEBUG] REVERTING
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>
