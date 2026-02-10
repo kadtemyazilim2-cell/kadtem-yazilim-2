@@ -259,20 +259,27 @@ export function VehicleAttendanceList() {
         try {
             const res = await addVehicleAttendance(payload);
 
+            // [DEBUG] Print Server Logs
+            if (res.logs) {
+                console.log('%c--- SERVER SIDE LOGS ---', 'color: #00ff00; font-weight: bold;');
+                res.logs.forEach((log: string) => console.log(`%c[SERVER] ${log}`, 'color: #00ff00;'));
+                console.log('%c--------------------------', 'color: #00ff00; font-weight: bold;');
+            }
+
             // 2. Cleanup Temp
             deleteVehicleAttendanceById(tempId);
 
             if (res.success && res.data) {
                 // 3. Replace with Real
                 addLocal(res.data as any);
+                console.log('Client: Success. Replaced temp with real ID:', res.data.id);
             } else {
-                // Error: Temp already removed, so we reverted to old state (if any)
-                alert(res.error || 'Kaydedilemedi');
-                // Optional: Re-open dialog?
+                console.error('Server returned failure:', res.error);
+                alert('Kayıt başarısız: ' + (res.error || 'Bilinmeyen hata'));
             }
         } catch (error) {
             deleteVehicleAttendanceById(tempId);
-            console.error(error);
+            console.error('Client Exception:', error);
             alert('Bir hatayla karşılaşıldı.');
         }
     };

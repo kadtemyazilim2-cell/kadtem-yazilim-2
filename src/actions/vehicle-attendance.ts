@@ -3,36 +3,47 @@
 import { prisma } from '@/lib/db';
 import { VehicleAttendance } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import { auth as getSession } from '@/auth'; // Ensure this import exists or use correct auth method
+import { auth as getSession } from '@/auth';
 
 export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
-    try {
-        console.log('Server Action: addVehicleAttendance called with:', JSON.stringify(data, null, 2));
+    const logs: string[] = [];
+    const log = (msg: string, ...args: any[]) => {
+        const line = msg + ' ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+        console.log(line);
+        logs.push(line);
+    };
 
-        if (!data.vehicleId || !data.date || !data.siteId) {
-            console.error('addVehicleAttendance Missing Data:', data);
-            return { success: false, error: 'Eksik bilgi (Araç, Tarih veya Şantiye).' };
+    log('--- Server Action: addVehicleAttendance START ---');
+    log('Payload:', data);
+
+    try {
+        const session = await getSession();
+        log('Session User:', session?.user?.id);
+
+        let finalUserId = session?.user?.id;
+        if (data.createdByUserId) finalUserId = data.createdByUserId;
+
+        // Validation
+        if (!data.vehicleId || !data.date) {
+            console.error('❌ Missing required fields: vehicleId or date');
+            return { success: false, error: 'Eksik veri: Araç veya Tarih yok.', logs };
         }
 
-        // Ensure date is treated as UTC Noon to avoid timezone boundary shifts
-        const startOfDay = new Date(data.date);
+        // Normalize Date
+        let startOfDay;
+        if (typeof data.date === 'string') {
+            startOfDay = new Date(data.date);
+        } else {
+            startOfDay = new Date(data.date as Date);
+        }
+
+        // Force UTC Noon
         startOfDay.setUTCHours(12, 0, 0, 0);
 
-        console.log('Server Action: Normalized Date:', startOfDay.toISOString());
+        log('Normalized Date (UTC Noon):', startOfDay.toISOString());
 
-        // Validate createdByUserId if present
-        let finalUserId = data.createdByUserId;
-        if (finalUserId) {
-            const userExists = await prisma.user.findUnique({ where: { id: finalUserId } });
-            if (!userExists) {
-                console.warn(`Server Action: User ${finalUserId} not found, stripping ID.`);
-                finalUserId = null; // or undefined, to avoid FK error
-            }
-        }
-
-        // Use manual upsert to be robust against stale Prisma Client definitions
-        // (i.e., if 'vehicleId_date' is not yet known to the client)
-        console.log(`Server Action: Checking existence for Vehicle: ${data.vehicleId}, Date: ${startOfDay.toISOString()}`);
+        // Use manual upsert
+        log(`Checking existence for Vehicle: ${data.vehicleId}, Date: ${startOfDay.toISOString()}`);
 
         const existingRecord = await prisma.vehicleAttendance.findFirst({
             where: {
@@ -43,7 +54,7 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
 
         let result;
         if (existingRecord) {
-            console.log('Server Action: Updating existing record:', existingRecord.id);
+            log('✅ Found existing record:', existingRecord.id, '-> UPDATING');
             result = await prisma.vehicleAttendance.update({
                 where: { id: existingRecord.id },
                 data: {
@@ -54,8 +65,14 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
                     createdByUserId: finalUserId,
                 }
             });
+            log('Update Result ID:', result.id);
         } else {
-            console.log('Server Action: Creating new record');
+            log('🆕 New record -> CREATING');
+
+            if (!data.siteId) {
+                log('⚠️ Creating without Site ID! This might cause display issues.');
+            }
+
             result = await prisma.vehicleAttendance.create({
                 data: {
                     vehicleId: data.vehicleId!,
@@ -67,23 +84,26 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
                     createdByUserId: finalUserId,
                 }
             });
+            log('Create Result ID:', result.id);
         }
 
-        console.log('Server Action: Saved successfully:', result.id);
-
         revalidatePath('/dashboard/vehicle-attendance');
-        return { success: true, data: result };
+        log('--- Server Action: addVehicleAttendance SUCCESS ---');
+        return { success: true, data: result, logs };
 
     } catch (error: any) {
-        console.error('addVehicleAttendance Error:', error);
-        return { success: false, error: 'Kayıt sırasında bir hata oluştu: ' + (error.message || error) };
+        console.error('❌ addVehicleAttendance EXCEPTION:', error);
+        log('EXCEPTION:', error.message);
+        return { success: false, error: 'Kayıt başarısız: ' + error.message, logs };
     }
 }
 
-export async function deleteVehicleAttendance(vehicleId: string, date: string) {
+export async function deleteVehicleAttendance(vehicleId: string, date: Date | string) {
     try {
         const targetDate = new Date(date);
-        targetDate.setHours(0, 0, 0, 0);
+        targetDate.setUTCHours(12, 0, 0, 0);
+
+        console.log(`Server Action: Deleting for ${vehicleId} at ${targetDate.toISOString()}`);
 
         const result = await prisma.vehicleAttendance.deleteMany({
             where: {
@@ -114,12 +134,11 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
         }
 
         if (startDate && endDate) {
-            // Ensure inputs are Dates and Normalize to FULL DAY Range
             const start = new Date(startDate);
-            start.setUTCHours(0, 0, 0, 0); // Start of UTC day
+            start.setUTCHours(0, 0, 0, 0);
 
             const end = new Date(endDate);
-            end.setUTCHours(23, 59, 59, 999); // End of UTC day
+            end.setUTCHours(23, 59, 59, 999);
 
             console.log('Server Action: Normalized Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
 
@@ -128,13 +147,12 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
                 lte: end
             };
         } else {
-            // Default to recent if no details provided, as a fallback
             const cutoffDate = new Date();
-            cutoffDate.setMonth(cutoffDate.getMonth() - 2); // Last 2 months
+            cutoffDate.setMonth(cutoffDate.getMonth() - 2);
             whereClause.date = { gte: cutoffDate };
         }
 
-        console.log('Server Action: Querying with where clause:', JSON.stringify(whereClause, null, 2));
+        console.log('Server Action: Executing Query with:', JSON.stringify(whereClause, null, 2));
 
         const records = await prisma.vehicleAttendance.findMany({
             take: 2000,
@@ -147,9 +165,8 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             }
         });
 
-        console.log(`Server Action: Found ${records.length} records`);
+        console.log(`Server Action: Query Result Count: ${records.length}`);
 
-        // Convert Date objects to strings for client consumption
         const serializedRecords = records.map(record => ({
             ...record,
             date: record.date.toISOString(),
