@@ -114,10 +114,14 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
         }
 
         if (startDate && endDate) {
-            // Ensure inputs are Dates (Next.js serialization sometimes passes strings)
+            // Ensure inputs are Dates and Normalize to FULL DAY Range
             const start = new Date(startDate);
+            start.setUTCHours(0, 0, 0, 0); // Start of UTC day
+
             const end = new Date(endDate);
-            console.log('Server Action: Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
+            end.setUTCHours(23, 59, 59, 999); // End of UTC day
+
+            console.log('Server Action: Normalized Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
 
             whereClause.date = {
                 gte: start,
@@ -125,7 +129,8 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             };
         } else {
             // Default to recent if no details provided, as a fallback
-            const cutoffDate = new Date('2025-01-01');
+            const cutoffDate = new Date();
+            cutoffDate.setMonth(cutoffDate.getMonth() - 2); // Last 2 months
             whereClause.date = { gte: cutoffDate };
         }
 

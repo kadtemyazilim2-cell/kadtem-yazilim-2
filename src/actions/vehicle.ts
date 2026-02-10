@@ -158,7 +158,6 @@ export async function createVehicle(data: Partial<Vehicle>) {
             }
         });
         revalidateTag('vehicles');
-        revalidateTag('vehicles');
         revalidatePath('/dashboard/vehicles');
         return { success: true, data: vehicle };
     } catch (error: any) {
@@ -298,6 +297,13 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
 // [NEW] Get Assignment History for Validation
 export async function getVehicleAssignmentHistory(siteId: string, startDate: Date, endDate: Date) {
     try {
+        // Normalize Dates for Full Day Coverage
+        const start = new Date(startDate);
+        start.setUTCHours(0, 0, 0, 0);
+
+        const end = new Date(endDate);
+        end.setUTCHours(23, 59, 59, 999);
+
         const history = await prisma.vehicleAssignmentHistory.findMany({
             where: {
                 siteId,
