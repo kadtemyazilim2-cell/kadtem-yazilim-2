@@ -35,7 +35,7 @@ export function StoreInitializer({
     cashTransactions?: any[], // [OPTIONAL] Fetched in page
     yiUfeRates: any[], // [NEW]
     vehicleAttendance: any[], // [NEW]
-    personnelAttendance: any[], // [NEW]
+    personnelAttendance?: any[], // [NEW] [OPTIONAL]
     currentUser?: any
 }) {
     const initialized = useRef(false);

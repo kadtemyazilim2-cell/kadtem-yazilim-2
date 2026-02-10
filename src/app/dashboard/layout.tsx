@@ -87,7 +87,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 cashTransactions={cashTransactions}
                 yiUfeRates={yiUfeRates}
                 vehicleAttendance={vehicleAttendance}
-                personnelAttendance={personnelAttendance} // [NEW]
+                // personnelAttendance={personnelAttendance} // [DEBUG] Commented out to test serialization
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>
