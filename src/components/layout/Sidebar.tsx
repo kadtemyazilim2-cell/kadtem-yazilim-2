@@ -13,7 +13,8 @@ import {
     BookOpen,
     Settings,
     LogOut,
-    ArrowRightLeft
+    ArrowRightLeft,
+    Calculator
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
 
     { label: 'Araç Puantaj', href: '/dashboard/vehicle-attendance', icon: Clock },
     { label: 'Şantiye Defteri', href: '/dashboard/site-log', icon: BookOpen },
+    { label: 'Sınır Değer', href: '/dashboard/limit-value', icon: Calculator }, // [NEW] Limit Value Calculation
     { label: 'Yönetim', href: '/dashboard/admin', icon: Settings }, // [NEW] Admin Link
 ];
 
@@ -62,6 +64,7 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             '/dashboard/new-tab': 'new-tab', // Main Attendance
                             '/dashboard/vehicle-attendance': 'vehicle-attendance',
                             '/dashboard/site-log': 'site-log',
+                            '/dashboard/limit-value': 'limit-value',
                             '/dashboard/admin': 'admin'
                         };
 

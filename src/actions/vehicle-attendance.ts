@@ -125,7 +125,14 @@ export async function deleteVehicleAttendance(vehicleId: string, date: Date | st
 }
 
 export async function getVehicleAttendanceList(siteId?: string, startDate?: Date, endDate?: Date) {
-    console.log('Server Action: getVehicleAttendanceList called', { siteId, startDate, endDate });
+    const logs: string[] = [];
+    const log = (msg: string, ...args: any[]) => {
+        const line = msg + ' ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+        console.log(line);
+        logs.push(line);
+    };
+
+    log('Server Action: getVehicleAttendanceList called', { siteId, startDate, endDate });
     try {
         const whereClause: any = {};
 
@@ -140,7 +147,7 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             const end = new Date(endDate);
             end.setUTCHours(23, 59, 59, 999);
 
-            console.log('Server Action: Normalized Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
+            log('Server Action: Normalized Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
 
             whereClause.date = {
                 gte: start,
@@ -152,7 +159,7 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             whereClause.date = { gte: cutoffDate };
         }
 
-        console.log('Server Action: Executing Query with:', JSON.stringify(whereClause, null, 2));
+        log('Server Action: Executing Query with:', JSON.stringify(whereClause, null, 2));
 
         const records = await prisma.vehicleAttendance.findMany({
             take: 2000,
@@ -165,16 +172,39 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             }
         });
 
-        console.log(`Server Action: Query Result Count: ${records.length}`);
+        log(`Server Action: Query Result Count: ${records.length}`);
+
+        // [DEBUG] Check if our specific target record is in the results
+        const targetId = 'cmlgglqr1000bfadb5dpg95gx';
+        const foundTarget = records.find(r => r.id === targetId);
+        if (foundTarget) {
+            log('✅ TARGET RECORD FOUND IN RESULTS:', targetId);
+        } else {
+            log('❌ TARGET RECORD NOT FOUND IN RESULTS:', targetId);
+            // Double check if it exists at all with a direct query
+            const directCheck = await prisma.vehicleAttendance.findUnique({ where: { id: targetId } });
+            if (directCheck) {
+                log('⚠️ Record exists in DB but missed by query filter!', directCheck);
+                log('Reason check -> Record Date:', directCheck.date.toISOString());
+                const s = new Date(startDate || ''); s.setUTCHours(0, 0, 0, 0);
+                const e = new Date(endDate || ''); e.setUTCHours(23, 59, 59, 999);
+                log('Compare: ', {
+                    recordDate: directCheck.date.getTime(),
+                    start: s.getTime(),
+                    end: e.getTime(),
+                    inRange: directCheck.date.getTime() >= s.getTime() && directCheck.date.getTime() <= e.getTime()
+                });
+            }
+        }
 
         const serializedRecords = records.map(record => ({
             ...record,
             date: record.date.toISOString(),
         }));
 
-        return { success: true, data: serializedRecords };
+        return { success: true, data: serializedRecords, logs };
     } catch (error: any) {
         console.error('getVehicleAttendanceList Error:', error);
-        return { success: false, error: 'Araç puantaj listesi alınamadı.' };
+        return { success: false, error: 'Araç puantaj listesi alınamadı.', logs };
     }
 }

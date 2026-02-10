@@ -336,10 +336,10 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" aria-describedby="vehicle-form-description">
                 <DialogHeader>
                     <DialogTitle>{vehicleToEdit ? 'Araç Düzenle' : (initialOwnership === 'RENTAL' ? 'Kiralık Araç Ekle' : 'Yeni Araç Ekle')}</DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription id="vehicle-form-description">
                         {vehicleToEdit ? 'Araç bilgilerini güncelleyin.' : 'Filoya yeni bir araç tanımlayın.'}
                     </DialogDescription>
                 </DialogHeader>

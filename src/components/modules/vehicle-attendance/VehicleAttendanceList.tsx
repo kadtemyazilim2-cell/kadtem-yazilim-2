@@ -48,31 +48,44 @@ export function VehicleAttendanceList() {
 
     useEffect(() => {
         if (!selectedSiteId) return;
-        // Pad the range to ensure we cover timezone shifts (e.g. UTC midnight vs Local midnight)
-        const start = subDays(startOfMonth(selectedDate), 1);
-        const end = addDays(endOfMonth(selectedDate), 1);
 
-        console.log('Client: Fetching Attendance for range:', {
-            start: start.toISOString(),
-            end: end.toISOString(),
-            siteId: selectedSiteId
-        });
+        const fetchAttendance = async () => {
+            // Pad the range to ensure we cover timezone shifts (e.g. UTC midnight vs Local midnight)
+            const start = subDays(startOfMonth(selectedDate), 1);
+            const end = addDays(endOfMonth(selectedDate), 1);
 
-        // Fetch Assignments
-        getVehicleAssignmentHistory(selectedSiteId, start, end).then(res => {
-            if (res.success) {
-                setAssignmentHistory(res.data || []);
+            console.log('Client: Fetching Attendance for range:', {
+                start: start.toISOString(),
+                end: end.toISOString(),
+                siteId: selectedSiteId
+            });
+
+            // New return signature: { success, data, logs }
+            const result = await getVehicleAttendanceList(selectedSiteId, start, end);
+
+            // [DEBUG] Print Server Read Logs
+            if (result.logs) {
+                console.log('%c--- SERVER READ LOGS ---', 'color: #00ffff; font-weight: bold;');
+                result.logs.forEach((log: string) => console.log(`%c[READ] ${log}`, 'color: #00ffff;'));
+                console.log('%c------------------------', 'color: #00ffff; font-weight: bold;');
             }
-        });
 
-        // [NEW] Fetch Attendance
-        getVehicleAttendanceList(selectedSiteId, start, end).then(res => {
-            if (res.success) {
-                console.log('Client: Received Attendance Records:', res.data?.length);
-                setVehicleAttendance((res.data as any) || []);
+            if (result.success && Array.isArray(result.data)) {
+                console.log(`Client: Received ${result.data.length} records.`);
+                setVehicleAttendance(result.data as any);
+            } else {
+                console.error('Client: Failed to load attendance', result.error);
             }
-        });
-    }, [selectedSiteId, selectedDate]);
+
+            // Also fetch history for validation
+            const historyRes = await getVehicleAssignmentHistory(selectedSiteId, start, end);
+            if (historyRes.success) {
+                setAssignmentHistory(historyRes.data || []);
+            }
+        };
+
+        fetchAttendance();
+    }, [selectedSiteId, selectedDate, setVehicleAttendance]);
 
     // Dialog State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -318,11 +331,21 @@ export function VehicleAttendanceList() {
         const targetDateStr = format(date, 'yyyy-MM-dd');
         return vehicleAttendance.find((a: any) => {
             if (!a.vehicleId || !a.date) return false;
-            if (a.vehicleId !== vid || a.siteId !== selectedSiteId) return false;
+            // [DEBUG] Removed strict siteId check to allow debug logs to catch mismatches
+            if (a.vehicleId !== vid) return false;
             try {
                 const recordDate = new Date(a.date);
                 if (isNaN(recordDate.getTime())) return false;
-                return format(recordDate, 'yyyy-MM-dd') === targetDateStr;
+                const recordDateStr = format(recordDate, 'yyyy-MM-dd');
+
+                // [DEBUG] Trace comparison for today
+                const isToday = targetDateStr === format(new Date(), 'yyyy-MM-dd');
+                // Log only if it's today AND matches the vehicle in the first record of our dataset
+                if (isToday && vehicleAttendance.length > 0 && a.vehicleId === vehicleAttendance[0].vehicleId) {
+                    console.log(`Comp: Target=${targetDateStr} Record=${recordDateStr} Match=${recordDateStr === targetDateStr} VID=${a.vehicleId}`);
+                }
+
+                return recordDateStr === targetDateStr;
             } catch (e) {
                 return false;
             }
@@ -559,8 +582,21 @@ export function VehicleAttendanceList() {
         doc.save(`${siteName} - ${monthStr} - Araç Puantaj.pdf`);
     };
 
+    // [DEBUG] Check active vehicles
+    useEffect(() => {
+        if (activeVehicles.length > 0) {
+            console.log('Active Vehicles in Grid:', activeVehicles.map((v: any) => v.plate).join(', '));
+            if (vehicleAttendance.length > 0) {
+                const firstRecord = vehicleAttendance[0];
+                console.log('First Attendance Record Vehicle:', firstRecord.vehicle?.plate || firstRecord.vehicleId);
+                const foundInactive = activeVehicles.find((v: any) => v.id === firstRecord.vehicleId);
+                console.log('Is First Record Vehicle in Active List?', !!foundInactive);
+            }
+        }
+    }, [activeVehicles, vehicleAttendance]);
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 h-full flex flex-col">
             <Card>
                 <CardHeader>
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -686,6 +722,21 @@ export function VehicleAttendanceList() {
                                                 {daysInMonth.map((day: any) => {
                                                     const record = getStatusForDate(v.id, day);
                                                     const isRelevant = record?.siteId === selectedSiteId;
+
+                                                    // [DEBUG] Check why record is hidden
+                                                    if (record && !isRelevant) {
+                                                        const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                                        if (isToday) {
+                                                            console.warn('RENDER MISMATCH:', {
+                                                                vehicle: v.plate,
+                                                                date: day.toISOString(),
+                                                                recordSiteId: record.siteId,
+                                                                selectedSiteId: selectedSiteId,
+                                                                match: record.siteId === selectedSiteId
+                                                            });
+                                                        }
+                                                    }
+
                                                     const displayRecord = isRelevant ? record : null;
 
                                                     if (displayRecord) {
@@ -765,10 +816,13 @@ export function VehicleAttendanceList() {
             </Card>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
+                <DialogContent aria-describedby="dialog-description">
                     <DialogHeader>
                         <DialogTitle>Durum Güncelle</DialogTitle>
                     </DialogHeader>
+                    <div id="dialog-description" className="sr-only">
+                        Araç puantaj durumu güncelleme formu
+                    </div>
                     <div className="grid gap-4 py-4">
                         {isReadOnly && (
                             <div className="bg-red-50 text-red-800 p-3 rounded-md text-xs font-medium border border-red-200">
