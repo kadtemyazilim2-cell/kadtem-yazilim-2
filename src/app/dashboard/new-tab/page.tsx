@@ -27,7 +27,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
 import { getPersonnelWithAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
-import { debugFetchPersonnel } from '@/actions/debug-fetch';
+
 
 
 
@@ -147,11 +147,6 @@ export default function NewPage() {
 
 
     const [names, setNames] = useState<IndependentPerson[]>([]);
-
-    // [NEW] Enhanced Debug State
-    const [fetchStatus, setFetchStatus] = useState<string>('IDLE');
-    const [fetchError, setFetchError] = useState<string>('');
-    const [debugInfo, setDebugInfo] = useState<any>(null); // Keep original debugInfo for server response
 
     const [loading, setLoading] = useState(true);
 
@@ -354,9 +349,6 @@ export default function NewPage() {
 
     // Fetch from Server (Moved here to access 'date' and 'selectedSiteId')
     const refreshData = async () => {
-        setFetchStatus('LOADING');
-        setFetchError('');
-
         let targetSiteId = selectedSiteId;
 
         // [FIX] Handle page refresh where availableSites might be loaded but selectedSiteId is not yet set
@@ -367,7 +359,6 @@ export default function NewPage() {
 
         if (!targetSiteId || targetSiteId === 'all') {
             console.warn("refreshData: No site selected");
-            setFetchStatus('WAITING_SELECTION');
             setNames([]);
             setLoading(false);
             return;
@@ -378,11 +369,7 @@ export default function NewPage() {
         try {
             // Pass date as string to avoid serialization issues
             const res: any = await getPersonnelWithAttendance(date.toISOString(), selectedSiteId);
-            if (res.queryDebug) {
-                setDebugInfo(res.queryDebug);
-            } else if (!res.success) {
-                setDebugInfo({ error: res.error, stack: res.debugStack });
-            }
+
             if (res.success && res.data) {
                 // Map DB Personnel to IndependentPerson format
                 const mapped: IndependentPerson[] = res.data.map((p: any) => {
@@ -435,15 +422,10 @@ export default function NewPage() {
                     };
                 });
                 setNames(mapped);
-                setFetchStatus('SUCCESS');
-            } else {
-                setFetchStatus('ERROR');
-                if (res.error) setFetchError(res.error);
             }
         } catch (e: any) {
             console.error(e);
-            setFetchStatus('CRITICAL_ERROR');
-            setFetchError(e.message || 'Unknown Error');
+            toast.error("Veri yüklenirken hata oluştu.");
         } finally {
             setLoading(false);
         }
@@ -1801,26 +1783,6 @@ export default function NewPage() {
                         <p className="text-muted-foreground">Personel ve puantaj yönetimi.</p>
                     </div>
                 </div>
-
-                {/* [DEBUG] Info Block - Re-introduced for Troubleshooting */}
-                <div className={cn(
-                    "text-xs p-2 border rounded flex items-center justify-between gap-4",
-                    fetchStatus.includes('ERROR') ? "bg-red-50 border-red-200 text-red-800" : "bg-blue-50 text-blue-800 border-blue-100"
-                )}>
-                    <div className="flex flex-col gap-1">
-                        <span className="font-bold">DEBUG PANEL (NewPage)</span>
-                        <span>STATUS: <strong>{fetchStatus}</strong> {loading ? '(Loading...)' : ''}</span>
-                        {fetchError && <span className="text-red-600 font-bold">ERROR: {fetchError}</span>}
-                        <span>
-                            Loaded Personnel: {names.length} |
-                            Site ID: {selectedSiteId || 'NULL'} |
-                            Available Sites: {availableSites.length}
-                        </span>
-                    </div>
-                    <Button size="sm" variant={fetchStatus.includes('ERROR') ? "destructive" : "secondary"} onClick={() => refreshData()} disabled={loading}>
-                        {loading ? 'Yükleniyor...' : 'Retry Fetch'}
-                    </Button>
-                </div>
             </div>
 
             <Tabs defaultValue="attendance" className="w-full space-y-6">
@@ -1854,14 +1816,6 @@ export default function NewPage() {
                             <Button variant="outline" onClick={() => refreshData()}>
                                 <ArrowRightLeft className="w-4 h-4 mr-2" />
                                 Yenile
-                            </Button>
-                            <Button variant="outline" onClick={async () => {
-                                toast.info("Debug Test Başlatılıyor...");
-                                const res = await debugFetchPersonnel(selectedSiteId);
-                                toast.info(`Debug Sonuç: ${res.success ? 'Başarılı' : 'Hata'} - Sayı: ${res.siteCount}`);
-                            }}>
-                                <Settings className="w-4 h-4 mr-2" />
-                                Debug
                             </Button>
                             {canExport && (
                                 <>
