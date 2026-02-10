@@ -3,18 +3,22 @@
 import { prisma } from '@/lib/db';
 import { VehicleAttendance } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { getSession } from '@/lib/auth'; // Ensure this import exists or use correct auth method
 
 export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
     try {
+        console.log('Server Action: addVehicleAttendance called with:', JSON.stringify(data, null, 2));
+
         if (!data.vehicleId || !data.date || !data.siteId) {
             console.error('addVehicleAttendance Missing Data:', data);
             return { success: false, error: 'Eksik bilgi (Araç, Tarih veya Şantiye).' };
         }
 
         // Ensure date is treated as UTC Noon to avoid timezone boundary shifts
-        // (e.g. Midnight UTC might be Previous Day 21:00 in some contexts, but Noon is safe)
         const startOfDay = new Date(data.date);
         startOfDay.setUTCHours(12, 0, 0, 0);
+
+        console.log('Server Action: Normalized Date:', startOfDay.toISOString());
 
         // Check for existing record
         const existing = await prisma.vehicleAttendance.findFirst({
@@ -36,6 +40,7 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
         };
 
         if (existing) {
+            console.log('Server Action: Updating existing record:', existing.id);
             // Update
             attendance = await prisma.vehicleAttendance.update({
                 where: { id: existing.id },
@@ -48,6 +53,7 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
                 }
             });
         } else {
+            console.log('Server Action: Creating new record');
             // Create
             const createData: any = {
                 vehicleId: payload.vehicleId,
@@ -63,6 +69,8 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
                 const userExists = await prisma.user.findUnique({ where: { id: payload.createdByUserId as string } });
                 if (userExists) {
                     createData.createdByUserId = payload.createdByUserId;
+                } else {
+                    console.warn(`Server Action: User ${payload.createdByUserId} not found, skipping.`);
                 }
             }
 
@@ -71,6 +79,7 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
             });
         }
 
+        console.log('Server Action: Operation successful:', attendance);
         revalidatePath('/dashboard/vehicle-attendance');
         revalidatePath('/dashboard/admin');
         return { success: true, data: attendance };
@@ -105,6 +114,7 @@ export async function deleteVehicleAttendance(vehicleId: string, date: string) {
 }
 
 export async function getVehicleAttendanceList(siteId?: string, startDate?: Date, endDate?: Date) {
+    console.log('Server Action: getVehicleAttendanceList called', { siteId, startDate, endDate });
     try {
         const whereClause: any = {};
 
@@ -116,6 +126,7 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             // Ensure inputs are Dates (Next.js serialization sometimes passes strings)
             const start = new Date(startDate);
             const end = new Date(endDate);
+            console.log('Server Action: Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
 
             whereClause.date = {
                 gte: start,
@@ -127,18 +138,26 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             whereClause.date = { gte: cutoffDate };
         }
 
+        console.log('Server Action: Querying with where clause:', JSON.stringify(whereClause, null, 2));
+
         const records = await prisma.vehicleAttendance.findMany({
             take: 2000,
             where: whereClause,
-            orderBy: { date: 'desc' }
+            include: {
+                vehicle: true,
+                site: true
+            },
+            orderBy: {
+                date: 'desc'
+            }
         });
+
+        console.log(`Server Action: Found ${records.length} records`);
 
         // Convert Date objects to strings for client consumption
         const serializedRecords = records.map(record => ({
             ...record,
             date: record.date.toISOString(),
-            // Ensure other potential dates are stringified if needed, 
-            // but VehicleAttendance only has 'date' as per schema usually.
         }));
 
         return { success: true, data: serializedRecords };

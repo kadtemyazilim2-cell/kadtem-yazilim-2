@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, differenceInDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, differenceInDays, subDays, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
@@ -48,8 +48,15 @@ export function VehicleAttendanceList() {
 
     useEffect(() => {
         if (!selectedSiteId) return;
-        const start = startOfMonth(selectedDate);
-        const end = endOfMonth(selectedDate);
+        // Pad the range to ensure we cover timezone shifts (e.g. UTC midnight vs Local midnight)
+        const start = subDays(startOfMonth(selectedDate), 1);
+        const end = addDays(endOfMonth(selectedDate), 1);
+
+        console.log('Client: Fetching Attendance for range:', {
+            start: start.toISOString(),
+            end: end.toISOString(),
+            siteId: selectedSiteId
+        });
 
         // Fetch Assignments
         getVehicleAssignmentHistory(selectedSiteId, start, end).then(res => {
@@ -61,6 +68,7 @@ export function VehicleAttendanceList() {
         // [NEW] Fetch Attendance
         getVehicleAttendanceList(selectedSiteId, start, end).then(res => {
             if (res.success) {
+                console.log('Client: Received Attendance Records:', res.data?.length);
                 setVehicleAttendance((res.data as any) || []);
             }
         });
