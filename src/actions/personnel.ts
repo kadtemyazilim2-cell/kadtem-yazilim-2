@@ -360,3 +360,23 @@ export async function getPersonnelSiteSummary() {
         return { success: false, error: 'Şantiye özet bilgisi alınamadı.' };
     }
 }
+
+// [NEW] Get Bulk Personnel Attendance List (for Store Hydration)
+export async function getPersonnelAttendanceList() {
+    try {
+        // [PERFORMANCE] Limit to recent years (2025+) to avoid huge payload
+        const cutoffDate = new Date('2025-01-01');
+
+        const records = await prisma.personnelAttendance.findMany({
+            take: 5000, // [PERFORMANCE] Safety limit (higher than vehicles as more personnel)
+            where: {
+                date: { gte: cutoffDate }
+            },
+            orderBy: { date: 'desc' }
+        });
+        return { success: true, data: records };
+    } catch (error: any) {
+        console.error('getPersonnelAttendanceList Error:', error);
+        return { success: false, error: 'Personel puantaj listesi alınamadı.' };
+    }
+}

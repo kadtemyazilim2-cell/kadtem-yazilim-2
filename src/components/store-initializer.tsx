@@ -35,6 +35,7 @@ export function StoreInitializer({
     cashTransactions?: any[], // [OPTIONAL] Fetched in page
     yiUfeRates: any[], // [NEW]
     vehicleAttendance: any[], // [NEW]
+    personnelAttendance: any[], // [NEW]
     currentUser?: any
 }) {
     const initialized = useRef(false);
@@ -56,6 +57,7 @@ export function StoreInitializer({
     if (cashTransactions) updates.cashTransactions = cashTransactions;
     if (yiUfeRates) updates.yiUfeRates = yiUfeRates;
     if (vehicleAttendance) updates.vehicleAttendance = vehicleAttendance;
+    if (personnelAttendance) updates.personnelAttendance = personnelAttendance;
 
     if (!initialized.current) {
         useAppStore.setState(updates);
@@ -79,11 +81,12 @@ export function StoreInitializer({
         if (cashTransactions) reactiveUpdates.cashTransactions = cashTransactions;
         if (yiUfeRates) reactiveUpdates.yiUfeRates = yiUfeRates;
         if (vehicleAttendance) reactiveUpdates.vehicleAttendance = vehicleAttendance;
+        if (personnelAttendance) reactiveUpdates.personnelAttendance = personnelAttendance;
 
         if (Object.keys(reactiveUpdates).length > 0) {
             useAppStore.setState(reactiveUpdates);
         }
-    }, [companies, sites, vehicles, personnel, users, correspondences, institutions, fuelTanks, fuelLogs, fuelTransfers, siteLogEntries, cashTransactions, yiUfeRates, vehicleAttendance]);
+    }, [companies, sites, vehicles, personnel, users, correspondences, institutions, fuelTanks, fuelLogs, fuelTransfers, siteLogEntries, cashTransactions, yiUfeRates, vehicleAttendance, personnelAttendance]);
 
     // Sync Auth State separately
     useEffect(() => {
