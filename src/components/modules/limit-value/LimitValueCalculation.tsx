@@ -718,11 +718,9 @@ export function LimitValueCalculation() {
         const filename = `Sinir_Deger_Hesabi_${metadata.tenderRegisterNo || 'Rapor'}.pdf`;
         const file = new File([blob], filename, { type: 'application/pdf' });
 
-        // Simple mobile detection
-        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-        // 1. Try Native Share (Only on Mobile)
-        if (isMobile && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        // 1. Try Native Share (Desktop or Mobile if supported)
+        // Note: Windows/Chrome often supports this but might not show WhatsApp in the list.
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                 await navigator.share({
                     files: [file],
@@ -734,22 +732,27 @@ export function LimitValueCalculation() {
             } catch (error) {
                 if ((error as any).name !== 'AbortError') {
                     console.error('Share failed:', error);
-                    // Continue to fallback
+                    // Continue to fallback if share failed (but not cancelled)
                 } else {
                     return; // User cancelled
                 }
             }
         }
 
-        // 2. Desktop Flow: Download + Open WhatsApp Desktop App
+        // 2. Fallback: Download + Open WhatsApp Desktop App
         doc.save(filename);
-        toast.info("PDF indirildi. WhatsApp uygulaması açılıyor, lütfen dosyayı sohbete sürükleyiniz.");
+
+        // More prominent warning/instruction
+        toast.warning(
+            "Otomatik dosya eki tarayıcınızda desteklenmiyor. Dosya indirildi, lütfen WhatsApp açıldığında indirilen dosyayı sohbete sürükleyip bırakınız.",
+            { duration: 6000 }
+        );
 
         // Wait for download to start, then try to open WhatsApp
         setTimeout(() => {
-            const text = encodeURIComponent(`"${metadata.tenderRegisterNo || 'İhale'}" Sınır Değer Raporu ektedir.`);
+            const text = encodeURIComponent(`"${metadata.tenderRegisterNo || 'İhale'}" Sınır Değer Raporu ektedir. (Dosya eklenmedi, indirilen dosyayı buraya sürükleyebilirsiniz)`);
             window.open(`whatsapp://send?text=${text}`, '_blank');
-        }, 1000);
+        }, 1500);
     };
 
     const shortenCompanyName = (name: string) => {
