@@ -3,32 +3,47 @@ import { getFuelLogs, getFuelTanks, getFuelTransfers } from '@/actions/fuel';
 import { getAllTransactions } from '@/actions/transaction';
 import { getSiteLogEntries } from '@/actions/site-log';
 import { serializeData } from '@/lib/serializer';
+import { unstable_cache } from 'next/cache';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// [PERF] Her veri kaynağı ayrı cache'te — 2MB limitini aşmamak için
+const getCachedFuelLogs = unstable_cache(
+    async () => serializeData((await getFuelLogs(1000)).data || []),
+    ['dashboard-fuel-logs'],
+    { revalidate: 30, tags: ['fuel-logs'] }
+);
+
+const getCachedFuelTanks = unstable_cache(
+    async () => serializeData((await getFuelTanks()).data || []),
+    ['dashboard-fuel-tanks'],
+    { revalidate: 30, tags: ['fuel-tanks'] }
+);
+
+const getCachedFuelTransfers = unstable_cache(
+    async () => serializeData((await getFuelTransfers(1000)).data || []),
+    ['dashboard-fuel-transfers'],
+    { revalidate: 30, tags: ['fuel-transfers'] }
+);
+
+// NOT cached: getAllTransactions uses auth() internally (user-specific data)
+// NOT cached: getSiteLogEntries is small enough to fetch fresh
+
+const getCachedSiteLogs = unstable_cache(
+    async () => serializeData((await getSiteLogEntries()).data || []),
+    ['dashboard-site-logs'],
+    { revalidate: 30, tags: ['site-logs'] }
+);
 
 export default async function DashboardPage() {
-    // Parallel Data Fetching
-    const [
-        fuelLogsRes,
-        fuelTanksRes,
-        fuelTransfersRes,
-        transactionsRes,
-        siteLogsRes
-    ] = await Promise.all([
-        getFuelLogs(1000), // Limit to recent 1000 for performance
-        getFuelTanks(),
-        getFuelTransfers(1000), // Limit to recent 1000
-        getAllTransactions(),
-        getSiteLogEntries()
+    // Parallel fetch: cached + uncached
+    const [fuelLogs, fuelTanks, fuelTransfers, transactionsRes, siteLogs] = await Promise.all([
+        getCachedFuelLogs(),
+        getCachedFuelTanks(),
+        getCachedFuelTransfers(),
+        getAllTransactions(), // Not cached — uses auth() for user-specific filtering
+        getCachedSiteLogs(),
     ]);
 
-    // Serialize Data (Handle Dates/Decimals for Client Component)
-    const fuelLogs = serializeData(fuelLogsRes.data || []);
-    const fuelTanks = serializeData(fuelTanksRes.data || []);
-    const fuelTransfers = serializeData(fuelTransfersRes.data || []);
     const cashTransactions = serializeData(transactionsRes.data || []);
-    const siteLogEntries = serializeData(siteLogsRes.data || []);
 
     return (
         <DashboardPageClient
@@ -36,7 +51,7 @@ export default async function DashboardPage() {
             fuelTanks={fuelTanks}
             fuelTransfers={fuelTransfers}
             cashTransactions={cashTransactions}
-            siteLogEntries={siteLogEntries}
+            siteLogEntries={siteLogs}
         />
     );
 }

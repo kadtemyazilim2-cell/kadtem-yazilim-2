@@ -2,9 +2,7 @@ import { CashBookList } from '@/components/modules/cash-book/CashBookList';
 import { getAllTransactions } from '@/actions/transaction';
 import { serializeData } from '@/lib/serializer';
 
-export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // [CONFIG] Increase duration for Vercel
-
 
 // [FIX] Next.js 15+ Page Props are Promises
 type SearchParams = { [key: string]: string | string[] | undefined }
@@ -25,7 +23,7 @@ export default async function CashBookPage(props: { searchParams: Promise<Search
         return <div className="p-6 text-center text-muted-foreground">Bu modüle erişim yetkiniz yok.</div>;
     }
 
-    // [NEW] Fetch Data Locally
+    // [NOTE] Not cached — getAllTransactions uses auth() for user-specific filtering
     const transactionsRes = await getAllTransactions();
     const initialData = serializeData(transactionsRes.data || []);
 

@@ -1,12 +1,23 @@
-import { Suspense } from 'react';
 import { getCorrespondenceList } from '@/actions/correspondence';
-import { getInstitutions } from '@/actions/institution'; // Need to ensure this action exists or similar
+import { getInstitutions } from '@/actions/institution';
 import { serializeData } from '@/lib/serializer';
 import CorrespondencePageClient from './CorrespondencePageClient';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { unstable_cache } from 'next/cache';
 
-export const dynamic = 'force-dynamic';
+// [PERF] Her veri kaynağı ayrı cache'te
+const getCachedCorrespondences = unstable_cache(
+    async () => serializeData((await getCorrespondenceList())?.data || []),
+    ['correspondence-list'],
+    { revalidate: 30, tags: ['correspondence'] }
+);
+
+const getCachedInstitutions = unstable_cache(
+    async () => serializeData((await getInstitutions())?.data || []),
+    ['institutions-list'],
+    { revalidate: 30, tags: ['institutions'] }
+);
 
 export default async function CorrespondencePage() {
     const session = await auth();
@@ -14,14 +25,10 @@ export default async function CorrespondencePage() {
         redirect('/login');
     }
 
-    // Parallel Data Fetching
-    const [correspondencesRes, institutionsRes] = await Promise.all([
-        getCorrespondenceList(),
-        getInstitutions()
+    const [correspondences, institutions] = await Promise.all([
+        getCachedCorrespondences(),
+        getCachedInstitutions(),
     ]);
-
-    const correspondences = serializeData(correspondencesRes?.data || []);
-    const institutions = serializeData(institutionsRes?.data || []);
 
     return (
         <CorrespondencePageClient
