@@ -689,6 +689,7 @@ export function LimitValueCalculation() {
         const filename = `Sinir_Deger_Hesabi_${metadata.tenderRegisterNo || 'Rapor'}.pdf`;
         const file = new File([blob], filename, { type: 'application/pdf' });
 
+        // 1. Try Native Share (Mobile / Modern Desktop)
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                 await navigator.share({
@@ -697,17 +698,26 @@ export function LimitValueCalculation() {
                     text: `${metadata.tenderRegisterNo || 'İhale'} için sınır değer hesabı ektedir.`
                 });
                 toast.success("Paylaşım başlatıldı.");
+                return;
             } catch (error) {
                 if ((error as any).name !== 'AbortError') {
                     console.error('Share failed:', error);
-                    toast.error("Paylaşım sırasında hata oluştu.");
+                    // Continue to fallback
+                } else {
+                    return; // User cancelled
                 }
             }
-        } else {
-            // Fallback for Desktop/Unsupported
-            doc.save(filename);
-            toast.info("Cihazınızda doğrudan paylaşım desteklenmiyor. PDF indirildi, WhatsApp web üzerinden gönderebilirsiniz.");
         }
+
+        // 2. Fallback: Download + Open WhatsApp Desktop App
+        doc.save(filename);
+        toast.info("PDF indirildi. WhatsApp uygulaması açılıyor, lütfen dosyayı sohbete sürükleyiniz.");
+
+        // Wait for download to start, then try to open WhatsApp
+        setTimeout(() => {
+            const text = encodeURIComponent(`"${metadata.tenderRegisterNo || 'İhale'}" Sınır Değer Raporu ektedir.`);
+            window.open(`whatsapp://send?text=${text}`, '_blank');
+        }, 1000);
     };
 
     const shortenCompanyName = (name: string) => {
