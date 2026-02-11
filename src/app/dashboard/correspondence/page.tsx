@@ -1,31 +1,33 @@
-'use client';
+import { Suspense } from 'react';
+import { getCorrespondenceList } from '@/actions/correspondence';
+import { getInstitutions } from '@/actions/institution'; // Need to ensure this action exists or similar
+import { serializeData } from '@/lib/serializer';
+import CorrespondencePageClient from './CorrespondencePageClient';
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
 
-import { CorrespondenceList } from '@/components/modules/correspondence/CorrespondenceList';
-import { useAuth } from '@/lib/store/use-auth'; // [NEW]
+export const dynamic = 'force-dynamic';
 
-export default function CorrespondencePage() {
-    const { hasPermission } = useAuth(); // [NEW]
-
-    // Check for any correspondence permission
-    // Parent 'correspondence' or any child
-    const canView = hasPermission('correspondence', 'VIEW') ||
-        hasPermission('correspondence.incoming', 'VIEW') ||
-        hasPermission('correspondence.outgoing', 'VIEW') ||
-        hasPermission('correspondence.bank', 'VIEW') ||
-        hasPermission('correspondence.contacts', 'VIEW');
-
-    if (!canView) {
-        return <div className="p-6 text-center text-muted-foreground">Bu modüle erişim yetkiniz yok.</div>;
+export default async function CorrespondencePage() {
+    const session = await auth();
+    if (!session || !session.user) {
+        redirect('/login');
     }
+
+    // Parallel Data Fetching
+    const [correspondencesRes, institutionsRes] = await Promise.all([
+        getCorrespondenceList(),
+        getInstitutions()
+    ]);
+
+    const correspondences = serializeData(correspondencesRes?.data || []);
+    const institutions = serializeData(institutionsRes?.data || []);
+
     return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">Yazışmalar</h2>
-                <p className="text-muted-foreground">
-                    Gelen ve giden tüm resmi evraklarınızı buradan yönetebilirsiniz.
-                </p>
-            </div>
-            <CorrespondenceList />
-        </div>
+        <CorrespondencePageClient
+            initialCorrespondences={correspondences}
+            initialInstitutions={institutions}
+            currentUser={session.user}
+        />
     );
 }

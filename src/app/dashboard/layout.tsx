@@ -3,8 +3,7 @@ import { getCompanies } from '@/actions/company';
 import { getSites } from '@/actions/site';
 import { getVehicles } from '@/actions/vehicle';
 import { getPersonnel } from '@/actions/personnel';
-import { getCorrespondenceList } from '@/actions/correspondence';
-import { getInstitutions } from '@/actions/institution';
+// correspondence and institution imports removed
 import { getYiUfeRates } from '@/actions/yiufe';
 import { getPersonnelAttendanceList } from '@/actions/personnel'; // [NEW]
 import { StoreInitializer } from '@/components/store-initializer';
@@ -24,17 +23,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/login');
     }
 
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], yiUfeRates = [];
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], yiUfeRates = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, yiUfeRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, yiUfeRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
             getPersonnel(),
             getUsers(),
-            getCorrespondenceList(),
-            getInstitutions(),
             getYiUfeRates(),
         ]);
 
@@ -43,8 +40,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
         vehicles = serializeData(vehiclesRes?.data || []);
         personnel = serializeData(personnelRes?.data || []);
         users = serializeData(usersRes?.data || []);
-        correspondences = serializeData(correspondencesRes?.data || []);
-        institutions = serializeData(institutionsRes?.data || []);
         yiUfeRates = serializeData(yiUfeRes?.data || []);
 
     } catch (error) {
@@ -59,8 +54,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 vehicles={vehicles}
                 personnel={personnel}
                 users={users}
-                correspondences={correspondences}
-                institutions={institutions}
+                // correspondences removed
+                // institutions removed
                 yiUfeRates={yiUfeRates}
                 currentUser={session?.user}
             />

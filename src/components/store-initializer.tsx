@@ -26,8 +26,8 @@ export function StoreInitializer({
     vehicles: any[],
     personnel: any[],
     users: any[],
-    correspondences: any[],
-    institutions: any[],
+    correspondences?: any[], // [UPDATED] Optional
+    institutions?: any[], // [UPDATED] Optional
     fuelTanks?: any[],
     fuelLogs?: any[],
     fuelTransfers?: any[],

@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { Company } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/auth';
 
 export async function getCompanies() {
     try {
@@ -18,6 +19,11 @@ export async function getCompanies() {
 
 export async function createCompany(data: Partial<Company>) {
     try {
+        const session = await auth();
+        if (session?.user?.role !== 'ADMIN') {
+            return { success: false, error: 'Yetkiniz yok' };
+        }
+
         const company = await prisma.company.create({
             data: {
                 name: data.name!,
@@ -48,6 +54,11 @@ export async function createCompany(data: Partial<Company>) {
 
 export async function updateCompany(id: string, data: Partial<Company>) {
     try {
+        const session = await auth();
+        if (session?.user?.role !== 'ADMIN') {
+            return { success: false, error: 'Yetkiniz yok' };
+        }
+
         const company = await prisma.company.update({
             where: { id },
             data: {
@@ -79,13 +90,16 @@ export async function updateCompany(id: string, data: Partial<Company>) {
 
 export async function deleteCompany(id: string) {
     try {
+        const session = await auth();
+        if (session?.user?.role !== 'ADMIN') {
+            return { success: false, error: 'Yetkiniz yok' };
+        }
+
         // Strict Dependency Check
         const siteCount = await prisma.site.count({ where: { companyId: id } });
         if (siteCount > 0) return { success: false, error: `Bu firmaya bağlı ${siteCount} adet şantiye/iş bulunmaktadır. Önce bunları siliniz veya başka firmaya aktarınız.` };
 
         const userCount = await prisma.user.count({ where: { assignedCompanies: { some: { id } } } });
-        // NOTE: assignedCompanies is a many-to-many. But usually users are linked via other means? 
-        // Let's check schema: User has assignedCompanies.
         if (userCount > 0) return { success: false, error: `Bu firmaya atanmış ${userCount} adet kullanıcı bulunmaktadır.` };
 
         const vehicleCount = await prisma.vehicle.count({ where: { companyId: id } });
@@ -104,5 +118,35 @@ export async function deleteCompany(id: string) {
     } catch (error) {
         console.error('deleteCompany Error:', error);
         return { success: false, error: 'Firma silinemedi.' };
+    }
+}
+
+// [NEW] Check Dependencies for Deletion Safety
+export async function checkCompanyDependencies(id: string) {
+    try {
+        const session = await auth();
+        if (session?.user?.role !== 'ADMIN') {
+            return { success: false, error: 'Yetkiniz yok' };
+        }
+
+        const [sites, vehicles, correspondences, partners] = await Promise.all([
+            prisma.site.count({ where: { companyId: id } }),
+            prisma.vehicle.count({ where: { companyId: id } }),
+            prisma.correspondence.count({ where: { companyId: id } }),
+            prisma.sitePartner.count({ where: { companyId: id } })
+        ]);
+
+        return {
+            success: true,
+            counts: {
+                sites,
+                vehicles,
+                correspondences,
+                partners
+            }
+        };
+    } catch (error) {
+        console.error("Dependency check failed:", error);
+        return { success: false, error: 'Bağımlılık kontrolü yapılamadı' };
     }
 }

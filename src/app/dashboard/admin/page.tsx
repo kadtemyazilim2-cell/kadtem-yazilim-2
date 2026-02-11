@@ -15,7 +15,7 @@ import {
 } from '@/actions/yiufe';
 import { createSite, deleteSite as deleteSiteAction, getSites, updateSite as updateSiteAction } from '@/actions/site';
 import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel'; // [NEW]
-import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction } from '@/actions/company'; // [NEW]
+import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction, checkCompanyDependencies } from '@/actions/company'; // [NEW]
 import { resetDatabase } from '@/actions/system';
 import { createRoleTemplate, getRoleTemplates, deleteRoleTemplate } from '@/actions/role-template'; // [NEW]
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
@@ -143,7 +143,7 @@ export default function AdminPage() {
         assignVehiclesToSite, vehicles,
         yiUfeRates, setYiUfeRates, addYiUfeRates,
         personnel, personnelAttendance, vehicleAttendance, fuelTanks, addFuelTank, deleteFuelTank, // [NEW]
-        correspondences // [FIX] Added correspondences for delete logic
+        // correspondences removed
     } = useAppStore();
     const { user } = useAuth();
 
@@ -392,58 +392,48 @@ export default function AdminPage() {
 
 
     const handleDeleteCompany = async (id: string, name: string) => {
-        // [FIX] Comprehensive Client-Side Dependency Check
-        const errors: string[] = [];
+        // [FIX] Server-Side Dependency Check
+        const toastId = toast.loading('Bağımlılıklar kontrol ediliyor...');
 
-        // 1. Sites
-        const linkedSites = sites.filter((s: any) => s.companyId === id);
-        if (linkedSites.length > 0) {
-            errors.push(`- ${linkedSites.length} adet Şantiye`);
-        }
+        try {
+            const checkRes = await checkCompanyDependencies(id);
+            toast.dismiss(toastId);
 
-        // 2. Users (Assigned via Site or direct association check if implemented, currently users are assigned to sites)
-        // But users don't have direct companyId. However, if a company is deleted, sites are deleted -> users lose assignments?
-        // Actually, prisma schema says Company has `users User[]`.
-        // Let's check if any user is directly linked to this company.
-        // Since `users` store object might not have loaded the relation, we might rely on server check or if we have `companyId` on user.
-        // Looking at User model: it has `assignedSites`. It doesn't seem to have direct `companyId` in the Interface usually used in UI unless expanded.
-        // But let's check `users` array items.
-        // Assuming client store data is flat. We will skip User check if not obvious, relying on Server Action for that specific one,
-        // BUT `vehicles` has `companyId` (implied ownership).
-
-        // 3. Vehicles (Owned or Rental from this company)
-        // Check `companyId` on vehicle OR `rentalCompanyName` matching? 
-        // Vehicle model has `companyId` relation.
-        const linkedVehicles = vehicles.filter((v: any) => v.companyId === id);
-        if (linkedVehicles.length > 0) {
-            errors.push(`- ${linkedVehicles.length} adet Araç`);
-        }
-
-        // 4. Correspondences (if they have companyId/sender/receiver link)
-        const linkedCorrespondences = correspondences.filter((c: any) => c.relatedCompanyId === id || c.senderCompanyId === id || c.receiverCompanyId === id);
-        if (linkedCorrespondences.length > 0) {
-            errors.push(`- ${linkedCorrespondences.length} adet Yazışma`);
-        }
-
-        // If errors found
-        if (errors.length > 0) {
-            alert(`Bu firma silinemez!\n\nBağlı kayıtlar bulunmaktadır:\n${errors.join('\n')}\n\nLütfen önce bu kayıtları silin veya başka bir firmaya aktarın.`);
-            return;
-        }
-
-        if (confirm(`"${name}" firmasını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.`)) {
-            try {
-                const res = await deleteCompanyAction(id);
-                if (res.success) {
-                    deleteCompany(id); // Update Local Store
-                    toast.success('Firma başarıyla silindi.');
-                } else {
-                    toast.error(res.error || 'Silme işlemi başarısız.');
-                }
-            } catch (error) {
-                console.error(error);
-                toast.error('Bir hata oluştu.');
+            if (!checkRes.success) {
+                toast.error(checkRes.error || 'Kontrol başarısız.');
+                return;
             }
+
+            const { sites, vehicles, correspondences } = checkRes.counts || {};
+            const errors: string[] = [];
+
+            if ((sites || 0) > 0) errors.push(`- ${sites} adet Şantiye`);
+            if ((vehicles || 0) > 0) errors.push(`- ${vehicles} adet Araç`);
+            if ((correspondences || 0) > 0) errors.push(`- ${correspondences} adet Yazışma`);
+
+            if (errors.length > 0) {
+                alert(`Bu firma silinemez!\n\nBağlı kayıtlar bulunmaktadır:\n${errors.join('\n')}\n\nLütfen önce bu kayıtları silin veya başka bir firmaya aktarın.`);
+                return;
+            }
+
+            if (confirm(`"${name}" firmasını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz.`)) {
+                try {
+                    const res = await deleteCompanyAction(id);
+                    if (res.success) {
+                        deleteCompany(id); // Update Local Store
+                        toast.success('Firma başarıyla silindi.');
+                    } else {
+                        toast.error(res.error || 'Silme işlemi başarısız.');
+                    }
+                } catch (error) {
+                    console.error(error);
+                    toast.error('Bir hata oluştu.');
+                }
+            }
+        } catch (error) {
+            toast.dismiss(toastId);
+            console.error(error);
+            toast.error('Bir hata oluştu.');
         }
     }; // [NEW]
     const [companyName, setCompanyName] = useState('');

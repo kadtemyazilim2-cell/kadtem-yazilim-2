@@ -35,8 +35,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
     const router = useRouter();
     // [UPDATED] Include fuelTransfers and tanks
     const {
-        fuelLogs, vehicles, deleteFuelLog, updateFuelLog,
-        sites, users, fuelTransfers, fuelTanks,
+        fuelLogs = [], vehicles = [], deleteFuelLog, updateFuelLog,
+        sites = [], users = [], fuelTransfers = [], fuelTanks = [],
         deleteFuelTransfer, updateFuelTransfer
     } = useAppStore();
     const { user, hasPermission } = useAuth();
@@ -462,8 +462,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         // Step 2: NOW Apply Filters for Display
 
         // Site Filter
-        if (siteFilter.length > 0) {
-            processedData = processedData.filter((item: any) => item.siteId && siteFilter.includes(item.siteId));
+        if (siteFilter) {
+            processedData = processedData.filter((item: any) => item.siteId && item.siteId === siteFilter);
         }
 
         // Plate Filter
@@ -495,7 +495,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         // If mixed, showing "Devir" is messy (which site?).
         // Let's standardise: Only show "Devir" row if `siteFilter` has exactly 1 site.
 
-        const showDevir = siteFilter.length === 1 && !!dateRange.start;
+        const showDevir = !!siteFilter && !!dateRange.start;
         let devirBalance = 0;
 
         if (showDevir) {
@@ -519,7 +519,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
             // Find Opening Balance for the single site
             if (showDevir) {
-                const sId = siteFilter[0];
+                const sId = siteFilter;
                 // Find the newest transaction OLDER than startObj
                 // Data is sorted Newest First.
                 // So we scan from end? Or find first item < startObj.
@@ -573,11 +573,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             const mod = await import('@/lib/pdf-generator');
             // Resolve Site Name
             let siteName = 'Tümü';
-            if (siteFilter.length === 1) {
-                const s = sites.find((x: any) => x.id === siteFilter[0]);
+            if (siteFilter) {
+                const s = sites.find((x: any) => x.id === siteFilter);
                 if (s) siteName = s.name;
-            } else if (siteFilter.length > 1) {
-                siteName = 'Çoklu Seçim';
             }
 
             mod.generateFuelConsumptionPDF(reportData, dateRange, siteName);
@@ -693,10 +691,10 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     siteId={siteFilter}
                     startDate={dateRange.start}
                     endDate={dateRange.end}
-                    fuelTransfers={fuelTransfers}
-                    fuelLogs={fuelLogs}
-                    fuelTanks={fuelTanks}
-                    sites={sites}
+                    fuelTransfers={fuelTransfers || []}
+                    fuelLogs={fuelLogs || []}
+                    fuelTanks={fuelTanks || []}
+                    sites={sites || []}
                 />
             )}
 
