@@ -28,11 +28,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/login');
     }
 
-
-    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], fuelTanks = [], fuelLogs = [], fuelTransfers = [], siteLogEntries = [], cashTransactions = [], yiUfeRates = [], vehicleAttendance = []; //, personnelAttendance = []; [DEBUG] REVERTED
+    let companies = [], sites = [], vehicles = [], personnel = [], users = [], correspondences = [], institutions = [], yiUfeRates = [];
 
     try {
-        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, fuelTanksRes, fuelLogsRes, fuelTransfersRes, siteLogsRes, transactionsRes, yiUfeRes, vehicleAttendanceRes] = await Promise.all([
+        const [companiesRes, sitesRes, vehiclesRes, personnelRes, usersRes, correspondencesRes, institutionsRes, yiUfeRes] = await Promise.all([
             getCompanies(),
             getSites(),
             getVehicles(),
@@ -40,14 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             getUsers(),
             getCorrespondenceList(),
             getInstitutions(),
-            getFuelTanks(),
-            getFuelLogs(),
-            getFuelTransfers(),
-            getSiteLogEntries(),
-            getAllTransactions(), // [RESTORED]
             getYiUfeRates(),
-            getVehicleAttendanceList(),
-            // getPersonnelAttendanceList() // [DEBUG] REVERTING
         ]);
 
         companies = serializeData(companiesRes?.data || []);
@@ -57,14 +49,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         users = serializeData(usersRes?.data || []);
         correspondences = serializeData(correspondencesRes?.data || []);
         institutions = serializeData(institutionsRes?.data || []);
-        fuelTanks = serializeData(fuelTanksRes?.data || []);
-        fuelLogs = serializeData(fuelLogsRes?.data || []);
-        fuelTransfers = serializeData(fuelTransfersRes?.data || []);
-        siteLogEntries = serializeData(siteLogsRes?.data || []);
-        cashTransactions = serializeData(transactionsRes?.data || []);
         yiUfeRates = serializeData(yiUfeRes?.data || []);
-        vehicleAttendance = serializeData(vehicleAttendanceRes?.data || []);
-        // personnelAttendance = serializeData(personnelAttendanceRes?.data || []);
 
     } catch (error) {
         console.error("Dashboard Data Fetch Error:", error);
@@ -80,14 +65,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 users={users}
                 correspondences={correspondences}
                 institutions={institutions}
-                fuelTanks={fuelTanks}
-                fuelLogs={fuelLogs}
-                fuelTransfers={fuelTransfers}
-                siteLogEntries={siteLogEntries}
-                cashTransactions={cashTransactions}
                 yiUfeRates={yiUfeRates}
-                vehicleAttendance={vehicleAttendance}
-                // personnelAttendance={personnelAttendance} // [DEBUG] REVERTING
                 currentUser={session?.user}
             />
             <AppLayout>{children}</AppLayout>

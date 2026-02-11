@@ -28,13 +28,13 @@ export function StoreInitializer({
     users: any[],
     correspondences: any[],
     institutions: any[],
-    fuelTanks: any[],
-    fuelLogs: any[],
-    fuelTransfers: any[],
-    siteLogEntries: any[],
+    fuelTanks?: any[],
+    fuelLogs?: any[],
+    fuelTransfers?: any[],
+    siteLogEntries?: any[],
     cashTransactions?: any[], // [OPTIONAL] Fetched in page
-    yiUfeRates: any[], // [NEW]
-    vehicleAttendance: any[], // [NEW]
+    yiUfeRates: any[], // [NEW] (Small enough to keep)
+    vehicleAttendance?: any[], // [NEW]
     personnelAttendance?: any[], // [NEW] [OPTIONAL]
     currentUser?: any
 }) {

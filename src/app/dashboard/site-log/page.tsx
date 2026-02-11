@@ -1,26 +1,13 @@
-'use client';
+import { SiteLogPageClient } from './SiteLogPageClient';
+import { getSiteLogEntries } from '@/actions/site-log';
+import { serializeData } from '@/lib/serializer';
 
-import { SiteLogList } from '@/components/modules/site-log/SiteLogList';
-import { useAuth } from '@/lib/store/use-auth';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export default function SiteLogPage() {
-    const { hasPermission } = useAuth();
-    // Check for Site Log module VIEW permission
-    const canView = hasPermission('site-log', 'VIEW');
+export default async function SiteLogPage() {
+    const res = await getSiteLogEntries();
+    const data = serializeData(res.data || []);
 
-    if (!canView) {
-        return <div className="p-6 text-center text-muted-foreground">Bu modüle erişim yetkiniz yok.</div>;
-    }
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold tracking-tight">Şantiye Defteri</h2>
-                <p className="text-muted-foreground">
-                    Şantiyelerden günlük raporlar ve gelişmeler.
-                </p>
-            </div>
-            <SiteLogList />
-        </div>
-    );
+    return <SiteLogPageClient initialData={data} />;
 }

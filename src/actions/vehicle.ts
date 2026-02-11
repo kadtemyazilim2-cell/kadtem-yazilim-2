@@ -2,75 +2,73 @@
 
 import { prisma } from '@/lib/db';
 import { Vehicle } from '@prisma/client';
-import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 // [PERFORMANCE] Cached vehicles query
 // [PERFORMANCE] Cached vehicles query
-const getVehiclesFromDb = unstable_cache(
-    async () => {
-        return await prisma.vehicle.findMany({
-            orderBy: { plate: 'asc' },
-            select: {
-                id: true,
-                companyId: true,
-                plate: true,
-                brand: true,
-                model: true,
-                year: true,
-                type: true,
-                ownership: true,
-                status: true,
-                meterType: true,
-                currentKm: true,
-                insuranceExpiry: true,
-                kaskoExpiry: true,
-                vehicleCardExpiry: true,
-                assignedSiteId: true,
-                rentalCompanyName: true,
-                rentalContact: true,
-                engineNumber: true,
-                chassisNumber: true,
-                fuelType: true,
-                lastInspectionDate: true,
+const getVehiclesFromDb = async () => {
+    return await prisma.vehicle.findMany({
+        orderBy: { plate: 'asc' },
+        select: {
+            id: true,
+            companyId: true,
+            plate: true,
+            brand: true,
+            model: true,
+            year: true,
+            type: true,
+            ownership: true,
+            status: true,
+            meterType: true,
+            currentKm: true,
+            insuranceExpiry: true,
+            kaskoExpiry: true,
+            vehicleCardExpiry: true,
+            assignedSiteId: true,
+            rentalCompanyName: true,
+            rentalContact: true,
+            engineNumber: true,
+            chassisNumber: true,
+            fuelType: true,
+            lastInspectionDate: true,
 
-                lastTrafficProposalDate: true,
-                lastTrafficProposalAgencies: true,
-                lastKaskoProposalDate: true,
-                lastKaskoProposalAgencies: true,
+            lastTrafficProposalAgencies: true,
+            lastKaskoProposalDate: true,
+            lastKaskoProposalAgencies: true,
 
-                // licenseFile: false, // EXCLUDED to prevent 2MB cache limit error
+            // [FIX] Include Missing Insurance Fields
+            insuranceStartDate: true,
+            kaskoStartDate: true,
+            insuranceAgency: true,
+            insuranceCompany: true,
+            kaskoAgency: true,
+            kaskoCompany: true,
+            insuranceHistory: true, // Re-enable history as schema is synced
 
-                // History fields (if they exist in schema and act as scalars/small json)
-                // insuranceHistory: true, // [DISABLED] Getting "Unknown field" error even though in schema. Likely build sync issue.
+            // licenseFile: false, // EXCLUDED to prevent 2MB cache limit error
 
-                // Relations
-                // [FIX] Select ONLY necessary fields to prevent 2MB cache limit error
-                // Exclude 'stamp', 'letterhead' (Base64) from Company
-                company: {
-                    select: {
-                        id: true,
-                        name: true
-                    }
-                },
-                assignedSite: {
-                    select: {
-                        id: true,
-                        name: true
-                    }
-                },
-                assignedSites: { select: { id: true } },
+            // History fields (if they exist in schema and act as scalars/small json)
+            // insuranceHistory: true, // [DISABLED] Getting "Unknown field" error even though in schema. Likely build sync issue.
 
-                // History fields (if they exist in schema and act as scalars/small json)
-                // Assuming these are not huge if they exist as separate columns or are small
-                // If they are not in schema, this select will fail.
-                // Based on types/index.ts, these seem to be possibly computed or separate.
-                // Let's stick to what was in 'createVehicle' + relations.
-            }
-        });
-    },
-    ['get-vehicles-data'],
-    { tags: ['vehicles'], revalidate: 3600 }
-);
+            // Relations
+            // [FIX] Select ONLY necessary fields to prevent 2MB cache limit error
+            // Exclude 'stamp', 'letterhead' (Base64) from Company
+            company: {
+                select: {
+                    id: true,
+                    name: true
+                }
+            },
+            assignedSites: { select: { id: true } },
+
+            // History fields (if they exist in schema and act as scalars/small json)
+            // Assuming these are not huge if they exist as separate columns or are small
+            // If they are not in schema, this select will fail.
+            // Based on types/index.ts, these seem to be possibly computed or separate.
+            // Let's stick to what was in 'createVehicle' + relations.
+        }
+    });
+};
 
 export async function getVehicles() {
     try {
@@ -158,7 +156,7 @@ export async function createVehicle(data: Partial<Vehicle>) {
             }
         });
         revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        revalidatePath('/dashboard/vehicles', 'page');
         return { success: true, data: vehicle };
     } catch (error: any) {
         console.error('createVehicle Error:', error);
@@ -286,7 +284,7 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
         }
 
         revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        revalidatePath('/dashboard/vehicles', 'page');
         return { success: true };
     } catch (error: any) {
         console.error('updateVehicle Error:', error);
@@ -426,7 +424,7 @@ export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]
         });
 
         revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        revalidatePath('/dashboard/vehicles', 'page');
         return { success: true };
     } catch (error: any) {
         console.error('bulkAssignVehicles Error:', error);
@@ -436,6 +434,7 @@ export async function bulkAssignVehicles(vehicleIds: string[], siteIds: string[]
 
 // [NEW] Bulk Unassignment Action with History
 export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string[]) {
+    console.log('SERVER ACTION: bulkUnassignVehicles called', { vehicleIds, siteIds });
     try {
         await prisma.$transaction(async (tx) => {
             for (const vId of vehicleIds) {
@@ -507,7 +506,9 @@ export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string
 
         try {
             revalidateTag('vehicles');
-            revalidatePath('/dashboard/vehicles');
+            revalidateTag('sites');
+            revalidatePath('/dashboard/vehicle-attendance', 'page');
+            revalidatePath('/dashboard/vehicles', 'page');
         } catch (e) {
             console.error('Revalidate failed but action succeeded:', e);
         }
@@ -535,7 +536,7 @@ export async function deleteVehicle(id: string) {
             where: { id }
         });
         revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        revalidatePath('/dashboard/vehicles', 'page');
         return { success: true };
     } catch (error) {
         console.error('deleteVehicle Error:', error);
@@ -545,6 +546,7 @@ export async function deleteVehicle(id: string) {
 
 // [NEW] Additive Assignment Action (Multi-Site Friendly)
 export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
+    console.log('SERVER ACTION: addVehiclesToSite called', { vehicleIds, siteId });
     try {
         await prisma.$transaction(async (tx) => {
             for (const vId of vehicleIds) {
@@ -590,7 +592,9 @@ export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
 
         try {
             revalidateTag('vehicles');
-            revalidatePath('/dashboard/vehicles');
+            revalidateTag('sites');
+            revalidatePath('/dashboard/vehicle-attendance', 'page');
+            revalidatePath('/dashboard/vehicles', 'page');
         } catch (e) {
             console.error('Revalidate failed but action succeeded:', e);
         }
@@ -709,7 +713,7 @@ export async function saveInsurancePolicy(
 
         // Revalidate broad paths to ensure UI is fresh
         revalidateTag('vehicles');
-        revalidatePath('/dashboard');
+        revalidatePath('/dashboard', 'page');
 
         console.log(`[saveInsurancePolicy] Success`);
         return { success: true };
