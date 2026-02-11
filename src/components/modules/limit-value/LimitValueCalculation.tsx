@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from 'sonner';
 import { Loader2, Upload, Calendar, XCircle, CheckCircle2, Plus, Trash2, FileSpreadsheet, FileText, Save, Eye, History, Share2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { saveCalculation, getCalculations, deleteCalculation } from '@/actions/limit-value';
+import { saveCalculation, getCalculations, deleteCalculation, getBusinessGroups, addBusinessGroup, deleteBusinessGroup } from '@/actions/limit-value';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { fontBase64 } from '@/lib/pdf-font';
@@ -59,15 +59,10 @@ interface CalculationResult {
     sigmaUpper: number;   // Standart Sapma (Üst)
     likelyWinner: string; // Muhtemel Kazanan
     businessGroup?: string;
+    hasManualEdits?: boolean;
 }
 
-const BUSINESS_GROUPS = [
-    'Toplulaştırma',
-    'Toplulaştırma İkmal',
-    'Drenaj',
-    'Üst Yapı',
-    'Taşkın Koruma'
-];
+
 
 export function LimitValueCalculation() {
     const [file, setFile] = useState<File | null>(null);
@@ -79,6 +74,14 @@ export function LimitValueCalculation() {
     const [metadata, setMetadata] = useState<TenderMetadata>({});
     const [businessGroup, setBusinessGroup] = useState<string>('');
     const [rawText, setRawText] = useState<string>('');
+
+    // Dynamic Business Groups
+    const [groups, setGroups] = useState<{ id: string, name: string }[]>([]);
+    const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+    const [hasManualEdits, setHasManualEdits] = useState(false);
+
+    // Editable State
+    const [editingCell, setEditingCell] = useState<{ index: number, field: string } | null>(null);
 
     // New Bidder Modal State
     const [isAddBidderOpen, setIsAddBidderOpen] = useState(false);
@@ -104,10 +107,43 @@ export function LimitValueCalculation() {
         discount: ''
     });
 
-    // Initial Load of History
+    // Initial Load
     React.useEffect(() => {
         loadHistory();
+        loadGroups();
     }, []);
+
+    const loadGroups = async () => {
+        setIsLoadingGroups(true);
+        const res = await getBusinessGroups();
+        if (res.success && res.data) {
+            setGroups(res.data);
+        }
+        setIsLoadingGroups(false);
+    };
+
+    const handleAddGroup = async (name: string) => {
+        const res = await addBusinessGroup(name);
+        if (res.success) {
+            toast.success('İş grubu eklendi.');
+            loadGroups();
+            return true;
+        } else {
+            toast.error(res.error);
+            return false;
+        }
+    };
+
+    const handleRemoveGroup = async (id: string) => {
+        if (!confirm('Bu grubu silmek istediğinize emin misiniz?')) return;
+        const res = await deleteBusinessGroup(id);
+        if (res.success) {
+            toast.success('İş grubu silindi.');
+            loadGroups();
+        } else {
+            toast.error(res.error);
+        }
+    };
 
     const loadHistory = async () => {
         setIsLoadingHistory(true);
@@ -204,6 +240,37 @@ export function LimitValueCalculation() {
             loadHistory();
         } else {
             toast.error('Silme başarısız.');
+        }
+    };
+
+    // --- Editing Logic ---
+    const handleBidderEdit = (index: number, field: string, value: string) => {
+        if (field === 'amount') {
+            const cleanVal = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+            const numVal = parseFloat(cleanVal);
+
+            if (isNaN(numVal)) {
+                setEditingCell(null);
+                return;
+            }
+
+            const newBidders = [...bidders];
+            newBidders[index] = { ...newBidders[index], amount: numVal };
+
+            // Resort if needed? No, user might want to keep order, but normally we sort by price.
+            // If we change price, rank changes. 
+            // Let's re-sort:
+            newBidders.sort((a, b) => a.amount - b.amount);
+
+            setBidders(newBidders);
+            setHasManualEdits(true);
+            setEditingCell(null);
+
+            // Trigger Recalculation
+            // Note: calculateResults depends on correct 'cost' and 'n'.
+            if (approxCost > 0) {
+                calculateResults(approxCost, newBidders, nCoefficient);
+            }
         }
     };
 
@@ -857,21 +924,8 @@ export function LimitValueCalculation() {
                                         <SelectValue placeholder="Grup Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {BUSINESS_GROUPS.map(g => (
-                                            <SelectItem key={g} value={g}>{g}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-2 pt-4 border-t">
-                                <Label>İş Grubu</Label>
-                                <Select value={businessGroup} onValueChange={setBusinessGroup}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Grup Seçiniz" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {BUSINESS_GROUPS.map(g => (
-                                            <SelectItem key={g} value={g}>{g}</SelectItem>
+                                        {groups.map(g => (
+                                            <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -1009,8 +1063,27 @@ export function LimitValueCalculation() {
                                                     </div>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-right font-mono">
-                                                {bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                            <TableCell
+                                                className="text-right font-mono cursor-pointer hover:bg-slate-100 relative group"
+                                                onClick={() => setEditingCell({ index: idx, field: 'amount' })}
+                                            >
+                                                {editingCell?.index === idx && editingCell?.field === 'amount' ? (
+                                                    <Input
+                                                        autoFocus
+                                                        className="h-8 text-right font-mono absolute inset-0 w-full h-full border-2 border-blue-500 rounded-none z-10"
+                                                        defaultValue={bidder.amount}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        onBlur={(e) => handleBidderEdit(idx, 'amount', e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') handleBidderEdit(idx, 'amount', e.currentTarget.value);
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <>
+                                                        {bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                        <span className="hidden group-hover:inline absolute right-full mr-1 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 whitespace-nowrap">Düzenle</span>
+                                                    </>
+                                                )}
                                             </TableCell>
                                             <TableCell className="text-center text-xs text-muted-foreground font-mono">
                                                 {bidder.submitTime || '-'}
@@ -1207,6 +1280,11 @@ export function LimitValueCalculation() {
                                                 </TableCell>
                                                 <TableCell className="max-w-[180px] truncate text-xs" title={record.tenderName || ''}>
                                                     {record.tenderName || '-'}
+                                                    {record.hasManualEdits && (
+                                                        <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1 bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">
+                                                            Değişiklik Var
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-right text-xs font-mono">
                                                     {record.approxCost?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
@@ -1250,30 +1328,82 @@ export function LimitValueCalculation() {
 
             <TabsContent value="business-groups">
                 <Card>
-                    <CardHeader>
-                        <CardTitle>İş Grupları</CardTitle>
-                        <CardDescription>Sisteme tanımlı iş grupları listesi.</CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle>İş Grupları</CardTitle>
+                            <CardDescription>Sisteme tanımlı iş grupları listesi.</CardDescription>
+                        </div>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button className="gap-2">
+                                    <Plus className="w-4 h-4" /> Yeni Grup Ekle
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Yeni İş Grubu Ekle</DialogTitle>
+                                </DialogHeader>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const formData = new FormData(e.currentTarget);
+                                    handleAddGroup(formData.get('name') as string);
+                                }}>
+                                    <div className="space-y-4 py-4">
+                                        <div className="space-y-2">
+                                            <Label>Grup Adı</Label>
+                                            <Input name="name" placeholder="Örn: Altyapı İşleri" required />
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button type="submit">Ekle</Button>
+                                    </DialogFooter>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
                     </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Grup Adı</TableHead>
-                                    <TableHead>Durum</TableHead>
+                                    <TableHead className="w-[100px] text-right">İşlem</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {BUSINESS_GROUPS.map((group) => (
-                                    <TableRow key={group}>
-                                        <TableCell className="font-medium">{group}</TableCell>
-                                        <TableCell><Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">Aktif</Badge></TableCell>
+                                {isLoadingGroups ? (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-center py-8">
+                                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-slate-400" />
+                                        </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : groups.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                                            Henüz iş grubu tanımlanmamış.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    groups.map((group) => (
+                                        <TableRow key={group.id}>
+                                            <TableCell className="font-medium">{group.name}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleRemoveGroup(group.id)}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
                 </Card>
             </TabsContent>
-        </Tabs>
+        </Tabs >
     );
 }

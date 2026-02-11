@@ -66,6 +66,8 @@ model User {
   siteLogs                   SiteLogEntry[]        @relation("SiteLogAuthor")
 }
 
+
+
 model RoleTemplate {
   id          String   @id @default(cuid())
   name        String   @unique
@@ -593,10 +595,17 @@ model LimitValueCalculation {
   likelyWinner      String?
   likelyWinnerDiscount Float?
   businessGroup     String?  // [NEW]
+  hasManualEdits    Boolean  @default(false) // Whether any bid amount was manually edited
   
   // JSON field to store full result and bidders list for simplified "View" restoration
   fullResultData    Json     
   
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+model BusinessGroup {
+    id        String   @id @default(uuid())
+    name      String   @unique
+    createdAt DateTime @default(now())
 }

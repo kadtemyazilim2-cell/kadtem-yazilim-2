@@ -14,6 +14,7 @@ export async function saveCalculation(data: {
     likelyWinner?: string;
     likelyWinnerDiscount?: number;
     businessGroup?: string;
+    hasManualEdits?: boolean;
     fullResultData: any; // JSON
 }) {
     try {
@@ -29,6 +30,7 @@ export async function saveCalculation(data: {
                 likelyWinner: data.likelyWinner,
                 likelyWinnerDiscount: data.likelyWinnerDiscount,
                 businessGroup: data.businessGroup,
+                hasManualEdits: data.hasManualEdits || false,
                 fullResultData: data.fullResultData,
             },
         });
@@ -63,5 +65,76 @@ export async function deleteCalculation(id: string) {
     } catch (error) {
         console.error('Error deleting calculation:', error);
         return { success: false, error: 'Silme işlemi başarısız.' };
+    }
+}
+
+// -----------------------------------------------------------------------------
+// BUSINESS GROUP ACTIONS
+// -----------------------------------------------------------------------------
+
+export async function getBusinessGroups() {
+    try {
+        const groups = await prisma.businessGroup.findMany({
+            orderBy: { name: 'asc' },
+        });
+        return { success: true, data: groups };
+    } catch (error) {
+        console.error('Error fetching business groups:', error);
+        return { success: false, error: 'İş grupları getirilemedi.' };
+    }
+}
+
+export async function addBusinessGroup(name: string) {
+    try {
+        // Check duplicate
+        const existing = await prisma.businessGroup.findUnique({
+            where: { name },
+        });
+
+        if (existing) {
+            return { success: false, error: 'Bu isimde bir iş grubu zaten var.' };
+        }
+
+        await prisma.businessGroup.create({
+            data: { name },
+        });
+
+        revalidatePath('/dashboard/limit-value');
+        return { success: true };
+    } catch (error) {
+        console.error('Error adding business group:', error);
+        return { success: false, error: 'İş grubu eklenemedi.' };
+    }
+}
+
+export async function deleteBusinessGroup(id: string) {
+    try {
+        // Find group name first
+        const group = await prisma.businessGroup.findUnique({
+            where: { id },
+        });
+
+        if (!group) {
+            return { success: false, error: 'Grup bulunamadı.' };
+        }
+
+        // Check usage
+        const usageCount = await prisma.limitValueCalculation.count({
+            where: { businessGroup: group.name },
+        });
+
+        if (usageCount > 0) {
+            return { success: false, error: `Bu iş grubu ${usageCount} adet hesaplamada kullanılmış. Silinemez.` };
+        }
+
+        await prisma.businessGroup.delete({
+            where: { id },
+        });
+
+        revalidatePath('/dashboard/limit-value');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting business group:', error);
+        return { success: false, error: 'İş grubu silinemedi.' };
     }
 }
