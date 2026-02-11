@@ -771,46 +771,52 @@ export function LimitValueCalculation() {
         toast.success('Katılımcı silindi ve hesaplama güncellendi.');
     };
 
-    const exportToExcel = () => {
-        if (bidders.length === 0 || !result) return;
+    const exportToExcel = (data: any = null) => {
+        // Use provided data or fallback to state
+        const targetBidders = data?.bidders || bidders;
+        const targetResult = data?.result || result;
+        const targetMetadata = data?.metadata || metadata;
+        const targetApproxCost = data?.approxCost || approxCost;
+
+        if (targetBidders.length === 0 || !targetResult) return;
 
         // 1. Prepare Summary Data
         const summaryRows = [
             ["İHALE BİLGİLERİ VE HESAPLAMA SONUÇLARI"],
-            ["İdare Adı", metadata.administrationName || "-"],
-            ["İşin Adı", metadata.tenderName || "-"],
-            ["İhale Kayıt No (İKN)", metadata.tenderRegisterNo || "-"],
-            ["İhale Tarihi", metadata.tenderDate || "-"],
-            ["Teklif Açma Tarihi", metadata.openingDate || "-"],
+            ["İdare Adı", targetMetadata.administrationName || "-"],
+            ["İşin Adı", targetMetadata.tenderName || "-"],
+            ["İhale Kayıt No (İKN)", targetMetadata.tenderRegisterNo || "-"],
+            ["İhale Tarihi", targetMetadata.tenderDate ? new Date(targetMetadata.tenderDate).toLocaleDateString("tr-TR") : "-"],
+            ["Teklif Açma Tarihi", targetMetadata.openingDate || "-"],
             [],
             ["HESAPLAMA PARAMETRELERİ"],
-            ["Yaklaşık Maliyet", approxCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL"],
-            ["N Katsayısı", result?.nCoefficient.toFixed(2) || "-"],
+            ["Yaklaşık Maliyet", targetApproxCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL"],
+            ["N Katsayısı", targetResult?.nCoefficient?.toFixed(2) || "-"],
             [],
             ["ARA DEĞERLER"],
-            ["Ortalama-1 (Aritmetik)", result?.mean1.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["Ortalama-2 (Makul)", result?.mean2.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["Alt Sınır (T1)", result?.tort1.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["Üst Sınır (T2)", result?.tort2.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["Standart Sapma (σ)", result?.stdDev.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["Standart Sapma Alt", result?.sigmaLower.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["Standart Sapma Üst", result?.sigmaUpper.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-            ["C Değeri", result?.cValue.toFixed(3)],
-            ["K Değeri", result?.kValue.toFixed(3)],
+            ["Ortalama-1 (Aritmetik)", targetResult?.mean1.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["Ortalama-2 (Makul)", targetResult?.mean2.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["Alt Sınır (T1)", targetResult?.tort1.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["Üst Sınır (T2)", targetResult?.tort2.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["Standart Sapma (σ)", targetResult?.stdDev.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["Standart Sapma Alt", targetResult?.sigmaLower.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["Standart Sapma Üst", targetResult?.sigmaUpper.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
+            ["C Değeri", targetResult?.cValue.toFixed(3)],
+            ["K Değeri", targetResult?.kValue.toFixed(3)],
             [],
             ["SONUÇ"],
-            ["Sınır Değer", result?.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL"],
-            ["Muhtemel Kazanan", result?.likelyWinner || "-"],
+            ["Sınır Değer", targetResult?.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL"],
+            ["Muhtemel Kazanan", targetResult?.likelyWinner || "-"],
             [],
             ["KATILIMCI LİSTESİ"]
         ];
 
         // 2. Prepare Bidders Data
         const headers = ['Sıra No', 'Firma Adı', 'Teklif Tutarı', 'Tarih ve Saat', 'Tenzilat (%)', 'Durum'];
-        const bidderRows = bidders.map((b, i) => [
+        const bidderRows = targetBidders.map((b: any, i: number) => [
             i + 1,
             b.name,
-            b.amount, // Keep as number for Excel formatting if possible, but simplest is string or raw
+            b.amount, // Keep as number for Excel formatting if possible
             b.submitTime || '-',
             b.discountRatio?.toFixed(2),
             b.isValid ? (b.isAboveLimit ? 'Makul' : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
@@ -825,12 +831,19 @@ export function LimitValueCalculation() {
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Sınır Değer Analizi");
-        XLSX.writeFile(wb, "sinir_deger_analizi.xlsx");
+        const fileName = `Sinir_Deger__${targetMetadata.tenderRegisterNo || 'Analiz'}.xlsx`;
+        XLSX.writeFile(wb, fileName);
         toast.success("Excel dosyası indirildi.");
     };
 
-    const generatePDFDoc = () => {
-        if (bidders.length === 0) return null;
+    const generatePDFDoc = (data: any = null) => {
+        const targetBidders = data?.bidders || bidders;
+        const targetResult = data?.result || result;
+        const targetMetadata = data?.metadata || metadata;
+        const targetApproxCost = data?.approxCost || approxCost;
+        const targetGroup = data?.businessGroup || businessGroup;
+
+        if (targetBidders.length === 0) return null;
 
         const doc = new jsPDF();
 
@@ -844,17 +857,17 @@ export function LimitValueCalculation() {
 
         let currentY = 25;
 
-        if (result) {
+        if (targetResult) {
             // Summary Table
             const summaryBody = [
-                ['İdare Adı', metadata.administrationName || '-'],
-                ['İşin Adı / İKN', `${metadata.tenderName || ''} / ${metadata.tenderRegisterNo || ''}`],
-                ['İhale Tarihi', metadata.tenderDate || '-'],
-                ['İş Grubu', businessGroup || '-'],
-                ['Yaklaşık Maliyet', `${approxCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`],
-                ['Sınır Değer', `${result.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`],
-                ['N Katsayısı', result.nCoefficient.toFixed(2)],
-                ['Muhtemel Kazanan', result.likelyWinner]
+                ['İdare Adı', targetMetadata.administrationName || '-'],
+                ['İşin Adı / İKN', `${targetMetadata.tenderName || ''} / ${targetMetadata.tenderRegisterNo || ''}`],
+                ['İhale Tarihi', targetMetadata.tenderDate ? new Date(targetMetadata.tenderDate).toLocaleDateString("tr-TR") : '-'],
+                ['İş Grubu', targetGroup || '-'],
+                ['Yaklaşık Maliyet', `${targetApproxCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`],
+                ['Sınır Değer', `${targetResult.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`],
+                ['N Katsayısı', typeof targetResult.nCoefficient === 'number' ? targetResult.nCoefficient.toFixed(2) : targetResult.nCoefficient],
+                ['Muhtemel Kazanan', targetResult.likelyWinner]
             ];
 
             autoTable(doc, {
@@ -871,14 +884,20 @@ export function LimitValueCalculation() {
             currentY = doc.lastAutoTable.finalY + 10;
         }
 
-        const tableData = bidders.map((b, i) => [
-            i + 1,
-            b.name,
-            b.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL",
-            b.submitTime || '-',
-            b.discountRatio?.toFixed(2) + '%',
-            b.isValid ? (b.isAboveLimit ? 'Makul' : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
-        ]);
+        const tableData = targetBidders.map((b: any, i: number) => {
+            // Highlight row logic similar to table
+            const isOwner = isOwnerCompany(b.name);
+            // Note: autotable styles are per cell or row hook, hard to pass class here directly.
+            // We can use didParseCell hook later if needed. For now just data.
+            return [
+                i + 1,
+                b.name,
+                b.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL",
+                b.submitTime || '-',
+                b.discountRatio?.toFixed(2) + '%',
+                b.isValid ? (b.isAboveLimit ? 'Makul' : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
+            ]
+        });
 
         doc.text("Teklif Listesi", 14, currentY - 2);
 
@@ -888,15 +907,26 @@ export function LimitValueCalculation() {
             startY: currentY,
             styles: { font: 'Roboto', fontSize: 8 },
             headStyles: { fillColor: [52, 73, 94] },
+            didParseCell: (data) => {
+                // Highlight Owner Company Rows
+                if (data.section === 'body') {
+                    const rowName = tableData[data.row.index][1] as string;
+                    if (isOwnerCompany(rowName)) {
+                        data.cell.styles.fillColor = [209, 250, 229]; // emerald-100
+                    }
+                }
+            }
         });
 
         return doc;
     };
 
-    const exportToPDF = () => {
-        const doc = generatePDFDoc();
+    const exportToPDF = (data: any = null) => {
+        const doc = generatePDFDoc(data);
         if (!doc) return;
-        doc.save("sinir_deger_raporu.pdf");
+        const targetMetadata = data?.metadata || metadata;
+        const fileName = `Sinir_Deger_Raporu_${targetMetadata.tenderRegisterNo || ''}.pdf`;
+        doc.save(fileName);
         toast.success("PDF dosyası indirildi.");
     };
 
@@ -1483,6 +1513,12 @@ export function LimitValueCalculation() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportToExcel(record.fullResultData)} title="Excel İndir">
+                                                            <FileSpreadsheet className="w-3.5 h-3.5 text-green-600" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => exportToPDF(record.fullResultData)} title="PDF İndir">
+                                                            <FileText className="w-3.5 h-3.5 text-red-500" />
+                                                        </Button>
                                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleLoadHistory(record)} title="Görüntüle">
                                                             <Eye className="w-3.5 h-3.5 text-blue-600" />
                                                         </Button>
