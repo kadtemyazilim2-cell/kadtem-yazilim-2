@@ -872,7 +872,10 @@ export function LimitValueCalculation() {
         }
     };
 
-    // --- Share Logic ---
+    // --- Share Logic & State ---
+    const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+    const [shareText, setShareText] = useState('');
+
     const handleShare = async () => {
         if (!bidders.length || !result) return;
 
@@ -894,12 +897,10 @@ export function LimitValueCalculation() {
                 return; // Success
             } catch (error) {
                 console.log('Share API failed or cancelled, falling back...', error);
-                // Fallthrough to manual method
             }
         }
 
-        // 3. Fallback: Download & Open WhatsApp
-        // Download the file
+        // 3. Fallback: Download & Open WhatsApp via Dialog
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -909,15 +910,9 @@ export function LimitValueCalculation() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        toast.info('PDF dosyası indirildi. WhatsApp açılıyor, lütfen dosyayı sohbete sürükleyin.', { duration: 5000 });
-
-        // Open WhatsApp Web/App
         const text = `*Sınır Değer Analizi*\n\n*İhale:* ${metadata.tenderName || '-'}\n*Yaklaşık Maliyet:* ${result.cost.toLocaleString('tr-TR')} TL\n*Sınır Değer:* ${result.limitValue.toLocaleString('tr-TR')} TL\n*Muhtemel Kazanan:* ${result.likelyWinner}\n\nDetaylı rapor cihazınıza indirilmiştir.`;
-
-        // Use timeout to let the download start visibly
-        setTimeout(() => {
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-        }, 1000);
+        setShareText(text);
+        setIsShareDialogOpen(true);
     };
 
     // Helper to check if bidder format matches our companies
@@ -1109,9 +1104,24 @@ export function LimitValueCalculation() {
                                             <Share2 className="w-4 h-4" />
                                             Paylaş / WhatsApp
                                         </Button>
-                                        <Button variant="default" size="sm" onClick={handleSaveCalculation} disabled={!result} className="h-8 gap-2 ml-2">
-                                            <Save className="w-4 h-4" />
-                                            Kaydet
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={handleSaveCalculation}
+                                            disabled={!result || isSaving}
+                                            className="h-8 gap-2 ml-2 transition-all"
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Kaydediliyor...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-4 h-4" />
+                                                    Kaydet
+                                                </>
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
@@ -1523,6 +1533,39 @@ export function LimitValueCalculation() {
                     </CardContent>
                 </Card>
             </TabsContent>
+
+            {/* WhatsApp Share Dialog */}
+            <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Share2 className="w-5 h-5 text-green-600" />
+                            WhatsApp ile Paylaş
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="p-4 bg-green-50 text-green-800 rounded-md text-sm border border-green-200">
+                            <strong>Dosya İndirildi!</strong>
+                            <p className="mt-1">
+                                Tarayıcı güvenliği nedeniyle WhatsApp otomatik açılamadı.
+                                Lütfen aşağıdaki butona tıklayın ve açılan sohbete indirdiğiniz PDF dosyasını sürükleyin.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>Kapat</Button>
+                        <Button
+                            className="bg-[#25D366] hover:bg-[#128C7E] text-white"
+                            onClick={() => {
+                                window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+                                setIsShareDialogOpen(false);
+                            }}
+                        >
+                            WhatsApp'ı Başlat
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Tabs >
     );
 }
