@@ -41,31 +41,6 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
     } = useAppStore();
     const { user, hasPermission } = useAuth();
 
-    // [NEW] Client-side fresh fetch to bypass server cache issues
-    const [refreshKey, setRefreshKey] = useState(0); // [FIX] Manual Refresh Trigger
-
-    useEffect(() => {
-        const fetchData = async () => {
-            console.log('Fetching fresh fuel data on client (Key:', refreshKey, ')...');
-            const [logsRes, transfersRes, tanksRes] = await Promise.all([
-                getFuelLogs(),
-                getFuelTransfers(),
-                getFuelTanks()
-            ]);
-
-            if (logsRes.success && logsRes.data) {
-                useAppStore.getState().setFuelLogs(logsRes.data as any);
-            }
-            if (transfersRes.success && transfersRes.data) {
-                useAppStore.getState().setFuelTransfers(transfersRes.data as any);
-            }
-            if (tanksRes.success && tanksRes.data) {
-                useAppStore.getState().setFuelTanks(tanksRes.data as any);
-            }
-        };
-        fetchData();
-    }, [refreshKey]); // [FIX] Add refreshKey dependency
-
     // Permission Check
     const canEditFuel = hasPermission('fuel.consumption', 'EDIT');
     const [editingLog, setEditingLog] = useState<FuelLog | null>(null);
