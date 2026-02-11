@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Loader2, Upload, Calendar, XCircle, CheckCircle2, Plus, Trash2, FileSpreadsheet, FileText, Save, Eye, History, Share2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { saveCalculation, getCalculations, deleteCalculation, getBusinessGroups, addBusinessGroup, deleteBusinessGroup } from '@/actions/limit-value';
+import { getCompanies } from '@/actions/company';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { fontBase64 } from '@/lib/pdf-font';
@@ -77,6 +78,7 @@ export function LimitValueCalculation() {
 
     // Dynamic Business Groups
     const [groups, setGroups] = useState<{ id: string, name: string }[]>([]);
+    const [myCompanies, setMyCompanies] = useState<{ name: string, shortName?: string | null }[]>([]);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [hasManualEdits, setHasManualEdits] = useState(false);
 
@@ -111,7 +113,15 @@ export function LimitValueCalculation() {
     React.useEffect(() => {
         loadHistory();
         loadGroups();
+        loadMyCompanies();
     }, []);
+
+    const loadMyCompanies = async () => {
+        const res = await getCompanies();
+        if (res.success && res.data) {
+            setMyCompanies(res.data);
+        }
+    };
 
     const loadGroups = async () => {
         setIsLoadingGroups(true);
@@ -777,49 +787,81 @@ export function LimitValueCalculation() {
         toast.success("PDF dosyası indirildi.");
     };
 
-    const handleShare = async () => {
+    // Helper to generate PDF blob for sharing
+    const generatePDFBlob = async (): Promise<Blob | null> => {
         const doc = generatePDFDoc();
-        if (!doc) return;
+        if (!doc) return null;
+        try {
+            const arrayBuffer = doc.output('arraybuffer');
+            return new Blob([arrayBuffer], { type: 'application/pdf' });
+        } catch (e) {
+            console.error("PDF Blob generation failed", e);
+            return null;
+        }
+    };
 
-        const blob = doc.output('blob');
-        const filename = `Sinir_Deger_Hesabi_${metadata.tenderRegisterNo || 'Rapor'}.pdf`;
+    // --- Share Logic ---
+    const handleShare = async () => {
+        if (!bidders.length || !result) return;
+
+        // 1. Generate PDF Blob
+        const blob = await generatePDFBlob();
+        if (!blob) return;
+
+        const filename = `Sinir_Deger_Analizi_${new Date().toISOString().split('T')[0]}.pdf`;
         const file = new File([blob], filename, { type: 'application/pdf' });
 
-        // 1. Try Native Share (Desktop or Mobile if supported)
-        // Note: Windows/Chrome often supports this but might not show WhatsApp in the list.
+        // 2. Try Web Share API (Mobile / Supported Desktop)
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                 await navigator.share({
                     files: [file],
-                    title: 'Sınır Değer Hesabı',
-                    text: `${metadata.tenderRegisterNo || 'İhale'} için sınır değer hesabı ektedir.`
+                    title: 'Sınır Değer Analizi',
+                    text: `İhale: ${metadata.tenderName || 'Bilinmeyen'}\nSınır Değer: ${result.limitValue.toLocaleString('tr-TR')} TL\nDosya ektedir.`
                 });
-                toast.success("Paylaşım başlatıldı.");
-                return;
+                return; // Success
             } catch (error) {
-                if ((error as any).name !== 'AbortError') {
-                    console.error('Share failed:', error);
-                    // Continue to fallback if share failed (but not cancelled)
-                } else {
-                    return; // User cancelled
-                }
+                console.log('Share API failed or cancelled, falling back...', error);
+                // Fallthrough to manual method
             }
         }
 
-        // 2. Fallback: Download + Open WhatsApp Desktop App
-        doc.save(filename);
+        // 3. Fallback: Download & Open WhatsApp
+        // Download the file
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
 
-        // More prominent warning/instruction
-        toast.warning(
-            "Otomatik dosya eki tarayıcınızda desteklenmiyor. Dosya indirildi, lütfen WhatsApp açıldığında indirilen dosyayı sohbete sürükleyip bırakınız.",
-            { duration: 6000 }
-        );
+        toast.info('PDF dosyası indirildi. WhatsApp açılıyor, lütfen dosyayı sohbete sürükleyin.', { duration: 5000 });
 
-        // Wait for download to start, then try to open WhatsApp
+        // Open WhatsApp Web/App
+        const text = `*Sınır Değer Analizi*\n\n*İhale:* ${metadata.tenderName || '-'}\n*Yaklaşık Maliyet:* ${result.cost.toLocaleString('tr-TR')} TL\n*Sınır Değer:* ${result.limitValue.toLocaleString('tr-TR')} TL\n*Muhtemel Kazanan:* ${result.likelyWinner}\n\nDetaylı rapor cihazınıza indirilmiştir.`;
+
+        // Use timeout to let the download start visibly
         setTimeout(() => {
-            const text = encodeURIComponent(`"${metadata.tenderRegisterNo || 'İhale'}" Sınır Değer Raporu ektedir. (Dosya eklenmedi, indirilen dosyayı buraya sürükleyebilirsiniz)`);
-            window.open(`whatsapp://send?text=${text}`, '_blank');
-        }, 1500);
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }, 1000);
+    };
+
+    // Helper to check if bidder format matches our companies
+    const isOwnerCompany = (bidderName: string) => {
+        if (!bidderName) return false;
+        const normalizedBidder = bidderName.toLocaleLowerCase('tr');
+        return myCompanies.some(c => {
+            const cName = c.name.toLocaleLowerCase('tr');
+            const cShort = c.shortName?.toLocaleLowerCase('tr');
+
+            // Check full name or short name containment
+            // e.g. "KAD-TEM İNŞAAT..." includes "kad-tem"
+            if (normalizedBidder.includes(cName)) return true;
+            if (cShort && normalizedBidder.includes(cShort)) return true;
+            return false;
+        });
     };
 
     const shortenCompanyName = (name: string) => {
@@ -1052,7 +1094,12 @@ export function LimitValueCalculation() {
                                     </TableRow>
                                 ) : (
                                     bidders.map((bidder, idx) => (
-                                        <TableRow key={idx} className={!bidder.isValid ? 'bg-red-50/50 opacity-70' : ''}>
+                                        <TableRow
+                                            key={idx}
+                                            className={cn(
+                                                !bidder.isValid ? 'bg-red-50/50 opacity-70' : (isOwnerCompany(bidder.name) ? 'bg-emerald-100/70 hover:bg-emerald-100' : '')
+                                            )}
+                                        >
                                             <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
                                             <TableCell>
                                                 <div className="font-medium" title={bidder.name}>{shortenCompanyName(bidder.name)}</div>
