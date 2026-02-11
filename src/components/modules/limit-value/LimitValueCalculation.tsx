@@ -912,7 +912,7 @@ export function LimitValueCalculation() {
                 if (data.section === 'body') {
                     const rowName = tableData[data.row.index][1] as string;
                     if (isOwnerCompany(rowName)) {
-                        data.cell.styles.fillColor = [209, 250, 229]; // emerald-100
+                        data.cell.styles.fillColor = [180, 250, 200]; // Slightly darker emerald/green for better visibility
                     }
                 }
             }
