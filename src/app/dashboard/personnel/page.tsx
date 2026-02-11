@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { GlobalPersonnelList } from '@/components/modules/personnel/GlobalPersonnelList';
 import { PersonnelForm } from '@/components/modules/personnel/PersonnelForm';
@@ -14,6 +14,18 @@ import { useAuth } from '@/lib/store/use-auth';
 export default function PersonnelPage() {
     const { user, hasPermission } = useAuth();
     const canView = user?.role === 'ADMIN' || hasPermission('personnel', 'VIEW');
+
+    // Track active tab and a key counter for PersonnelList remount
+    const [activeTab, setActiveTab] = useState('site-summary');
+    const [attendanceKey, setAttendanceKey] = useState(0);
+
+    const handleTabChange = useCallback((value: string) => {
+        setActiveTab(value);
+        // Force PersonnelList to remount (reset site selection) every time Puantaj tab is selected
+        if (value === 'attendance') {
+            setAttendanceKey(prev => prev + 1);
+        }
+    }, []);
 
     if (!canView) {
         return <div className="p-6 text-center text-muted-foreground">Bu sayfayı görüntüleme yetkiniz yok.</div>;
@@ -29,7 +41,7 @@ export default function PersonnelPage() {
                 <PersonnelForm />
             </div>
 
-            <Tabs defaultValue="site-summary" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="grid w-full max-w-[800px] grid-cols-4">
                     <TabsTrigger value="site-summary">Şantiye Özeti</TabsTrigger>
                     <TabsTrigger value="attendance">Puantaj</TabsTrigger>
@@ -46,7 +58,7 @@ export default function PersonnelPage() {
                 </TabsContent>
 
                 <TabsContent value="attendance" className="mt-4">
-                    <PersonnelList />
+                    <PersonnelList key={attendanceKey} />
                 </TabsContent>
 
                 <TabsContent value="all-personnel" className="mt-4">
