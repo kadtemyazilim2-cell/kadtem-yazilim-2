@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { Company } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { auth } from '@/auth';
 
 export async function getCompanies() {
@@ -94,6 +94,7 @@ export async function createCompany(data: Partial<Company>) {
             }
         });
         revalidatePath('/dashboard/admin');
+        revalidateTag('dashboard-data');
         return { success: true, data: company };
     } catch (error) {
         console.error('createCompany Error:', error);
@@ -130,6 +131,7 @@ export async function updateCompany(id: string, data: Partial<Company>) {
             }
         });
         revalidatePath('/dashboard/admin');
+        revalidateTag('dashboard-data');
         return { success: true, data: company };
     } catch (error) {
         console.error('updateCompany Error:', error);
@@ -163,6 +165,7 @@ export async function deleteCompany(id: string) {
 
         await prisma.company.delete({ where: { id } });
         revalidatePath('/dashboard/admin');
+        revalidateTag('dashboard-data');
         return { success: true };
     } catch (error) {
         console.error('deleteCompany Error:', error);
