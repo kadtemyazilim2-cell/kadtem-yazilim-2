@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Upload, Calendar, XCircle, CheckCircle2, Plus, Trash2, FileSpreadsheet, FileText, Save, Eye, History } from 'lucide-react';
+import { Loader2, Upload, Calendar, XCircle, CheckCircle2, Plus, Trash2, FileSpreadsheet, FileText, Save, Eye, History, Share2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { saveCalculation, getCalculations, deleteCalculation } from '@/actions/limit-value';
 import { cn } from '@/lib/utils';
@@ -606,8 +606,8 @@ export function LimitValueCalculation() {
         toast.success("Excel dosyası indirildi.");
     };
 
-    const exportToPDF = () => {
-        if (bidders.length === 0) return;
+    const generatePDFDoc = () => {
+        if (bidders.length === 0) return null;
 
         const doc = new jsPDF();
 
@@ -671,8 +671,43 @@ export function LimitValueCalculation() {
             headStyles: { fillColor: [52, 73, 94] },
         });
 
+        return doc;
+    };
+
+    const exportToPDF = () => {
+        const doc = generatePDFDoc();
+        if (!doc) return;
         doc.save("sinir_deger_raporu.pdf");
         toast.success("PDF dosyası indirildi.");
+    };
+
+    const handleShare = async () => {
+        const doc = generatePDFDoc();
+        if (!doc) return;
+
+        const blob = doc.output('blob');
+        const filename = `Sinir_Deger_Hesabi_${metadata.tenderRegisterNo || 'Rapor'}.pdf`;
+        const file = new File([blob], filename, { type: 'application/pdf' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Sınır Değer Hesabı',
+                    text: `${metadata.tenderRegisterNo || 'İhale'} için sınır değer hesabı ektedir.`
+                });
+                toast.success("Paylaşım başlatıldı.");
+            } catch (error) {
+                if ((error as any).name !== 'AbortError') {
+                    console.error('Share failed:', error);
+                    toast.error("Paylaşım sırasında hata oluştu.");
+                }
+            }
+        } else {
+            // Fallback for Desktop/Unsupported
+            doc.save(filename);
+            toast.info("Cihazınızda doğrudan paylaşım desteklenmiyor. PDF indirildi, WhatsApp web üzerinden gönderebilirsiniz.");
+        }
     };
 
     const shortenCompanyName = (name: string) => {
@@ -825,6 +860,10 @@ export function LimitValueCalculation() {
                                         <Button variant="outline" size="sm" onClick={exportToPDF} disabled={bidders.length === 0} className="h-8 gap-2">
                                             <FileText className="w-4 h-4 text-red-600" />
                                             PDF
+                                        </Button>
+                                        <Button variant="outline" size="sm" onClick={handleShare} disabled={bidders.length === 0} className="h-8 gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200">
+                                            <Share2 className="w-4 h-4" />
+                                            Paylaş / WhatsApp
                                         </Button>
                                         <Button variant="default" size="sm" onClick={handleSaveCalculation} disabled={!result} className="h-8 gap-2 ml-2">
                                             <Save className="w-4 h-4" />
