@@ -65,7 +65,7 @@ export function LimitValueCalculation() {
     const [isParsing, setIsParsing] = useState(false);
     const [bidders, setBidders] = useState<Bidder[]>([]);
     const [approxCost, setApproxCost] = useState<number>(0);
-    const [nCoefficient, setNCoefficient] = useState<string>('1.20');
+    const [nCoefficient, setNCoefficient] = useState<string>('1.00');
     const [result, setResult] = useState<CalculationResult | null>(null);
     const [metadata, setMetadata] = useState<TenderMetadata>({});
     const [rawText, setRawText] = useState<string>('');
@@ -1066,6 +1066,7 @@ export function LimitValueCalculation() {
                                     <TableHead>İşin Adı</TableHead>
                                     <TableHead className="text-right">Yaklaşık Maliyet</TableHead>
                                     <TableHead className="text-right">Sınır Değer</TableHead>
+                                    <TableHead className="text-right">Kazanan Teklif</TableHead>
                                     <TableHead className="text-center">Kazanan Tenzilat</TableHead>
                                     <TableHead className="text-right">İşlem</TableHead>
                                 </TableRow>
@@ -1073,7 +1074,7 @@ export function LimitValueCalculation() {
                             <TableBody>
                                 {history.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                                             Henüz kaydedilmiş bir hesaplama bulunmuyor.
                                         </TableCell>
                                     </TableRow>
@@ -1096,6 +1097,11 @@ export function LimitValueCalculation() {
                                             </TableCell>
                                             <TableCell className="text-right font-medium text-yellow-700">
                                                 {record.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium">
+                                                {record.fullResultData?.bidders?.find((b: any) => b.name === record.likelyWinner)?.amount
+                                                    ? `${record.fullResultData.bidders.find((b: any) => b.name === record.likelyWinner)?.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
+                                                    : '-'}
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 {record.likelyWinnerDiscount ? `%${record.likelyWinnerDiscount.toFixed(2)}` : '-'}
