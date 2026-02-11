@@ -6,16 +6,16 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // [CONFIG] Increase duration for Vercel
 
 
-export default async function CashBookPage() {
+// [FIX] Next.js 15+ Page Props are Promises
+type SearchParams = { [key: string]: string | string[] | undefined }
+
+export default async function CashBookPage(props: { searchParams: Promise<SearchParams> }) {
+    const searchParams = await props.searchParams;
+
     const { user, hasPermission } = await import('@/auth').then(m => m.auth().then(s => ({ user: s?.user, hasPermission: (mod: string, act: string) => { const p = (s?.user as any)?.permissions?.[mod]; return p?.includes(act); } })));
     const isSuperAdmin = user?.role === 'ADMIN';
 
-    // [NEW] Read URL Params (Server Component approach for searchParams)
-    // Next.js 15+ searchParams is async, but this is 14/15 mixed structure. 
-    // Assuming Page props: { searchParams: { userId?: string } }
-
-    // Actually, let's stick to client-side param reading in List if needed, 
-    // but here we just fetch ALL allowed data for the user.
+    const userId = searchParams?.userId as string | undefined;
 
     const canView = isSuperAdmin ||
         (user as any)?.permissions?.['cash-book']?.includes('VIEW') ||
@@ -31,7 +31,7 @@ export default async function CashBookPage() {
 
     return (
         <div className="space-y-6">
-            <CashBookList initialData={initialData} currentUser={user} />
+            <CashBookList initialData={initialData} currentUser={user} userId={userId} />
         </div>
     );
 }

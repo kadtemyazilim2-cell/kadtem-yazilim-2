@@ -1054,22 +1054,11 @@ export default function NewPage() {
 
             if (!apiRes.ok) {
                 const errText = await apiRes.text();
-
-                // Debug Call
-                debugFetchPersonnel(selectedSiteId).then(res => {
-                    console.log('Debug Fetch Result:', res);
-                    if (res.success) {
-                        toast.info(`Debug: Toplam ${res.total}, Şantiye: ${res.siteCount}, Örnek: ${res.sample?.map((s: any) => s.fullName).join(', ')}`);
-                    } else {
-                        toast.error(`Debug Hata: ${res.error}`);
-                    }
-                });
-
                 try {
                     const errJson = JSON.parse(errText);
                     throw new Error(errJson.error || errText);
-                } catch (e) {
-                    throw new Error("İşlem başarısız: " + apiRes.status);
+                } catch (e: any) {
+                    throw new Error(e.message || ("İşlem başarısız: " + apiRes.status));
                 }
             }
 
@@ -1356,24 +1345,30 @@ export default function NewPage() {
         const dateText = `Olusturulma: ${now}`;
         doc.text(dateText, 297 - 14 - doc.getTextWidth(dateText), 22); // Right aligned, same line as site name
 
-        const tableBody = filteredNames.map(p => {
-            const stats = calculateStats(p, date);
-            const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            return [
-                p.tc,
-                trToAscii(p.name),
-                formatCurrency(p.salary),
-                stats.workedDays,
-                stats.overtimeTotal || '-',
-                fmt(stats.basePay),
-                fmt(stats.overtimePay),
-                stats.remainingLeave,
-                fmt(stats.leavePay),
-                fmt(stats.bonus || 0),
-                fmt(stats.deduction || 0),
-                fmt(stats.totalPay)
-            ];
-        });
+        const tableBody = filteredNames
+            .map(p => {
+                const stats = calculateStats(p, date);
+                return { p, stats };
+            })
+            .filter(item => item.stats.totalPay >= 1)
+            .map(item => {
+                const { p, stats } = item;
+                const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return [
+                    p.tc,
+                    trToAscii(p.name),
+                    formatCurrency(p.salary),
+                    stats.workedDays,
+                    stats.overtimeTotal || '-',
+                    fmt(stats.basePay),
+                    fmt(stats.overtimePay),
+                    stats.remainingLeave,
+                    fmt(stats.leavePay),
+                    fmt(stats.bonus || 0),
+                    fmt(stats.deduction || 0),
+                    fmt(stats.totalPay)
+                ];
+            });
 
         autoTable(doc, {
             head: [['TC', 'Ad Soyad', 'Maas', 'Gun', 'Mesai', 'Hakedis', 'Mesai Tut.', 'Kalan Izin', 'Izin Ucreti', 'Prim', 'Kesinti', 'TOPLAM']],
@@ -1684,6 +1679,63 @@ export default function NewPage() {
             lx += doc.getTextWidth(trToAscii(item.label)) + 12;
         });
 
+
+
+
+
+
+        // --- Mesai ve İzin Ücreti Özeti ---
+        const extraPaymentData = filteredNames.map(p => {
+            const stats = calculateStats(p, date);
+            const totalExtra = (stats.overtimePay || 0) + (stats.leavePay || 0);
+            return {
+                name: trToAscii(p.name),
+                leavePay: stats.leavePay || 0,
+                overtimePay: stats.overtimePay || 0,
+                totalExtra: totalExtra
+            };
+        }).filter(s => s.totalExtra >= 0.01); // Filter > 0
+
+        if (extraPaymentData.length > 0) {
+            let tableStartY = ly + 15;
+
+            // Check page break
+            if (tableStartY > doc.internal.pageSize.height - 40) {
+                doc.addPage();
+                tableStartY = 15;
+            }
+
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            // Use ASCII to guarantee it renders even without custom font, and to distinguish from "Ghost" table
+            doc.text("Mesai ve Izin Ucreti Ozeti", 14, tableStartY);
+
+            autoTable(doc, {
+                head: [["Sira", "Ad Soyad", "Izin Ucreti", "Mesai Ucreti", "Toplam Ucret"]],
+                body: extraPaymentData.map((s, index) => [
+                    (index + 1).toString(),
+                    s.name,
+                    s.leavePay.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL',
+                    s.overtimePay.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL',
+                    s.totalExtra.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL'
+                ]),
+                startY: tableStartY + 2,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 8, cellPadding: 1, halign: 'center' },
+                columnStyles: {
+                    0: { halign: 'center', cellWidth: 10 },
+                    1: { halign: 'left' },
+                    2: { halign: 'right' },
+                    3: { halign: 'right' },
+                    4: { halign: 'right', fontStyle: 'bold' }
+                }
+            });
+
+            // Update legendY so the footer starts after this table
+            legendY = (doc as any).lastAutoTable.finalY;
+        }
+
         // --- FOOTER: Notes & Overtime Explanations ---
         let finalY = legendY + 10;
 
@@ -1726,50 +1778,6 @@ export default function NewPage() {
                 finalY += 4;
             });
         }
-
-        // [SECURE] Only Show Salary Page if permitted
-        if (canViewSalary) {
-            // --- NEW PAGE: Salary & Overtime Summary ---
-            doc.addPage();
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "bold");
-            doc.text(trToAscii("Mesai ve Izin Ozeti"), 14, 15);
-
-            const formatMoneyAscii = (val: number) => {
-                return val.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' TL';
-            };
-
-            const salaryBody = filteredNames.map((p, index) => {
-                const stats = calculateStats(p, date);
-                // Summary should only show Overtime + Unused Leave Pay
-                const summaryTotal = stats.overtimePay + stats.leavePay;
-                return [
-                    index + 1,
-                    trToAscii(p.name),
-                    formatMoneyAscii(stats.leavePay),
-                    formatMoneyAscii(stats.overtimePay),
-                    formatMoneyAscii(summaryTotal)
-                ];
-            });
-
-            autoTable(doc, {
-                head: [['Sira No', 'Isim Soyisim', 'Izin Ucreti', 'Mesai Ucreti', 'Toplam Ucret']],
-                body: salaryBody,
-                startY: 20,
-                theme: 'grid',
-                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-                styles: { fontSize: 10, cellPadding: 3, halign: 'center' },
-                columnStyles: {
-                    0: { cellWidth: 20 }, // Sira
-                    1: { cellWidth: 80, halign: 'left' }, // Isim
-                    2: { halign: 'right' }, // Izin Ucreti
-                    3: { halign: 'right' }, // Mesai Ucreti
-                    4: { halign: 'right', fontStyle: 'bold' } // Toplam Ucret
-                }
-            });
-        }
-
-        doc.save(`Puantaj_${format(date, 'yyyy_MM')}.pdf`);
 
         doc.save(`Puantaj_${format(date, 'yyyy_MM')}.pdf`);
     };

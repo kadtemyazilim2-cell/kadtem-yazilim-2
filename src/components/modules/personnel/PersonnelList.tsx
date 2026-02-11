@@ -816,6 +816,9 @@ export function PersonnelList() {
         const tableColumn = ["Ad Soyad", "Görevi", ...daysInMonth.map((d: any) => format(d, 'dd')), "Ç (Gün)", "FM (Sa)", "İzin", "Hakediş"];
         const tableRows: any[] = [];
 
+        // Summary data collector for the bottom table
+        const summaryData: { name: string; workedDays: number; overtimeTotal: number; leaveDisplay: string; payment: number; paymentDisplay: string }[] = [];
+
         // Helper to generate rows
         const generateTableRows = (list: typeof personnel) => {
             return list.map((p: any) => {
@@ -864,19 +867,30 @@ export function PersonnelList() {
                     if (remaining > 0) leaveDisplay = remaining.toString();
                 }
 
-                // [NEW] Total Payment Calculation
+                // Total Payment Calculation
                 let paymentDisplay = '-';
+                let totalPayment = 0;
                 const salary = Number(p.salary) || 0;
                 if (salary > 0) {
                     const dailyWage = salary / 30;
                     const hourlyWage = salary / 225;
                     const overtimeWage = hourlyWage * 1.5;
 
-                    const totalPayment = (workedDays * dailyWage) + (overtimeTotal * overtimeWage);
+                    totalPayment = Math.round(((workedDays * dailyWage) + (overtimeTotal * overtimeWage)) * 100) / 100;
                     if (totalPayment > 0) {
                         paymentDisplay = totalPayment.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                     }
                 }
+
+                // Collect summary data for the bottom table (only if payment > 0)
+                summaryData.push({
+                    name: p.fullName,
+                    workedDays,
+                    overtimeTotal,
+                    leaveDisplay,
+                    payment: totalPayment,
+                    paymentDisplay: totalPayment > 0 ? paymentDisplay + ' TL' : '-'
+                });
 
                 return [
                     p.fullName,
@@ -1025,8 +1039,16 @@ export function PersonnelList() {
             }
         });
 
-        const finalY = (doc as any).lastAutoTable.finalY + 10;
-        let runningY = finalY;
+        let runningY = (doc as any).lastAutoTable.finalY + 10;
+
+
+
+        // === Açıklamalar ve Mesai Detayları ===
+        // Check page break
+        if (runningY > 180) {
+            doc.addPage();
+            runningY = 20;
+        }
 
         doc.setFontSize(10);
         doc.text("Açıklamalar ve Mesai Detayları:", 14, runningY);

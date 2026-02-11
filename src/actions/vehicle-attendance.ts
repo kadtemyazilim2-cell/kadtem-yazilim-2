@@ -5,59 +5,40 @@ import { VehicleAttendance } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { auth as getSession } from '@/auth';
 
+// NOTE: Save operations now use the API route at /api/vehicle-attendance/save
+// This server action is kept as a reference but is no longer called from the client.
 export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
-    const logs: string[] = [];
-    const log = (msg: string, ...args: any[]) => {
-        const line = msg + ' ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-        console.log(line);
-        logs.push(line);
-    };
-
-    log('--- Server Action: addVehicleAttendance START ---');
-    log('Payload:', data);
-
     try {
         const session = await getSession();
-        log('Session User:', session?.user?.id);
-
         let finalUserId = session?.user?.id;
         if (data.createdByUserId) finalUserId = data.createdByUserId;
 
-        // Validation
         if (!data.vehicleId || !data.date) {
-            console.error('❌ Missing required fields: vehicleId or date');
-            return { success: false, error: 'Eksik veri: Araç veya Tarih yok.', logs };
+            return { success: false, error: 'Eksik veri: Araç veya Tarih yok.' };
         }
 
-        // Normalize Date
-        let startOfDay;
-        if (typeof data.date === 'string') {
-            startOfDay = new Date(data.date);
-        } else {
-            startOfDay = new Date(data.date as Date);
-        }
+        const inputDate = typeof data.date === 'string' ? new Date(data.date) : new Date(data.date as Date);
 
-        // Force UTC Noon
-        startOfDay.setUTCHours(12, 0, 0, 0);
-
-        log('Normalized Date (UTC Noon):', startOfDay.toISOString());
-
-        // Use manual upsert
-        log(`Checking existence for Vehicle: ${data.vehicleId}, Date: ${startOfDay.toISOString()}`);
+        const startOfDay = new Date(inputDate);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        const endOfDay = new Date(inputDate);
+        endOfDay.setUTCHours(23, 59, 59, 999);
+        const targetDateNoon = new Date(inputDate);
+        targetDateNoon.setUTCHours(12, 0, 0, 0);
 
         const existingRecord = await prisma.vehicleAttendance.findFirst({
             where: {
                 vehicleId: data.vehicleId!,
-                date: startOfDay
+                date: { gte: startOfDay, lte: endOfDay }
             }
         });
 
         let result;
         if (existingRecord) {
-            log('✅ Found existing record:', existingRecord.id, '-> UPDATING');
             result = await prisma.vehicleAttendance.update({
                 where: { id: existingRecord.id },
                 data: {
+                    date: targetDateNoon,
                     status: data.status,
                     siteId: data.siteId,
                     hours: parseFloat(data.hours?.toString() || '0'),
@@ -65,50 +46,56 @@ export async function addVehicleAttendance(data: Partial<VehicleAttendance>) {
                     createdByUserId: finalUserId,
                 }
             });
-            log('Update Result ID:', result.id);
         } else {
-            log('🆕 New record -> CREATING');
-
-            if (!data.siteId) {
-                log('⚠️ Creating without Site ID! This might cause display issues.');
-            }
-
             result = await prisma.vehicleAttendance.create({
                 data: {
                     vehicleId: data.vehicleId!,
                     siteId: data.siteId!,
-                    date: startOfDay,
+                    date: targetDateNoon,
                     status: data.status || 'WORK',
                     hours: parseFloat(data.hours?.toString() || '0'),
                     note: data.note,
                     createdByUserId: finalUserId,
                 }
             });
-            log('Create Result ID:', result.id);
         }
 
-        revalidatePath('/dashboard/vehicle-attendance');
-        log('--- Server Action: addVehicleAttendance SUCCESS ---');
-        return { success: true, data: result, logs };
+        const plainResult = {
+            id: result.id,
+            vehicleId: result.vehicleId,
+            siteId: result.siteId || '',
+            date: result.date instanceof Date ? result.date.toISOString() : String(result.date),
+            status: result.status,
+            hours: Number(result.hours) || 0,
+            note: result.note || null,
+            createdByUserId: result.createdByUserId || null,
+        };
+
+        return { success: true as const, data: plainResult };
 
     } catch (error: any) {
-        console.error('❌ addVehicleAttendance EXCEPTION:', error);
-        log('EXCEPTION:', error.message);
-        return { success: false, error: 'Kayıt başarısız: ' + error.message, logs };
+        console.error('addVehicleAttendance error:', error);
+        return { success: false as const, error: 'Kayıt başarısız: ' + (error?.message || 'unknown') };
     }
 }
 
 export async function deleteVehicleAttendance(vehicleId: string, date: Date | string) {
     try {
-        const targetDate = new Date(date);
-        targetDate.setUTCHours(12, 0, 0, 0);
+        const inputDate = new Date(date);
 
-        console.log(`Server Action: Deleting for ${vehicleId} at ${targetDate.toISOString()}`);
+        const startOfDay = new Date(inputDate);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(inputDate);
+        endOfDay.setUTCHours(23, 59, 59, 999);
 
         const result = await prisma.vehicleAttendance.deleteMany({
             where: {
                 vehicleId: vehicleId,
-                date: targetDate
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
             }
         });
 
@@ -125,14 +112,6 @@ export async function deleteVehicleAttendance(vehicleId: string, date: Date | st
 }
 
 export async function getVehicleAttendanceList(siteId?: string, startDate?: Date, endDate?: Date) {
-    const logs: string[] = [];
-    const log = (msg: string, ...args: any[]) => {
-        const line = msg + ' ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
-        console.log(line);
-        logs.push(line);
-    };
-
-    log('Server Action: getVehicleAttendanceList called', { siteId, startDate, endDate });
     try {
         const whereClause: any = {};
 
@@ -147,8 +126,6 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             const end = new Date(endDate);
             end.setUTCHours(23, 59, 59, 999);
 
-            log('Server Action: Normalized Query Date Range:', { start: start.toISOString(), end: end.toISOString() });
-
             whereClause.date = {
                 gte: start,
                 lte: end
@@ -159,52 +136,38 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
             whereClause.date = { gte: cutoffDate };
         }
 
-        log('Server Action: Executing Query with:', JSON.stringify(whereClause, null, 2));
-
         const records = await prisma.vehicleAttendance.findMany({
             take: 2000,
             where: whereClause,
             include: {
-                vehicle: true,
+                vehicle: {
+                    select: {
+                        id: true,
+                        plate: true,
+                        brand: true,
+                        type: true,
+                        status: true,
+                        assignedSiteId: true,
+                    }
+                },
             },
             orderBy: {
                 date: 'desc'
             }
         });
 
-        log(`Server Action: Query Result Count: ${records.length}`);
-
-        // [DEBUG] Check if our specific target record is in the results
-        const targetId = 'cmlgglqr1000bfadb5dpg95gx';
-        const foundTarget = records.find(r => r.id === targetId);
-        if (foundTarget) {
-            log('✅ TARGET RECORD FOUND IN RESULTS:', targetId);
-        } else {
-            log('❌ TARGET RECORD NOT FOUND IN RESULTS:', targetId);
-            // Double check if it exists at all with a direct query
-            const directCheck = await prisma.vehicleAttendance.findUnique({ where: { id: targetId } });
-            if (directCheck) {
-                log('⚠️ Record exists in DB but missed by query filter!', directCheck);
-                log('Reason check -> Record Date:', directCheck.date.toISOString());
-                const s = new Date(startDate || ''); s.setUTCHours(0, 0, 0, 0);
-                const e = new Date(endDate || ''); e.setUTCHours(23, 59, 59, 999);
-                log('Compare: ', {
-                    recordDate: directCheck.date.getTime(),
-                    start: s.getTime(),
-                    end: e.getTime(),
-                    inRange: directCheck.date.getTime() >= s.getTime() && directCheck.date.getTime() <= e.getTime()
-                });
+        // Full serialization: convert ALL Date fields to ISO strings
+        // This prevents Next.js server action serialization failures
+        const serializedRecords = JSON.parse(JSON.stringify(records, (key, value) => {
+            if (value instanceof Date) {
+                return value.toISOString();
             }
-        }
-
-        const serializedRecords = records.map(record => ({
-            ...record,
-            date: record.date.toISOString(),
+            return value;
         }));
 
-        return { success: true, data: serializedRecords, logs };
+        return { success: true, data: serializedRecords };
     } catch (error: any) {
         console.error('getVehicleAttendanceList Error:', error);
-        return { success: false, error: 'Araç puantaj listesi alınamadı.', logs };
+        return { success: false, error: 'Araç puantaj listesi alınamadı.' };
     }
 }

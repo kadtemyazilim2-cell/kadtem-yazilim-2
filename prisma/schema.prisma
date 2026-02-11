@@ -20,12 +20,12 @@ enum Role {
 enum Status {
   ACTIVE
   INACTIVE
-  COMPLETED     // For Site
-  MAINTENANCE   // For Vehicle
-  SOLD          // For Vehicle
-  PASSIVE       // For Vehicle
-  LEFT          // For Personnel
-  DELETED       // For Correspondence
+  COMPLETED // For Site
+  MAINTENANCE // For Vehicle
+  SOLD // For Vehicle
+  PASSIVE // For Vehicle
+  LEFT // For Personnel
+  DELETED // For Correspondence
 }
 
 // -----------------------------------------------------------------------------
@@ -33,43 +33,43 @@ enum Status {
 // -----------------------------------------------------------------------------
 
 model User {
-  id                String   @id @default(cuid())
-  name              String
-  username          String   @unique
-  password          String?  // Hashed
-  email             String?
-  role              Role     @default(USER)
-  avatarUrl         String?
-  editLookbackDays  Int?     @default(0)
-  status            Status   @default(ACTIVE)
-  
+  id               String  @id @default(cuid())
+  name             String
+  username         String  @unique
+  password         String? // Hashed
+  email            String?
+  role             Role    @default(USER)
+  avatarUrl        String?
+  editLookbackDays Int?    @default(0)
+  status           Status  @default(ACTIVE)
+
   // Relations
-  permissions       Json?    // Stores Record<string, string[]>
-  
+  permissions Json? // Stores Record<string, string[]>
+
   // Many-to-Many via Join Tables or Implicit
-  assignedCompanies Company[] 
+  assignedCompanies Company[]
   assignedSites     Site[]
 
   // Audit Relations
   createdCorrespondences Correspondence[] @relation("CreatedCorrespondence")
   deletedCorrespondences Correspondence[] @relation("DeletedCorrespondence")
-  
-  createdTransactions    CashTransaction[] @relation("CreatedTransaction")
+
+  createdTransactions     CashTransaction[] @relation("CreatedTransaction")
   responsibleTransactions CashTransaction[] @relation("ResponsibleTransaction")
-  approvedTransactions   CashTransaction[] @relation("ApprovedTransaction")
-  
-  filledFuelLogs         FuelLog[]         @relation("FilledFuel")
-  createdFuelTransfers   FuelTransfer[]    @relation("CreatedTransfer")
-  
+  approvedTransactions    CashTransaction[] @relation("ApprovedTransaction")
+
+  filledFuelLogs       FuelLog[]      @relation("FilledFuel")
+  createdFuelTransfers FuelTransfer[] @relation("CreatedTransfer")
+
   createdPersonnelAttendance PersonnelAttendance[]
   createdVehicleAttendance   VehicleAttendance[]
-  siteLogs                   SiteLogEntry[]    @relation("SiteLogAuthor")
+  siteLogs                   SiteLogEntry[]        @relation("SiteLogAuthor")
 }
 
 model RoleTemplate {
   id          String   @id @default(cuid())
   name        String   @unique
-  permissions Json     // Stores Record<string, string[]>
+  permissions Json // Stores Record<string, string[]>
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -79,16 +79,16 @@ model RoleTemplate {
 // -----------------------------------------------------------------------------
 
 model Company {
-  id          String   @id @default(cuid())
-  name        String
-  logoUrl     String?
-  address     String?
-  status      Status   @default(ACTIVE)
-  stamp       String?  // Base64
-  letterhead  String?  // Base64
-  taxNumber   String?
-  phone       String?
-  
+  id         String  @id @default(cuid())
+  name       String
+  logoUrl    String?
+  address    String?
+  status     Status  @default(ACTIVE)
+  stamp      String? // Base64
+  letterhead String? // Base64
+  taxNumber  String?
+  phone      String?
+
   // SMTP Config (Embedded)
   smtpHost      String?
   smtpPort      Int?
@@ -97,13 +97,13 @@ model Company {
   smtpPass      String?
   smtpFromEmail String?
   smtpFromName  String?
-  
+
   // Document Numbering
-  currentDocumentNumber Int? @default(1)
+  currentDocumentNumber Int?    @default(1)
   shortName             String? // [NEW]
-  
+
   // Relations
-  sites           Site[]    @relation("SiteCompany")
+  sites           Site[]           @relation("SiteCompany")
   sitePartners    SitePartner[]
   users           User[]
   vehicles        Vehicle[]
@@ -111,49 +111,47 @@ model Company {
 }
 
 model Site {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation("SiteCompany", fields: [companyId], references: [id])
-  
-  name        String
-  location    String?
-  status      Status   @default(ACTIVE) // ACTIVE, INACTIVE, COMPLETED
-  
-  isWarehouse Boolean  @default(false)
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation("SiteCompany", fields: [companyId], references: [id])
+
+  name     String
+  location String?
+  status   Status  @default(ACTIVE) // ACTIVE, INACTIVE, COMPLETED
+
+  isWarehouse Boolean @default(false)
 
   // Construction Details
-  workGroup             String?
+  workGroup String?
 
+  orderNo          String?
+  projectNo        String?
+  registrationNo   String?
+  announcementDate DateTime?
+  tenderDate       DateTime?
+  contractDate     DateTime?
+  siteDeliveryDate DateTime?
 
-  orderNo               String?
-  projectNo             String?
-  registrationNo        String?
-  announcementDate      DateTime?
-  tenderDate            DateTime?
-  contractDate          DateTime?
-  siteDeliveryDate      DateTime?
-  
-  contractYiUfe         Float?   // Index value
+  contractYiUfe              Float? // Index value
   priceDifferenceCoefficient Float?
-  contractPrice         Float?
-  realizedAmount        Float?
-  kdv                   Float?
+  contractPrice              Float?
+  realizedAmount             Float?
+  kdv                        Float?
 
   priceDifference             Float?
   contractToCurrentUfeRatio   Float?
   currentUfeDate              DateTime?
   currentWorkExperienceAmount Float?
 
-
   provisionalAcceptanceDate DateTime?
   finalAcceptanceDate       DateTime?
   workExperienceCertificate String?
-  
-  completionDate        DateTime?
-  extendedDate          DateTime?
-  statusDetail          String?
-  
-  partnershipPercentage Float?
+
+  completionDate DateTime?
+  extendedDate   DateTime?
+  statusDetail   String?
+
+  partnershipPercentage    Float?
   provisionalAcceptanceDoc String?
   finalAcceptanceDoc       String?
   workExperienceDoc        String?
@@ -161,24 +159,24 @@ model Site {
   // similarWorkExperienceAmount Float? // [REMOVED] in favor of Relation
   similarWorks             SimilarWorkItem[] // [NEW] Relation
 
-  note                     String?
-  personnelCount           Int?     @default(0)
+  note           String?
+  personnelCount Int?    @default(0)
 
   // Join Venture Partners (Multiple)
-  partners        SitePartner[]
+  partners SitePartner[]
 
-  users           User[]
-  personnel       Personnel[] @relation("PersonnelPrimarySite")
+  users             User[]
+  personnel         Personnel[] @relation("PersonnelPrimarySite")
   assignedPersonnel Personnel[] @relation("PersonnelAssignedSites")
-  vehicles        Vehicle[]   @relation("PrimarySite")
-  activeVehicles  Vehicle[]   @relation("AssignedSites") // Many-to-Many for multi-assignment
-  
+  vehicles          Vehicle[]   @relation("PrimarySite")
+  activeVehicles    Vehicle[]   @relation("AssignedSites") // Many-to-Many for multi-assignment
+
   fuelTanks       FuelTank[]
   fuelLogs        FuelLog[]
   transactions    CashTransaction[]
   logs            SiteLogEntry[]
   correspondences Correspondence[]
-  
+
   // History
   assignmentHistory VehicleAssignmentHistory[]
 }
@@ -204,84 +202,84 @@ enum Ownership {
 }
 
 model Vehicle {
-  id              String      @id @default(cuid())
-  companyId       String
-  company         Company     @relation(fields: [companyId], references: [id])
-  
-  plate           String      @unique
-  brand           String
-  model           String
-  year            Int
-  type            VehicleType
-  meterType       String      // KM or HOURS
-  currentKm       Float
-  
-  status          Status      @default(ACTIVE)
-  ownership       Ownership   @default(OWNED)
-  
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  plate     String      @unique
+  brand     String
+  model     String
+  year      Int
+  type      VehicleType
+  meterType String // KM or HOURS
+  currentKm Float
+
+  status    Status    @default(ACTIVE)
+  ownership Ownership @default(OWNED)
+
   // Insurance
-  insuranceExpiry DateTime?
+  insuranceExpiry    DateTime?
   insuranceStartDate DateTime?
-  kaskoExpiry     DateTime?
-  kaskoStartDate  DateTime?
-  inspectionExpiry DateTime?
+  kaskoExpiry        DateTime?
+  kaskoStartDate     DateTime?
+  inspectionExpiry   DateTime?
   lastInspectionDate DateTime?
-  vehicleCardExpiry DateTime?
-  
-  insuranceAgency String?
+  vehicleCardExpiry  DateTime?
+
+  insuranceAgency  String?
   insuranceCompany String?
-  kaskoAgency     String?
-  kaskoCompany    String?
-  
-  insuranceCost   Float?
-  kaskoCost       Float?
-  
+  kaskoAgency      String?
+  kaskoCompany     String?
+
+  insuranceCost Float?
+  kaskoCost     Float?
+
   // Rental Info
   rentalCompanyName String?
   monthlyRentalFee  Float?
   rentalContact     String?
   rentalLastUpdate  DateTime? // [NEW] Added for tracking rental updates
-  
+
   // Details
-  engineNumber    String?
-  chassisNumber   String?
-  fuelType        String?
-  licenseFile     String? // Base64
-  
+  engineNumber  String?
+  chassisNumber String?
+  fuelType      String?
+  licenseFile   String? // Base64
+
   // Proposal History
-  lastTrafficProposalDate DateTime?
+  lastTrafficProposalDate     DateTime?
   lastTrafficProposalAgencies String[]
-  lastKaskoProposalDate DateTime?
-  lastKaskoProposalAgencies String[]
-  
+  lastKaskoProposalDate       DateTime?
+  lastKaskoProposalAgencies   String[]
+
   // Assignment
-  assignedSiteId  String?
-  assignedSite    Site?   @relation("PrimarySite", fields: [assignedSiteId], references: [id])
-  
-  assignedSites   Site[]  @relation("AssignedSites")
-  
+  assignedSiteId String?
+  assignedSite   Site?   @relation("PrimarySite", fields: [assignedSiteId], references: [id])
+
+  assignedSites Site[] @relation("AssignedSites")
+
   // Relations
-  fuelLogs        FuelLog[]
-  attendance      VehicleAttendance[]
-  transfersIn     FuelTransfer[] @relation("VehicleTo")
-  transfersOut    FuelTransfer[] @relation("VehicleFrom")
-  
+  fuelLogs     FuelLog[]
+  attendance   VehicleAttendance[]
+  transfersIn  FuelTransfer[]      @relation("VehicleTo")
+  transfersOut FuelTransfer[]      @relation("VehicleFrom")
+
   // History
   assignmentHistory VehicleAssignmentHistory[]
   insuranceHistory  Json? // [NEW] Added for policy history
 }
 
 model VehicleAssignmentHistory {
-  id        String    @id @default(cuid())
+  id        String  @id @default(cuid())
   vehicleId String
-  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  
-  siteId    String
-  site      Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
   startDate DateTime  @default(now())
   endDate   DateTime? // Null means currently active
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -289,49 +287,49 @@ model VehicleAssignmentHistory {
 }
 
 model Personnel {
-  id          String   @id @default(cuid())
-  fullName    String
-  role        String
-  tcNumber    String?
-  profession  String?
-  salary      Float?
-  category    String   // TECHNICAL, FIELD
-  status      Status   @default(ACTIVE)
-  
-  siteId      String?
-  site        Site?    @relation("PersonnelPrimarySite", fields: [siteId], references: [id])
-  assignedSites Site[] @relation("PersonnelAssignedSites")
-  
-  leftDate    DateTime?
-  startDate   DateTime?
-  note        String?
+  id         String  @id @default(cuid())
+  fullName   String
+  role       String
+  tcNumber   String?
+  profession String?
+  salary     Float?
+  category   String // TECHNICAL, FIELD
+  status     Status  @default(ACTIVE)
+
+  siteId        String?
+  site          Site?   @relation("PersonnelPrimarySite", fields: [siteId], references: [id])
+  assignedSites Site[]  @relation("PersonnelAssignedSites")
+
+  leftDate      DateTime?
+  startDate     DateTime?
+  note          String?
   salaryHistory Json? // [NEW] Added to store history of salary changes
 
   // [NEW] Fields for Independent View Parity
-  leaveAllowance String?  // Storing as String to match UI flexibility for now
-  hasOvertime    Boolean  @default(false)
-  
+  leaveAllowance String? // Storing as String to match UI flexibility for now
+  hasOvertime    Boolean @default(false)
+
   // Relations
-  attendance  PersonnelAttendance[]
+  attendance        PersonnelAttendance[]
   salaryAdjustments SalaryAdjustment[]
 }
 
 model SalaryAdjustment {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   personnelId String
   personnel   Personnel @relation(fields: [personnelId], references: [id], onDelete: Cascade)
-  
-  year        Int
-  month       Int
-  
-  bonus       Float?   // Prim
-  deduction   Float?   // Kesinti / Avans
-  workedDays  Float?   // Override
+
+  year  Int
+  month Int
+
+  bonus         Float? // Prim
+  deduction     Float? // Kesinti / Avans
+  workedDays    Float? // Override
   overtimeHours Float? // Override
-  note        String?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  note          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([personnelId, year, month])
 }
@@ -341,35 +339,35 @@ model SalaryAdjustment {
 // -----------------------------------------------------------------------------
 
 model PersonnelAttendance {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   personnelId String
   personnel   Personnel @relation(fields: [personnelId], references: [id])
-  
-  siteId      String
-  date        DateTime
-  
-  status      String   // WORK, LEAVE, SICK, ABSENT...
-  hours       Float
-  overtime    Float?
-  note        String?
-  weather     String?
-  
+
+  siteId String
+  date   DateTime
+
+  status   String // WORK, LEAVE, SICK, ABSENT...
+  hours    Float
+  overtime Float?
+  note     String?
+  weather  String?
+
   createdByUserId String?
   createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
 }
 
 model VehicleAttendance {
-  id          String   @id @default(cuid())
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
-  
-  siteId      String
-  date        DateTime
-  
-  status      String   // WORK, IDLE, REPAIR...
-  hours       Float
-  note        String?
-  
+  id        String  @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  siteId String
+  date   DateTime
+
+  status String // WORK, IDLE, REPAIR...
+  hours  Float
+  note   String?
+
   createdByUserId String?
   createdByUser   User?   @relation(fields: [createdByUserId], references: [id])
 
@@ -377,14 +375,14 @@ model VehicleAttendance {
 }
 
 model FuelTank {
-  id          String   @id @default(cuid())
-  siteId      String
-  site        Site     @relation(fields: [siteId], references: [id])
-  name        String
-  capacity    Float
+  id           String @id @default(cuid())
+  siteId       String
+  site         Site   @relation(fields: [siteId], references: [id])
+  name         String
+  capacity     Float
   currentLevel Float
-  status      Status   @default(ACTIVE)
-  
+  status       Status @default(ACTIVE)
+
   // Relations
   transfersIn  FuelTransfer[] @relation("TankTo")
   transfersOut FuelTransfer[] @relation("TankFrom")
@@ -392,16 +390,16 @@ model FuelTank {
 }
 
 model FuelLog {
-  id          String   @id @default(cuid())
-  vehicleId   String
-  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
-  
-  siteId      String
-  site        Site     @relation(fields: [siteId], references: [id])
-  
-  tankId      String?
-  tank        FuelTank? @relation("TankSource", fields: [tankId], references: [id])
-  
+  id        String  @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id])
+
+  tankId String?
+  tank   FuelTank? @relation("TankSource", fields: [tankId], references: [id])
+
   date        DateTime
   liters      Float
   cost        Float
@@ -409,55 +407,55 @@ model FuelLog {
   mileage     Float
   fullTank    Boolean
   description String?
-  
+
   filledByUserId String
   filledByUser   User   @relation("FilledFuel", fields: [filledByUserId], references: [id])
 }
 
 model FuelTransfer {
-  id          String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   date        DateTime
   amount      Float
   unitPrice   Float?
   totalCost   Float?
   description String?
-  
+
   // From
-  fromType    String   // TANK, VEHICLE, EXTERNAL
-  fromId      String   // ID or Name
-  fromTank    FuelTank? @relation("TankFrom", fields: [fromTankId], references: [id])
-  fromTankId  String?
-  fromVehicle Vehicle?  @relation("VehicleFrom", fields: [fromVehicleId], references: [id])
+  fromType      String // TANK, VEHICLE, EXTERNAL
+  fromId        String // ID or Name
+  fromTank      FuelTank? @relation("TankFrom", fields: [fromTankId], references: [id])
+  fromTankId    String?
+  fromVehicle   Vehicle?  @relation("VehicleFrom", fields: [fromVehicleId], references: [id])
   fromVehicleId String?
-  
+
   // To
-  toType      String   // TANK, VEHICLE
+  toType      String // TANK, VEHICLE
   toId        String
   toTank      FuelTank? @relation("TankTo", fields: [toTankId], references: [id])
   toTankId    String?
   toVehicle   Vehicle?  @relation("VehicleTo", fields: [toVehicleId], references: [id])
   toVehicleId String?
-  
+
   createdByUserId String
   createdByUser   User   @relation("CreatedTransfer", fields: [createdByUserId], references: [id])
 }
 
 model SiteLogEntry {
-  id          String   @id @default(cuid())
-  siteId      String
-  site        Site     @relation(fields: [siteId], references: [id])
-  
+  id     String @id @default(cuid())
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id])
+
   date        DateTime
   weather     String?
   temperature Float?
-  content     String   // Markdown
-  
-  authorId    String
-  author      User     @relation("SiteLogAuthor", fields: [authorId], references: [id])
-  
-  tags        String[]
-  images      String[]
+  content     String // Markdown
+
+  authorId String
+  author   User   @relation("SiteLogAuthor", fields: [authorId], references: [id])
+
+  tags   String[]
+  images String[]
 }
 
 // -----------------------------------------------------------------------------
@@ -470,68 +468,68 @@ enum PaymentMethod {
 }
 
 model CashTransaction {
-  id          String   @id @default(cuid())
-  siteId      String
-  site        Site     @relation(fields: [siteId], references: [id])
-  
+  id     String @id @default(cuid())
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id])
+
   date        DateTime
-  type        String   // INCOME, EXPENSE
+  type        String // INCOME, EXPENSE
   category    String
   amount      Float
   description String
   documentNo  String?
-  
+
   paymentMethod PaymentMethod? @default(CASH)
   imageUrl      String? // Base64
-  
+
   responsibleUserId String?
   responsibleUser   User?   @relation("ResponsibleTransaction", fields: [responsibleUserId], references: [id])
-  
-  createdByUserId   String
-  createdByUser     User    @relation("CreatedTransaction", fields: [createdByUserId], references: [id])
-  
-  approvedByUserId  String?
-  approvedByUser    User?   @relation("ApprovedTransaction", fields: [approvedByUserId], references: [id])
-  
-  createdAt   DateTime @default(now())
+
+  createdByUserId String
+  createdByUser   User   @relation("CreatedTransaction", fields: [createdByUserId], references: [id])
+
+  approvedByUserId String?
+  approvedByUser   User?   @relation("ApprovedTransaction", fields: [approvedByUserId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model Correspondence {
-  id          String   @id @default(cuid())
-  companyId   String
-  company     Company  @relation(fields: [companyId], references: [id])
-  
-  siteId      String?
-  site        Site?    @relation(fields: [siteId], references: [id])
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
 
-  date        DateTime
-  direction   String   // INCOMING, OUTGOING
-  type        String   // OFFICIAL, INTERNAL...
-  subject     String
-  description String
-  referenceNumber String?
-  senderReceiver String
+  siteId String?
+  site   Site?   @relation(fields: [siteId], references: [id])
+
+  date                    DateTime
+  direction               String // INCOMING, OUTGOING
+  type                    String // OFFICIAL, INTERNAL...
+  subject                 String
+  description             String
+  referenceNumber         String?
+  senderReceiver          String
   senderReceiverAlignment String? // left, center, right
-  
-  interest    String[]
-  appendices  String[]
+
+  interest           String[]
+  appendices         String[]
   registrationNumber String?
-  
+
   attachmentUrls String[]
-  
+
   createdByUserId String
   createdByUser   User   @relation("CreatedCorrespondence", fields: [createdByUserId], references: [id])
-  
-  status      Status   @default(ACTIVE)
-  
+
+  status Status @default(ACTIVE)
+
   deletedByUserId String?
-  deletedByUser   User?   @relation("DeletedCorrespondence", fields: [deletedByUserId], references: [id])
+  deletedByUser   User?     @relation("DeletedCorrespondence", fields: [deletedByUserId], references: [id])
   deletionReason  String?
   deletionDate    DateTime?
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   includeStamp Boolean @default(false) // [NEW]
 }
 
@@ -540,29 +538,29 @@ model YiUfeRate {
   year  Int
   month Int
   index Float
-  
+
   @@unique([year, month])
 }
 
 model Institution {
-  id          String   @id @default(cuid())
-  name        String
-  category    String? // BANK, INSURANCE...
-  alignment   String? // left, center, right
-  email       String?
-  phone       String?
-  mobile      String?
+  id            String  @id @default(cuid())
+  name          String
+  category      String? // BANK, INSURANCE...
+  alignment     String? // left, center, right
+  email         String?
+  phone         String?
+  mobile        String?
   contactPerson String?
   shortName     String? // [NEW]
-  status        Status   @default(ACTIVE)
+  status        Status  @default(ACTIVE)
 }
 
 model SitePartner {
-  id        String   @id @default(cuid())
-  siteId    String
-  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
+  id         String  @id @default(cuid())
+  siteId     String
+  site       Site    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id])
   percentage Float
 
   createdAt DateTime @default(now())
@@ -570,11 +568,34 @@ model SitePartner {
 }
 
 model SimilarWorkItem {
-  id          String   @id @default(cuid())
-  siteId      String
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  siteId String
+  site   Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  group  String // e.g. A-I, B-II
+  code   String? // e.g. III
+  amount Float? // Experience Amount
+}
+
+// -----------------------------------------------------------------------------
+// LIMIT VALUE CALCULATION (SINIR DEĞER)
+// -----------------------------------------------------------------------------
+
+model LimitValueCalculation {
+  id                String   @id @default(cuid())
+  tenderName        String?
+  tenderRegisterNo  String?  @default("-")
+  administration    String?
+  tenderDate        DateTime?
+  approxCost        Float
+  nCoefficient      Float
+  limitValue        Float
+  likelyWinner      String?
+  likelyWinnerDiscount Float?
   
-  group       String   // e.g. A-I, B-II
-  code        String?  // e.g. III
-  amount      Float?   // Experience Amount
+  // JSON field to store full result and bidders list for simplified "View" restoration
+  fullResultData    Json     
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

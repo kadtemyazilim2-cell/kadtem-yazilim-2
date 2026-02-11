@@ -333,8 +333,8 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     employmentHistory: newHistory,
                     transferHistory: transferHistory,
                     salaryHistory: showSalaryUpdate ? [
-                        ...(existingInactiveGlobal.salaryHistory || []),
-                        { amount: Number(newSalary), validFrom: salaryEffectiveDate }
+                        ...(existingInactiveGlobal.salaryHistory as any[] || []),
+                        { amount: Number(newSalary), validFrom: salaryEffectiveDate ? new Date(salaryEffectiveDate).toISOString() : new Date().toISOString() }
                     ] : (existingInactiveGlobal.salaryHistory || [])
                 };
 
@@ -366,8 +366,8 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
             note,
             // Handle Salary History
             salaryHistory: showSalaryUpdate ? [
-                ...(personnelToEdit?.salaryHistory || []),
-                { amount: Number(newSalary), validFrom: salaryEffectiveDate ? new Date(salaryEffectiveDate) : new Date() }
+                ...(personnelToEdit?.salaryHistory as any[] || []),
+                { amount: Number(newSalary), validFrom: salaryEffectiveDate ? new Date(salaryEffectiveDate).toISOString() : new Date().toISOString() }
             ] : (personnelToEdit?.salaryHistory || [])
         };
 
@@ -451,7 +451,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     <div className="space-y-1">
                         <Label>TC Kimlik No</Label>
                         <Input
-                            value={tcNumber}
+                            value={tcNumber ?? ''}
                             onChange={e => {
                                 const val = e.target.value.replace(/\D/g, '').slice(0, 11);
                                 setTcNumber(val);
@@ -469,7 +469,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     <div className="space-y-1">
                         <Label>Ad Soyad</Label>
                         <Input
-                            value={name}
+                            value={name ?? ''}
                             onChange={e => { setName(e.target.value); if (formErrors.name) setFormErrors({ ...formErrors, name: '' }); }}
                             placeholder="Ad Soyad"
                             className={formErrors.name ? "border-red-500" : ""}
@@ -498,7 +498,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     <div className="space-y-1">
                         <Label>Mesleği</Label>
                         <Input
-                            value={profession}
+                            value={profession ?? ''}
                             onChange={e => setProfession(e.target.value)}
                             placeholder="Örn: İnşaat Mühendisi"
                             className={formErrors.profession ? "border-red-500" : ""}
@@ -510,7 +510,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     <div className="space-y-1">
                         <Label>Görevi</Label>
                         <Input
-                            value={role}
+                            value={role ?? ''}
                             onChange={e => setRole(e.target.value)}
                             placeholder="Örn: Şantiye Şefi"
                             className={formErrors.role ? "border-red-500" : ""}
@@ -550,7 +550,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                             <div className="relative">
                                 <Input
                                     type="number"
-                                    value={salary}
+                                    value={salary ?? ''}
                                     onChange={e => {
                                         setSalary(e.target.value);
                                         if (formErrors.salary) setFormErrors({ ...formErrors, salary: '' });
@@ -571,7 +571,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                     <Label className="text-xs font-semibold text-blue-600">Yeni Maaş Tutarı</Label>
                                     <Input
                                         type="number"
-                                        value={newSalary}
+                                        value={newSalary ?? ''}
                                         onChange={e => setNewSalary(e.target.value)}
                                         placeholder="0.00"
                                         className="bg-white"
@@ -581,7 +581,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                                     <Label className="text-xs font-semibold text-blue-600">Geçerlilik Tarihi</Label>
                                     <Input
                                         type="date"
-                                        value={salaryEffectiveDate}
+                                        value={salaryEffectiveDate ?? ''}
                                         onChange={e => setSalaryEffectiveDate(e.target.value)}
                                         className="bg-white"
                                     />
@@ -638,7 +638,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                             <Label>Aylık İzin Hakkı (Gün)</Label>
                             <Input
                                 type="number"
-                                value={monthlyLeaveAllowance}
+                                value={monthlyLeaveAllowance ?? ''}
                                 onChange={e => setMonthlyLeaveAllowance(e.target.value)}
                                 placeholder="Örn: 2"
                             />
@@ -666,7 +666,7 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     <div className="space-y-1">
                         <Label>Notlar</Label>
                         <Input
-                            value={note}
+                            value={note ?? ''}
                             onChange={e => setNote(e.target.value)}
                             placeholder="Ek bilgiler..."
                         />

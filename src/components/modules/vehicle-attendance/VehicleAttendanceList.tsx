@@ -23,9 +23,8 @@ import { addTurkishFont } from '@/lib/pdf-font';
 import { useUserSites } from '@/hooks/use-user-access';
 import { useAuth } from '@/lib/store/use-auth';
 import { useEffect } from 'react';
-import { addVehicleAttendance, deleteVehicleAttendance } from '@/actions/vehicle-attendance';
+import { deleteVehicleAttendance, getVehicleAttendanceList } from '@/actions/vehicle-attendance';
 import { getVehicleAssignmentHistory } from '@/actions/vehicle';
-import { getVehicleAttendanceList } from '@/actions/vehicle-attendance'; // [NEW]
 import { VehicleForm } from '@/components/modules/vehicles/VehicleForm';
 
 
@@ -63,15 +62,7 @@ export function VehicleAttendanceList() {
             // New return signature: { success, data, logs }
             const result = await getVehicleAttendanceList(selectedSiteId, start, end);
 
-            // [DEBUG] Print Server Read Logs
-            if (result.logs) {
-                console.log('%c--- SERVER READ LOGS ---', 'color: #00ffff; font-weight: bold;');
-                result.logs.forEach((log: string) => console.log(`%c[READ] ${log}`, 'color: #00ffff;'));
-                console.log('%c------------------------', 'color: #00ffff; font-weight: bold;');
-            }
-
             if (result.success && Array.isArray(result.data)) {
-                console.log(`Client: Received ${result.data.length} records.`);
                 setVehicleAttendance(result.data as any);
             } else {
                 console.error('Client: Failed to load attendance', result.error);
@@ -103,48 +94,6 @@ export function VehicleAttendanceList() {
         if (!selectedSiteId) {
             alert('Lütfen önce şantiye seçiniz.');
             return;
-        }
-
-        // Temporal Validation
-        // 1. Check if vehicle has any history for this site in this month
-        const vehicleHistory = assignmentHistory.filter(h => h.vehicleId === vehicleId);
-
-        let isDateValid = false;
-
-        if (vehicleHistory.length > 0) {
-            // Strict check against history
-            isDateValid = vehicleHistory.some(h => {
-                const start = new Date(h.startDate);
-                const end = h.endDate ? new Date(h.endDate) : new Date('2999-12-31');
-                // Normalize dates
-                start.setHours(0, 0, 0, 0);
-                end.setHours(23, 59, 59, 999);
-                const target = new Date(date);
-                target.setHours(12, 0, 0, 0); // Mid-day to be safe
-                return target >= start && target <= end;
-            });
-        } else {
-            // Legacy / Fallback: If currently assigned, allow.
-            // But wait, if unassigned and NO history (legacy case where we just tracked status), 
-            // then it shouldn't be in the list?
-            // Actually, if we filter list by "Assigned", then it IS assigned.
-            const vehicle = vehicles.find((v: any) => v.id === vehicleId);
-            const isAssigned = (vehicle?.assignedSiteIds && vehicle.assignedSiteIds.includes(selectedSiteId)) || vehicle?.assignedSiteId === selectedSiteId;
-            isDateValid = !!isAssigned;
-        }
-
-        if (!isDateValid) {
-            // Allow clicking ONLY if record exists (to delete/view) but warn/readonly
-            const record = vehicleAttendance.find((a: any) =>
-                a.vehicleId === vehicleId &&
-                format(new Date(a.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
-            );
-
-            if (!record) {
-                alert('Bu tarihte araç şantiyeye atanmamış görünüyor. İşlem yapılamaz.');
-                return;
-            }
-            // If record exists but invalid date logic says invalid (e.g. unassigned later), allow viewing (ReadOnly handled later)
         }
 
         const record = vehicleAttendance.find((a: any) =>
@@ -226,7 +175,7 @@ export function VehicleAttendanceList() {
     };
 
     const handleQuickSave = async (newStatus: 'WORK' | 'HALF_DAY' | 'IDLE' | 'REPAIR' | 'NO_OPERATOR' | 'HOLIDAY') => {
-        if (!editingCell || !selectedSiteId || isReadOnly) return; // Block save if ReadOnly
+        if (!editingCell || !selectedSiteId || isReadOnly) return;
 
         // Check for cross-site conflict
         const targetDateStr = format(editingCell.date, 'yyyy-MM-dd');
@@ -246,54 +195,51 @@ export function VehicleAttendanceList() {
             id: tempId,
             vehicleId: editingCell.vehicleId,
             siteId: selectedSiteId,
-            date: new Date(targetDateStr), // Use Date object locally to match component expectations
+            date: new Date(targetDateStr),
             status: newStatus,
             hours: 8,
             createdByUserId: user?.id
         };
 
-        // 1. Optimistic Update (Prepend to mask existing)
+        // 1. Optimistic Update
         addLocal(optimisticPayload as any);
-        setIsDialogOpen(false); // Close immediately
+        setIsDialogOpen(false);
 
         const [y, m, d] = targetDateStr.split('-').map(Number);
-        // Create UTC Noon Date to ensure server receives correct day
         const utcDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 
         const payload = {
             vehicleId: editingCell.vehicleId,
             siteId: selectedSiteId,
-            date: utcDate,
+            date: utcDate.toISOString(),
             status: newStatus,
             hours: 8,
             createdByUserId: user?.id
         };
 
         try {
-            const res = await addVehicleAttendance(payload);
-
-            // [DEBUG] Print Server Logs
-            if (res.logs) {
-                console.log('%c--- SERVER SIDE LOGS ---', 'color: #00ff00; font-weight: bold;');
-                res.logs.forEach((log: string) => console.log(`%c[SERVER] ${log}`, 'color: #00ff00;'));
-                console.log('%c--------------------------', 'color: #00ff00; font-weight: bold;');
-            }
+            const response = await fetch('/api/vehicle-attendance/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const res = await response.json();
 
             // 2. Cleanup Temp
             deleteVehicleAttendanceById(tempId);
 
-            if (res.success && res.data) {
+            if (res?.success && res?.data) {
                 // 3. Replace with Real
                 addLocal(res.data as any);
-                console.log('Client: Success. Replaced temp with real ID:', res.data.id);
             } else {
-                console.error('Server returned failure:', res.error);
-                alert('Kayıt başarısız: ' + (res.error || 'Bilinmeyen hata'));
+                console.error('Vehicle attendance save failed:', res?.error);
+                alert('Kayıt başarısız: ' + (res?.error || 'Sunucudan yanıt alınamadı'));
             }
         } catch (error) {
             deleteVehicleAttendanceById(tempId);
-            console.error('Client Exception:', error);
-            alert('Bir hatayla karşılaşıldı.');
+            const errMsg = error instanceof Error ? error.message : String(error);
+            console.error('Vehicle attendance save error:', error);
+            alert('Sunucu hatası: ' + errMsg);
         }
     };
 
@@ -754,34 +700,19 @@ export function VehicleAttendanceList() {
                                                         })
                                                         .reduce((sum: any, l: any) => sum + Number(l.liters), 0) : 0;
 
-                                                    // Determine validity for styling
-                                                    let isValidDay = true;
-                                                    const vHistory = assignmentHistory.filter(h => h.vehicleId === v.id);
-
-                                                    if (vHistory.length > 0) {
-                                                        isValidDay = vHistory.some(h => {
-                                                            const start = new Date(h.startDate);
-                                                            const end = h.endDate ? new Date(h.endDate) : new Date('2999-12-31');
-                                                            start.setHours(0, 0, 0, 0);
-                                                            end.setHours(23, 59, 59, 999);
-                                                            const t = new Date(day);
-                                                            t.setHours(12, 0, 0, 0);
-                                                            return t >= start && t <= end;
-                                                        });
-                                                    } else {
-                                                        // Legacy fallback: if assigned, valid.
-                                                        const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) || v.assignedSiteId === selectedSiteId;
-                                                        isValidDay = !!isAssigned;
-                                                    }
+                                                    // All cells are valid for vehicles in activeVehicles
+                                                    // (activeVehicles already filters: assigned OR has data)
+                                                    // Click-time validation in handleCellClick handles date restrictions
+                                                    const isValidDay = true;
 
                                                     return (
                                                         <TableCell
                                                             key={day.toISOString()}
                                                             className={cn(
                                                                 "p-0 border-l h-10 transition-colors relative",
-                                                                isValidDay ? "cursor-pointer hover:bg-slate-100" : "bg-slate-50 opacity-60 cursor-not-allowed"
+                                                                "cursor-pointer hover:bg-slate-100"
                                                             )}
-                                                            onClick={isValidDay ? () => handleCellClick(v.id, day) : undefined}
+                                                            onClick={() => handleCellClick(v.id, day)}
                                                         >
                                                             <div className="relative w-full h-full flex items-center justify-center">
                                                                 {displayRecord ? getStatusBadge(displayRecord.status) : null}
