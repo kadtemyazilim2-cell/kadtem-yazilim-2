@@ -469,8 +469,8 @@ export function CorrespondenceList() {
         document.body.removeChild(link);
     };
 
-    const handlePrint = (item: any) => {
-        generateCorrespondencePDF(item, companies, users, false);
+    const handlePrint = async (item: any) => {
+        await generateCorrespondencePDF(item, companies, users, false);
     };
 
     const bankItems = activeCorrespondences.filter((c: any) => c.type === 'BANK');

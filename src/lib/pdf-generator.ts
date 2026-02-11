@@ -4,7 +4,7 @@ import { addTurkishFont } from '@/lib/pdf-font';
 import { format } from 'date-fns';
 import { IKIKAT_LOGO_BASE64, KADTEM_LOGO_BASE64 } from '@/lib/logos';
 
-export const generateCorrespondencePDF = (item: any, companies: any[], users: any[], isPreview = false) => {
+export const generateCorrespondencePDF = async (item: any, companies: any[], users: any[], isPreview = false) => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     addTurkishFont(doc);
     const fontName = 'Roboto';
@@ -416,27 +416,30 @@ export const generateCorrespondencePDF = (item: any, companies: any[], users: an
 
 
 
-    // [NEW] Stamp Logic
+    // [NEW] Stamp Logic - stamp artık companies array'inde yok, ihtiyaç halinde çekiyoruz
     if ((item as any).includeStamp) {
         const company = companies.find(c => c.id === item.companyId);
-        if (company && company.stamp) {
+        if (company) {
             try {
-                const imgProps = doc.getImageProperties(company.stamp);
-                const stampWidth = 40; // Approx 4cm width
-                const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
+                // [PERF] stamp'ı sadece ihtiyaç duyulduğunda çek
+                const { getCompanyFull } = await import('@/actions/company');
+                const fullResult = await getCompanyFull(company.id);
+                const stampData = fullResult.success && fullResult.data ? fullResult.data.stamp : null;
 
-                // Check page overflow
-                if (yPos + stampHeight > 280) {
-                    doc.addPage();
-                    yPos = 20;
+                if (stampData) {
+                    const imgProps = doc.getImageProperties(stampData);
+                    const stampWidth = 40; // Approx 4cm width
+                    const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
+
+                    // Check page overflow
+                    if (yPos + stampHeight > 280) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    doc.addImage(stampData, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
+                    yPos += stampHeight;
                 }
-
-                // x: 130 seems reasonable for right side. yPos is currently TextEnd + 15.
-                // User wants 2 lines (~10mm) below text. So yPos - 5.
-                doc.addImage(company.stamp, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
-
-                // Advance cursor for next sections (Attachments)
-                yPos += stampHeight;
             } catch (e) {
                 console.error('Error adding stamp:', e);
             }

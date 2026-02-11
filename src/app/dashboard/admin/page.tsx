@@ -15,7 +15,7 @@ import {
 } from '@/actions/yiufe';
 import { createSite, deleteSite as deleteSiteAction, getSites, updateSite as updateSiteAction } from '@/actions/site';
 import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel'; // [NEW]
-import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction, checkCompanyDependencies } from '@/actions/company'; // [NEW]
+import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction, checkCompanyDependencies, getCompanyFull } from '@/actions/company'; // [NEW]
 import { resetDatabase } from '@/actions/system';
 import { createRoleTemplate, getRoleTemplates, deleteRoleTemplate } from '@/actions/role-template'; // [NEW]
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
@@ -887,15 +887,22 @@ export default function AdminPage() {
         setCompanyModalOpen(true);
     };
 
-    const openEditCompanyModal = (company: any) => {
+    const openEditCompanyModal = async (company: any) => {
         setIsEditingCompany(true);
         setSelectedCompanyId(company.id);
         setCompanyName(company.name);
         setCompanyTaxNumber(company.taxNumber || '');
         setCompanyAddress(company.address || '');
         setCompanyPhone(company.phone || '');
-        setCompanyStamp(company.stamp || null);
-        setCompanyLetterhead(company.letterhead || null);
+        // [PERF] stamp ve letterhead artık global store'da yok, ihtiyaç halinde çekiyoruz
+        const fullResult = await getCompanyFull(company.id);
+        if (fullResult.success && fullResult.data) {
+            setCompanyStamp(fullResult.data.stamp || null);
+            setCompanyLetterhead(fullResult.data.letterhead || null);
+        } else {
+            setCompanyStamp(null);
+            setCompanyLetterhead(null);
+        }
         setCompanyDocumentNumber(company.currentDocumentNumber?.toString() || '1');
         setCompanyShortName(company.shortName || ''); // [NEW]
 

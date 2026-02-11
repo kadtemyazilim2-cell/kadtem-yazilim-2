@@ -341,8 +341,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         }
     };
 
-    const handlePreview = () => {
-        generateCorrespondencePDF(formData, companies, users, true);
+    const handlePreview = async () => {
+        await generateCorrespondencePDF(formData, companies, users, true);
     };
 
     // execCmd moved to SimpleRichTextEditor

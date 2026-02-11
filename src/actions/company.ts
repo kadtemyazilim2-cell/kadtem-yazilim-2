@@ -7,12 +7,61 @@ import { auth } from '@/auth';
 
 export async function getCompanies() {
     try {
+        // [PERF] stamp ve letterhead base64 alanları hariç tutuluyor
+        // Bu alanlar her biri MB'larca büyüklükte olabilir ve
+        // her sayfa yüklemesinde RSC payload'a gömülüyordu
+        const companies = await prisma.company.findMany({
+            orderBy: { name: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                logoUrl: true,
+                address: true,
+                status: true,
+                taxNumber: true,
+                phone: true,
+                smtpHost: true,
+                smtpPort: true,
+                smtpSecure: true,
+                smtpUser: true,
+                smtpPass: true,
+                smtpFromEmail: true,
+                smtpFromName: true,
+                currentDocumentNumber: true,
+                shortName: true,
+                // stamp: EXCLUDED (base64, ~1-5MB)
+                // letterhead: EXCLUDED (base64, ~1-5MB)
+            }
+        });
+        return { success: true, data: companies };
+    } catch (error) {
+        console.error('getCompanies Error:', error);
+        return { success: false, error: 'Firmalar getirilirken hata oluştu.' };
+    }
+}
+
+// [NEW] Stamp ve letterhead dahil tam firma verisi (Admin sayfası ve PDF üretimi için)
+export async function getCompanyFull(id: string) {
+    try {
+        const company = await prisma.company.findUnique({
+            where: { id }
+        });
+        return { success: true, data: company };
+    } catch (error) {
+        console.error('getCompanyFull Error:', error);
+        return { success: false, error: 'Firma detayları getirilemedi.' };
+    }
+}
+
+// [NEW] Admin sayfası için tüm alanlarla birlikte firmalar
+export async function getCompaniesFull() {
+    try {
         const companies = await prisma.company.findMany({
             orderBy: { name: 'asc' }
         });
         return { success: true, data: companies };
     } catch (error) {
-        console.error('getCompanies Error:', error);
+        console.error('getCompaniesFull Error:', error);
         return { success: false, error: 'Firmalar getirilirken hata oluştu.' };
     }
 }
