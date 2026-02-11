@@ -68,6 +68,7 @@ interface CalculationResult {
 export function LimitValueCalculation() {
     const [file, setFile] = useState<File | null>(null);
     const [isParsing, setIsParsing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false); // Moved here
     const [bidders, setBidders] = useState<Bidder[]>([]);
     const [approxCost, setApproxCost] = useState<number>(0);
     const [nCoefficient, setNCoefficient] = useState<string>('1.00');
@@ -98,16 +99,18 @@ export function LimitValueCalculation() {
 
     // Filters State
     const [historyFilters, setHistoryFilters] = useState({
-        date: '',
         registerNo: '',
+        date: '',
+        group: '',
         name: '',
         cost: '',
         limit: '',
-        group: '',
         winner: '',
         amount: '',
         discount: ''
     });
+
+    // Missing state from previous edit (Removed)
 
     // Initial Load
     React.useEffect(() => {
@@ -167,6 +170,11 @@ export function LimitValueCalculation() {
     const handleSaveCalculation = async () => {
         if (!result || bidders.length === 0) {
             toast.error('Kaydedilecek veri bulunamadı. Lütfen önce hesaplama yapın.');
+            return;
+        }
+
+        if (!businessGroup) {
+            toast.error('Lütfen bir İş Grubu seçiniz. (Zorunlu)');
             return;
         }
 
@@ -405,15 +413,41 @@ export function LimitValueCalculation() {
 
         // Helper Regex Patterns
         const patterns = {
-            moneyStart: /^([\d\.]+,\d{2})\s*(?:TRY|TL)/i, // Line starts with money
-            moneyAny: /([\d\.]+,\d{2})\s*(?:TRY|TL)/i, // Line contains money anywhere
-            date: /\d{2}\.\d{2}\.\d{4}/, // Simple date check
-            dateTimeExtract: /(.+?)\s*-\s*(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})/, // Name - Date Time
+            moneyStart: /^([\d\.,]+)\s*(?:TRY|TL)/i, // Capture generalized number format at start
+            moneyAny: /([\d\.,]+)\s*(?:TRY|TL)/i, // Capture generalized number format anywhere
+            date: /\d{2}\.\d{2}\.\d{4}/,
+            dateTimeExtract: /(.+?)\s*-\s*(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2})/,
             statusKeywords: /yasaklı|uygun|kontrol|geçersiz|elendi|teminat|borcu/i
         };
 
         const parseTurkishMoney = (str: string): number => {
-            const clean = str.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
+            // Remove everything except digits, dots, commas
+            let clean = str.replace(/[^0-9.,]/g, '');
+
+            // Logic:
+            // 1. If comma exists, assume TR format (1.250,50) -> remove dots, replace comma with dot.
+            // 2. If NO comma, but dots exist:
+            //    - If last part after split is 2 digits (e.g. 12.50 or 1.250.50), treat last dot as decimal.
+            //    - Otherwise (e.g. 1.250 or 1.000.000), treat dots as thousands separator.
+
+            if (clean.includes(',')) {
+                clean = clean.replace(/\./g, '').replace(',', '.');
+            } else if (clean.includes('.')) {
+                const parts = clean.split('.');
+                const lastPart = parts[parts.length - 1];
+
+                // If last part is exactly 2 digits, assume it's cents (TR/EU uses comma but user said "mixes dot")
+                // User Request: "nokta olarak geliyor onları virgül olarak algıla"
+                if (lastPart.length === 2) {
+                    // Reassemble: join all but last with nothing, then add dot
+                    const integerPart = parts.slice(0, -1).join('');
+                    clean = `${integerPart}.${lastPart}`;
+                } else {
+                    // Assume thousands separator
+                    clean = clean.replace(/\./g, '');
+                }
+            }
+
             return parseFloat(clean);
         };
 
