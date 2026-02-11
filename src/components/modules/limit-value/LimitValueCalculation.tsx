@@ -208,8 +208,10 @@ export function LimitValueCalculation() {
                 result,
                 metadata,
                 approxCost,
-                businessGroup // Save for reload
-            }
+                businessGroup, // Save for reload
+                hasManualEdits // Save edit status
+            },
+            hasManualEdits // Pass to server action if schema supports it or for logic
         };
 
         const res = await saveCalculation({
@@ -233,8 +235,9 @@ export function LimitValueCalculation() {
         setResult(data.result || null);
         setMetadata(data.metadata || {});
         setApproxCost(data.approxCost || 0);
-        // nCoefficient is string in state, but number in history. Convert if needed
-        // Actually nCoefficient state is string in this component
+        setHasManualEdits(data.hasManualEdits || false);
+
+        // nCoefficient is string in state, but number in history
         if (data.result?.nCoefficient) {
             setNCoefficient(data.result.nCoefficient.toString());
         }
@@ -267,49 +270,53 @@ export function LimitValueCalculation() {
             // Remove TL, spaces, etc.
             let raw = value.replace(/[^0-9,.]/g, '');
 
-            // Handle Turkish format: 1.250,50 -> 1250.50
-            // Also handle plain format: 1250,50 -> 1250.50
-            // If user uses dot for decimal: 1250.50 -> 1250.50 (need care)
-
-            // Strategy:
-            // 1. If contains comma, replace dots with nothing, then comma with dot.
-            // 2. If NO comma, but contains dot:
-            //    - if multiple dots: remove all (thousands).
-            //    - if single dot: assume decimal? Or assume thousand if 3 digits follow?
-            //    Let's stick to standard TR format strictly as requested "virgülü algıla".
-
+            // Unified Logic with parseTurkishMoney strategy
             if (raw.includes(',')) {
-                raw = raw.replace(/\./g, ''); // remove thousands dots
-                raw = raw.replace(',', '.');  // replace decimal comma
-            } else {
-                // No comma.
-                // If like "1.500", treat as 1500.
-                // If "1500", treat as 1500.
-                raw = raw.replace(/\./g, '');
+                raw = raw.replace(/\./g, '').replace(',', '.');
+            } else if (raw.includes('.')) {
+                const parts = raw.split('.');
+                const lastPart = parts[parts.length - 1];
+                // If last part is 1 or 2 digits, assume decimal
+                if (lastPart.length === 1 || lastPart.length === 2) {
+                    const integerPart = parts.slice(0, -1).join('');
+                    raw = `${integerPart}.${lastPart}`;
+                } else {
+                    raw = raw.replace(/\./g, '');
+                }
             }
 
             const numVal = parseFloat(raw);
 
             if (isNaN(numVal)) {
-                // Don't update if invalid, or reset? Let's just return to stop corruption.
-                // But we need to cancel edit mode.
-                // toast.error('Geçersiz sayı formatı');
-                setEditingCell(null);
+                // setEditingCell(null); // Optional: keep editing if invalid?
                 return;
             }
 
             const newBidders = [...bidders];
-            newBidders[index] = { ...newBidders[index], amount: numVal };
+            newBidders[index] = {
+                ...newBidders[index],
+                amount: numVal,
+                // Mark as manually edited if it wasn't before
+                // We don't have a per-row manual edit flag in Bidder, but we set global hasManualEdits
+            };
 
+            // Re-sort? Maybe not while editing to prevent jumping
+            // But user might want to see effect immediately. 
+            // Better to re-sort on save or blur. Function runs on blur/enter.
             newBidders.sort((a, b) => a.amount - b.amount);
 
             setBidders(newBidders);
-            setHasManualEdits(true);
-            setEditingCell(null);
+            setHasManualEdits(true); // Flag global change
 
-            if (approxCost > 0) {
+            // Recalculate immediately
+            if (newBidders.length > 0) {
+                // Cost might need update? No, approx cost is separate.
                 calculateResults(approxCost, newBidders, nCoefficient);
             }
+
+            setEditingCell(null);
+        } else {
+            // ... name edit etc ...
         }
     };
 
@@ -1234,7 +1241,7 @@ export function LimitValueCalculation() {
                                                     <Input
                                                         autoFocus
                                                         className="h-8 text-right font-mono absolute inset-0 w-full h-full border-2 border-blue-500 rounded-none z-10"
-                                                        defaultValue={bidder.amount}
+                                                        defaultValue={bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, useGrouping: false })}
                                                         onClick={(e) => e.stopPropagation()}
                                                         onBlur={(e) => handleBidderEdit(idx, 'amount', e.target.value)}
                                                         onKeyDown={(e) => {
@@ -1298,7 +1305,7 @@ export function LimitValueCalculation() {
                         <div className="mt-4 flex justify-end">
                             <Dialog open={isAddBidderOpen} onOpenChange={setIsAddBidderOpen}>
                                 <DialogTrigger asChild>
-                                    <Button className="gap-2">
+                                    <Button className="gap-2" disabled={!result}>
                                         <Plus className="w-4 h-4" /> Yeni Katılımcı Ekle
                                     </Button>
                                 </DialogTrigger>
@@ -1441,12 +1448,18 @@ export function LimitValueCalculation() {
                                                 <TableCell>
                                                     {record.businessGroup ? <Badge variant="outline" className="text-[10px] px-1 py-0">{record.businessGroup}</Badge> : '-'}
                                                 </TableCell>
-                                                <TableCell className="max-w-[180px] truncate text-xs" title={record.tenderName || ''}>
+                                                <TableCell
+                                                    className={cn(
+                                                        "max-w-[180px] truncate text-xs relative group",
+                                                        (record.hasManualEdits || record.fullResultData?.hasManualEdits) && "bg-red-50 text-red-700 font-medium ring-1 ring-inset ring-red-200"
+                                                    )}
+                                                    title={record.tenderName || ''}
+                                                >
                                                     {record.tenderName || '-'}
-                                                    {record.hasManualEdits && (
-                                                        <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1 bg-red-600 text-white hover:bg-red-700 border-red-700">
+                                                    {(record.hasManualEdits || record.fullResultData?.hasManualEdits) && (
+                                                        <span className="hidden group-hover:inline absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded">
                                                             DÜZENLENDİ
-                                                        </Badge>
+                                                        </span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-right text-xs font-mono">
