@@ -153,7 +153,8 @@ export default function NewPage() {
     // Site Filter State
     const [selectedSiteId, setSelectedSiteId] = useState<string>('');
 
-    // [NEW] Persist Selection
+    // [REMOVED] Persist Selection (User requested auto-reset)
+    /*
     useEffect(() => {
         const saved = localStorage.getItem('personnel_selectedSiteId');
         if (saved && !selectedSiteId) {
@@ -166,6 +167,7 @@ export default function NewPage() {
             localStorage.setItem('personnel_selectedSiteId', selectedSiteId);
         }
     }, [selectedSiteId]);
+    */
 
     // Auto-select site if only one available (overrides storage if conflict? No, strict restriction)
     useEffect(() => {
