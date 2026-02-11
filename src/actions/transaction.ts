@@ -20,7 +20,7 @@ function logToDebug(message: string) {
 // ...
 
 export async function getAllTransactions() {
-    noStore();
+    // noStore removed — cache managed at page level
     try {
         const session = await import('@/auth').then(m => m.auth());
         if (!session?.user?.id) {

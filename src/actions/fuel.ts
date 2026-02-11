@@ -2,13 +2,13 @@
 
 import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
-import { revalidatePath, revalidateTag, unstable_cache, unstable_noStore as noStore } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 // [PERFORMANCE] Cached fuel logs query - CACHE ABORTED FOR DEBUGGING
 // const getFuelLogsFromDb = unstable_cache(...)
 
 export async function getFuelLogs(limit?: number) {
-    noStore(); // [CRITICAL] Opt out of static caching
+    // Cache managed at page level via unstable_cache
     console.log('[getFuelLogs] Fetching fresh fuel logs at', new Date().toISOString());
     try {
         const logs = await prisma.fuelLog.findMany({
@@ -213,7 +213,7 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 // const getFuelTanksFromDb = unstable_cache(...)
 
 export async function getFuelTanks() {
-    noStore(); // [CRITICAL]
+    // Cache managed at page level via unstable_cache
     try {
         const tanks = await prisma.fuelTank.findMany({
             include: { site: true }
@@ -269,7 +269,7 @@ export async function deleteFuelTank(id: string) {
 // const getFuelTransfersFromDb = unstable_cache(...)
 
 export async function getFuelTransfers(limit?: number) {
-    noStore(); // [CRITICAL]
+    // Cache managed at page level via unstable_cache
     try {
         const transfers = await prisma.fuelTransfer.findMany({
             take: limit || 1000, // [PERFORMANCE] Limit to last 1000 records
