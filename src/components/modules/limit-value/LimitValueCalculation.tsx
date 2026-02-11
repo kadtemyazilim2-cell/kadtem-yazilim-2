@@ -689,8 +689,11 @@ export function LimitValueCalculation() {
         const filename = `Sinir_Deger_Hesabi_${metadata.tenderRegisterNo || 'Rapor'}.pdf`;
         const file = new File([blob], filename, { type: 'application/pdf' });
 
-        // 1. Try Native Share (Mobile / Modern Desktop)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Simple mobile detection
+        const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+        // 1. Try Native Share (Only on Mobile)
+        if (isMobile && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
                 await navigator.share({
                     files: [file],
@@ -709,7 +712,7 @@ export function LimitValueCalculation() {
             }
         }
 
-        // 2. Fallback: Download + Open WhatsApp Desktop App
+        // 2. Desktop Flow: Download + Open WhatsApp Desktop App
         doc.save(filename);
         toast.info("PDF indirildi. WhatsApp uygulaması açılıyor, lütfen dosyayı sohbete sürükleyiniz.");
 
@@ -1076,6 +1079,7 @@ export function LimitValueCalculation() {
                                     <TableHead>İşin Adı</TableHead>
                                     <TableHead className="text-right">Yaklaşık Maliyet</TableHead>
                                     <TableHead className="text-right">Sınır Değer</TableHead>
+                                    <TableHead>Kazanan Firma</TableHead>
                                     <TableHead className="text-right">Kazanan Teklif</TableHead>
                                     <TableHead className="text-center">Kazanan Tenzilat</TableHead>
                                     <TableHead className="text-right">İşlem</TableHead>
@@ -1084,7 +1088,7 @@ export function LimitValueCalculation() {
                             <TableBody>
                                 {history.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                                             Henüz kaydedilmiş bir hesaplama bulunmuyor.
                                         </TableCell>
                                     </TableRow>
@@ -1107,6 +1111,11 @@ export function LimitValueCalculation() {
                                             </TableCell>
                                             <TableCell className="text-right font-medium text-yellow-700">
                                                 {record.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="font-medium truncate max-w-[200px]" title={record.likelyWinner}>
+                                                    {shortenCompanyName(record.likelyWinner || '-')}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right font-medium">
                                                 {record.fullResultData?.bidders?.find((b: any) => b.name === record.likelyWinner)?.amount
