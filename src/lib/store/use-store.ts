@@ -286,7 +286,9 @@ export const useAppStore = create<AppState>()(
             removeVehiclesFromSite: (vehicleIds, siteId) => set((state) => ({
                 vehicles: state.vehicles.map(v => vehicleIds.includes(v.id) ? {
                     ...v,
-                    assignedSiteIds: (v.assignedSiteIds || []).filter(id => id !== siteId)
+                    assignedSiteIds: (v.assignedSiteIds || []).filter(id => id !== siteId),
+                    // Also clear legacy singular field if it matches
+                    assignedSiteId: v.assignedSiteId === siteId ? undefined : v.assignedSiteId
                 } : v)
             })),
             setYiUfeRates: (rates) => set({ yiUfeRates: rates }),

@@ -447,14 +447,19 @@ export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string
 
                 if (!vehicle) continue;
 
-                // 1. Update Relation
+                // 1. Update Relation + clear legacy assignedSiteId if needed
+                const updateData: any = {
+                    assignedSites: {
+                        disconnect: siteIds.map(sid => ({ id: sid }))
+                    }
+                };
+                // Clear legacy singular field if it matches a site being removed
+                if (vehicle.assignedSiteId && siteIds.includes(vehicle.assignedSiteId)) {
+                    updateData.assignedSiteId = null;
+                }
                 await tx.vehicle.update({
                     where: { id: vId },
-                    data: {
-                        assignedSites: {
-                            disconnect: siteIds.map(sid => ({ id: sid }))
-                        }
-                    }
+                    data: updateData
                 });
 
                 // 2. Handle History
