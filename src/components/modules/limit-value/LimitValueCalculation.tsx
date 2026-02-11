@@ -58,7 +58,16 @@ interface CalculationResult {
     sigmaLower: number;   // Standart Sapma (Alt)
     sigmaUpper: number;   // Standart Sapma (Üst)
     likelyWinner: string; // Muhtemel Kazanan
+    businessGroup?: string;
 }
+
+const BUSINESS_GROUPS = [
+    'Toplulaştırma',
+    'Toplulaştırma İkmal',
+    'Drenaj',
+    'Üst Yapı',
+    'Taşkın Koruma'
+];
 
 export function LimitValueCalculation() {
     const [file, setFile] = useState<File | null>(null);
@@ -68,6 +77,7 @@ export function LimitValueCalculation() {
     const [nCoefficient, setNCoefficient] = useState<string>('1.00');
     const [result, setResult] = useState<CalculationResult | null>(null);
     const [metadata, setMetadata] = useState<TenderMetadata>({});
+    const [businessGroup, setBusinessGroup] = useState<string>('');
     const [rawText, setRawText] = useState<string>('');
 
     // New Bidder Modal State
@@ -80,6 +90,19 @@ export function LimitValueCalculation() {
     const [activeTab, setActiveTab] = useState('calculation');
     const [history, setHistory] = useState<any[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    // Filters State
+    const [historyFilters, setHistoryFilters] = useState({
+        date: '',
+        registerNo: '',
+        name: '',
+        cost: '',
+        limit: '',
+        group: '',
+        winner: '',
+        amount: '',
+        discount: ''
+    });
 
     // Initial Load of History
     React.useEffect(() => {
@@ -130,11 +153,15 @@ export function LimitValueCalculation() {
                 bidders,
                 result,
                 metadata,
-                approxCost
+                approxCost,
+                businessGroup // Save for reload
             }
         };
 
-        const res = await saveCalculation(saveData);
+        const res = await saveCalculation({
+            ...saveData,
+            businessGroup // Add to root level for DB
+        });
 
         if (res.success) {
             toast.success('Hesaplama başarıyla kaydedildi.', { id: toastId });
@@ -156,6 +183,11 @@ export function LimitValueCalculation() {
         // Actually nCoefficient state is string in this component
         if (data.result?.nCoefficient) {
             setNCoefficient(data.result.nCoefficient.toString());
+        }
+        if (data.businessGroup) {
+            setBusinessGroup(data.businessGroup);
+        } else {
+            setBusinessGroup('');
         }
 
         setActiveTab('calculation');
@@ -490,7 +522,8 @@ export function LimitValueCalculation() {
             tort2: Tort2,
             sigmaLower,
             sigmaUpper,
-            likelyWinner
+            likelyWinner,
+            businessGroup
         });
     };
 
@@ -627,14 +660,10 @@ export function LimitValueCalculation() {
                 ['İdare Adı', metadata.administrationName || '-'],
                 ['İşin Adı / İKN', `${metadata.tenderName || ''} / ${metadata.tenderRegisterNo || ''}`],
                 ['İhale Tarihi', metadata.tenderDate || '-'],
+                ['İş Grubu', businessGroup || '-'],
                 ['Yaklaşık Maliyet', `${approxCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`],
                 ['Sınır Değer', `${result.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`],
                 ['N Katsayısı', result.nCoefficient.toFixed(2)],
-                ['Ortalama-1 / Ortalama-2', `${result.mean1.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} / ${result.mean2.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`],
-                ['Alt Sınır (T1) / Üst Sınır (T2)', `${result.tort1.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} / ${result.tort2.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`],
-                ['Standart Sapma (σ)', result.stdDev.toLocaleString('tr-TR', { minimumFractionDigits: 2 })],
-                ['Standart Sapma (Alt/Üst)', `${result.sigmaLower.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} / ${result.sigmaUpper.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`],
-                ['C Değeri / K Değeri', `${result.cValue.toFixed(3)} / ${result.kValue.toFixed(3)}`],
                 ['Muhtemel Kazanan', result.likelyWinner]
             ];
 
@@ -773,6 +802,11 @@ export function LimitValueCalculation() {
                         <History className="w-4 h-4" />
                         Geçmiş İhaleler
                     </TabsTrigger>
+                    <TabsTrigger value="business-groups" className="gap-2">
+                        <FileText className="w-4 h-4" />
+                        İş Grupları
+                    </TabsTrigger>
+
                 </TabsList>
             </div>
 
@@ -810,6 +844,32 @@ export function LimitValueCalculation() {
                                     <SelectContent>
                                         <SelectItem value="1.00">N = 1.00 (Yapım)</SelectItem>
                                         <SelectItem value="1.20">N = 1.20 (Genel)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2 pt-4 border-t">
+                                <Label>İş Grubu</Label>
+                                <Select value={businessGroup} onValueChange={setBusinessGroup}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Grup Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {BUSINESS_GROUPS.map(g => (
+                                            <SelectItem key={g} value={g}>{g}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2 pt-4 border-t">
+                                <Label>İş Grubu</Label>
+                                <Select value={businessGroup} onValueChange={setBusinessGroup}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Grup Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {BUSINESS_GROUPS.map(g => (
+                                            <SelectItem key={g} value={g}>{g}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1074,82 +1134,138 @@ export function LimitValueCalculation() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Tarih</TableHead>
-                                    <TableHead>İKN</TableHead>
-                                    <TableHead>İşin Adı</TableHead>
-                                    <TableHead className="text-right">Yaklaşık Maliyet</TableHead>
-                                    <TableHead className="text-right">Sınır Değer</TableHead>
-                                    <TableHead>Kazanan Firma</TableHead>
-                                    <TableHead className="text-right">Kazanan Teklif</TableHead>
-                                    <TableHead className="text-center">Kazanan Tenzilat</TableHead>
-                                    <TableHead className="text-right">İşlem</TableHead>
+                                    <TableHead className="w-8 text-center bg-slate-100">No</TableHead>
+                                    <TableHead className="bg-slate-100 min-w-[100px]">İKN</TableHead>
+                                    <TableHead className="bg-slate-100 min-w-[100px]">Tarih</TableHead>
+                                    <TableHead className="bg-slate-100 min-w-[120px]">İş Grubu</TableHead>
+                                    <TableHead className="bg-slate-100">İşin Adı</TableHead>
+                                    <TableHead className="text-right bg-slate-100 min-w-[100px]">Yaklaşık Maliyet</TableHead>
+                                    <TableHead className="text-right bg-slate-100 min-w-[100px] text-blue-700 font-bold">Sınır Değer</TableHead>
+                                    <TableHead className="bg-slate-100 min-w-[150px]">Kazanan Firma</TableHead>
+                                    <TableHead className="text-right bg-slate-100 min-w-[100px]">Kazanan Teklif</TableHead>
+                                    <TableHead className="text-center bg-slate-100 w-24">Tenzilat</TableHead>
+                                    <TableHead className="text-right bg-slate-100 w-24">İşlem</TableHead>
+                                </TableRow>
+                                <TableRow className="bg-slate-50 border-b-2 border-slate-200">
+                                    <TableHead className="p-1"></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.registerNo} onChange={e => setHistoryFilters({ ...historyFilters, registerNo: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.date} onChange={e => setHistoryFilters({ ...historyFilters, date: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.group} onChange={e => setHistoryFilters({ ...historyFilters, group: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.name} onChange={e => setHistoryFilters({ ...historyFilters, name: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.cost} onChange={e => setHistoryFilters({ ...historyFilters, cost: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.limit} onChange={e => setHistoryFilters({ ...historyFilters, limit: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.winner} onChange={e => setHistoryFilters({ ...historyFilters, winner: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="Ara..." value={historyFilters.amount} onChange={e => setHistoryFilters({ ...historyFilters, amount: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"><Input className="h-7 text-xs bg-white" placeholder="%" value={historyFilters.discount} onChange={e => setHistoryFilters({ ...historyFilters, discount: e.target.value })} /></TableHead>
+                                    <TableHead className="p-1"></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {history.length === 0 ? (
+                                {history.filter(record => {
+                                    const f = historyFilters;
+                                    const matchReg = (record.tenderRegisterNo || '').toLowerCase().includes(f.registerNo.toLowerCase());
+                                    const matchDate = (record.tenderDate ? new Date(record.tenderDate).toLocaleDateString('tr-TR') : '').includes(f.date);
+                                    const matchName = (record.tenderName || '').toLowerCase().includes(f.name.toLowerCase());
+                                    const matchGroup = (record.businessGroup || '').toLowerCase().includes(f.group.toLowerCase());
+                                    const matchWinner = (record.likelyWinner || '').toLowerCase().includes(f.winner.toLowerCase());
+                                    const matchCost = (record.approxCost || '').toString().includes(f.cost);
+                                    const matchLimit = (record.limitValue || '').toString().includes(f.limit);
+                                    return matchReg && matchDate && matchName && matchGroup && matchWinner && matchCost && matchLimit;
+                                }).length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                                            Henüz kaydedilmiş bir hesaplama bulunmuyor.
+                                        <TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                                            Kayıt bulunamadı.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    history.map((record) => (
-                                        <TableRow key={record.id}>
-                                            <TableCell>
-                                                {new Date(record.createdAt).toLocaleDateString('tr-TR')}
-                                                <br />
-                                                <span className="text-xs text-muted-foreground">
-                                                    {new Date(record.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="font-mono text-sm">{record.tenderRegisterNo}</TableCell>
-                                            <TableCell className="max-w-[300px] truncate" title={record.tenderName}>
-                                                {record.tenderName || '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium">
-                                                {record.approxCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium text-yellow-700">
-                                                {record.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="font-medium truncate max-w-[200px]" title={record.likelyWinner}>
+                                    history.filter(record => {
+                                        const f = historyFilters;
+                                        const matchReg = (record.tenderRegisterNo || '').toLowerCase().includes(f.registerNo.toLowerCase());
+                                        const matchDate = (record.tenderDate ? new Date(record.tenderDate).toLocaleDateString('tr-TR') : '').includes(f.date);
+                                        const matchName = (record.tenderName || '').toLowerCase().includes(f.name.toLowerCase());
+                                        const matchGroup = (record.businessGroup || '').toLowerCase().includes(f.group.toLowerCase());
+                                        const matchWinner = (record.likelyWinner || '').toLowerCase().includes(f.winner.toLowerCase());
+                                        const matchCost = (record.approxCost || '').toString().includes(f.cost);
+                                        const matchLimit = (record.limitValue || '').toString().includes(f.limit);
+                                        return matchReg && matchDate && matchName && matchGroup && matchWinner && matchCost && matchLimit;
+                                    }).map((record, index) => {
+                                        // Calculate Winner Amount if missing
+                                        const winnerAmount = record.fullResultData?.bidders?.find((b: any) => b.name === record.likelyWinner)?.amount;
+
+                                        return (
+                                            <TableRow key={record.id} className="hover:bg-slate-50">
+                                                <TableCell className="font-mono text-xs text-center text-muted-foreground">{index + 1}</TableCell>
+                                                <TableCell className="font-mono text-xs font-medium">{record.tenderRegisterNo || '-'}</TableCell>
+                                                <TableCell className="text-xs">
+                                                    {record.tenderDate ? new Date(record.tenderDate).toLocaleDateString('tr-TR') : '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {record.businessGroup ? <Badge variant="outline" className="text-[10px] px-1 py-0">{record.businessGroup}</Badge> : '-'}
+                                                </TableCell>
+                                                <TableCell className="max-w-[180px] truncate text-xs" title={record.tenderName || ''}>
+                                                    {record.tenderName || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right text-xs font-mono">
+                                                    {record.approxCost?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                </TableCell>
+                                                <TableCell className="text-right text-xs font-mono font-bold text-blue-700 bg-blue-50/50">
+                                                    {record.limitValue?.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                </TableCell>
+                                                <TableCell className="max-w-[150px] truncate text-xs font-medium" title={record.likelyWinner || ''}>
                                                     {shortenCompanyName(record.likelyWinner || '-')}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right font-medium">
-                                                {record.fullResultData?.bidders?.find((b: any) => b.name === record.likelyWinner)?.amount
-                                                    ? `${record.fullResultData.bidders.find((b: any) => b.name === record.likelyWinner)?.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
-                                                    : '-'}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {record.likelyWinnerDiscount ? `%${record.likelyWinnerDiscount.toFixed(2)}` : '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleLoadHistory(record)}
-                                                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                        title="Görüntüle / Yükle"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={(e) => handleDeleteHistory(record.id, e)}
-                                                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                        title="Sil"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                </TableCell>
+                                                <TableCell className="text-right text-xs font-mono">
+                                                    {winnerAmount ? winnerAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL' : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {record.likelyWinnerDiscount ? (
+                                                        <Badge variant="outline" className={cn("text-[10px] px-1 py-0", record.likelyWinnerDiscount > 0 ? "text-green-700 border-green-200 bg-green-50" : "text-red-700 border-red-200 bg-red-50")}>
+                                                            %{record.likelyWinnerDiscount.toFixed(2)}
+                                                        </Badge>
+                                                    ) : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleLoadHistory(record)} title="Görüntüle">
+                                                            <Eye className="w-3.5 h-3.5 text-blue-600" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => handleDeleteHistory(record.id, e)} title="Sil">
+                                                            <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 )}
+                            </TableBody>
+
+                        </Table>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+
+            <TabsContent value="business-groups">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>İş Grupları</CardTitle>
+                        <CardDescription>Sisteme tanımlı iş grupları listesi.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Grup Adı</TableHead>
+                                    <TableHead>Durum</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {BUSINESS_GROUPS.map((group) => (
+                                    <TableRow key={group}>
+                                        <TableCell className="font-medium">{group}</TableCell>
+                                        <TableCell><Badge variant="outline" className="text-green-600 bg-green-50 border-green-200">Aktif</Badge></TableCell>
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
                     </CardContent>

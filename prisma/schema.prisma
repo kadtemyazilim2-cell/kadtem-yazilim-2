@@ -592,6 +592,7 @@ model LimitValueCalculation {
   limitValue        Float
   likelyWinner      String?
   likelyWinnerDiscount Float?
+  businessGroup     String?  // [NEW]
   
   // JSON field to store full result and bidders list for simplified "View" restoration
   fullResultData    Json     

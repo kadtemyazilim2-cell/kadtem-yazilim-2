@@ -13,6 +13,7 @@ export async function saveCalculation(data: {
     limitValue: number;
     likelyWinner?: string;
     likelyWinnerDiscount?: number;
+    businessGroup?: string;
     fullResultData: any; // JSON
 }) {
     try {
@@ -27,6 +28,7 @@ export async function saveCalculation(data: {
                 limitValue: data.limitValue,
                 likelyWinner: data.likelyWinner,
                 likelyWinnerDiscount: data.likelyWinnerDiscount,
+                businessGroup: data.businessGroup,
                 fullResultData: data.fullResultData,
             },
         });
