@@ -256,10 +256,36 @@ export function LimitValueCalculation() {
     // --- Editing Logic ---
     const handleBidderEdit = (index: number, field: string, value: string) => {
         if (field === 'amount') {
-            const cleanVal = value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '');
-            const numVal = parseFloat(cleanVal);
+            // Remove TL, spaces, etc.
+            let raw = value.replace(/[^0-9,.]/g, '');
+
+            // Handle Turkish format: 1.250,50 -> 1250.50
+            // Also handle plain format: 1250,50 -> 1250.50
+            // If user uses dot for decimal: 1250.50 -> 1250.50 (need care)
+
+            // Strategy:
+            // 1. If contains comma, replace dots with nothing, then comma with dot.
+            // 2. If NO comma, but contains dot:
+            //    - if multiple dots: remove all (thousands).
+            //    - if single dot: assume decimal? Or assume thousand if 3 digits follow?
+            //    Let's stick to standard TR format strictly as requested "virgülü algıla".
+
+            if (raw.includes(',')) {
+                raw = raw.replace(/\./g, ''); // remove thousands dots
+                raw = raw.replace(',', '.');  // replace decimal comma
+            } else {
+                // No comma.
+                // If like "1.500", treat as 1500.
+                // If "1500", treat as 1500.
+                raw = raw.replace(/\./g, '');
+            }
+
+            const numVal = parseFloat(raw);
 
             if (isNaN(numVal)) {
+                // Don't update if invalid, or reset? Let's just return to stop corruption.
+                // But we need to cancel edit mode.
+                // toast.error('Geçersiz sayı formatı');
                 setEditingCell(null);
                 return;
             }
@@ -267,17 +293,12 @@ export function LimitValueCalculation() {
             const newBidders = [...bidders];
             newBidders[index] = { ...newBidders[index], amount: numVal };
 
-            // Resort if needed? No, user might want to keep order, but normally we sort by price.
-            // If we change price, rank changes. 
-            // Let's re-sort:
             newBidders.sort((a, b) => a.amount - b.amount);
 
             setBidders(newBidders);
             setHasManualEdits(true);
             setEditingCell(null);
 
-            // Trigger Recalculation
-            // Note: calculateResults depends on correct 'cost' and 'n'.
             if (approxCost > 0) {
                 calculateResults(approxCost, newBidders, nCoefficient);
             }
@@ -287,34 +308,85 @@ export function LimitValueCalculation() {
     // --- File Handling ---
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
+            const file = e.target.files[0];
+            setFile(file); // Set file state for potential re-parsing
+
+            const reader = new FileReader();
+
+            if (file.name.endsWith('.docx')) {
+                toast.info("Word dosyası işleniyor...");
+                reader.onload = async (event) => {
+                    const arrayBuffer = event.target?.result as ArrayBuffer;
+                    if (!arrayBuffer) return;
+
+                    try {
+                        const result = await mammoth.extractRawText({ arrayBuffer });
+                        const text = result.value;
+                        console.log("Raw Word Text:", text); // Debug
+                        parseTextContent(text);
+                        toast.success('Dosya başarıyla analiz edildi.');
+                    } catch (err) {
+                        console.error(err);
+                        toast.error("Word dosyası okunamadı.");
+                    } finally {
+                        setIsParsing(false);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                toast.info("Excel dosyası işleniyor...");
+                reader.onload = (event) => {
+                    const data = new Uint8Array(event.target?.result as ArrayBuffer);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    console.log("Excel Data:", jsonData); // Debug
+
+                    // Simple text conversion for now
+                    const text = jsonData.map((row: any) => row.join(' ')).join('\n');
+                    parseTextContent(text);
+                    toast.success('Dosya başarıyla analiz edildi.');
+                };
+                reader.readAsArrayBuffer(file);
+            } else {
+                toast.error("Desteklenmeyen dosya formatı. (.docx veya .xlsx kullanın)");
+                setFile(null); // Clear file if unsupported
+            }
         }
     };
 
     const parseWordDocument = async () => {
+        // This function is now largely redundant as handleFileChange handles parsing directly.
+        // It might be called if `file` state is set manually and then this is triggered.
+        // For now, keep it as a fallback or if there's a separate "Parse" button.
         if (!file) {
-            toast.error('Lütfen önce bir Word dosyası seçiniz.');
+            toast.error('Lütfen önce bir dosya seçiniz.');
             return;
         }
 
-        setIsParsing(true);
-        setBidders([]);
-        setMetadata({});
-        setResult(null);
+        // If file is already set, and it's a docx, re-parse it.
+        if (file.name.endsWith('.docx')) {
+            setIsParsing(true);
+            setBidders([]);
+            setMetadata({});
+            setResult(null);
 
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const result = await mammoth.extractRawText({ arrayBuffer });
-            const text = result.value;
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                const text = result.value;
 
-            parseTextContent(text);
+                parseTextContent(text);
 
-            toast.success('Dosya başarıyla analiz edildi.');
-        } catch (error) {
-            console.error(error);
-            toast.error('Dosya okunurken bir hata oluştu.');
-        } finally {
-            setIsParsing(false);
+                toast.success('Dosya başarıyla analiz edildi.');
+            } catch (error) {
+                console.error(error);
+                toast.error('Dosya okunurken bir hata oluştu.');
+            } finally {
+                setIsParsing(false);
+            }
+        } else {
+            toast.error('Bu fonksiyon sadece Word dosyalarını işler. Lütfen "Dosya Seç" butonunu kullanın.');
         }
     };
 
@@ -1286,11 +1358,11 @@ export function LimitValueCalculation() {
                             <TableBody>
                                 {history.filter(record => {
                                     const f = historyFilters;
-                                    const matchReg = (record.tenderRegisterNo || '').toLowerCase().includes(f.registerNo.toLowerCase());
+                                    const matchReg = (record.tenderRegisterNo || '').toLocaleLowerCase('tr').includes(f.registerNo.toLocaleLowerCase('tr'));
                                     const matchDate = (record.tenderDate ? new Date(record.tenderDate).toLocaleDateString('tr-TR') : '').includes(f.date);
-                                    const matchName = (record.tenderName || '').toLowerCase().includes(f.name.toLowerCase());
-                                    const matchGroup = (record.businessGroup || '').toLowerCase().includes(f.group.toLowerCase());
-                                    const matchWinner = (record.likelyWinner || '').toLowerCase().includes(f.winner.toLowerCase());
+                                    const matchName = (record.tenderName || '').toLocaleLowerCase('tr').includes(f.name.toLocaleLowerCase('tr'));
+                                    const matchGroup = (record.businessGroup || '').toLocaleLowerCase('tr').includes(f.group.toLocaleLowerCase('tr'));
+                                    const matchWinner = (record.likelyWinner || '').toLocaleLowerCase('tr').includes(f.winner.toLocaleLowerCase('tr'));
                                     const matchCost = (record.approxCost || '').toString().includes(f.cost);
                                     const matchLimit = (record.limitValue || '').toString().includes(f.limit);
                                     return matchReg && matchDate && matchName && matchGroup && matchWinner && matchCost && matchLimit;
@@ -1303,11 +1375,11 @@ export function LimitValueCalculation() {
                                 ) : (
                                     history.filter(record => {
                                         const f = historyFilters;
-                                        const matchReg = (record.tenderRegisterNo || '').toLowerCase().includes(f.registerNo.toLowerCase());
+                                        const matchReg = (record.tenderRegisterNo || '').toLocaleLowerCase('tr').includes(f.registerNo.toLocaleLowerCase('tr'));
                                         const matchDate = (record.tenderDate ? new Date(record.tenderDate).toLocaleDateString('tr-TR') : '').includes(f.date);
-                                        const matchName = (record.tenderName || '').toLowerCase().includes(f.name.toLowerCase());
-                                        const matchGroup = (record.businessGroup || '').toLowerCase().includes(f.group.toLowerCase());
-                                        const matchWinner = (record.likelyWinner || '').toLowerCase().includes(f.winner.toLowerCase());
+                                        const matchName = (record.tenderName || '').toLocaleLowerCase('tr').includes(f.name.toLocaleLowerCase('tr'));
+                                        const matchGroup = (record.businessGroup || '').toLocaleLowerCase('tr').includes(f.group.toLocaleLowerCase('tr'));
+                                        const matchWinner = (record.likelyWinner || '').toLocaleLowerCase('tr').includes(f.winner.toLocaleLowerCase('tr'));
                                         const matchCost = (record.approxCost || '').toString().includes(f.cost);
                                         const matchLimit = (record.limitValue || '').toString().includes(f.limit);
                                         return matchReg && matchDate && matchName && matchGroup && matchWinner && matchCost && matchLimit;
@@ -1328,8 +1400,8 @@ export function LimitValueCalculation() {
                                                 <TableCell className="max-w-[180px] truncate text-xs" title={record.tenderName || ''}>
                                                     {record.tenderName || '-'}
                                                     {record.hasManualEdits && (
-                                                        <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1 bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">
-                                                            Değişiklik Var
+                                                        <Badge variant="destructive" className="ml-2 text-[10px] h-4 px-1 bg-red-600 text-white hover:bg-red-700 border-red-700">
+                                                            DÜZENLENDİ
                                                         </Badge>
                                                     )}
                                                 </TableCell>
