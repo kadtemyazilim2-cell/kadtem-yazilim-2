@@ -955,14 +955,13 @@ export function LimitValueCalculation() {
         if (!blob) return;
 
         const filename = `Sinir_Deger_${metadata.tenderRegisterNo || new Date().toISOString().split('T')[0]}.pdf`;
-        const file = new File([blob], filename, { type: 'application/pdf' });
 
         // Build summary text for WhatsApp
         const winnerBidder = bidders.find(b => b.name === result.likelyWinner);
         const winnerDiscount = winnerBidder?.discountRatio?.toFixed(2);
 
         const text = [
-            `*📊 SINIR DEĞER ANALİZİ*`,
+            `📊 *SINIR DEĞER ANALİZİ*`,
             ``,
             `*İhale:* ${metadata.tenderName || '-'}`,
             `*İKN:* ${metadata.tenderRegisterNo || '-'}`,
@@ -976,29 +975,7 @@ export function LimitValueCalculation() {
             `_Detaylı PDF rapor ektedir._`
         ].filter(Boolean).join('\n');
 
-        // 2. Try Web Share API first (works on both mobile AND modern desktop Chrome/Edge)
-        if (navigator.share) {
-            try {
-                const shareData: ShareData = {
-                    title: 'Sınır Değer Analizi',
-                    text: text
-                };
-
-                // Try sharing with file attachment if supported
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    shareData.files = [file];
-                }
-
-                await navigator.share(shareData);
-                return; // Success
-            } catch (error: any) {
-                // User cancelled or share failed
-                if (error?.name === 'AbortError') return; // User cancelled, don't fallback
-                console.log('Share API failed, falling back...', error);
-            }
-        }
-
-        // 3. Fallback: Download PDF + Open WhatsApp desktop/web
+        // 2. Download PDF first
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1008,8 +985,11 @@ export function LimitValueCalculation() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        setShareText(text);
-        setIsShareDialogOpen(true);
+        // 3. Open WhatsApp desktop app directly with contact picker
+        // whatsapp://send opens WhatsApp and shows the contact/group picker
+        window.open(`whatsapp://send?text=${encodeURIComponent(text)}`, '_self');
+
+        toast.success('PDF indirildi! WhatsApp açılıyor... İndirilen PDF dosyasını sohbete ekleyebilirsiniz.', { duration: 5000 });
     };
 
     // Helper to check if bidder format matches our companies
