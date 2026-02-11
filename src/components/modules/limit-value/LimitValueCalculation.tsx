@@ -954,24 +954,51 @@ export function LimitValueCalculation() {
         const blob = await generatePDFBlob();
         if (!blob) return;
 
-        const filename = `Sinir_Deger_Analizi_${new Date().toISOString().split('T')[0]}.pdf`;
+        const filename = `Sinir_Deger_${metadata.tenderRegisterNo || new Date().toISOString().split('T')[0]}.pdf`;
         const file = new File([blob], filename, { type: 'application/pdf' });
 
-        // 2. Try Web Share API (Mobile / Supported Desktop)
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Build summary text for WhatsApp
+        const winnerBidder = bidders.find(b => b.name === result.likelyWinner);
+        const winnerDiscount = winnerBidder?.discountRatio?.toFixed(2);
+
+        const text = [
+            `*📊 SINIR DEĞER ANALİZİ*`,
+            ``,
+            `*İhale:* ${metadata.tenderName || '-'}`,
+            `*İKN:* ${metadata.tenderRegisterNo || '-'}`,
+            `*İhale Tarihi:* ${metadata.tenderDate || '-'}`,
+            ``,
+            `*Yaklaşık Maliyet:* ${result.cost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`,
+            `*Sınır Değer:* ${result.limitValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`,
+            `*Muhtemel Kazanan:* ${result.likelyWinner}`,
+            winnerDiscount ? `*Tenzilat:* %${winnerDiscount}` : '',
+            ``,
+            `_Detaylı PDF rapor ektedir._`
+        ].filter(Boolean).join('\n');
+
+        // 2. Try Web Share API first (works on both mobile AND modern desktop Chrome/Edge)
+        if (navigator.share) {
             try {
-                await navigator.share({
-                    files: [file],
+                const shareData: ShareData = {
                     title: 'Sınır Değer Analizi',
-                    text: `İhale: ${metadata.tenderName || 'Bilinmeyen'}\nSınır Değer: ${result.limitValue.toLocaleString('tr-TR')} TL\nDosya ektedir.`
-                });
+                    text: text
+                };
+
+                // Try sharing with file attachment if supported
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    shareData.files = [file];
+                }
+
+                await navigator.share(shareData);
                 return; // Success
-            } catch (error) {
-                console.log('Share API failed or cancelled, falling back...', error);
+            } catch (error: any) {
+                // User cancelled or share failed
+                if (error?.name === 'AbortError') return; // User cancelled, don't fallback
+                console.log('Share API failed, falling back...', error);
             }
         }
 
-        // 3. Fallback: Download & Open WhatsApp via Dialog
+        // 3. Fallback: Download PDF + Open WhatsApp desktop/web
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -981,7 +1008,6 @@ export function LimitValueCalculation() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        const text = `*Sınır Değer Analizi*\n\n*İhale:* ${metadata.tenderName || '-'}\n*Yaklaşık Maliyet:* ${result.cost.toLocaleString('tr-TR')} TL\n*Sınır Değer:* ${result.limitValue.toLocaleString('tr-TR')} TL\n*Muhtemel Kazanan:* ${result.likelyWinner}\n\nDetaylı rapor cihazınıza indirilmiştir.`;
         setShareText(text);
         setIsShareDialogOpen(true);
     };
@@ -1619,7 +1645,7 @@ export function LimitValueCalculation() {
 
             {/* WhatsApp Share Dialog */}
             <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Share2 className="w-5 h-5 text-green-600" />
@@ -1628,23 +1654,42 @@ export function LimitValueCalculation() {
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="p-4 bg-green-50 text-green-800 rounded-md text-sm border border-green-200">
-                            <strong>Dosya İndirildi!</strong>
-                            <p className="mt-1">
-                                Tarayıcı güvenliği nedeniyle WhatsApp otomatik açılamadı.
-                                Lütfen aşağıdaki butona tıklayın ve açılan sohbete indirdiğiniz PDF dosyasını sürükleyin.
+                            <strong>✅ PDF Raporu İndirildi!</strong>
+                            <p className="mt-2 text-xs">
+                                Aşağıdaki adımları takip edin:
                             </p>
+                            <ol className="mt-2 text-xs space-y-1 list-decimal list-inside">
+                                <li><strong>"WhatsApp'ı Aç"</strong> butonuna tıklayın</li>
+                                <li>Göndermek istediğiniz kişi/grubu seçin</li>
+                                <li>Mesaj kutusuna indirilen PDF dosyasını <strong>sürükleyip bırakın</strong> veya <strong>📎 ataş</strong> simgesinden ekleyin</li>
+                                <li>Gönderin!</li>
+                            </ol>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded border text-xs font-mono whitespace-pre-wrap max-h-40 overflow-auto">
+                            {shareText}
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsShareDialogOpen(false)}>Kapat</Button>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" size="sm" onClick={() => setIsShareDialogOpen(false)}>Kapat</Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                navigator.clipboard.writeText(shareText);
+                                toast.success('Metin panoya kopyalandı!');
+                            }}
+                        >
+                            📋 Metni Kopyala
+                        </Button>
                         <Button
                             className="bg-[#25D366] hover:bg-[#128C7E] text-white"
+                            size="sm"
                             onClick={() => {
-                                window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+                                window.open(`https://web.whatsapp.com/`, '_blank');
                                 setIsShareDialogOpen(false);
                             }}
                         >
-                            WhatsApp'ı Başlat
+                            💬 WhatsApp'ı Aç
                         </Button>
                     </DialogFooter>
                 </DialogContent>
