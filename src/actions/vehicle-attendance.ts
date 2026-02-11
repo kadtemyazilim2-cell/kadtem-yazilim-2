@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { VehicleAttendance } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { auth as getSession } from '@/auth';
 
 // NOTE: Save operations now use the API route at /api/vehicle-attendance/save
@@ -104,6 +104,7 @@ export async function deleteVehicleAttendance(vehicleId: string, date: Date | st
         }
 
         revalidatePath('/dashboard/vehicle-attendance');
+        revalidateTag('vehicle-attendance');
         return { success: true };
     } catch (error: any) {
         console.error('deleteVehicleAttendance Error:', error);

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { NextResponse } from 'next/server';
 import { auth as getSession } from '@/auth';
+import { revalidateTag } from 'next/cache';
 
 export async function POST(request: Request) {
     try {
@@ -77,6 +78,8 @@ export async function POST(request: Request) {
         };
 
         console.log('[API] Returning:', JSON.stringify(plainResult));
+        // [FIX] Cache invalidation — without this, page refresh shows stale cached data
+        revalidateTag('vehicle-attendance');
         return NextResponse.json({ success: true, data: plainResult });
 
     } catch (error: any) {

@@ -4,20 +4,9 @@ import { serializeData } from '@/lib/serializer';
 import CorrespondencePageClient from './CorrespondencePageClient';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import { unstable_cache } from 'next/cache';
 
-// [PERF] Her veri kaynağı ayrı cache'te
-const getCachedCorrespondences = unstable_cache(
-    async () => serializeData((await getCorrespondenceList())?.data || []),
-    ['correspondence-list'],
-    { revalidate: 30, tags: ['correspondence'] }
-);
-
-const getCachedInstitutions = unstable_cache(
-    async () => serializeData((await getInstitutions())?.data || []),
-    ['institutions-list'],
-    { revalidate: 30, tags: ['institutions'] }
-);
+// [NOTE] Cache kaldırıldı — getCorrespondenceList auth() kullanıyor,
+// unstable_cache içinde headers() erişimi desteklenmiyor.
 
 export default async function CorrespondencePage() {
     const session = await auth();
@@ -25,15 +14,15 @@ export default async function CorrespondencePage() {
         redirect('/login');
     }
 
-    const [correspondences, institutions] = await Promise.all([
-        getCachedCorrespondences(),
-        getCachedInstitutions(),
+    const [correspondencesRes, institutionsRes] = await Promise.all([
+        getCorrespondenceList(),
+        getInstitutions(),
     ]);
 
     return (
         <CorrespondencePageClient
-            initialCorrespondences={correspondences}
-            initialInstitutions={institutions}
+            initialCorrespondences={serializeData(correspondencesRes?.data || [])}
+            initialInstitutions={serializeData(institutionsRes?.data || [])}
             currentUser={session.user}
         />
     );

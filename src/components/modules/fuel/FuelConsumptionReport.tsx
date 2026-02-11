@@ -23,6 +23,13 @@ import { deleteFuelLog as deleteFuelLogAction, deleteFuelTransfer as deleteFuelT
 
 // ...
 
+// [FIX] Safe date parser — handles both Date objects and ISO strings
+const toDate = (d: any): Date => {
+    if (d instanceof Date) return d;
+    if (typeof d === 'string') return parseISO(d);
+    return new Date(d);
+};
+
 // Rogue handleUpdate removed
 
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
@@ -523,7 +530,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 // Find the newest transaction OLDER than startObj
                 // Data is sorted Newest First.
                 // So we scan from end? Or find first item < startObj.
-                const olderItem = processedData.find((item: any) => parseISO(item.date) < startObj);
+                const olderItem = processedData.find((item: any) => toDate(item.date) < startObj);
                 if (olderItem) {
                     // The stock AFTER that older item is our Opening Balance
                     devirBalance = olderItem.cumulativeTotal;
@@ -534,12 +541,12 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 }
             }
 
-            processedData = processedData.filter((item: any) => parseISO(item.date) >= startObj);
+            processedData = processedData.filter((item: any) => toDate(item.date) >= startObj);
         }
 
         if (dateRange.end) {
             const endObj = endOfDay(parseISO(dateRange.end));
-            processedData = processedData.filter((item: any) => parseISO(item.date) <= endObj);
+            processedData = processedData.filter((item: any) => toDate(item.date) <= endObj);
         }
 
         // Add Devir Row if applicable

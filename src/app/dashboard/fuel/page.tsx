@@ -3,26 +3,9 @@ import { FuelPageClient } from './FuelPageClient';
 import { serializeData } from '@/lib/serializer';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
-import { unstable_cache } from 'next/cache';
 
-// [PERF] Her veri kaynağı ayrı cache'te
-const getCachedFuelLogs = unstable_cache(
-    async () => serializeData((await getFuelLogs()).data || []),
-    ['fuel-page-logs'],
-    { revalidate: 30, tags: ['fuel-logs'] }
-);
-
-const getCachedFuelTanks = unstable_cache(
-    async () => serializeData((await getFuelTanks()).data || []),
-    ['fuel-page-tanks'],
-    { revalidate: 30, tags: ['fuel-tanks'] }
-);
-
-const getCachedFuelTransfers = unstable_cache(
-    async () => serializeData((await getFuelTransfers()).data || []),
-    ['fuel-page-transfers'],
-    { revalidate: 30, tags: ['fuel-transfers'] }
-);
+// [NOTE] Cache kaldırıldı — fuel logs (1000 kayıt + include) toplam ~7MB,
+// unstable_cache 2MB limitini aşıyor. Doğrudan DB fetch kullanılıyor.
 
 export default async function FuelPage() {
     const session = await auth();
@@ -30,17 +13,17 @@ export default async function FuelPage() {
         redirect('/login');
     }
 
-    const [fuelLogs, fuelTanks, fuelTransfers] = await Promise.all([
-        getCachedFuelLogs(),
-        getCachedFuelTanks(),
-        getCachedFuelTransfers(),
+    const [fuelLogsRes, fuelTanksRes, fuelTransfersRes] = await Promise.all([
+        getFuelLogs(),
+        getFuelTanks(),
+        getFuelTransfers(),
     ]);
 
     return (
         <FuelPageClient
-            fuelLogs={fuelLogs}
-            fuelTanks={fuelTanks}
-            fuelTransfers={fuelTransfers}
+            fuelLogs={serializeData(fuelLogsRes.data || [])}
+            fuelTanks={serializeData(fuelTanksRes.data || [])}
+            fuelTransfers={serializeData(fuelTransfersRes.data || [])}
         />
     );
 }
