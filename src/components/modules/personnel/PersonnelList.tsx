@@ -108,12 +108,17 @@ export function PersonnelList() {
     const [selectedSiteId, setSelectedSiteId] = useState('');
 
 
-    // Auto-select if only one site is available
+    // Auto-select logic removed as per user request (User wants forced selection)
+    // useEffect(() => {
+    //     if (availableSites.length === 1 && !selectedSiteId) {
+    //         setSelectedSiteId(availableSites[0].id);
+    //     }
+    // }, [availableSites, selectedSiteId]);
+
+    // Ensure selection is cleared on mount (if persisted somehow, though it's local state)
     useEffect(() => {
-        if (availableSites.length === 1 && !selectedSiteId) {
-            setSelectedSiteId(availableSites[0].id);
-        }
-    }, [availableSites, selectedSiteId]);
+        setSelectedSiteId('');
+    }, []);
 
     // [NEW] Client-Side Data Fetching for Attendance
     // This fixes the issue where data is missing after refresh
