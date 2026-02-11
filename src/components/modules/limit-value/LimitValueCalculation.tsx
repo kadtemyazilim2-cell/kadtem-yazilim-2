@@ -1143,17 +1143,17 @@ export function LimitValueCalculation() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label>İhale Tutanağı (.docx)</Label>
-                                <Input type="file" accept=".docx" onChange={handleFileChange} />
-                                <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    onClick={parseWordDocument}
-                                    disabled={!file || isParsing}
-                                >
-                                    {isParsing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
-                                    Dosyayı Analiz Et
-                                </Button>
+                                <Label>İş Grubu</Label>
+                                <Select value={businessGroup} onValueChange={setBusinessGroup}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Grup Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {groups.map(g => (
+                                            <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="pt-4 border-t space-y-2">
@@ -1171,18 +1171,29 @@ export function LimitValueCalculation() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="space-y-2 pt-4 border-t">
-                                <Label>İş Grubu</Label>
-                                <Select value={businessGroup} onValueChange={setBusinessGroup}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Grup Seçiniz" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {groups.map(g => (
-                                            <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+
+                            <div className={cn("pt-4 border-t space-y-2", !businessGroup && "opacity-50 pointer-events-none")}>
+                                <Label>İhale Tutanağı (.docx)</Label>
+                                <Input
+                                    type="file"
+                                    accept=".docx"
+                                    onChange={handleFileChange}
+                                    disabled={!businessGroup}
+                                />
+                                <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    onClick={parseWordDocument}
+                                    disabled={!file || isParsing || !businessGroup}
+                                >
+                                    {isParsing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                                    Dosyayı Analiz Et
+                                </Button>
+                                {!businessGroup && (
+                                    <p className="text-xs text-red-500 font-medium text-center">
+                                        Dosya yüklemek için önce İş Grubu seçiniz.
+                                    </p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

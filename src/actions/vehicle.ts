@@ -464,8 +464,10 @@ export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string
 
                 // 2. Handle History
                 const currentSiteIds = vehicle.assignedSites.map(s => s.id);
-                // We are only removing specific siteIds.
-                // Check if the sites being removed had history.
+                // [FIX] Include legacy assignedSiteId in currentSiteIds so we process history for it too
+                if (vehicle.assignedSiteId && !currentSiteIds.includes(vehicle.assignedSiteId)) {
+                    currentSiteIds.push(vehicle.assignedSiteId);
+                }
 
                 const activeHistories = await tx.vehicleAssignmentHistory.findMany({
                     where: {
@@ -503,8 +505,13 @@ export async function bulkUnassignVehicles(vehicleIds: string[], siteIds: string
             }
         });
 
-        revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        try {
+            revalidateTag('vehicles');
+            revalidatePath('/dashboard/vehicles');
+        } catch (e) {
+            console.error('Revalidate failed but action succeeded:', e);
+        }
+
         return { success: true };
     } catch (error) {
         console.error('bulkUnassignVehicles Error:', error);
@@ -549,11 +556,14 @@ export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
                 if (!vehicle) continue;
 
                 const currentSiteIds = vehicle.assignedSites.map(s => s.id);
+                const isLegacyAssigned = vehicle.assignedSiteId === siteId;
+                const isRelationAssigned = currentSiteIds.includes(siteId);
 
-                // If already assigned, skip
-                if (currentSiteIds.includes(siteId)) continue;
+                // If already fully assigned (relation), skip
+                if (isRelationAssigned) continue;
 
                 // 1. Update Relation (Connect)
+                // This handles both new assignments AND migrations from legacy
                 await tx.vehicle.update({
                     where: { id: vId },
                     data: {
@@ -564,19 +574,27 @@ export async function addVehiclesToSite(vehicleIds: string[], siteId: string) {
                 });
 
                 // 2. Handle History (Create new open history)
-                await tx.vehicleAssignmentHistory.create({
-                    data: {
-                        vehicleId: vId,
-                        siteId: siteId,
-                        startDate: new Date(),
-                        endDate: null
-                    }
-                });
+                // Only create history if it's a FRESH assignment (not a legacy migration)
+                if (!isLegacyAssigned) {
+                    await tx.vehicleAssignmentHistory.create({
+                        data: {
+                            vehicleId: vId,
+                            siteId: siteId,
+                            startDate: new Date(),
+                            endDate: null
+                        }
+                    });
+                }
             }
         });
 
-        revalidateTag('vehicles');
-        revalidatePath('/dashboard/vehicles');
+        try {
+            revalidateTag('vehicles');
+            revalidatePath('/dashboard/vehicles');
+        } catch (e) {
+            console.error('Revalidate failed but action succeeded:', e);
+        }
+
         return { success: true };
     } catch (error: any) {
         console.error('addVehiclesToSite Error:', error);
