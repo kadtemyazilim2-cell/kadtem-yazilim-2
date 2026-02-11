@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
-import { useEffect, useState } from 'react'; // [FIX] Added imported hooks
+import { useEffect, useState, Component, ErrorInfo, ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowRightLeft } from 'lucide-react';
@@ -11,6 +11,41 @@ import { FuelTankList } from '@/components/modules/fuel/FuelTankList';
 import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList';
 import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
 import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard';
+
+// Error Boundary to catch client-side rendering crashes
+class FuelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+    constructor(props: { children: ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        console.error('FuelPage Error Boundary:', error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+                    <h3 className="text-lg font-semibold text-red-800 mb-2">Yakıt Sayfası Yüklenirken Hata Oluştu</h3>
+                    <p className="text-sm text-red-600 mb-4">{this.state.error?.message || 'Bilinmeyen hata'}</p>
+                    <pre className="text-xs bg-red-100 p-2 rounded overflow-auto max-h-32 mb-4">{this.state.error?.stack}</pre>
+                    <button
+                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                        onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+                    >
+                        Sayfayı Yenile
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 interface FuelPageClientProps {
     fuelLogs: any[];
@@ -43,26 +78,28 @@ export function FuelPageClient({ fuelLogs, fuelTanks, fuelTransfers }: FuelPageC
     }, [urlSiteId]);
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Yakıt Takip ve Stoklar</h2>
-                    <p className="text-muted-foreground">
-                        Depo stok durumları ve detaylı tüketim raporları.
-                    </p>
+        <FuelErrorBoundary>
+            <div className="space-y-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 className="text-3xl font-bold tracking-tight">Yakıt Takip ve Stoklar</h2>
+                        <p className="text-muted-foreground">
+                            Depo stok durumları ve detaylı tüketim raporları.
+                        </p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                        <ArrowRightLeft className="w-4 h-4 mr-2" />
+                        Verileri Yenile
+                    </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                    <ArrowRightLeft className="w-4 h-4 mr-2" />
-                    Verileri Yenile
-                </Button>
+
+                {/* Existing Components... Assuming they use store internally */}
+                {/* If FuelTankList uses store, it should work fine after hydration above */}
+                {canViewTanks && <FuelTankList />}
+                {canViewConsumption && <FuelConsumptionReport initialSiteId={selectedSiteId} />}
+
+                {/* TODO: Add other components if needed */}
             </div>
-
-            {/* Existing Components... Assuming they use store internally */}
-            {/* If FuelTankList uses store, it should work fine after hydration above */}
-            {canViewTanks && <FuelTankList />}
-            {canViewConsumption && <FuelConsumptionReport initialSiteId={selectedSiteId} />}
-
-            {/* TODO: Add other components if needed */}
-        </div>
+        </FuelErrorBoundary>
     );
 }

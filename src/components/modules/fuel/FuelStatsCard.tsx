@@ -4,9 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button'; // [NEW]
 import { Droplet, ArrowRightLeft, Fuel, Truck, TrendingDown, Factory, FileDown, FileSpreadsheet } from 'lucide-react'; // [NEW] Icons
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import jsPDF from 'jspdf'; // [NEW]
-import autoTable from 'jspdf-autotable'; // [NEW]
-import * as XLSX from 'xlsx'; // [NEW]
+// jsPDF, autoTable, and XLSX are imported dynamically inside handlers to prevent SSR crashes
 
 interface FuelStatsCardProps {
     siteId: string;
@@ -91,63 +89,69 @@ export function FuelStatsCard({
     const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtWithUnit = (n: number) => fmt(n) + ' lt';
 
-    const handleExportPDF = () => {
-        const doc = new jsPDF();
+    const handleExportPDF = async () => {
+        try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+            const doc = new jsPDF();
 
-        // Add font usually needed for Turkish chars? jsPDF default font might not support properly.
-        // For simplicity, we'll try default. If Turkish chars fail, we stick to English chars or simple replacement.
-        // Often 'courier' or default supports basic latin.
-        // Let's use autoTable which handles some better. 
+            doc.setFontSize(16);
+            doc.text(`${siteName} - Yakıt Özeti`, 14, 20);
 
-        doc.setFontSize(16);
-        doc.text(`${siteName} - Yakıt Özeti`, 14, 20);
+            doc.setFontSize(10);
+            doc.text(`Tarih Aralığı: ${startDate || 'Başlangıç Yok'} - ${endDate || 'Bitiş Yok'}`, 14, 28);
+            doc.text(`Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 14, 34);
 
-        doc.setFontSize(10);
-        doc.text(`Tarih Aralığı: ${startDate || 'Başlangıç Yok'} - ${endDate || 'Bitiş Yok'}`, 14, 28);
-        doc.text(`Oluşturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 14, 34);
+            const tableData = [
+                ['Depo Kapasite', fmtWithUnit(stats.capacity)],
+                ['Akaryakıt İst. Alınan', `+${fmtWithUnit(stats.purchased)}`],
+                ['Virmanla Gelen', `+${fmtWithUnit(stats.transferredIn)}`],
+                ['Şantiyeye Gönderilen', `-${fmtWithUnit(stats.transferredOut)}`],
+                ['Harcanan', `-${fmtWithUnit(stats.consumed)}`],
+                ['Depoda Kalan', fmtWithUnit(stats.remaining)]
+            ];
 
-        const tableData = [
-            ['Depo Kapasite', fmtWithUnit(stats.capacity)],
-            ['Akaryakıt İst. Alınan', `+${fmtWithUnit(stats.purchased)}`],
-            ['Virmanla Gelen', `+${fmtWithUnit(stats.transferredIn)}`],
-            ['Şantiyeye Gönderilen', `-${fmtWithUnit(stats.transferredOut)}`],
-            ['Harcanan', `-${fmtWithUnit(stats.consumed)}`],
-            ['Depoda Kalan', fmtWithUnit(stats.remaining)]
-        ];
+            autoTable(doc, {
+                startY: 40,
+                head: [['Başlık', 'Değer']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185] },
+            });
 
-        autoTable(doc, {
-            startY: 40,
-            head: [['Başlık', 'Değer']],
-            body: tableData,
-            theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185] },
-        });
-
-        doc.save(`${siteName}_yakit_ozeti.pdf`);
+            doc.save(`${siteName}_yakit_ozeti.pdf`);
+        } catch (error) {
+            console.error('PDF export error:', error);
+            alert('PDF oluşturulurken hata oluştu.');
+        }
     };
 
-    const handleExportExcel = () => {
-        const wb = XLSX.utils.book_new();
+    const handleExportExcel = async () => {
+        try {
+            const XLSX = await import('xlsx');
+            const wb = XLSX.utils.book_new();
 
-        const data = [
-            { Baslik: 'Rapor', Deger: `${siteName} - Yakıt Özeti` },
-            { Baslik: 'Tarih Aralığı', Deger: `${startDate || '-'} / ${endDate || '-'}` },
-            { Baslik: '', Deger: '' }, // Spacer
-            { Baslik: 'Depo Kapasite', Deger: stats.capacity },
-            { Baslik: 'Akaryakıt İst. Alınan', Deger: stats.purchased },
-            { Baslik: 'Virmanla Gelen', Deger: stats.transferredIn },
-            { Baslik: 'Şantiyeye Gönderilen', Deger: stats.transferredOut },
-            { Baslik: 'Harcanan', Deger: stats.consumed },
-            { Baslik: 'Depoda Kalan', Deger: stats.remaining },
-        ];
+            const data = [
+                { Baslik: 'Rapor', Deger: `${siteName} - Yakıt Özeti` },
+                { Baslik: 'Tarih Aralığı', Deger: `${startDate || '-'} / ${endDate || '-'}` },
+                { Baslik: '', Deger: '' },
+                { Baslik: 'Depo Kapasite', Deger: stats.capacity },
+                { Baslik: 'Akaryakıt İst. Alınan', Deger: stats.purchased },
+                { Baslik: 'Virmanla Gelen', Deger: stats.transferredIn },
+                { Baslik: 'Şantiyeye Gönderilen', Deger: stats.transferredOut },
+                { Baslik: 'Harcanan', Deger: stats.consumed },
+                { Baslik: 'Depoda Kalan', Deger: stats.remaining },
+            ];
 
-        const ws = XLSX.utils.json_to_sheet(data);
+            const ws = XLSX.utils.json_to_sheet(data);
+            ws['!cols'] = [{ wch: 30 }, { wch: 20 }];
 
-        // Adjust column widths
-        ws['!cols'] = [{ wch: 30 }, { wch: 20 }];
-
-        XLSX.utils.book_append_sheet(wb, ws, "Yakıt Özeti");
-        XLSX.writeFile(wb, `${siteName}_yakit_ozeti.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Yakıt Özeti");
+            XLSX.writeFile(wb, `${siteName}_yakit_ozeti.xlsx`);
+        } catch (error) {
+            console.error('Excel export error:', error);
+            alert('Excel oluşturulurken hata oluştu.');
+        }
     };
 
     if (!siteId) return null;
