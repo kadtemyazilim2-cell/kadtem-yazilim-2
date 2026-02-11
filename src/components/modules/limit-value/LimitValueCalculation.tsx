@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -82,6 +82,8 @@ export function LimitValueCalculation() {
     const [myCompanies, setMyCompanies] = useState<{ name: string, shortName?: string | null }[]>([]);
     const [isLoadingGroups, setIsLoadingGroups] = useState(false);
     const [hasManualEdits, setHasManualEdits] = useState(false);
+    const pendingAutoSaveRef = useRef(false); // Flag to trigger auto-save after file analysis
+    const [isAutoSaved, setIsAutoSaved] = useState(false); // Prevent duplicate auto-saves
 
     // Editable State
     const [editingCell, setEditingCell] = useState<{ index: number, field: string } | null>(null);
@@ -167,6 +169,7 @@ export function LimitValueCalculation() {
         setIsLoadingHistory(false);
     };
 
+    // "Farklı Kaydet" - Manual save with hasManualEdits = true
     const handleSaveCalculation = async () => {
         if (!result || bidders.length === 0) {
             toast.error('Kaydedilecek veri bulunamadı. Lütfen önce hesaplama yapın.');
@@ -177,6 +180,9 @@ export function LimitValueCalculation() {
             toast.error('Lütfen bir İş Grubu seçiniz. (Zorunlu)');
             return;
         }
+
+        // "Farklı Kaydet" always means manual edit
+        setHasManualEdits(true);
 
         const toastId = toast.loading('Hesaplama kaydediliyor...');
 
@@ -209,9 +215,9 @@ export function LimitValueCalculation() {
                 metadata,
                 approxCost,
                 businessGroup, // Save for reload
-                hasManualEdits // Save edit status
+                hasManualEdits: true // Always true for "Farklı Kaydet"
             },
-            hasManualEdits // Pass to server action if schema supports it or for logic
+            hasManualEdits: true // Always true for "Farklı Kaydet"
         };
 
         const res = await saveCalculation({
@@ -220,12 +226,70 @@ export function LimitValueCalculation() {
         });
 
         if (res.success) {
-            toast.success('Hesaplama başarıyla kaydedildi.', { id: toastId });
+            toast.success('Hesaplama başarıyla kaydedildi. (Farklı Kaydet)', { id: toastId });
             loadHistory(); // Refresh list
         } else {
             toast.error('Kayıt başarısız: ' + res.error, { id: toastId });
         }
     };
+
+    // Auto-save after file analysis (no businessGroup required)
+    const autoSaveCalculation = async (currentResult: CalculationResult, currentBidders: Bidder[], currentMetadata: TenderMetadata, currentApproxCost: number) => {
+        // Parse date from DD.MM.YYYY to Date object
+        let parsedDate: Date | undefined = undefined;
+        if (currentMetadata.tenderDate) {
+            const parts = currentMetadata.tenderDate.split('.');
+            if (parts.length === 3) {
+                const d = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                if (!isNaN(d.getTime())) {
+                    parsedDate = d;
+                }
+            }
+        }
+
+        const saveData = {
+            tenderName: currentMetadata.tenderName,
+            tenderRegisterNo: currentMetadata.tenderRegisterNo,
+            administration: currentMetadata.administrationName,
+            tenderDate: parsedDate,
+            approxCost: currentApproxCost,
+            nCoefficient: parseFloat(nCoefficient),
+            limitValue: currentResult.limitValue,
+            likelyWinner: currentResult.likelyWinner,
+            likelyWinnerDiscount: currentResult.likelyWinner ? currentBidders.find(b => b.name === currentResult.likelyWinner)?.discountRatio : undefined,
+            fullResultData: {
+                bidders: currentBidders,
+                result: currentResult,
+                metadata: currentMetadata,
+                approxCost: currentApproxCost,
+                businessGroup: businessGroup || '', // May be empty for auto-save
+                hasManualEdits: false
+            },
+            hasManualEdits: false,
+            businessGroup: businessGroup || '' // May be empty for auto-save
+        };
+
+        try {
+            const res = await saveCalculation(saveData);
+            if (res.success) {
+                toast.success('Analiz otomatik olarak geçmiş ihalelere kaydedildi.', { duration: 3000 });
+                setIsAutoSaved(true);
+                loadHistory(); // Refresh list
+            } else {
+                console.error('Otomatik kayıt başarısız:', res.error);
+            }
+        } catch (error) {
+            console.error('Otomatik kayıt hatası:', error);
+        }
+    };
+
+    // Auto-save effect: triggers when result changes from file parsing
+    useEffect(() => {
+        if (pendingAutoSaveRef.current && result && bidders.length > 0) {
+            pendingAutoSaveRef.current = false;
+            autoSaveCalculation(result, bidders, metadata, approxCost);
+        }
+    }, [result]);
 
     const handleLoadHistory = (record: any) => {
         const data = record.fullResultData;
@@ -339,6 +403,8 @@ export function LimitValueCalculation() {
                         const text = result.value;
                         console.log("Raw Word Text:", text); // Debug
                         parseTextContent(text);
+                        pendingAutoSaveRef.current = true; // Trigger auto-save after state update
+                        setIsAutoSaved(false);
                         toast.success('Dosya başarıyla analiz edildi.');
                     } catch (err) {
                         console.error(err);
@@ -360,6 +426,8 @@ export function LimitValueCalculation() {
                     // Simple text conversion for now
                     const text = jsonData.map((row: any) => row.join(' ')).join('\n');
                     parseTextContent(text);
+                    pendingAutoSaveRef.current = true; // Trigger auto-save after state update
+                    setIsAutoSaved(false);
                     toast.success('Dosya başarıyla analiz edildi.');
                 };
                 reader.readAsArrayBuffer(file);
@@ -1186,7 +1254,7 @@ export function LimitValueCalculation() {
                                             size="sm"
                                             onClick={handleSaveCalculation}
                                             disabled={!result || isSaving}
-                                            className="h-8 gap-2 ml-2 transition-all"
+                                            className="h-8 gap-2 ml-2 transition-all bg-red-600 hover:bg-red-700 text-white border-red-700"
                                         >
                                             {isSaving ? (
                                                 <>
@@ -1196,7 +1264,7 @@ export function LimitValueCalculation() {
                                             ) : (
                                                 <>
                                                     <Save className="w-4 h-4" />
-                                                    Kaydet
+                                                    Farklı Kaydet
                                                 </>
                                             )}
                                         </Button>

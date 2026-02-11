@@ -443,15 +443,48 @@ export default function DashboardPage() {
                                         {upcomingExpirations.map((item) => {
                                             const vehicle = vehicles.find((v: any) => v.id === item.vehicleId);
                                             const canEditPayments = user?.role === 'ADMIN' || hasPermission('dashboard.upcoming-payments', 'EDIT') || hasPermission('dashboard', 'EDIT');
-                                            let historyText: string | null = null;
+
+                                            // Find the latest agency from insuranceHistory
+                                            let latestAgency: string | null = null;
+                                            let latestPolicyDate: string | null = null;
+                                            if (vehicle?.insuranceHistory?.length) {
+                                                const matchType = item.type === 'Trafik Sigortası' ? 'TRAFFIC' : (item.type === 'Kasko' ? 'KASKO' : null);
+                                                if (matchType) {
+                                                    const matchingRecords = vehicle.insuranceHistory
+                                                        .filter((r: any) => r.type === matchType && r.agency)
+                                                        .sort((a: any, b: any) => {
+                                                            // Sort by createdAt or endDate desc to get the latest
+                                                            const dateA = a.createdAt || a.endDate || '';
+                                                            const dateB = b.createdAt || b.endDate || '';
+                                                            return dateB.localeCompare(dateA);
+                                                        });
+                                                    if (matchingRecords.length > 0) {
+                                                        latestAgency = matchingRecords[0].agency;
+                                                        latestPolicyDate = matchingRecords[0].endDate
+                                                            ? new Date(matchingRecords[0].endDate).toLocaleDateString('tr-TR')
+                                                            : (matchingRecords[0].createdAt
+                                                                ? new Date(matchingRecords[0].createdAt).toLocaleDateString('tr-TR')
+                                                                : null);
+                                                    }
+                                                }
+                                            }
+
+                                            // Fall back to vehicle-level agency if no history
+                                            if (!latestAgency) {
+                                                if (item.type === 'Trafik Sigortası') latestAgency = vehicle?.insuranceAgency || null;
+                                                else if (item.type === 'Kasko') latestAgency = vehicle?.kaskoAgency || null;
+                                            }
+
+                                            // Proposal history  
+                                            let proposalText: string | null = null;
                                             if (item.type === 'Trafik Sigortası' && vehicle?.lastTrafficProposalDate) {
                                                 const date = new Date(vehicle.lastTrafficProposalDate).toLocaleDateString('tr-TR');
                                                 const agencies = vehicle.lastTrafficProposalAgencies?.join(', ') || '';
-                                                historyText = `Son Teklif: ${date} (${agencies})`;
+                                                proposalText = `Teklif: ${date} (${agencies})`;
                                             } else if (item.type === 'Kasko' && vehicle?.lastKaskoProposalDate) {
                                                 const date = new Date(vehicle.lastKaskoProposalDate).toLocaleDateString('tr-TR');
                                                 const agencies = vehicle.lastKaskoProposalAgencies?.join(', ') || '';
-                                                historyText = `Son Teklif: ${date} (${agencies})`;
+                                                proposalText = `Teklif: ${date} (${agencies})`;
                                             }
 
                                             return (
@@ -472,24 +505,17 @@ export default function DashboardPage() {
                                                             <span className="font-medium text-slate-700">{item.type}</span>
                                                             <span className="text-slate-400">•</span>
                                                             <span className="text-slate-500">{item.vehicleBrand} {item.vehicleModel}</span>
-                                                            {item.agencyName && (
-                                                                <>
-                                                                    <span className="text-slate-400">•</span>
-                                                                    <span className="text-slate-500 font-medium truncate max-w-[120px]" title={item.agencyName}>{item.agencyName}</span>
-                                                                </>
-                                                            )}
-                                                            {!item.agencyName && historyText && (
-                                                                <>
-                                                                    <span className="text-slate-400">•</span>
-                                                                    <span className="text-orange-600 font-medium truncate max-w-[200px] text-[11px]" title={historyText}>
-                                                                        {historyText.replace('Son Teklif: ', 'Teklif: ')}
-                                                                    </span>
-                                                                </>
-                                                            )}
                                                         </div>
-                                                        {historyText && (
+                                                        {/* Latest Agency Info - Always Visible */}
+                                                        {latestAgency && (
+                                                            <div className="text-[10px] font-medium mt-0.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded w-fit border border-emerald-200">
+                                                                🏢 {latestAgency}{latestPolicyDate ? ` • ${latestPolicyDate}` : ''}
+                                                            </div>
+                                                        )}
+                                                        {/* Proposal History */}
+                                                        {proposalText && (
                                                             <div className="text-[10px] text-blue-600 font-medium mt-0.5 bg-blue-50 px-2 py-0.5 rounded w-fit border border-blue-100">
-                                                                {historyText}
+                                                                {proposalText}
                                                             </div>
                                                         )}
                                                     </div>
