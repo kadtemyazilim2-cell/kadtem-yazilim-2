@@ -3,7 +3,7 @@
 import { useAppStore } from '@/lib/store/use-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format, isWithinInterval, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { format, isWithinInterval, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useMemo, useEffect } from 'react';
@@ -76,7 +76,11 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
     // Filters
     const [plateFilter, setPlateFilter] = useState<string[]>([]);
     const [siteFilter, setSiteFilter] = useState<string>(initialSiteId || ''); // [UPDATED] Single Site
-    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({ start: '', end: '' });
+    // [UPDATED] Default to Last 30 Days
+    const [dateRange, setDateRange] = useState<{ start: string, end: string }>({
+        start: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+        end: ''
+    });
     const [searchTerm, setSearchTerm] = useState('');
 
     const handleDelete = async (id: string) => {
