@@ -56,9 +56,16 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
         description: '', // [NEW] Notes
     });
 
+    // Store original time to preserve when editing
+    const [originalTime, setOriginalTime] = useState<string | null>(null);
+
     // [NEW] Initialize from initialData
     useEffect(() => {
         if (initialData) {
+            // Preserve original time (HH:mm:ss) for re-assembly on save
+            const origDate = new Date(initialData.date);
+            setOriginalTime(origDate.toTimeString().slice(0, 8)); // "HH:mm:ss"
+
             setFormData({
                 vehicleId: initialData.vehicleId,
                 siteId: initialData.siteId,
@@ -71,6 +78,7 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
                 description: initialData.description || '',
             });
         } else if (open) {
+            setOriginalTime(null);
             // Reset if opening new
             if (!externalOpen) resetForm();
         }
@@ -147,10 +155,21 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
                 const updateAction = await import('@/actions/fuel').then(mod => mod.updateFuelLog);
 
                 // Prisma Client update expects Date object for DateTime fields.
-                // Our payload has .date as ISO string.
+                // Preserve original time when editing — date input only has yyyy-MM-dd
+                let dateObj: Date;
+                // Use the date from the form, but set the time to NOW (when the edit is being made)
+                const dateRaw = (payload.date as any) instanceof Date ? (payload.date as any).toISOString() : String(payload.date);
+                const datePart = dateRaw.slice(0, 10); // 'YYYY-MM-DD'
+                if (datePart && datePart.length === 10) {
+                    const now = new Date();
+                    dateObj = new Date(datePart + 'T00:00:00');
+                    dateObj.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+                } else {
+                    dateObj = new Date();
+                }
                 const updatePayload = {
                     ...payload,
-                    date: new Date(payload.date as string) // ensure Date object
+                    date: dateObj
                 };
 
                 const result = await updateAction(initialData.id, updatePayload as any); // Cast as any to bypass strict Partial<FuelLog> mismatch if necessary

@@ -887,7 +887,7 @@ export function LimitValueCalculation() {
             b.amount, // Keep as number for Excel formatting if possible
             b.submitTime || '-',
             b.discountRatio?.toFixed(2),
-            b.isValid ? (b.isAboveLimit ? 'Makul' : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
+            b.isValid ? (b.isAboveLimit ? (i === targetBidders.findIndex((x: any) => x.isValid && x.isAboveLimit) ? 'İlk Makul Teklif' : '') : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
         ]);
 
         // 3. Combine
@@ -963,7 +963,7 @@ export function LimitValueCalculation() {
                 b.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL",
                 b.submitTime || '-',
                 b.discountRatio?.toFixed(2) + '%',
-                b.isValid ? (b.isAboveLimit ? 'Makul' : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
+                b.isValid ? (b.isAboveLimit ? (i === targetBidders.findIndex((x: any) => x.isValid && x.isAboveLimit) ? 'İlk Makul Teklif' : '') : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
             ]
         });
 
@@ -976,11 +976,14 @@ export function LimitValueCalculation() {
             styles: { font: 'Roboto', fontSize: 8 },
             headStyles: { fillColor: [52, 73, 94] },
             didParseCell: (data) => {
-                // Highlight Owner Company Rows
+                // Highlight Owner Company Rows and First Makul Row
                 if (data.section === 'body') {
                     const rowName = tableData[data.row.index][1] as string;
+                    const firstMakulIdx = targetBidders.findIndex((b: any) => b.isValid && b.isAboveLimit);
                     if (isOwnerCompany(rowName)) {
-                        data.cell.styles.fillColor = [180, 250, 200]; // Slightly darker emerald/green for better visibility
+                        data.cell.styles.fillColor = [180, 250, 200]; // Green for owner companies
+                    } else if (data.row.index === firstMakulIdx) {
+                        data.cell.styles.fillColor = [255, 237, 180]; // Amber for first reasonable bid
                     }
                 }
             }
@@ -1331,87 +1334,97 @@ export function LimitValueCalculation() {
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    bidders.map((bidder, idx) => (
-                                        <TableRow
-                                            key={idx}
-                                            className={cn(
-                                                !bidder.isValid ? 'bg-red-50/50 opacity-70' : (isOwnerCompany(bidder.name) ? 'bg-emerald-100/70 hover:bg-emerald-100' : '')
-                                            )}
-                                        >
-                                            <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
-                                            <TableCell>
-                                                <div className="font-medium" title={bidder.name}>{shortenCompanyName(bidder.name)}</div>
-                                                {!bidder.isValid && (
-                                                    <div className="text-xs text-red-500 mt-0.5 flex items-center gap-1">
-                                                        <XCircle className="w-3 h-3" />
-                                                        {bidder.exclusionReason || 'Geçersiz Teklif'}
-                                                    </div>
+                                    bidders.map((bidder, idx) => {
+                                        // Determine if this is the FIRST makul (reasonable) bidder
+                                        const firstMakulIndex = bidders.findIndex(b => b.isValid && b.isAboveLimit);
+                                        const isFirstMakul = idx === firstMakulIndex;
+                                        return (
+                                            <TableRow
+                                                key={idx}
+                                                className={cn(
+                                                    !bidder.isValid ? 'bg-red-50/50 opacity-70'
+                                                        : isOwnerCompany(bidder.name) ? 'bg-emerald-100/70 hover:bg-emerald-100'
+                                                            : isFirstMakul ? 'bg-amber-100/70 hover:bg-amber-100'
+                                                                : ''
                                                 )}
-                                            </TableCell>
-                                            <TableCell
-                                                className="text-right font-mono cursor-pointer hover:bg-slate-100 relative group"
-                                                onClick={() => setEditingCell({ index: idx, field: 'amount' })}
                                             >
-                                                {editingCell?.index === idx && editingCell?.field === 'amount' ? (
-                                                    <Input
-                                                        autoFocus
-                                                        className="h-8 text-right font-mono absolute inset-0 w-full h-full border-2 border-blue-500 rounded-none z-10"
-                                                        defaultValue={bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, useGrouping: false })}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        onBlur={(e) => handleBidderEdit(idx, 'amount', e.target.value)}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') handleBidderEdit(idx, 'amount', e.currentTarget.value);
-                                                        }}
-                                                    />
-                                                ) : (
-                                                    <>
-                                                        {bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
-                                                        <span className="hidden group-hover:inline absolute right-full mr-1 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 whitespace-nowrap">Düzenle</span>
-                                                    </>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-center text-xs text-muted-foreground font-mono">
-                                                {bidder.submitTime || '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {bidder.discountRatio != null && (
-                                                    <span className={cn(
-                                                        "font-bold",
-                                                        bidder.discountRatio > 0 ? "text-green-600" : "text-red-500"
-                                                    )}>
-                                                        %{bidder.discountRatio.toFixed(2)}
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {bidder.isValid ? (
-                                                    bidder.isAboveLimit ? (
-                                                        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100">
-                                                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                            Makul
-                                                        </Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">
-                                                            Sınır Altı
-                                                        </Badge>
-                                                    )
-                                                ) : (
-                                                    <Badge variant="secondary">Kapsam Dışı</Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleRemoveBidder(idx)}
-                                                    title="Listeden Çıkar"
+                                                <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
+                                                <TableCell>
+                                                    <div className="font-medium" title={bidder.name}>{shortenCompanyName(bidder.name)}</div>
+                                                    {!bidder.isValid && (
+                                                        <div className="text-xs text-red-500 mt-0.5 flex items-center gap-1">
+                                                            <XCircle className="w-3 h-3" />
+                                                            {bidder.exclusionReason || 'Geçersiz Teklif'}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell
+                                                    className="text-right font-mono cursor-pointer hover:bg-slate-100 relative group"
+                                                    onClick={() => setEditingCell({ index: idx, field: 'amount' })}
                                                 >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
+                                                    {editingCell?.index === idx && editingCell?.field === 'amount' ? (
+                                                        <Input
+                                                            autoFocus
+                                                            className="h-8 text-right font-mono absolute inset-0 w-full h-full border-2 border-blue-500 rounded-none z-10"
+                                                            defaultValue={bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, useGrouping: false })}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onBlur={(e) => handleBidderEdit(idx, 'amount', e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleBidderEdit(idx, 'amount', e.currentTarget.value);
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            {bidder.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL
+                                                            <span className="hidden group-hover:inline absolute right-full mr-1 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 whitespace-nowrap">Düzenle</span>
+                                                        </>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-center text-xs text-muted-foreground font-mono">
+                                                    {bidder.submitTime || '-'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {bidder.discountRatio != null && (
+                                                        <span className={cn(
+                                                            "font-bold",
+                                                            bidder.discountRatio > 0 ? "text-green-600" : "text-red-500"
+                                                        )}>
+                                                            %{bidder.discountRatio.toFixed(2)}
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    {bidder.isValid ? (
+                                                        bidder.isAboveLimit ? (
+                                                            isFirstMakul ? (
+                                                                <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
+                                                                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                                    İlk Makul Teklif
+                                                                </Badge>
+                                                            ) : null
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">
+                                                                Sınır Altı
+                                                            </Badge>
+                                                        )
+                                                    ) : (
+                                                        <Badge variant="secondary">Kapsam Dışı</Badge>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => handleRemoveBidder(idx)}
+                                                        title="Listeden Çıkar"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })
                                 )}
                             </TableBody>
                         </Table>

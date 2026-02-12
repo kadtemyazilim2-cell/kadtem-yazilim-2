@@ -23,7 +23,7 @@ import { getFuelLogs, getFuelTransfers, getFuelTanks } from '@/actions/fuel'; //
 export const dynamic = 'force-dynamic';
 
 export default function FuelMovementPage() {
-    const { fuelTanks, vehicles, addFuelTransfer, addFuelLog } = useAppStore();
+    const { fuelTanks, vehicles, addFuelTransfer, addFuelLog, fuelLogs } = useAppStore();
     const { hasPermission, user, refreshSession } = useAuth(); // [NEW] refreshSession
 
     // [NEW] Refresh Session on Mount & Fetch Fresh Data
@@ -55,7 +55,10 @@ export default function FuelMovementPage() {
     const availableSites = useMemo(() => (rawAvailableSites || []).filter((s: any) => s.status !== 'INACTIVE'), [rawAvailableSites]);
 
     // Filter Tanks based on available sites
-    const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);;
+    const accessibleTanks = useMemo(() => (fuelTanks || []).filter((t: any) => (availableSites || []).some((s: any) => s.id === t.siteId)), [fuelTanks, availableSites]);
+
+    // ALL tanks in the system (for transfer target — user can transfer to any site with a tank)
+    const allTanks = useMemo(() => (fuelTanks || []), [fuelTanks]);
 
     // [NEW] Filter sites for Dispense tab: Only show sites that have at least one tank
     const dispenseSites = useMemo(() => {
@@ -85,6 +88,20 @@ export default function FuelMovementPage() {
         }
     }, [dispenseTanks]);
 
+    // [NEW] Auto-select purchase tank if only 1 accessible tank
+    useEffect(() => {
+        if (accessibleTanks.length === 1 && !purchaseData.toId) {
+            setPurchaseData(prev => ({ ...prev, toId: accessibleTanks[0].id }));
+        }
+    }, [accessibleTanks]);
+
+    // [NEW] Auto-select transfer source if only 1 accessible tank
+    useEffect(() => {
+        if (accessibleTanks.length === 1 && !transferData.fromId) {
+            setTransferData(prev => ({ ...prev, fromId: accessibleTanks[0].id }));
+        }
+    }, [accessibleTanks]);
+
     const canViewPage = hasPermission('movement', 'VIEW');
     const canDispense = hasPermission('movement.dispense', 'VIEW') || hasPermission('movement', 'VIEW');
     const canTransfer = hasPermission('movement.transfer', 'VIEW') || hasPermission('movement', 'VIEW');
@@ -94,17 +111,7 @@ export default function FuelMovementPage() {
     const canTransferCreate = hasPermission('movement.transfer', 'CREATE') || hasPermission('movement', 'CREATE');
     const canPurchaseCreate = hasPermission('movement.purchase', 'CREATE') || hasPermission('movement', 'CREATE');
 
-    if (!canViewPage) {
-        return <div className="p-6 text-center text-muted-foreground">Bu sayfaya erişim yetkiniz yok.</div>;
-    }
-
-    const defaultTab = canDispense ? 'dispense' : (canTransfer ? 'transfer' : (canPurchase ? 'purchase' : ''));
-
-    if (!defaultTab) {
-        return <div className="p-6 text-center text-muted-foreground">Görüntülenecek modül bulunamadı.</div>;
-    }
-
-    // [MOD] Persist Date and Time
+    // [MOD] Persist Date and Time — hooks MUST be before any early returns
     const [date, setDate] = useLocalStorage('fuel_form_date', new Date().toISOString().split('T')[0]);
     const [time, setTime] = useLocalStorage('fuel_form_time', new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
 
@@ -123,10 +130,30 @@ export default function FuelMovementPage() {
         tankId: '', vehicleId: '', amount: '', mileage: '', fullTank: true, description: ''
     });
 
+    // [NEW] Compute last mileage for selected vehicle from fuel logs
+    const lastMileage = useMemo(() => {
+        if (!dispenseData.vehicleId) return null;
+        const vehicleLogs = (fuelLogs || [])
+            .filter((l: any) => l.vehicleId === dispenseData.vehicleId && l.mileage != null && l.mileage > 0)
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return vehicleLogs.length > 0 ? vehicleLogs[0].mileage : null;
+    }, [dispenseData.vehicleId, fuelLogs]);
+
     // Manual Clear Functions
     const clearTransfer = () => setTransferData({ fromType: 'TANK', fromId: '', toType: 'TANK', toId: '', amount: '' });
     const clearPurchase = () => setPurchaseData({ firmName: '', toType: 'TANK', toId: '', amount: '', unitPrice: '' });
     const clearDispense = () => setDispenseData({ tankId: '', vehicleId: '', amount: '', mileage: '', fullTank: true, description: '' });
+
+    // Early returns AFTER all hooks
+    if (!canViewPage) {
+        return <div className="p-6 text-center text-muted-foreground">Bu sayfaya erişim yetkiniz yok.</div>;
+    }
+
+    const defaultTab = canDispense ? 'dispense' : (canTransfer ? 'transfer' : (canPurchase ? 'purchase' : ''));
+
+    if (!defaultTab) {
+        return <div className="p-6 text-center text-muted-foreground">Görüntülenecek modül bulunamadı.</div>;
+    }
 
     // Helper to format number string (10000 -> 10.000)
     const formatNumberString = (val: string) => {
@@ -171,8 +198,6 @@ export default function FuelMovementPage() {
     const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || submitLock.current) return;
-        submitLock.current = true;
-        setIsSubmitting(true);
 
         const amount = parseFormattedNumber(transferData.amount);
         if (amount <= 0) {
@@ -191,6 +216,9 @@ export default function FuelMovementPage() {
             return;
         }
 
+        submitLock.current = true;
+        setIsSubmitting(true);
+
         // Auto-set Date to NOW
         const now = new Date();
 
@@ -200,7 +228,7 @@ export default function FuelMovementPage() {
                 fromId: transferData.fromId,
                 toType: 'TANK',
                 toId: transferData.toId,
-                date: now, // [FIX] Pass Date object
+                date: now,
                 amount: amount,
                 createdByUserId: user.id
             }));
@@ -215,14 +243,15 @@ export default function FuelMovementPage() {
         } catch (error) {
             console.error(error);
             toast.error('Bir hata oluştu.');
+        } finally {
+            setIsSubmitting(false);
+            submitLock.current = false;
         }
     };
 
     const handlePurchase = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || submitLock.current) return;
-        submitLock.current = true;
-        setIsSubmitting(true);
 
         const amount = parseFormattedNumber(purchaseData.amount);
         const price = parseFormattedNumber(purchaseData.unitPrice);
@@ -231,6 +260,9 @@ export default function FuelMovementPage() {
             toast.error('Lütfen geçerli bir miktar giriniz.');
             return;
         }
+
+        submitLock.current = true;
+        setIsSubmitting(true);
 
         const now = new Date();
         const combinedDate = new Date(date);
@@ -242,7 +274,7 @@ export default function FuelMovementPage() {
                 fromId: purchaseData.firmName,
                 toType: 'TANK',
                 toId: purchaseData.toId,
-                date: combinedDate, // [FIX] Pass Date object
+                date: combinedDate,
                 amount: amount,
                 unitPrice: price,
                 totalCost: amount * price,
@@ -260,14 +292,15 @@ export default function FuelMovementPage() {
         } catch (error) {
             console.error(error);
             toast.error('Bir hata oluştu.');
+        } finally {
+            setIsSubmitting(false);
+            submitLock.current = false;
         }
     };
 
     const handleDispense = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user || submitLock.current) return;
-        submitLock.current = true;
-        setIsSubmitting(true);
 
         const amount = parseFormattedNumber(dispenseData.amount);
         const mileage = parseFormattedNumber(dispenseData.mileage);
@@ -277,11 +310,26 @@ export default function FuelMovementPage() {
             return;
         }
 
+        // [NEW] KM/Saat validation: restricted users cannot enter lower than last recorded mileage
+        if (user.role !== 'ADMIN' && lastMileage != null && mileage < lastMileage) {
+            toast.error(`Girilen KM/Saat (${mileage.toLocaleString('tr-TR')}) son girilen değerden (${lastMileage.toLocaleString('tr-TR')}) düşük olamaz.`);
+            return;
+        }
+
+        // [NEW] If not full tank, description is required
+        if (!dispenseData.fullTank && (!dispenseData.description || !dispenseData.description.trim())) {
+            toast.error('Araç fullenmediğinde açıklama yazılması zorunludur.');
+            return;
+        }
+
         const sourceTank = fuelTanks.find((t: any) => t.id === dispenseData.tankId);
         if (!sourceTank) {
             toast.error('Kaynak depo bulunamadı.');
             return;
         }
+
+        submitLock.current = true;
+        setIsSubmitting(true);
 
         const now = new Date();
 
@@ -421,6 +469,11 @@ export default function FuelMovementPage() {
                                             onChange={e => handleAmountChange(e.target.value, setDispenseData, 'mileage')}
                                             required
                                         />
+                                        {lastMileage != null && (
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                                Son girilen: <span className="font-semibold text-blue-600">{lastMileage.toLocaleString('tr-TR')}</span> KM/Saat
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Verilen Miktar (Lt)</Label>
@@ -450,12 +503,17 @@ export default function FuelMovementPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Notlar</Label>
+                                    <Label>
+                                        {!dispenseData.fullTank ? (
+                                            <>Fullenmeme Nedeni <span className="text-red-500">*</span></>
+                                        ) : 'Notlar'}
+                                    </Label>
                                     <Textarea
-                                        placeholder="İşlem ile ilgili notlar..."
-                                        className="resize-none h-20"
+                                        placeholder={!dispenseData.fullTank ? 'Aracın neden fullenmediğini yazınız...' : 'İşlem ile ilgili notlar...'}
+                                        className={`resize-none h-20 ${!dispenseData.fullTank && !dispenseData.description?.trim() ? 'border-red-400 focus:ring-red-400' : ''}`}
                                         value={dispenseData.description}
                                         onChange={e => setDispenseData({ ...dispenseData, description: e.target.value })}
+                                        required={!dispenseData.fullTank}
                                     />
                                 </div>
 
@@ -494,10 +552,10 @@ export default function FuelMovementPage() {
                                             value={transferData.fromId}
                                             onValueChange={v => setTransferData({ ...transferData, fromId: v || '' })}
                                             required
+                                            disabled={accessibleTanks.length === 1}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {/* Show all accessible tanks */}
                                                 {accessibleTanks.map((t: any) => (
                                                     <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>
                                                 ))}
@@ -510,8 +568,8 @@ export default function FuelMovementPage() {
                                         <Select value={transferData.toId} onValueChange={v => setTransferData({ ...transferData, toId: v || '' })} required>
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {accessibleTanks.filter((t: any) => t.id !== transferData.fromId).map((t: any) => (
-                                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                {allTanks.filter((t: any) => t.id !== transferData.fromId).map((t: any) => (
+                                                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -565,7 +623,12 @@ export default function FuelMovementPage() {
 
                                 <div className="space-y-2">
                                     <Label>Depo Seçimi</Label>
-                                    <Select value={purchaseData.toId} onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '', toType: 'TANK' })} required>
+                                    <Select
+                                        value={purchaseData.toId}
+                                        onValueChange={v => setPurchaseData({ ...purchaseData, toId: v || '', toType: 'TANK' })}
+                                        required
+                                        disabled={accessibleTanks.length === 1}
+                                    >
                                         <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                         <SelectContent>
                                             {accessibleTanks.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}

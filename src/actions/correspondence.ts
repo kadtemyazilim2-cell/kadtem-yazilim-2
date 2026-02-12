@@ -70,9 +70,6 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
         });
         const correspondence = result;
         revalidateTag('correspondence');
-        revalidateTag('correspondence');
-        revalidateTag('correspondence');
-        revalidatePath('/dashboard/correspondence');
         return { success: true, data: correspondence };
     } catch (error: any) {
         console.error('createCorrespondence Error:', error);
@@ -125,8 +122,6 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
             data: payload
         });
         revalidateTag('correspondence');
-        revalidateTag('correspondence');
-        revalidatePath('/dashboard/correspondence');
         return { success: true, data: correspondence };
     } catch (error) {
         console.error('updateCorrespondence Error:', error);
@@ -187,8 +182,6 @@ export async function deleteCorrespondence(id: string, reason?: string, userId?:
         });
 
         revalidateTag('correspondence');
-        revalidateTag('correspondence');
-        revalidatePath('/dashboard/correspondence');
         return { success: true };
     } catch (error: any) {
         console.error('deleteCorrespondence Error:', error);

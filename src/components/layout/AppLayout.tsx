@@ -71,16 +71,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <div className="flex h-screen bg-slate-50 overflow-hidden">
             <StoreHydration />
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:flex flex-col w-64 border-r border-slate-200">
+            <aside className="hidden lg:flex flex-col w-64 border-r border-slate-200 shrink-0">
                 <Sidebar className="w-full" />
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                 <Topbar />
 
-                <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-20 lg:pb-6">
-                    <div className="mx-auto w-full max-w-full">
+                <main className="flex-1 overflow-y-auto overflow-x-hidden p-2 sm:p-4 lg:p-6 pb-20 lg:pb-6">
+                    <div className="mx-auto w-full max-w-full min-w-0">
                         {children}
                     </div>
                 </main>

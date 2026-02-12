@@ -4,7 +4,7 @@ import { useAppStore } from '@/lib/store/use-store';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FuelForm } from './FuelForm';
-import { format } from 'date-fns';
+import { format, startOfMonth, parseISO, isValid } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access';
@@ -19,6 +19,11 @@ export function FuelList() {
     const availableSites = useUserSites();
     const { user, hasPermission } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Date Filters - Default to current month
+    const currentDate = new Date();
+    const [startDate, setStartDate] = useState<string>(format(startOfMonth(currentDate), 'yyyy-MM-dd'));
+    const [endDate, setEndDate] = useState<string>(format(currentDate, 'yyyy-MM-dd'));
 
     // [NEW] Permissions
     const canCreate = hasPermission('fuel', 'CREATE');
@@ -84,6 +89,17 @@ export function FuelList() {
             const hasAccess = availableSites.some((s: any) => s.id === log.siteId);
             if (!hasAccess) return false;
 
+            // Date filter
+            if (startDate && endDate) {
+                const start = parseISO(startDate);
+                const end = new Date(parseISO(endDate));
+                end.setHours(23, 59, 59, 999);
+                if (isValid(start) && isValid(end)) {
+                    const logDate = new Date(log.date);
+                    if (!isValid(logDate) || logDate < start || logDate > end) return false;
+                }
+            }
+
             // [NEW] Filters
             if (filters.site.length > 0 && !filters.site.includes(log.siteId)) return false;
             if (filters.vehicle.length > 0 && !filters.vehicle.includes(log.vehicleId)) return false;
@@ -107,7 +123,7 @@ export function FuelList() {
                 )}
             </CardHeader>
             <CardContent>
-                <div className="mb-4">
+                <div className="mb-4 flex flex-wrap gap-3 items-center">
                     <input
                         type="text"
                         placeholder="Ara..."
@@ -115,6 +131,21 @@ export function FuelList() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="p-2 border rounded text-sm"
+                        />
+                        <span className="text-muted-foreground font-bold">-</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="p-2 border rounded text-sm"
+                        />
+                    </div>
                 </div>
                 <Table>
                     <TableHeader>

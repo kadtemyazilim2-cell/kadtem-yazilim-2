@@ -541,56 +541,21 @@ export function VehicleAttendanceList() {
         }
     }, [activeVehicles, vehicleAttendance]);
 
+    const canExport = hasPermission('vehicle-attendance.list', 'EXPORT') || hasPermission('vehicle-attendance.report', 'EXPORT');
+
     return (
         <div className="space-y-4 h-full flex flex-col">
             <Card>
-                <CardHeader>
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <CardTitle className="flex items-center gap-2">
-                            <Truck className="w-6 h-6" />
-                            Araç Puantaj Takibi
-                        </CardTitle>
-
-                        <div className="flex items-center gap-4">
-                            <div className="flex gap-2">
-                                <VehicleForm
-                                    initialOwnership="RENTAL"
-                                    defaultSiteId={selectedSiteId}
-                                    onSuccess={() => {
-                                        // Optional: Trigger revalidation or toast
-                                        // Since store updates might be handled inside VehicleForm or we need manual trigger
-                                    }}
-                                    customTrigger={
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={!selectedSiteId}
-                                            className="gap-2"
-                                        >
-                                            <Truck className="w-4 h-4" />
-                                            Kiralık Araç Ekle
-                                        </Button>
-                                    }
-                                />
-                                <Button
-                                    variant={showFuel ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setShowFuel(!showFuel)}
-                                    className="gap-2"
-                                >
-                                    <Fuel className="w-4 h-4" />
-                                    {showFuel ? 'Yakıtı Gizle' : 'Yakıtı Göster'}
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!selectedSiteId}>
-                                    Excel İndir
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!selectedSiteId}>
-                                    PDF İndir
-                                </Button>
-                            </div>
-
+                <CardHeader className="px-3 sm:px-6">
+                    <div className="flex flex-col gap-3">
+                        {/* Row 1: Title + Site Selector */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                                <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
+                                Araç Puantaj Takibi
+                            </CardTitle>
                             <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                                <SelectTrigger className="w-[200px]">
+                                <SelectTrigger className="w-full sm:w-[200px]">
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -599,22 +564,66 @@ export function VehicleAttendanceList() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
 
-                            <div className="flex items-center gap-2 border rounded-md p-1 bg-white">
+                        {/* Row 2: Month Navigator (centered) */}
+                        {user?.role === 'ADMIN' && (
+                            <div className="flex items-center justify-center gap-2 border rounded-md p-1 bg-white">
                                 <Button variant="ghost" size="icon" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}>
                                     <ChevronLeft className="w-4 h-4" />
                                 </Button>
-                                <span className="font-semibold w-32 text-center select-none">
+                                <span className="font-semibold w-32 text-center select-none text-sm sm:text-base">
                                     {format(selectedDate, 'MMMM yyyy', { locale: tr })}
                                 </span>
                                 <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}>
                                     <ChevronRight className="w-4 h-4" />
                                 </Button>
                             </div>
+                        )}
+
+                        {/* Row 3: Action buttons (wrap on mobile) */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            <VehicleForm
+                                initialOwnership="RENTAL"
+                                defaultSiteId={selectedSiteId}
+                                onSuccess={() => { }}
+                                customTrigger={
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!selectedSiteId}
+                                        className="gap-1.5 text-xs sm:text-sm"
+                                    >
+                                        <Truck className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Kiralık Araç Ekle</span>
+                                        <span className="sm:hidden">Araç Ekle</span>
+                                    </Button>
+                                }
+                            />
+                            <Button
+                                variant={showFuel ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setShowFuel(!showFuel)}
+                                className="gap-1.5 text-xs sm:text-sm"
+                            >
+                                <Fuel className="w-4 h-4" />
+                                <span className="hidden sm:inline">{showFuel ? 'Yakıtı Gizle' : 'Yakıtı Göster'}</span>
+                                <span className="sm:hidden">Yakıt</span>
+                            </Button>
+                            {canExport && (
+                                <>
+                                    <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!selectedSiteId} className="text-xs sm:text-sm">
+                                        Excel İndir
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!selectedSiteId} className="text-xs sm:text-sm">
+                                        PDF İndir
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                     {!selectedSiteId ? (
                         <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
                             Puantaj görüntülemek için lütfen bir şantiye seçiniz.
@@ -624,7 +633,7 @@ export function VehicleAttendanceList() {
                             <Table>
                                 <TableHeader>
                                     <TableRow className="bg-muted/50">
-                                        <TableHead className="w-[140px] sticky left-0 z-20 bg-slate-100 font-bold border-r shadow-[1px_0_2px_rgba(0,0,0,0.05)]">Araç / Plaka</TableHead>
+                                        <TableHead className="w-[100px] sm:w-[140px] sticky left-0 z-20 bg-slate-100 font-bold border-r shadow-[1px_0_2px_rgba(0,0,0,0.05)] text-xs sm:text-sm">Araç / Plaka</TableHead>
                                         {/* Cinsi column merged into Plaka */}
                                         {daysInMonth.map((day: any) => (
                                             <TableHead key={day.toISOString()} className="p-0 text-center w-8 min-w-[32px] text-[10px] font-medium border-l">
@@ -652,7 +661,7 @@ export function VehicleAttendanceList() {
                                             <TableRow key={v.id} className="hover:bg-muted/5">
                                                 <TableCell className="sticky left-0 z-10 bg-background border-r p-2 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
                                                     <div className="flex flex-col w-full">
-                                                        <span className="font-bold font-mono text-sm truncate" title={v.plate}>{v.plate}</span>
+                                                        <span className="font-bold font-mono text-xs sm:text-sm truncate" title={v.plate}>{v.plate}</span>
                                                         {v.model && (
                                                             <span className="text-[10px] font-semibold text-slate-600 line-clamp-1">
                                                                 {v.model}
@@ -734,8 +743,8 @@ export function VehicleAttendanceList() {
                         </div>
                     )}
                 </CardContent>
-                <div className="px-6 pb-6 mt-[-10px]">
-                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground border-t pt-4">
+                <div className="px-3 sm:px-6 pb-4 sm:pb-6 mt-[-10px]">
+                    <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground border-t pt-3 sm:pt-4">
                         <div className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-600" /> Çalıştı</div>
                         <div className="flex items-center gap-1"><Clock className="w-4 h-4 text-blue-500" /> Yarım Gün</div>
                         <div className="flex items-center gap-1"><PauseCircle className="w-4 h-4 text-yellow-500" /> Yattı (Çalışmadı)</div>

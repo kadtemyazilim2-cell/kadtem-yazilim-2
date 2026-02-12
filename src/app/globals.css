@@ -124,6 +124,100 @@
     @apply bg-background text-foreground;
   }
 
+  /* ===== GLOBAL MOBILE RESPONSIVE ===== */
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Prevent any element from exceeding viewport width */
+  *,
+  *::before,
+  *::after {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Exclude specific elements that need to exceed parent (dropdowns, modals, etc.) */
+  [data-radix-popper-content-wrapper],
+  [role="dialog"],
+  [role="listbox"],
+  [data-radix-select-viewport],
+  .fixed,
+  .absolute,
+  svg,
+  svg * {
+    max-width: none;
+  }
+
+  /* Ensure tables scroll horizontally in their container */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile: Stack grid layouts and reduce padding */
+  @media (max-width: 768px) {
+
+    /* Reduce page padding on mobile */
+    main {
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+
+    /* Make Card components full width */
+    [class*="CardContent"],
+    .card-content {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+
+    /* Ensure tables wrap in scrollable container */
+    table {
+      font-size: 0.75rem;
+    }
+
+    /* Compact buttons on mobile */
+    button {
+      white-space: nowrap;
+    }
+
+    /* Form inputs should fill container */
+    input,
+    select,
+    textarea {
+      max-width: 100%;
+    }
+
+    /* Force multi-column grids to stack on mobile */
+    .grid[class*="grid-cols-3"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]),
+    .grid[class*="grid-cols-4"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]),
+    .grid[class*="grid-cols-5"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]),
+    .grid[class*="grid-cols-6"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]) {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    /* Dialogs should not overflow screen */
+    [role="dialog"]>div {
+      max-width: calc(100vw - 2rem) !important;
+    }
+  }
+
+  @media (max-width: 480px) {
+
+    /* Very small screens: single column for grids */
+    .grid[class*="grid-cols-3"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]),
+    .grid[class*="grid-cols-4"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]),
+    .grid[class*="grid-cols-5"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]),
+    .grid[class*="grid-cols-6"]:not([class*="md:grid-cols"]):not([class*="sm:grid-cols"]) {
+      grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    }
+
+    table {
+      font-size: 0.65rem;
+    }
+  }
+
   /* Custom overrides */
   u {
     text-decoration-line: underline;

@@ -59,7 +59,7 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             '/dashboard/correspondence': 'correspondence',
                             '/dashboard/vehicles': 'vehicles',
                             '/dashboard/fuel': 'fuel',
-                            '/dashboard/fuel/movement': 'fuel', // Movement is part of Fuel module
+                            '/dashboard/fuel/movement': 'movement', // Separate permission for Fuel Movements
                             '/dashboard/cash-book': 'cash-book',
                             '/dashboard/new-tab': 'new-tab', // Main Attendance
                             '/dashboard/vehicle-attendance': 'vehicle-attendance',

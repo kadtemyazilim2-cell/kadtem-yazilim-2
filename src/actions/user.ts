@@ -7,11 +7,19 @@ import { revalidatePath } from 'next/cache';
 export async function getUsers() {
     try {
         const users = await prisma.user.findMany({
-            include: {
-                assignedCompanies: true,
-                assignedSites: true
-            },
-            orderBy: { name: 'asc' }
+            orderBy: { name: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                role: true,
+                email: true,
+                permissions: true,
+                status: true,
+                editLookbackDays: true,
+                assignedCompanies: { select: { id: true } },
+                assignedSites: { select: { id: true } }
+            }
         });
         return { success: true, data: users };
     } catch (error) {

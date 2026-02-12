@@ -4,15 +4,14 @@ import { serializeData } from '@/lib/serializer';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 
-// [NOTE] Cache kaldırıldı — fuel logs (1000 kayıt + include) toplam ~7MB,
-// unstable_cache 2MB limitini aşıyor. Doğrudan DB fetch kullanılıyor.
-
 export default async function FuelPage() {
     const session = await auth();
     if (!session || !session.user) {
         redirect('/login');
     }
 
+    // [PERF] select optimization reduces payload ~7MB → ~500KB, no need for server-side date limit
+    // Client-side date filters handle date scoping in FuelList / FuelConsumptionReport
     const [fuelLogsRes, fuelTanksRes, fuelTransfersRes] = await Promise.all([
         getFuelLogs(),
         getFuelTanks(),

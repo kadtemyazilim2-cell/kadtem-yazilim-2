@@ -27,40 +27,36 @@ export async function getAllTransactions() {
             return { success: false, error: 'Oturum bulunamadı.' };
         }
 
-        // [SECURE] Fetch Fresh Permissions from DB instead of relying on stale Session
-        const dbUser = await prisma.user.findUnique({
-            where: { id: session.user.id },
-            select: { role: true, permissions: true, status: true }
-        });
-
-        if (!dbUser) {
-            return { success: false, error: 'Kullanıcı bulunamadı.' };
-        }
-
-        if (dbUser.status !== 'ACTIVE') {
-            return { success: false, error: 'Hesabınız pasif durumdadır.' };
-        }
-
-        const isAdmin = dbUser.role === 'ADMIN';
-        const perms: any = dbUser.permissions || {};
-
-        const canViewAll = isAdmin ||
-            (perms['cash-book.admin-view']?.includes('VIEW')) ||
-            (perms['cash-book.reports']?.includes('VIEW')) ||
-            (perms['cash-book']?.includes('EXPORT'));
-
-        console.log(`[getAllTransactions] User: ${dbUser.role}, ID: ${session.user.id}`);
-        console.log(`[getAllTransactions] Perms: ${JSON.stringify(perms['cash-book.admin-view'])}`);
-        console.log(`[getAllTransactions] canViewAll: ${canViewAll}`);
-
+        // [PERF] For ADMIN users, skip extra DB lookup — session already has role
+        const sessionRole = (session.user as any).role;
+        let canViewAll = sessionRole === 'ADMIN';
         const where: any = {};
+
         if (!canViewAll) {
-            // Restriction: Only see transactions where user is responsible (or created)
-            // Added createdByUserId to be safe so they see what they entered even if assigned to someone else (rare)
-            where.OR = [
-                { responsibleUserId: session.user.id },
-                { createdByUserId: session.user.id }
-            ];
+            // [SECURE] Fetch Fresh Permissions from DB for non-admin users
+            const dbUser = await prisma.user.findUnique({
+                where: { id: session.user.id },
+                select: { role: true, permissions: true, status: true }
+            });
+
+            if (!dbUser) {
+                return { success: false, error: 'Kullanıcı bulunamadı.' };
+            }
+            if (dbUser.status !== 'ACTIVE') {
+                return { success: false, error: 'Hesabınız pasif durumdadır.' };
+            }
+
+            const perms: any = dbUser.permissions || {};
+            canViewAll = (perms['cash-book.admin-view']?.includes('VIEW')) ||
+                (perms['cash-book.reports']?.includes('VIEW')) ||
+                (perms['cash-book']?.includes('EXPORT'));
+
+            if (!canViewAll) {
+                where.OR = [
+                    { responsibleUserId: session.user.id },
+                    { createdByUserId: session.user.id }
+                ];
+            }
         }
 
         console.log(`[getAllTransactions] Where Clause:`, JSON.stringify(where));

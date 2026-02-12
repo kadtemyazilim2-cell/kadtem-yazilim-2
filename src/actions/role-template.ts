@@ -32,7 +32,7 @@ export async function createRoleTemplate(name: string, permissions: any) {
         });
 
         revalidatePath('/dashboard/admin');
-        return { success: true, data: template };
+        return { success: true, data: JSON.parse(JSON.stringify(template)) };
     } catch (error: any) {
         console.error('createRoleTemplate Error:', error);
         return { success: false, error: 'Şablon oluşturulamadı.' };
@@ -48,7 +48,10 @@ export async function getRoleTemplates() {
             orderBy: { name: 'asc' }
         });
 
-        return { success: true, data: templates };
+        // Serialize to plain objects (DateTime fields can't be serialized by Next.js server actions)
+        const serialized = JSON.parse(JSON.stringify(templates));
+
+        return { success: true, data: serialized };
     } catch (error) {
         console.error('getRoleTemplates Error:', error);
         return { success: false, error: 'Şablonlar alınamadı.' };

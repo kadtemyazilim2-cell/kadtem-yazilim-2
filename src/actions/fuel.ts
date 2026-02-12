@@ -2,23 +2,43 @@
 
 import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 
 // [PERFORMANCE] Cached fuel logs query - CACHE ABORTED FOR DEBUGGING
 // const getFuelLogsFromDb = unstable_cache(...)
 
-export async function getFuelLogs(limit?: number) {
-    // Cache managed at page level via unstable_cache
-    console.log('[getFuelLogs] Fetching fresh fuel logs at', new Date().toISOString());
+export async function getFuelLogs(options?: { limit?: number; startDate?: Date; endDate?: Date }) {
+    const { limit, startDate, endDate } = options || {};
+    console.log('[getFuelLogs] Fetching fuel logs at', new Date().toISOString(), startDate ? `from ${startDate.toISOString()}` : 'no date filter');
     try {
+        const where: any = {};
+        if (startDate && endDate) {
+            where.date = { gte: startDate, lte: endDate };
+        } else if (startDate) {
+            where.date = { gte: startDate };
+        }
+
         const logs = await prisma.fuelLog.findMany({
-            take: limit || 1000, // [PERFORMANCE] Limit to last 1000 records to prevent timeout
+            take: limit || 1000,
+            where,
             orderBy: { date: 'desc' },
-            include: {
-                vehicle: true,
-                site: true,
-                filledByUser: true,
-                tank: true
+            select: {
+                id: true,
+                date: true,
+                liters: true,
+                cost: true,
+                unitPrice: true,
+                mileage: true,
+                siteId: true,
+                vehicleId: true,
+                filledByUserId: true,
+                tankId: true,
+                fullTank: true,
+                description: true,
+                vehicle: { select: { id: true, plate: true } },
+                site: { select: { id: true, name: true } },
+                filledByUser: { select: { id: true, name: true } },
+                tank: { select: { id: true, name: true } }
             }
         });
         return { success: true, data: logs };
@@ -82,9 +102,7 @@ export async function createFuelLog(data: Partial<FuelLog>) {
             }
         }
 
-        revalidateTag('fuel-logs');
-        revalidateTag('fuel-tanks'); // Tank level changed
-        revalidateTag('vehicles'); // Vehicle KM changed
+        revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         revalidatePath('/dashboard/vehicles', 'page'); // Update vehicle list
@@ -97,109 +115,59 @@ export async function createFuelLog(data: Partial<FuelLog>) {
 
 export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
     try {
-        // [DEBUG] Bypass Auth Check to test Connection Leak
-        /*
-        const session = await import('@/auth').then(m => m.auth()); // Simple auth check
-        if (!session?.user) return { success: false, error: 'Yetkisiz işlem.' };
-        */
-        console.log('updateFuelLog: [NO AUTH CHECK] Starting update for ID:', id, 'Payload:', JSON.stringify(data)); // [DEBUG] Log Payload
+        console.log('[updateFuelLog] Starting update for ID:', id);
 
-        // [DEBUG] V1.7 - MOCK MODE - BYPASS DATABASE COMPLETELY
-        // Test: Is it the DB connection or the Server Action itself?
-        console.log('updateFuelLog: [MOCK MODE] Starting simulation for ID:', id);
+        const existing = await prisma.fuelLog.findUnique({ where: { id } });
+        if (!existing) throw new Error('Kayıt bulunamadı.');
 
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate work
+        // 1. Revert old tank level (add back old liters)
+        if (existing.tankId && existing.liters) {
+            await prisma.fuelTank.update({
+                where: { id: existing.tankId },
+                data: { currentLevel: { increment: existing.liters } }
+            });
+        }
 
-        console.log('updateFuelLog: [MOCK MODE] Simulation complete.');
-
-        return {
-            success: true,
+        // 2. Update the fuel log record
+        const updatedLog = await prisma.fuelLog.update({
+            where: { id },
             data: {
-                id,
-                ...data,
-                updatedAt: new Date(),
-                tankId: data.tankId || null,
-                vehicleId: data.vehicleId || "mock-vehicle",
-                siteId: data.siteId || "mock-site",
-                filledByUserId: "mock-user",
-                liters: data.liters || 0,
-                cost: data.cost || 0,
-                unitPrice: data.unitPrice || 0,
-                mileage: data.mileage || 0,
-                fullTank: !!data.fullTank,
-                recordType: 'LOG'
-            } as any
-        };
+                vehicleId: data.vehicleId,
+                siteId: data.siteId,
+                tankId: data.tankId,
+                date: data.date ? new Date(data.date as any) : undefined,
+                liters: data.liters,
+                cost: data.cost,
+                unitPrice: data.unitPrice,
+                mileage: data.mileage,
+                fullTank: data.fullTank,
+                description: data.description,
+            },
+        });
 
-        // /* DATABASE OPERATIONS DISABLED
-        // // Execute Updates Sequentially (No Transaction to avoid serverless timeout)
-        // const existing = await prisma.fuelLog.findUnique({ where: { id } });
-        // if (!existing) throw new Error('Kayıt bulunamadı.');
+        // 3. Apply new tank level (subtract new liters)
+        if (data.tankId && data.liters !== undefined) {
+            await prisma.fuelTank.update({
+                where: { id: data.tankId },
+                data: { currentLevel: { decrement: data.liters } }
+            });
+        }
 
-        // // 1. Revert Old Tank Level - DISABLED FOR DEBUGGING
-        // /*
-        // if (existing.tankId) {
-        //     await prisma.fuelTank.update({
-        //         where: { id: existing.tankId },
-        //         data: { currentLevel: { increment: existing.liters } }
-        //     });
-        // }
-        // */
+        // 4. Update vehicle KM if new mileage is higher
+        if (data.mileage) {
+            const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
+            if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
+                await prisma.vehicle.update({
+                    where: { id: vehicle.id },
+                    data: { currentKm: data.mileage }
+                });
+            }
+        }
 
-        // // 2. Update Log
-        // /*
-        // const updatedLog = await prisma.fuelLog.update({
-        //     where: { id },
-        //     data: {
-        //         vehicleId: data.vehicleId,
-        //         siteId: data.siteId,
-        //         tankId: data.tankId,
-        //         date: data.date ? new Date(data.date) : undefined,
-        //         liters: data.liters,
-        //         cost: data.cost,
-        //         unitPrice: data.unitPrice,
-        //         mileage: data.mileage,
-        //         fullTank: data.fullTank,
-        //         description: data.description,
-        //     },
-        //     // include: { // [DEBUG] Disabled heavy payload
-        //     //     vehicle: true,
-        //     //     site: true,
-        //     //     filledByUser: true,
-        //     //     tank: true
-        //     // }
-        // });
-        // */
+        console.log('[updateFuelLog] Successfully updated:', updatedLog.id);
+        revalidatePath('/dashboard');
 
-        // // 3. Apply New Tank Level - DISABLED FOR DEBUGGING
-        // /*
-        // if (data.tankId && data.liters !== undefined) {
-        //     await prisma.fuelTank.update({
-        //         where: { id: data.tankId },
-        //         data: {
-        //             currentLevel: { decrement: data.liters }
-        //         }
-        //     });
-        // }
-        // */
-
-        // // [NEW] Update Vehicle KM - DISABLED FOR DEBUGGING
-        // /*
-        // if (data.mileage) {
-        //     const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
-        //     if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
-        //         await prisma.vehicle.update({
-        //             where: { id: vehicle.id },
-        //             data: { currentKm: data.mileage }
-        //         });
-        //     }
-        // }
-        // */
-
-        // // console.log('[updateFuelLog] Only Log Updated:', updatedLog.id);
-
-        // // return { success: true, data: updatedLog };
-        // */
+        return { success: true, data: updatedLog };
 
     } catch (error: any) {
         console.error('updateFuelLog FATAL ERROR:', error);
@@ -213,10 +181,9 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 // const getFuelTanksFromDb = unstable_cache(...)
 
 export async function getFuelTanks() {
-    // Cache managed at page level via unstable_cache
     try {
         const tanks = await prisma.fuelTank.findMany({
-            include: { site: true }
+            include: { site: { select: { id: true, name: true } } }
         });
         return { success: true, data: tanks };
     } catch (error) {
@@ -240,7 +207,7 @@ export async function createFuelTank(data: Partial<FuelTank>) {
                 currentLevel: data.currentLevel || 0
             }
         });
-        revalidateTag('fuel-tanks');
+
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true, data: tank };
@@ -253,7 +220,7 @@ export async function createFuelTank(data: Partial<FuelTank>) {
 export async function deleteFuelTank(id: string) {
     try {
         await prisma.fuelTank.delete({ where: { id } });
-        revalidateTag('fuel-tanks');
+
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true };
@@ -268,11 +235,19 @@ export async function deleteFuelTank(id: string) {
 // [PERFORMANCE] Cached fuel transfers query - CACHE ABORTED FOR DEBUGGING
 // const getFuelTransfersFromDb = unstable_cache(...)
 
-export async function getFuelTransfers(limit?: number) {
-    // Cache managed at page level via unstable_cache
+export async function getFuelTransfers(options?: { limit?: number; startDate?: Date; endDate?: Date }) {
+    const { limit, startDate, endDate } = options || {};
     try {
+        const where: any = {};
+        if (startDate && endDate) {
+            where.date = { gte: startDate, lte: endDate };
+        } else if (startDate) {
+            where.date = { gte: startDate };
+        }
+
         const transfers = await prisma.fuelTransfer.findMany({
-            take: limit || 1000, // [PERFORMANCE] Limit to last 1000 records
+            take: limit || 1000,
+            where,
             orderBy: { date: 'desc' },
         });
         return { success: true, data: transfers };
@@ -340,8 +315,7 @@ export async function createFuelTransfer(data: Partial<FuelTransfer>) {
             });
         }
 
-        revalidateTag('fuel-transfers');
-        revalidateTag('fuel-tanks'); // Levels changed, logs might depend on it
+        revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true, data: transfer };
@@ -418,14 +392,8 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
         console.error('updateFuelTransfer Error:', error);
         return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
     } finally {
-        /*
-        revalidateTag('fuel-transfers');
-        revalidateTag('fuel-tanks');
-        revalidateTag('fuel-logs'); // [NEW] Ensure logs updated
-        // revalidatePath('/dashboard', 'layout'); // [FIX] Removed heavy layout revalidation
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page');
-        */
     }
 }
 
@@ -443,8 +411,7 @@ export async function deleteFuelLog(id: string) {
         }
 
         await prisma.fuelLog.delete({ where: { id } });
-        revalidateTag('fuel-logs');
-        revalidateTag('fuel-tanks');
+        revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true };
@@ -477,8 +444,7 @@ export async function deleteFuelTransfer(id: string) {
         }
 
         await prisma.fuelTransfer.delete({ where: { id } });
-        revalidateTag('fuel-transfers');
-        revalidateTag('fuel-tanks');
+        revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true };
@@ -502,7 +468,7 @@ export async function markFuelLogsAsFull(ids: string[]) {
         });
 
 
-        revalidateTag('fuel-logs');
+        revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
         return { success: true, count: ids.length };

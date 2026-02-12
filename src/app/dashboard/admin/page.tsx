@@ -129,6 +129,7 @@ const MODULE_HIERARCHY = [
         ]
     },
     { id: 'site-log', label: 'Şantiye Defteri' },
+    { id: 'limit-value', label: 'Sınır Değer Hesaplama' },
 ];
 
 import { User, Site } from '@/lib/types'; // [FIX] Import User and Site types
@@ -1352,16 +1353,9 @@ export default function AdminPage() {
         // Check if it is a TEMPLATE
         const template = templates.find(t => t.id === val);
         if (template) {
-            setUserPermissions(template.permissions as Record<string, string[]>); // [FIX] Use setUserPermissions
+            setUserPermissions(template.permissions as Record<string, string[]>);
             toast.success(`"${template.name}" şablonu uygulandı.`);
             return;
-        }
-
-        // Fallback: Copy from USER
-        const targetUser = users.find((u: any) => u.id === val);
-        if (targetUser && targetUser.permissions) {
-            setUserPermissions(targetUser.permissions as Record<string, string[]>); // [FIX] Use setUserPermissions
-            toast.success(`${targetUser.name} kullanıcısının yetkileri kopyalandı.`);
         }
     };
     const renderPermissionRow = (module: any, depth = 0) => {
@@ -1652,36 +1646,31 @@ export default function AdminPage() {
                                                             {/* [NEW] Template Selector */}
                                                             <Select onValueChange={handleApplyTemplate}>
                                                                 <SelectTrigger className="w-full bg-white h-8 text-xs">
-                                                                    <SelectValue placeholder="Yetki Kopyala / Şablon Seç..." />
+                                                                    <SelectValue placeholder="Şablon Seç..." />
                                                                 </SelectTrigger>
                                                                 <SelectContent>
                                                                     <SelectGroup>
                                                                         <SelectLabel>Hazır Şablonlar</SelectLabel>
                                                                         <SelectItem value="VIEW_ALL">Sadece İzleme (Tüm Modüller)</SelectItem>
-                                                                        {templates.map((t: any) => (
-                                                                            <SelectItem key={t.id} value={t.id} className="flex justify-between items-center w-full">
-                                                                                <span>{t.name}</span>
+                                                                        {templates.length > 0 ? templates.map((t: any) => (
+                                                                            <SelectItem key={t.id} value={t.id}>
+                                                                                {t.name}
                                                                             </SelectItem>
-                                                                        ))}
+                                                                        )) : (
+                                                                            <div className="px-2 py-1 text-xs text-muted-foreground text-center">Henüz şablon kaydedilmemiş</div>
+                                                                        )}
                                                                     </SelectGroup>
-                                                                    <SelectGroup>
-                                                                        <SelectLabel>Şablon Yönetimi</SelectLabel>
-                                                                        {templates.length > 0 && templates.map((t: any) => (
-                                                                            <div key={`del-${t.id}`} className="px-2 py-1 flex justify-between items-center text-xs hover:bg-slate-100 cursor-default">
-                                                                                <span>{t.name}</span>
-                                                                                <Trash2
-                                                                                    className="w-3 h-3 text-red-500 cursor-pointer hover:text-red-700"
-                                                                                    onClick={(e) => handleDeleteTemplate(e, t.id)}
-                                                                                />
-                                                                            </div>
-                                                                        ))}
-                                                                    </SelectGroup>
-                                                                    <SelectGroup>
-                                                                        <SelectLabel>Kullanıcıdan Kopyala</SelectLabel>
-                                                                        {users.filter((u: any) => u.id !== (selectedUserId || '') && u.role !== 'ADMIN').map((u: any) => (
-                                                                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                                                                        ))}
-                                                                    </SelectGroup>
+                                                                    {templates.length > 0 && (
+                                                                        <SelectGroup>
+                                                                            <SelectLabel>Şablon Sil</SelectLabel>
+                                                                            {templates.map((t: any) => (
+                                                                                <div key={`del-${t.id}`} className="px-2 py-1.5 flex justify-between items-center text-xs hover:bg-red-50 cursor-pointer rounded mx-1" onClick={(e) => handleDeleteTemplate(e, t.id)}>
+                                                                                    <span>{t.name}</span>
+                                                                                    <Trash2 className="w-3 h-3 text-red-500" />
+                                                                                </div>
+                                                                            ))}
+                                                                        </SelectGroup>
+                                                                    )}
                                                                 </SelectContent>
                                                             </Select>
                                                         </div>

@@ -19,7 +19,7 @@ import autoTable from 'jspdf-autotable';
 import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
 import { Button } from '@/components/ui/button';
-import { getMonth, getYear, startOfMonth, endOfMonth, isWithinInterval, parseISO, isValid } from 'date-fns';
+import { isWithinInterval, parseISO, isValid, startOfMonth } from 'date-fns';
 import { deleteTransaction, getTransaction } from '@/actions/transaction';
 
 interface CashBookListProps {
@@ -87,51 +87,10 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
     const [formDefaultValues, setFormDefaultValues] = useState<any>(undefined); // [NEW] Default values for form
     const [showReport, setShowReport] = useState(false); // [NEW] Toggle report view for restricted users
 
-    // Date Filters
+    // Date Filters - Default to last 1 month
     const currentDate = new Date();
-    // [FIX] Initialize with empty string to show ALL history by default
-    const [startDate, setStartDate] = useState<string>('');
-    const [endDate, setEndDate] = useState<string>('');
-
-
-    // Removed useEffect that forced current month default
-
-
-    // [REMOVED] Enforce default Payment Method - caused disappearing data issues if role check fails
-    // allow users to select manually
-
-
-    // Helpers for quick month selection
-    // We track the "quick select" state just for the UI of the dropdowns, 
-    // but the source of truth is always startDate/endDate.
-    const [quickMonth, setQuickMonth] = useState<string>(getMonth(currentDate).toString());
-    const [quickYear, setQuickYear] = useState<string>(getYear(currentDate).toString());
-
-    const months = [
-        { value: '0', label: 'Ocak' },
-        { value: '1', label: 'Şubat' },
-        { value: '2', label: 'Mart' },
-        { value: '3', label: 'Nisan' },
-        { value: '4', label: 'Mayıs' },
-        { value: '5', label: 'Haziran' },
-        { value: '6', label: 'Temmuz' },
-        { value: '7', label: 'Ağustos' },
-        { value: '8', label: 'Eylül' },
-        { value: '9', label: 'Ekim' },
-        { value: '10', label: 'Kasım' },
-        { value: '11', label: 'Aralık' },
-    ];
-
-    const years = Array.from({ length: 5 }, (_, i) => (getYear(currentDate) - 2 + i).toString());
-
-    const handleQuickDateChange = (month: string, year: string) => {
-        const start = startOfMonth(new Date(parseInt(year), parseInt(month), 1));
-        const end = endOfMonth(start);
-        setStartDate(format(start, 'yyyy-MM-dd'));
-        setEndDate(format(end, 'yyyy-MM-dd'));
-        setQuickMonth(month);
-        setQuickYear(year);
-    };
+    const [startDate, setStartDate] = useState<string>(format(startOfMonth(currentDate), 'yyyy-MM-dd'));
+    const [endDate, setEndDate] = useState<string>(format(currentDate, 'yyyy-MM-dd'));
 
     // [FIX] Auto-switch to 'all' if Admin View is detected later (after mount)
     useEffect(() => {
@@ -932,31 +891,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                 </div>
                             )}
 
-                            {/* Month/Year Shortcuts - Col 2 */}
-                            {canExport && (
-                                <div className="col-span-12 md:col-span-2 flex gap-2">
-                                    <Select value={quickMonth} onValueChange={(m) => handleQuickDateChange(m, quickYear)}>
-                                        <SelectTrigger className="bg-white">
-                                            <SelectValue placeholder="Ay" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {months.map(m => (
-                                                <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={quickYear} onValueChange={(y) => handleQuickDateChange(quickMonth, y)}>
-                                        <SelectTrigger className="bg-white">
-                                            <SelectValue placeholder="Yıl" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {years.map(y => (
-                                                <SelectItem key={y} value={y}>{y}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
+
                         </div>
                     </div>
                 )}

@@ -1,18 +1,51 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { authenticate } from '@/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
 
 export default function LoginPage() {
-    const [errorMessage, dispatch] = useActionState(authenticate, undefined);
-    const [username, setUsername] = useState('admin');
-    const [password, setPassword] = useState('123');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [pending, setPending] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (pending) return;
+
+        setPending(true);
+        setError('');
+
+        try {
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            const result = await authenticate(undefined, formData);
+
+            if (result) {
+                // Server returned an error message
+                setError(result);
+                setPending(false);
+            }
+            // If no result, redirect happened server-side
+        } catch (err: any) {
+            // NEXT_REDIRECT throws — this is expected on success
+            // Check if it's a redirect (Next.js throws NEXT_REDIRECT)
+            if (err?.digest?.startsWith('NEXT_REDIRECT')) {
+                // Let Next.js handle the redirect
+                window.location.href = '/dashboard';
+                return;
+            }
+            setError('Bağlantı hatası. Lütfen tekrar deneyin.');
+            setPending(false);
+        }
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
@@ -24,7 +57,7 @@ export default function LoginPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form action={dispatch} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="username">Kullanıcı Adı</Label>
                             <Input
@@ -35,6 +68,7 @@ export default function LoginPage() {
                                 required
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
+                                disabled={pending}
                             />
                         </div>
                         <div className="space-y-2">
@@ -47,25 +81,20 @@ export default function LoginPage() {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                disabled={pending}
                             />
                         </div>
 
-                        {errorMessage && (
+                        {error && (
                             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-md flex items-center gap-2">
                                 <AlertCircle className="w-4 h-4" />
-                                <p>{errorMessage}</p>
+                                <p>{error}</p>
                             </div>
                         )}
 
-                        <div className="text-xs text-slate-500 mt-2">
-                            <p className="font-semibold mb-1">Test Kullanıcıları (Şifre: 123):</p>
-                            <p className="text-muted-foreground xs">Veritabanı bağlantısı sonrası çalışacaktır.</p>
-                            <ul className="list-disc pl-4 space-y-1">
-                                <li className="cursor-pointer hover:text-blue-600" onClick={() => { setUsername('admin'); setPassword('123') }}>admin (Admin)</li>
-                            </ul>
-                        </div>
-
-                        <LoginButton />
+                        <Button disabled={pending} type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
+                            {pending ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
+                        </Button>
                     </form>
                 </CardContent>
                 <CardFooter className="text-center text-xs text-slate-400 justify-center">
@@ -73,15 +102,5 @@ export default function LoginPage() {
                 </CardFooter>
             </Card>
         </div>
-    );
-}
-
-function LoginButton() {
-    const { pending } = useFormStatus();
-
-    return (
-        <Button aria-disabled={pending} type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
-            {pending ? 'Giriş Yapılıyor...' : 'Giriş Yap'}
-        </Button>
     );
 }

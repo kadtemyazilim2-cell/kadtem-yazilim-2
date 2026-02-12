@@ -54,6 +54,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isReadOnly, setIsReadOnly] = useState(false);
     const [editForm, setEditForm] = useState<Partial<FuelLog>>({});
+    const [originalEditDate, setOriginalEditDate] = useState<string | null>(null); // [FIX] Preserve original time
 
     // Filters
     const [plateFilter, setPlateFilter] = useState<string[]>([]);
@@ -136,6 +137,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         } else {
             // Fuel Log
             setEditingLog({ ...row, recordType: 'LOG' });
+            setOriginalEditDate(row.date); // [FIX] Store original ISO date
             setEditForm({
                 date: row.date ? format(new Date(row.date), 'yyyy-MM-dd') : '', // [FIX] Format for Input
                 mileage: row.mileage,
@@ -166,11 +168,22 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             console.log('Sending Update Action via API MODE...');
 
             const updatePromise = async () => {
+                // [FIX] Preserve original time when updating date
+                let dateToSend = editForm.date;
+                if (dateToSend && originalEditDate && (editingLog as any).recordType !== 'TRANSFER') {
+                    const origTime = new Date(originalEditDate).toTimeString().slice(0, 8); // HH:mm:ss
+                    const [hh, mm, ss] = origTime.split(':').map(Number);
+                    const d = new Date(dateToSend + 'T00:00:00');
+                    d.setHours(hh, mm, ss);
+                    dateToSend = d.toISOString();
+                }
+
                 const response = await fetch('/api/debug/fuel-update', {
                     method: 'POST',
                     body: JSON.stringify({
                         id: editingLog.id,
                         ...editForm,
+                        date: dateToSend,
                         recordType: (editingLog as any).recordType || 'LOG'
                     })
                 });

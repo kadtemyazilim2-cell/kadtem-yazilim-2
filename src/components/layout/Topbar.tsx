@@ -1,7 +1,8 @@
 'use client';
 
 import { Menu } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Button } from '@/components/ui/button';
 import { Sidebar } from './Sidebar';
 import { usePathname } from 'next/navigation';
@@ -33,6 +34,7 @@ export function Topbar() {
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="p-0 border-r-0 w-72">
+                        <VisuallyHidden><SheetTitle>Menü</SheetTitle></VisuallyHidden>
                         <Sidebar onNavItemClick={() => setMobileMenuOpen(false)} />
                     </SheetContent>
                 </Sheet>

@@ -27,12 +27,20 @@ import { toast } from 'sonner';
 export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const { siteLogEntries: rawEntries, users: rawUsers } = useAppStore();
     const rawSites = useUserSites();
+    const { user, hasPermission } = useAuth();
 
     // Safety Wrappers
-    const siteLogEntries = rawEntries || [];
     const users = rawUsers || [];
     const sites = rawSites || [];
-    const { user, hasPermission } = useAuth();
+
+    // [NEW] Filter site log entries by user's authorized sites (non-admin users only see their sites' entries)
+    const siteLogEntries = useMemo(() => {
+        const entries = rawEntries || [];
+        if (user?.role === 'ADMIN') return entries;
+        const authorizedSiteIds = sites.map((s: any) => s.id);
+        if (authorizedSiteIds.length === 0) return entries; // Fallback: if no sites loaded yet, show all
+        return entries.filter((e: any) => authorizedSiteIds.includes(e.siteId));
+    }, [rawEntries, user, sites]);
     const [open, setOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -647,30 +655,32 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                         </div>
 
                                         {/* Action Buttons for the Whole Group (PDF) */}
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-slate-600 hover:text-blue-600"
-                                                onClick={() => handleDownloadPDF(group, true)}
-                                                title="Önizle"
-                                                disabled={isGeneratingPDF}
-                                            >
-                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                                                Önizle
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-8 text-slate-600 hover:text-green-600"
-                                                onClick={() => handleDownloadPDF(group, false)}
-                                                title="PDF İndir"
-                                                disabled={isGeneratingPDF}
-                                            >
-                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
-                                                PDF İndir
-                                            </Button>
-                                        </div>
+                                        {canExport && (
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-slate-600 hover:text-blue-600"
+                                                    onClick={() => handleDownloadPDF(group, true)}
+                                                    title="Önizle"
+                                                    disabled={isGeneratingPDF}
+                                                >
+                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                                                    Önizle
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-8 text-slate-600 hover:text-green-600"
+                                                    onClick={() => handleDownloadPDF(group, false)}
+                                                    title="PDF İndir"
+                                                    disabled={isGeneratingPDF}
+                                                >
+                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
+                                                    PDF İndir
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Scrollable Content Area if too long, or just stacking */}

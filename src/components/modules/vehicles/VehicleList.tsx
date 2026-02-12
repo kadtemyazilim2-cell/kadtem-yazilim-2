@@ -386,8 +386,15 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         const ownerName = getCompanyName(v);
 
         // Historical Records
-        if (v.insuranceHistory && v.insuranceHistory.length > 0) {
-            v.insuranceHistory.forEach((record: any) => {
+        // Safe parse: insuranceHistory may be a JSON string or already an array
+        let history = v.insuranceHistory;
+        if (typeof history === 'string') {
+            try { history = JSON.parse(history); } catch { history = []; }
+        }
+        if (!Array.isArray(history)) history = [];
+
+        if (history.length > 0) {
+            history.forEach((record: any) => {
                 policies.push({
                     id: record.id,
                     plate: v.plate,
@@ -407,7 +414,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         }
 
         // Fallback: If no history but current fields exist (migration/legacy case)
-        const currentTrafficInHistory = v.insuranceHistory?.some((h: any) => h.type === 'TRAFFIC' && h.active);
+        const currentTrafficInHistory = history.some((h: any) => h.type === 'TRAFFIC' && h.active);
         if (!currentTrafficInHistory && (v.insuranceAgency || v.insuranceCost || v.insuranceExpiry)) {
             policies.push({
                 id: `${v.id}-traffic-legacy`,
@@ -426,7 +433,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
             });
         }
 
-        const currentKaskoInHistory = v.insuranceHistory?.some((h: any) => h.type === 'KASKO' && h.active);
+        const currentKaskoInHistory = history.some((h: any) => h.type === 'KASKO' && h.active);
         if (!currentKaskoInHistory && (v.kaskoAgency || v.kaskoCost || v.kaskoExpiry)) {
             policies.push({
                 id: `${v.id}-kasko-legacy`,
@@ -1623,16 +1630,22 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {policy.originalVehicle?.insuranceHistory?.find((h: any) => h.id === policy.id)?.attachments?.[0] ? (
-                                                        <a
-                                                            href={policy.originalVehicle.insuranceHistory.find((h: any) => h.id === policy.id).attachments[0]}
-                                                            download={`police-${policy.plate}.pdf`}
-                                                            className="flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                                                            title="Poliçe Dosyasını İndir"
-                                                        >
-                                                            <Download className="w-4 h-4" />
-                                                        </a>
-                                                    ) : '-'}
+                                                    {(() => {
+                                                        let ih = policy.originalVehicle?.insuranceHistory;
+                                                        if (typeof ih === 'string') { try { ih = JSON.parse(ih); } catch { ih = []; } }
+                                                        if (!Array.isArray(ih)) ih = [];
+                                                        const match = ih.find((h: any) => h.id === policy.id);
+                                                        return match?.attachments?.[0] ? (
+                                                            <a
+                                                                href={match.attachments[0]}
+                                                                download={`police-${policy.plate}.pdf`}
+                                                                className="flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                                title="Poliçe Dosyasını İndir"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </a>
+                                                        ) : '-';
+                                                    })()}
                                                 </TableCell>
                                                 <TableCell>
                                                     {canEditInsurance && (

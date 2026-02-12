@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppStore } from '@/lib/store/use-store';
-import { FileText, Wallet, Droplet, Users, AlertTriangle, ArrowRight, MapPin } from 'lucide-react';
+import { FileText, Wallet, Droplet, Users, AlertTriangle, ArrowRight, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteStockOverview } from '@/components/modules/dashboard/SiteStockOverview';
 import { DailyFuelChart } from '@/components/modules/dashboard/DailyFuelChart';
@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/store/use-auth';
 import { useRouter } from 'next/navigation';
 import { format, isSameMonth, differenceInDays, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { InsuranceProposalDialog } from '@/components/modules/dashboard/InsuranceProposalDialog';
 import { InsurancePolicyDialog } from '@/components/modules/vehicles/InsurancePolicyDialog';
 import Link from 'next/link';
@@ -25,47 +25,100 @@ import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
 import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList';
 import { SiteLogSummary } from '@/components/modules/dashboard/SiteLogSummary';
 import { toast } from 'sonner';
+import { getFuelLogs, getFuelTanks, getFuelTransfers } from '@/actions/fuel';
+import { getAllTransactions } from '@/actions/transaction';
+import { getSiteLogEntries } from '@/actions/site-log';
 
-interface DashboardPageClientProps {
-    fuelLogs: any[];
-    fuelTanks: any[];
-    fuelTransfers: any[];
-    siteLogEntries: any[];
-    cashTransactions: any[];
+function serializeDashboard(data: any): any {
+    return JSON.parse(JSON.stringify(data));
 }
 
-export function DashboardPageClient({
-    fuelLogs: initialFuelLogs,
-    fuelTanks: initialFuelTanks,
-    fuelTransfers: initialFuelTransfers,
-    siteLogEntries: initialSiteLogEntries,
-    cashTransactions: initialCashTransactions
-}: DashboardPageClientProps) {
-    // Hydrate store on mount/update
+export function DashboardPageClient() {
+    const [dashLoading, setDashLoading] = useState(true);
+    const fetchedRef = useRef(false);
+
+    // Fetch dashboard data client-side
     useEffect(() => {
-        useAppStore.setState({
-            fuelLogs: initialFuelLogs || [],
-            fuelTanks: initialFuelTanks || [],
-            fuelTransfers: initialFuelTransfers || [],
-            siteLogEntries: initialSiteLogEntries || [],
-            cashTransactions: initialCashTransactions || []
-        });
-    }, [initialFuelLogs, initialFuelTanks, initialFuelTransfers, initialSiteLogEntries, initialCashTransactions]);
+        if (fetchedRef.current) return;
+        fetchedRef.current = true;
 
-    // Use store for everything EXCEPT the props we just received (to avoid waiting for hydration)
-    // However, some hooks like useUserSites depend on sites being available (fetched in layout) which is fine.
-    const { companies, vehicles, correspondences, yiUfeRates, personnel, sites, updateVehicle: updateVehicleStore, updateCorrespondence: updateCorrespondenceStore } = useAppStore();
+        const loadDashboardData = async () => {
+            try {
+                // Dashboard only needs current month fuel data
+                const now = new Date();
+                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Use props for immediate render where possible, fallback to store if needed
-    const fuelLogs = initialFuelLogs || [];
-    const fuelTanks = initialFuelTanks || [];
-    const fuelTransfers = initialFuelTransfers || [];
-    const siteLogEntries = initialSiteLogEntries || [];
-    const cashTransactions = initialCashTransactions || [];
+                const [fuelLogsRes, fuelTanksRes, fuelTransfersRes, transactionsRes, siteLogsRes] = await Promise.all([
+                    getFuelLogs({ limit: 1000, startDate: monthStart, endDate: monthEnd }),
+                    getFuelTanks(),
+                    getFuelTransfers({ limit: 1000, startDate: monthStart, endDate: monthEnd }),
+                    getAllTransactions(),
+                    getSiteLogEntries(),
+                ]);
+
+                useAppStore.setState({
+                    fuelLogs: serializeDashboard(fuelLogsRes?.data || []),
+                    fuelTanks: serializeDashboard(fuelTanksRes?.data || []),
+                    fuelTransfers: serializeDashboard(fuelTransfersRes?.data || []),
+                    cashTransactions: serializeDashboard(transactionsRes?.data || []),
+                    siteLogEntries: serializeDashboard(siteLogsRes?.data || []),
+                });
+                console.log('[Dashboard] Data loaded');
+            } catch (err) {
+                console.error('[Dashboard] Failed to load data:', err);
+            } finally {
+                setDashLoading(false);
+            }
+        };
+
+        loadDashboardData();
+    }, []);
+
+    // Read everything from store (IndexedDB may have previous data for instant display)
+    const { companies, vehicles, correspondences, yiUfeRates, personnel, sites,
+        fuelLogs, fuelTanks, fuelTransfers, siteLogEntries, cashTransactions,
+        updateVehicle: updateVehicleStore, updateCorrespondence: updateCorrespondenceStore } = useAppStore();
 
     const userSites = useUserSites();
     const { user, hasPermission } = useAuth();
     const router = useRouter();
+
+    // Permission-based redirect: if user can't access dashboard, go to first permitted page
+    useEffect(() => {
+        if (!user || user.role === 'ADMIN') return;
+
+        const perms = (user.permissions || {}) as Record<string, string[]>;
+        const dashPerm = perms['dashboard'];
+        const hasDashboard = dashPerm && dashPerm.length > 0 && !dashPerm.includes('NONE');
+
+        if (!hasDashboard) {
+            // Same order as Sidebar NAV_ITEMS
+            const NAV_ORDER = [
+                { href: '/dashboard/correspondence', perm: 'correspondence' },
+                { href: '/dashboard/vehicles', perm: 'vehicles' },
+                { href: '/dashboard/fuel', perm: 'fuel' },
+                { href: '/dashboard/fuel/movement', perm: 'movement' },
+                { href: '/dashboard/cash-book', perm: 'cash-book' },
+                { href: '/dashboard/new-tab', perm: 'new-tab' },
+                { href: '/dashboard/vehicle-attendance', perm: 'vehicle-attendance' },
+                { href: '/dashboard/site-log', perm: 'site-log' },
+                { href: '/dashboard/limit-value', perm: 'limit-value' },
+            ];
+
+            for (const nav of NAV_ORDER) {
+                const p = perms[nav.perm];
+                // Check main permission or sub-permissions (for new-tab)
+                const hasMain = p && p.length > 0 && !p.includes('NONE');
+                const hasSub = nav.perm === 'new-tab' && Object.keys(perms).some(k => k.startsWith('new-tab.') && perms[k]?.length > 0 && !perms[k].includes('NONE'));
+
+                if (hasMain || hasSub) {
+                    router.replace(nav.href);
+                    return;
+                }
+            }
+        }
+    }, [user, router]);
 
     const canEditDashboard = user?.role === 'ADMIN' || hasPermission('dashboard', 'EDIT');
 

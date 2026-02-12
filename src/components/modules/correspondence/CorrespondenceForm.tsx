@@ -70,7 +70,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         companyId: initialData?.companyId || '',
         siteId: initialData?.siteId || '',
         // If Copy, set Date to TODAY. Else Initial Date or Today.
-        date: (initialData && !isCopy) ? (initialData.date?.split('T')[0] || format(new Date(), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
+        date: (initialData && !isCopy) ? (typeof initialData.date === 'string' ? initialData.date.split('T')[0] : format(new Date(initialData.date), "yyyy-MM-dd")) : format(new Date(), "yyyy-MM-dd"),
         direction: initialData?.direction || initialDirection || 'OUTGOING',
         type: initialData?.type || initialType || 'OFFICIAL',
         subject: initialData?.subject || '',
@@ -265,6 +265,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
                 if (diff > user.editLookbackDays) {
                     toast.error(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
+                    setIsSubmitting(false);
                     return;
                 }
             }
@@ -296,6 +297,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             if (initialData && !isCopy) {
                 const result = await updateCorrespondence(initialData.id, payload);
                 if (result.success) {
+                    // Optimistic: update local store
+                    if (result.data) updateLocalCorrespondence(initialData.id, result.data as any);
                     toast.success("Yazışma güncellendi.");
                     setIsOpen(false);
                 } else {
@@ -308,6 +311,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                 } as any);
 
                 if (result.success) {
+                    // Optimistic: add to local store
+                    if (result.data) addCorrespondence(result.data as any);
                     toast.success(isCopy ? "Yazışma kopyalandı." : "Yazışma eklendi.");
                     setIsOpen(false);
                     if (!isCopy) {

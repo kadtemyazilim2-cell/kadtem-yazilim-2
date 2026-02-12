@@ -1785,7 +1785,7 @@ export default function NewPage() {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-2 sm:p-6 space-y-4 sm:space-y-6">
             <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center">
                     <div>
@@ -1802,48 +1802,36 @@ export default function NewPage() {
                 </TabsList>
 
                 <TabsContent value="attendance" className="space-y-6">
-                    <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
-                        <div className="flex items-center gap-4">
-                            <div className="w-[300px]">
-                                <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Şantiye Seçiniz" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableSites.map(s => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="text-xs text-slate-400 flex flex-col">
-                                <span>Yüklenen: {names.length} / Gösterilen: {filteredNames.length}</span>
-                                <span>Site ID: {selectedSiteId}</span>
-                            </div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 sm:p-4 rounded-lg border shadow-sm">
+                        <div className="w-full sm:w-[300px]">
+                            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Şantiye Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableSites.map(s => (
+                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => refreshData()}>
-                                <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                Yenile
-                            </Button>
+                        <div className="flex flex-wrap gap-2">
                             {canExport && (
                                 <>
-                                    <Button variant="outline" onClick={handleExportExcel}>
-                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                        Excel
+                                    <Button variant="outline" size="sm" onClick={handleExportExcel}>
+                                        <FileSpreadsheet className="w-4 h-4 mr-1 text-green-600" />
+                                        <span className="hidden sm:inline">Excel</span>
                                     </Button>
-                                    <Button variant="outline" onClick={handleExportPDF}>
-                                        <Download className="w-4 h-4 mr-2 text-red-600" />
-                                        PDF
+                                    <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                                        <Download className="w-4 h-4 mr-1 text-red-600" />
+                                        <span className="hidden sm:inline">PDF</span>
                                     </Button>
                                 </>
                             )}
 
-
-
                             {canCreatePersonnel && (
-                                <Button onClick={() => {
+                                <Button size="sm" onClick={() => {
                                     setEditingId(null);
                                     setFormData({
                                         siteId: selectedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''),
@@ -1854,8 +1842,9 @@ export default function NewPage() {
                                     setShowSalaryInput(false);
                                     setIsDialogOpen(true);
                                 }}>
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Personel Ekle
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    <span className="hidden sm:inline">Personel Ekle</span>
+                                    <span className="sm:hidden">Ekle</span>
                                 </Button>
                             )}
                         </div>
@@ -1872,61 +1861,55 @@ export default function NewPage() {
                         </div>
 
                         <TabsContent value="grid" className="space-y-4">
-                            <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-slate-50/50 p-2 rounded-lg border">
-                                <div className="flex flex-wrap gap-1">
-                                    {["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"].map((month, index) => (
-                                        <Button
-                                            key={month}
-                                            variant={date.getMonth() === index ? "default" : "outline"}
-                                            size="sm"
-                                            onClick={() => {
-                                                const newDate = new Date(date);
-                                                newDate.setMonth(index);
-                                                setDate(newDate);
-                                            }}
-                                            className={`h-8 ${date.getMonth() === index ? "bg-blue-600 hover:bg-blue-700 border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
-                                        >
-                                            {month}
-                                        </Button>
-                                    ))}
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setDate(new Date())}
-                                        className="h-8 px-3 bg-white text-blue-600 border-blue-200 hover:bg-blue-50 shadow-sm font-semibold"
-                                    >
-                                        Bugün
-                                    </Button>
-                                    <div className="flex items-center gap-1 bg-white p-1 rounded-md border shadow-sm">
-                                        {[2024, 2025, 2026, 2027].map(year => (
+                            {isAdmin && (
+                                <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-slate-50/50 p-2 rounded-lg border">
+                                    <div className="flex flex-wrap gap-1">
+                                        {["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"].map((month, index) => (
                                             <Button
-                                                key={year}
-                                                variant={date.getFullYear() === year ? "secondary" : "ghost"}
+                                                key={month}
+                                                variant={date.getMonth() === index ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => {
                                                     const newDate = new Date(date);
-                                                    newDate.setFullYear(year);
+                                                    newDate.setMonth(index);
                                                     setDate(newDate);
                                                 }}
-                                                className={`h-8 px-3 font-semibold ${date.getFullYear() === year ? "bg-slate-800 text-white hover:bg-slate-700" : "text-slate-500 hover:bg-slate-100"}`}
+                                                className={`h-8 ${date.getMonth() === index ? "bg-blue-600 hover:bg-blue-700 border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
                                             >
-                                                {year}
+                                                {month}
                                             </Button>
                                         ))}
                                     </div>
-                                </div>
-                            </div>
 
-                            <div className="border rounded-md overflow-hidden bg-white">
-                                <Table className="hidden md:table">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-1 bg-white p-1 rounded-md border shadow-sm">
+                                            {[2024, 2025, 2026, 2027].map(year => (
+                                                <Button
+                                                    key={year}
+                                                    variant={date.getFullYear() === year ? "secondary" : "ghost"}
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        const newDate = new Date(date);
+                                                        newDate.setFullYear(year);
+                                                        setDate(newDate);
+                                                    }}
+                                                    className={`h-8 px-3 font-semibold ${date.getFullYear() === year ? "bg-slate-800 text-white hover:bg-slate-700" : "text-slate-500 hover:bg-slate-100"}`}
+                                                >
+                                                    {year}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="border rounded-md overflow-x-auto bg-white">
+                                <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[200px]">Ad Soyad</TableHead>
+                                            <TableHead className="w-[90px] sm:w-[200px] sticky left-0 z-20 bg-slate-100 font-bold border-r shadow-[1px_0_2px_rgba(0,0,0,0.05)] text-[10px] sm:text-sm">Ad Soyad</TableHead>
                                             {days.map(d => (
-                                                <TableHead key={d.toString()} className="p-0 w-8 text-center text-[10px] text-muted-foreground font-normal">
+                                                <TableHead key={d.toString()} className="p-0 text-center w-8 min-w-[32px] text-[10px] font-medium border-l">
                                                     <div className="flex flex-col items-center justify-center py-1">
                                                         <span className="font-bold text-slate-700">{format(d, 'd')}</span>
                                                         <span>{format(d, 'EEE', { locale: tr }).substring(0, 1)}</span>
@@ -1954,10 +1937,10 @@ export default function NewPage() {
 
                                                 return (
                                                     <TableRow key={person.id} className="hover:bg-slate-50">
-                                                        <TableCell className="font-medium">
-                                                            <div className="flex flex-col">
-                                                                <span>{person.name}</span>
-                                                                <span className="text-[10px] text-muted-foreground">{person.role}</span>
+                                                        <TableCell className="font-medium sticky left-0 z-10 bg-background border-r p-1 sm:p-2 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
+                                                            <div className="flex flex-col w-full">
+                                                                <span className="text-[11px] sm:text-sm font-bold truncate">{person.name}</span>
+                                                                <span className="text-[9px] text-muted-foreground truncate">{person.role}</span>
                                                             </div>
                                                         </TableCell>
                                                         {days.map(d => {
@@ -2011,7 +1994,7 @@ export default function NewPage() {
                                                             return (
                                                                 <TableCell
                                                                     key={d.toString()}
-                                                                    className={`p-0 border-l text-center transition-colors hover:opacity-80 h-10 w-8 ${cellClass} relative`}
+                                                                    className={`p-0 border-l text-center transition-colors hover:opacity-80 h-10 w-8 min-w-[32px] ${cellClass} relative cursor-pointer`}
                                                                     onClick={() => {
                                                                         if (isLocked) {
                                                                             alert("Bu kaydı düzenleme yetkiniz yok veya süre doldu.");
@@ -2441,66 +2424,66 @@ export default function NewPage() {
 
                                     <div className="space-y-3">
                                         <Label>Durum Seçiniz (Seçim anında kaydedilir)</Label>
-                                        <div className="grid grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-2 gap-2">
                                             <Button
                                                 variant={attendanceForm.status === 'FULL' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'FULL' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-green-50 text-green-700 border-green-200'}`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'FULL' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-green-50 text-green-700 border-green-200'}`}
                                                 onClick={() => saveAttendance('FULL')}
                                             >
-                                                <CheckCircle2 className="w-4 h-4 mr-2" />
-                                                Çalıştı
+                                                <CheckCircle2 className="w-5 h-5" />
+                                                <span className="text-xs font-medium">Çalıştı</span>
                                             </Button>
                                             <Button
                                                 variant={attendanceForm.status === 'HALF' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'HALF' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50 text-orange-700 border-orange-200'}`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'HALF' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50 text-orange-700 border-orange-200'}`}
                                                 onClick={() => saveAttendance('HALF')}
                                             >
-                                                <Clock className="w-4 h-4 mr-2" />
-                                                Yarım Gün
+                                                <Clock className="w-5 h-5" />
+                                                <span className="text-xs font-medium">Yarım Gün</span>
                                             </Button>
                                             <Button
                                                 variant={attendanceForm.status === 'ABSENT' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'ABSENT' ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-50 text-red-700 border-red-200'}`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'ABSENT' ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-50 text-red-700 border-red-200'}`}
                                                 onClick={() => saveAttendance('ABSENT')}
                                             >
-                                                <XCircle className="w-4 h-4 mr-2" />
-                                                Gelmedi
+                                                <XCircle className="w-5 h-5" />
+                                                <span className="text-xs font-medium">Gelmedi</span>
                                             </Button>
                                             <Button
                                                 variant={attendanceForm.status === 'LEAVE' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'LEAVE' ? 'bg-blue-500 hover:bg-blue-600' : 'hover:bg-blue-50 text-blue-700 border-blue-200'}`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'LEAVE' ? 'bg-blue-500 hover:bg-blue-600' : 'hover:bg-blue-50 text-blue-700 border-blue-200'}`}
                                                 onClick={() => saveAttendance('LEAVE')}
                                             >
-                                                <Umbrella className="w-4 h-4 mr-2" />
-                                                İzinli
+                                                <Umbrella className="w-5 h-5" />
+                                                <span className="text-xs font-medium">İzinli</span>
                                             </Button>
                                             <Button
                                                 variant={attendanceForm.status === 'REPORT' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'REPORT' ? 'bg-purple-500 hover:bg-purple-600' : 'hover:bg-purple-50 text-purple-700 border-purple-200'}`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'REPORT' ? 'bg-purple-500 hover:bg-purple-600' : 'hover:bg-purple-50 text-purple-700 border-purple-200'}`}
                                                 onClick={() => saveAttendance('REPORT')}
                                             >
-                                                <FileText className="w-4 h-4 mr-2" />
-                                                Raporlu
+                                                <FileText className="w-5 h-5" />
+                                                <span className="text-xs font-medium">Raporlu</span>
                                             </Button>
                                             <Button
                                                 variant={attendanceForm.status === 'OUT' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'OUT' ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50 text-cyan-700 border-cyan-200'}`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'OUT' ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50 text-cyan-700 border-cyan-200'}`}
                                                 onClick={() => saveAttendance('OUT')}
                                             >
-                                                <Car className="w-4 h-4 mr-2" />
-                                                Dış Görev
+                                                <Car className="w-5 h-5" />
+                                                <span className="text-xs font-medium">Dış Görev</span>
                                             </Button>
                                             <Button
                                                 variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
-                                                className={`justify-start ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-3 font-bold transition-colors shadow-sm`}
+                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-2 font-bold transition-colors shadow-sm`}
                                                 onClick={() => {
                                                     if (window.confirm("Bu personeli işten çıkarmak istediğinize emin misiniz?")) {
                                                         saveAttendance('EXIT');
                                                     }
                                                 }}
                                             >
-                                                <LogOut className="w-4 h-4 mr-2" />
-                                                İşten Ayrıldı
+                                                <LogOut className="w-5 h-5" />
+                                                <span className="text-xs font-medium">İşten Ayrıldı</span>
                                             </Button>
                                         </div>
                                     </div>
@@ -2512,7 +2495,7 @@ export default function NewPage() {
                                                 <Input
                                                     type="number"
                                                     placeholder="0"
-                                                    value={attendanceForm.overtime}
+                                                    value={attendanceForm.overtime || ''}
                                                     onChange={e => setAttendanceForm({ ...attendanceForm, overtime: e.target.value })}
                                                 />
                                             </div>
@@ -2526,7 +2509,7 @@ export default function NewPage() {
                                         </Label>
                                         <Textarea
                                             placeholder="Not giriniz..."
-                                            value={attendanceForm.note}
+                                            value={attendanceForm.note || ''}
                                             onChange={e => setAttendanceForm({ ...attendanceForm, note: e.target.value })}
                                             className="resize-none"
                                         />
