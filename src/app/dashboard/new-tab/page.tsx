@@ -930,7 +930,14 @@ export default function NewPage() {
             return false;
         }
 
-        // New record -> can create (if not future)
+        // Check Past Date Lookback (for all cells, including empty ones)
+        const lookbackLimit = user?.editLookbackDays ?? 3;
+        const pastDaysDiff = differenceInCalendarDays(new Date(), targetDate);
+        if (pastDaysDiff > lookbackLimit) {
+            return false;
+        }
+
+        // New record -> can create (if within lookback window)
         if (!record) return true;
 
         // Check Ownership
@@ -1796,10 +1803,12 @@ export default function NewPage() {
             </div>
 
             <Tabs defaultValue="attendance" className="w-full space-y-6">
-                <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
-                    <TabsTrigger value="attendance" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj</TabsTrigger>
+                {user?.role === 'ADMIN' && (
+                    <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
+                        <TabsTrigger value="attendance" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj</TabsTrigger>
 
-                </TabsList>
+                    </TabsList>
+                )}
 
                 <TabsContent value="attendance" className="space-y-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 sm:p-4 rounded-lg border shadow-sm">
@@ -1937,7 +1946,7 @@ export default function NewPage() {
 
                                                 return (
                                                     <TableRow key={person.id} className="hover:bg-slate-50">
-                                                        <TableCell className="font-medium sticky left-0 z-10 bg-background border-r p-1 sm:p-2 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
+                                                        <TableCell className="font-medium sticky left-0 z-30 bg-background border-r p-1 sm:p-2 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
                                                             <div className="flex flex-col w-full">
                                                                 <span className="text-[11px] sm:text-sm font-bold truncate">{person.name}</span>
                                                                 <span className="text-[9px] text-muted-foreground truncate">{person.role}</span>
@@ -1960,11 +1969,10 @@ export default function NewPage() {
                                                             }
 
                                                             let cellClass = "";
-                                                            if ([0, 6].includes(d.getDay())) cellClass = "bg-slate-50";
 
-                                                            // Visual feedback for locked cells (only if they have content)
-                                                            if (isLocked && record) {
-                                                                cellClass += " opacity-60 cursor-not-allowed";
+                                                            // Non-editable days: gray background, no click
+                                                            if (isLocked) {
+                                                                cellClass = "bg-gray-100 cursor-default";
                                                             }
 
                                                             // Default empty state: Centered dot
@@ -1994,13 +2002,10 @@ export default function NewPage() {
                                                             return (
                                                                 <TableCell
                                                                     key={d.toString()}
-                                                                    className={`p-0 border-l text-center transition-colors hover:opacity-80 h-10 w-8 min-w-[32px] ${cellClass} relative cursor-pointer`}
+                                                                    className={`p-0 border-l text-center transition-colors ${isLocked ? '' : 'hover:opacity-80 cursor-pointer'} h-10 w-8 min-w-[32px] ${cellClass} relative`}
                                                                     onClick={() => {
-                                                                        if (isLocked) {
-                                                                            alert("Bu kaydı düzenleme yetkiniz yok veya süre doldu.");
-                                                                        } else {
-                                                                            setSelectedCell({ personId: person.id, date: d });
-                                                                        }
+                                                                        if (isLocked) return;
+                                                                        setSelectedCell({ personId: person.id, date: d });
                                                                     }}
                                                                     onMouseEnter={(e) => {
                                                                         const rect = e.currentTarget.getBoundingClientRect();
