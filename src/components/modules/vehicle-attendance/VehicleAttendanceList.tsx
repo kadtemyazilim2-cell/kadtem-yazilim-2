@@ -710,18 +710,35 @@ export function VehicleAttendanceList() {
                                                         .reduce((sum: any, l: any) => sum + Number(l.liters), 0) : 0;
 
                                                     // All cells are valid for vehicles in activeVehicles
-                                                    // (activeVehicles already filters: assigned OR has data)
-                                                    // Click-time validation in handleCellClick handles date restrictions
-                                                    const isValidDay = true;
+                                                    // Determine if cell is locked (same logic as personnel attendance)
+                                                    let isLocked = false;
+                                                    if (user?.role !== 'ADMIN') {
+                                                        const today = new Date();
+                                                        today.setHours(0, 0, 0, 0);
+                                                        const targetDate = new Date(day);
+                                                        targetDate.setHours(0, 0, 0, 0);
+                                                        // Future block
+                                                        if (targetDate > today) isLocked = true;
+                                                        // Past lookback block
+                                                        if (user?.editLookbackDays !== undefined) {
+                                                            const diff = differenceInDays(today, targetDate);
+                                                            if (diff > user.editLookbackDays) isLocked = true;
+                                                        }
+                                                    }
 
                                                     return (
                                                         <TableCell
                                                             key={day.toISOString()}
                                                             className={cn(
                                                                 "p-0 border-l h-10 transition-colors relative",
-                                                                "cursor-pointer hover:bg-slate-100"
+                                                                isLocked
+                                                                    ? "bg-gray-100 cursor-default"
+                                                                    : "cursor-pointer hover:bg-slate-100"
                                                             )}
-                                                            onClick={() => handleCellClick(v.id, day)}
+                                                            onClick={() => {
+                                                                if (isLocked) return;
+                                                                handleCellClick(v.id, day);
+                                                            }}
                                                         >
                                                             <div className="relative w-full h-full flex items-center justify-center">
                                                                 {displayRecord ? getStatusBadge(displayRecord.status) : null}
