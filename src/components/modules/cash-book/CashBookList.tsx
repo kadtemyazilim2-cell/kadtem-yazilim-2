@@ -907,7 +907,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Tarih</TableHead>
-                                <TableHead>Personel</TableHead>
+                                {canViewAll && <TableHead>Personel</TableHead>}
                                 <TableHead>Kategori</TableHead>
                                 <TableHead>Açıklama</TableHead>
                                 <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
@@ -927,7 +927,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                 filteredTransactionsWithBalance.map((item) => (
                                     <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
                                         <TableCell>{safeFormat(item.date, 'dd MMM yyyy')}</TableCell>
-                                        <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>
+                                        {canViewAll && <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>}
                                         <TableCell>{item.category}</TableCell>
                                         <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
 
