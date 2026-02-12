@@ -42,9 +42,6 @@ export function VehicleAttendancePageClient({ initialData }: VehicleAttendancePa
         <div className="space-y-6">
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">Araç Puantaj</h2>
-                <p className="text-muted-foreground">
-                    Şantiyelerdeki araçların günlük çalışma durumlarını giriniz ve raporlayınız.
-                </p>
             </div>
 
             <Tabs defaultValue={defaultTab} className="w-full">

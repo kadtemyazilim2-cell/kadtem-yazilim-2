@@ -1797,7 +1797,6 @@ export default function NewPage() {
                 <div className="flex justify-between items-center">
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Personel Puantaj</h1>
-                        <p className="text-muted-foreground">Personel ve puantaj yönetimi.</p>
                     </div>
                 </div>
             </div>

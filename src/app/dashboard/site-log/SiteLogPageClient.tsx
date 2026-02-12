@@ -27,9 +27,6 @@ export function SiteLogPageClient({ initialData }: SiteLogPageClientProps) {
         <div className="space-y-6">
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">Şantiye Defteri</h2>
-                <p className="text-muted-foreground">
-                    Şantiyelerden günlük raporlar ve gelişmeler.
-                </p>
             </div>
             <SiteLogList />
         </div>

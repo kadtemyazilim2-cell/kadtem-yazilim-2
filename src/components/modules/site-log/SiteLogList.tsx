@@ -61,6 +61,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
     const [internalSelectedSite, setInternalSelectedSite] = useState<string>('all'); // [NEW]
+    const [showAllEntries, setShowAllEntries] = useState(false); // [NEW] Show more for restricted users
 
     // [NEW] Filtered & Grouped Data
     // const storeEntries = ... (removed redundant)
@@ -483,7 +484,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
             <Card>
                 <CardHeader className="flex flex-col gap-4">
                     <div className="flex flex-row items-center justify-between">
-                        <CardTitle>Şantiye Defteri Kayıtları</CardTitle>
+                        {user?.role === 'ADMIN' && <CardTitle>Şantiye Defteri Kayıtları</CardTitle>}
                         <div className="flex gap-2">
                             {canExport && (
                                 <>
@@ -560,157 +561,182 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-slate-50 border rounded-lg">
-                        <div className="col-span-1">
-                            <Label className="text-xs text-muted-foreground mb-1 block">Ara</Label>
-                            <Input
-                                placeholder="İçerik, hava durumu..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-white"
-                            />
-                        </div>
-
-                        {/* [NEW] Site Filter */}
-                        {!filterSiteId && (
+                    {user?.role === 'ADMIN' && (
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-slate-50 border rounded-lg">
                             <div className="col-span-1">
-                                <Label className="text-xs text-muted-foreground mb-1 block">Şantiye</Label>
-                                <Select value={internalSelectedSite} onValueChange={setInternalSelectedSite}>
+                                <Label className="text-xs text-muted-foreground mb-1 block">Ara</Label>
+                                <Input
+                                    placeholder="İçerik, hava durumu..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="bg-white"
+                                />
+                            </div>
+
+                            {/* [NEW] Site Filter */}
+                            {!filterSiteId && (
+                                <div className="col-span-1">
+                                    <Label className="text-xs text-muted-foreground mb-1 block">Şantiye</Label>
+                                    <Select value={internalSelectedSite} onValueChange={setInternalSelectedSite}>
+                                        <SelectTrigger className="bg-white">
+                                            <SelectValue placeholder="Tümü" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tümü</SelectItem>
+                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
+                            <div className="col-span-1">
+                                <Label className="text-xs text-muted-foreground mb-1 block">Başlangıç Tarihi</Label>
+                                <Input
+                                    type="date"
+                                    value={filterStartDate}
+                                    onChange={(e) => setFilterStartDate(e.target.value)}
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="col-span-1">
+                                <Label className="text-xs text-muted-foreground mb-1 block">Bitiş Tarihi</Label>
+                                <Input
+                                    type="date"
+                                    value={filterEndDate}
+                                    onChange={(e) => setFilterEndDate(e.target.value)}
+                                    className="bg-white"
+                                />
+                            </div>
+                            <div className="col-span-1">
+                                <Label className="text-xs text-muted-foreground mb-1 block">Sıralama</Label>
+                                <Select value={sortOrder} onValueChange={(val: any) => setSortOrder(val)}>
                                     <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Tümü" />
+                                        <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Tümü</SelectItem>
-                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                        ))}
+                                        <SelectItem value="desc">Yeniden Eskiye</SelectItem>
+                                        <SelectItem value="asc">Eskiden Yeniye</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                        )}
-
-                        <div className="col-span-1">
-                            <Label className="text-xs text-muted-foreground mb-1 block">Başlangıç Tarihi</Label>
-                            <Input
-                                type="date"
-                                value={filterStartDate}
-                                onChange={(e) => setFilterStartDate(e.target.value)}
-                                className="bg-white"
-                            />
                         </div>
-                        <div className="col-span-1">
-                            <Label className="text-xs text-muted-foreground mb-1 block">Bitiş Tarihi</Label>
-                            <Input
-                                type="date"
-                                value={filterEndDate}
-                                onChange={(e) => setFilterEndDate(e.target.value)}
-                                className="bg-white"
-                            />
-                        </div>
-                        <div className="col-span-1">
-                            <Label className="text-xs text-muted-foreground mb-1 block">Sıralama</Label>
-                            <Select value={sortOrder} onValueChange={(val: any) => setSortOrder(val)}>
-                                <SelectTrigger className="bg-white">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="desc">Yeniden Eskiye</SelectItem>
-                                    <SelectItem value="asc">Eskiden Yeniye</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
                         {filteredGroups.length === 0 ? (
                             <div className="text-center py-8 text-slate-500">Kayıt bulunamadı.</div>
                         ) : (
-                            filteredGroups.map((group: any) => (
-                                <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="font-semibold text-blue-900 flex items-center gap-2">
-                                                <MapPin className="w-4 h-4 text-blue-500" />
-                                                {getSiteName(group.siteId)}
-                                            </div>
-                                            <span className="text-sm text-slate-400">|</span>
-                                            <div className="text-sm text-slate-600 flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-slate-400" />
-                                                {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
-                                            </div>
-                                            {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
-                                            {(() => {
-                                                const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
-                                                if (uniqueWeather.length > 0) {
-                                                    return (
-                                                        <>
-                                                            <span className="text-sm text-slate-400">|</span>
-                                                            <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
-                                                        </>
-                                                    );
-                                                }
-                                                return null;
-                                            })()}
-                                        </div>
-
-                                        {/* Action Buttons for the Whole Group (PDF) */}
-                                        {canExport && (
-                                            <div className="flex gap-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 text-slate-600 hover:text-blue-600"
-                                                    onClick={() => handleDownloadPDF(group, true)}
-                                                    title="Önizle"
-                                                    disabled={isGeneratingPDF}
-                                                >
-                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                                                    Önizle
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-8 text-slate-600 hover:text-green-600"
-                                                    onClick={() => handleDownloadPDF(group, false)}
-                                                    title="PDF İndir"
-                                                    disabled={isGeneratingPDF}
-                                                >
-                                                    {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
-                                                    PDF İndir
-                                                </Button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Scrollable Content Area if too long, or just stacking */}
-                                    <div className="space-y-4">
-                                        {group.items.map((entry: any) => (
-                                            <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
-                                                <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
-                                                <div className="mt-2 flex justify-between items-center">
-                                                    <div className="text-xs text-slate-400 flex items-center gap-1">
-                                                        <UserIcon className="w-3 h-3" />
-                                                        {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
+                            (() => {
+                                const isAdmin = user?.role === 'ADMIN';
+                                // Restricted users: max 3 entries, show 2 initially
+                                const limitedGroups = isAdmin ? filteredGroups : filteredGroups.slice(0, 3);
+                                const displayGroups = isAdmin ? limitedGroups : (showAllEntries ? limitedGroups : limitedGroups.slice(0, 2));
+                                const hasMore = !isAdmin && !showAllEntries && limitedGroups.length > 2;
+                                return (
+                                    <>
+                                        {displayGroups.map((group: any) => (
+                                            <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="font-semibold text-blue-900 flex items-center gap-2">
+                                                            <MapPin className="w-4 h-4 text-blue-500" />
+                                                            {getSiteName(group.siteId)}
+                                                        </div>
+                                                        <span className="text-sm text-slate-400">|</span>
+                                                        <div className="text-sm text-slate-600 flex items-center gap-2">
+                                                            <Calendar className="w-4 h-4 text-slate-400" />
+                                                            {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
+                                                        </div>
+                                                        {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
+                                                        {(() => {
+                                                            const uniqueWeather = Array.from(new Set(group.items.map((i: any) => i.weather).filter(Boolean)));
+                                                            if (uniqueWeather.length > 0) {
+                                                                return (
+                                                                    <>
+                                                                        <span className="text-sm text-slate-400">|</span>
+                                                                        <span className="text-sm text-slate-600">{uniqueWeather.join(', ')}</span>
+                                                                    </>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
                                                     </div>
 
-                                                    {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
-                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
-                                                                <Pencil className="w-3 h-3" />
+                                                    {/* Action Buttons for the Whole Group (PDF) */}
+                                                    {canExport && (
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 text-slate-600 hover:text-blue-600"
+                                                                onClick={() => handleDownloadPDF(group, true)}
+                                                                title="Önizle"
+                                                                disabled={isGeneratingPDF}
+                                                            >
+                                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
+                                                                Önizle
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
-                                                                <Trash2 className="w-3 h-3" />
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-8 text-slate-600 hover:text-green-600"
+                                                                onClick={() => handleDownloadPDF(group, false)}
+                                                                title="PDF İndir"
+                                                                disabled={isGeneratingPDF}
+                                                            >
+                                                                {isGeneratingPDF ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />}
+                                                                PDF İndir
                                                             </Button>
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {/* Scrollable Content Area if too long, or just stacking */}
+                                                <div className="space-y-4">
+                                                    {group.items.map((entry: any) => (
+                                                        <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
+                                                            <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
+                                                            <div className="mt-2 flex justify-between items-center">
+                                                                <div className="text-xs text-slate-400 flex items-center gap-1">
+                                                                    <UserIcon className="w-3 h-3" />
+                                                                    {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
+                                                                </div>
+
+                                                                {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
+                                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
+                                                                            <Pencil className="w-3 h-3" />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-red-600" onClick={() => handleDelete(entry.id, entry.date)}>
+                                                                            <Trash2 className="w-3 h-3" />
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         ))}
-                                    </div>
-                                </div>
-                            ))
+                                        {hasMore && (
+                                            <div className="flex justify-center pt-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setShowAllEntries(true)}
+                                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                >
+                                                    Devamını Gör ({limitedGroups.length - 2} kayıt daha)
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()
                         )}
                     </div>
                 </CardContent>

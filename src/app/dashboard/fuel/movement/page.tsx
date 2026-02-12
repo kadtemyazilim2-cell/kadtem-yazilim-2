@@ -367,9 +367,6 @@ export default function FuelMovementPage() {
         <div className="space-y-6">
             <div>
                 <h2 className="text-3xl font-bold tracking-tight">Yakıt Hareketleri</h2>
-                <p className="text-muted-foreground">
-                    Yakıt alım, virman ve araç dolum işlemlerini buradan yönetebilirsiniz.
-                </p>
             </div>
 
             <Tabs defaultValue="dispense" className="w-full">
