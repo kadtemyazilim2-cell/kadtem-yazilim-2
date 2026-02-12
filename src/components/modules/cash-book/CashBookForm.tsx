@@ -471,7 +471,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                          */}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <Label>Tarih</Label>
                             <Input
@@ -536,7 +536,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                         <SelectItem value="Avans">Avans</SelectItem>
                                         <SelectItem value="Diğer">Diğer</SelectItem>
                                         <SelectItem value="Fatura">Fatura</SelectItem>
-                                        <SelectItem value="Hırdavat / Sarf Malzeme">Hırdavat / Sarf Malzeme</SelectItem>
+                                        <SelectItem value="Hırdavat">Hırdavat</SelectItem>
                                         <SelectItem value="İşçilik">İşçilik</SelectItem>
                                         <SelectItem value="Kira">Kira</SelectItem>
                                         <SelectItem value="Malzeme">Malzeme</SelectItem>

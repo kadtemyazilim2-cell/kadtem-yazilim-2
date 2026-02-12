@@ -899,9 +899,14 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
             {/* Only show Table Content if Admin, Admin View Perm, or showReport is true */}
             {(canViewAll || showReport) && (
                 <CardContent>
-                    <div className="mb-4 p-2 bg-slate-50 border rounded text-xs text-muted-foreground">
-                        <span className="font-semibold">Devreden Bakiye: </span>
-                        {previousBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                    <div className="mb-4 p-2 bg-slate-50 border rounded text-xs text-muted-foreground flex justify-between items-center">
+                        <div>
+                            <span className="font-semibold">Devreden Bakiye: </span>
+                            {previousBalance.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                        </div>
+                        <div className="text-muted-foreground">
+                            Saat: {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                     </div>
                     <Table>
                         <TableHeader>
@@ -926,7 +931,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                             ) : (
                                 filteredTransactionsWithBalance.map((item) => (
                                     <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
-                                        <TableCell>{safeFormat(item.date, 'dd MMM yyyy')}</TableCell>
+                                        <TableCell>{safeFormat(item.date, 'dd.MM.yyyy')}</TableCell>
                                         {canViewAll && <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>}
                                         <TableCell>{item.category}</TableCell>
                                         <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
