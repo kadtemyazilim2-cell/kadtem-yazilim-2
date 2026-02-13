@@ -908,94 +908,96 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                             Saat: {new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                     </div>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tarih</TableHead>
-                                {canViewAll && <TableHead>Personel</TableHead>}
-                                <TableHead>Açıklama</TableHead>
-                                <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
-                                <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
-                                <TableHead>Bakiye</TableHead>
-                                <TableHead className="w-10"></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredTransactionsWithBalance?.length === 0 ? (
+                    <div className="overflow-x-auto">
+                        <Table className="text-xs md:text-sm">
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={9} className="text-center text-slate-500 py-8">
-                                        {selectedUserId === 'all' ? 'Henüz kayıtlı işlem yok.' : 'Seçili personel için işlem bulunamadı.'}
-                                    </TableCell>
+                                    <TableHead className="w-[70px] md:w-auto">Tarih</TableHead>
+                                    {canViewAll && <TableHead>Personel</TableHead>}
+                                    <TableHead>Açıklama</TableHead>
+                                    <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
+                                    <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
+                                    <TableHead>Bakiye</TableHead>
+                                    <TableHead className="w-10"></TableHead>
                                 </TableRow>
-                            ) : (
-                                filteredTransactionsWithBalance.map((item) => (
-                                    <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span>{safeFormat(item.date, 'dd.MM.yyyy')}</span>
-                                                <span className="text-[10px] text-muted-foreground">{safeFormat(item.createdAt, 'HH:mm')}</span>
-                                            </div>
-                                        </TableCell>
-                                        {canViewAll && <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>}
-                                        <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
-
-                                        {/* Borç (Income) */}
-                                        <TableCell className="text-right font-mono text-green-600 font-bold">
-                                            {(item.type === 'INCOME' || item.type === 'BALANCE_START') ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
-                                        </TableCell>
-
-                                        {/* Alacak (Expense) */}
-                                        <TableCell className="text-right font-mono text-red-600 font-bold">
-                                            {item.type === 'EXPENSE' ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
-                                        </TableCell>
-
-                                        <TableCell className="font-mono font-medium">
-                                            {Number(item.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
-                                        </TableCell>
-                                        <TableCell>
-                                            {item.type !== 'BALANCE_START' && (
-                                                <div className="flex items-center gap-1">
-                                                    {canEdit && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                                            onClick={async () => {
-                                                                try {
-                                                                    const res = await getTransaction(item.id);
-                                                                    if (res.success && res.data) {
-                                                                        setEditingTransaction(res.data);
-                                                                        setIsFormOpen(true);
-                                                                    } else {
-                                                                        alert('İşlem detayları alınamadı.');
-                                                                    }
-                                                                } catch (err) {
-                                                                    console.error(err);
-                                                                    alert('Bir hata oluştu.');
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                    {canDelete && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                                            onClick={() => handleDelete(item.id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            )}
+                            </TableHeader>
+                            <TableBody>
+                                {filteredTransactionsWithBalance?.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={9} className="text-center text-slate-500 py-8">
+                                            {selectedUserId === 'all' ? 'Henüz kayıtlı işlem yok.' : 'Seçili personel için işlem bulunamadı.'}
                                         </TableCell>
                                     </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
+                                ) : (
+                                    filteredTransactionsWithBalance.map((item) => (
+                                        <TableRow key={item.id} className={item.type === 'BALANCE_START' ? "bg-blue-50/50 hover:bg-blue-50 border-t-2 border-slate-200" : ""}>
+                                            <TableCell className="whitespace-nowrap">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[11px] md:text-sm">{safeFormat(item.date, 'dd.MM.yy')}</span>
+                                                    <span className="text-[9px] text-muted-foreground">{safeFormat(item.createdAt, 'HH:mm')}</span>
+                                                </div>
+                                            </TableCell>
+                                            {canViewAll && <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>}
+                                            <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
+
+                                            {/* Borç (Income) */}
+                                            <TableCell className="text-right font-mono text-green-600 font-bold whitespace-nowrap">
+                                                {(item.type === 'INCOME' || item.type === 'BALANCE_START') ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
+                                            </TableCell>
+
+                                            {/* Alacak (Expense) */}
+                                            <TableCell className="text-right font-mono text-red-600 font-bold whitespace-nowrap">
+                                                {item.type === 'EXPENSE' ? `${Number(item.amount || 0).toLocaleString('tr-TR')} TL` : '-'}
+                                            </TableCell>
+
+                                            <TableCell className="font-mono font-medium whitespace-nowrap">
+                                                {Number(item.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                            </TableCell>
+                                            <TableCell>
+                                                {item.type !== 'BALANCE_START' && (
+                                                    <div className="flex items-center gap-1">
+                                                        {canEdit && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        const res = await getTransaction(item.id);
+                                                                        if (res.success && res.data) {
+                                                                            setEditingTransaction(res.data);
+                                                                            setIsFormOpen(true);
+                                                                        } else {
+                                                                            alert('İşlem detayları alınamadı.');
+                                                                        }
+                                                                    } catch (err) {
+                                                                        console.error(err);
+                                                                        alert('Bir hata oluştu.');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                        {canDelete && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={() => handleDelete(item.id)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             )}
 
