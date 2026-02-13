@@ -117,7 +117,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
             }
 
             if (!isValid(d)) return '-';
-            return format(d, fmt, { locale: tr });
+            return format(d, fmt);
         } catch (e) {
             return '-';
         }
