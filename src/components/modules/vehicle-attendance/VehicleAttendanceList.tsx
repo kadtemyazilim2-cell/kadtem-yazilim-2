@@ -659,7 +659,7 @@ export function VehicleAttendanceList() {
                                         };
                                         return (
                                             <TableRow key={v.id} className="hover:bg-muted/5">
-                                                <TableCell className="sticky left-0 z-10 bg-background border-r p-2 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
+                                                <TableCell className="sticky left-0 z-20 bg-background border-r p-2 shadow-[1px_0_2px_rgba(0,0,0,0.05)]">
                                                     <div className="flex flex-col w-full">
                                                         <span className="font-bold font-mono text-xs sm:text-sm truncate" title={v.plate}>{v.plate}</span>
                                                         {v.model && (

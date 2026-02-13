@@ -52,85 +52,87 @@ export function FuelGivenList() {
                 <CardTitle className="text-lg">Son Verdiğiniz Yakıtlar</CardTitle>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Tarih</TableHead>
-                            <TableHead>Plaka</TableHead>
-                            <TableHead>Şantiye</TableHead>
-                            <TableHead>Miktar</TableHead>
-                            <TableHead>KM</TableHead>
-                            <TableHead className="hidden md:table-cell">Not</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {userLogs.length === 0 ? (
+                <div className="overflow-x-auto">
+                    <Table className="text-xs md:text-sm">
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                                    Henüz yaptığınız bir yakıt işlemi bulunmuyor.
-                                </TableCell>
+                                <TableHead>Tarih</TableHead>
+                                <TableHead>Plaka</TableHead>
+                                <TableHead>Şantiye</TableHead>
+                                <TableHead>Miktar</TableHead>
+                                <TableHead>KM</TableHead>
+                                <TableHead className="hidden md:table-cell">Not</TableHead>
+                                <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
-                        ) : (
-                            userLogs.map((log: any) => (
-                                <TableRow key={log.id}>
-                                    <TableCell className="whitespace-nowrap">
-                                        {format(new Date(log.date), 'dd.MM.yyyy HH:mm', { locale: tr })}
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        {getVehiclePlate(log.vehicleId)} <span className="text-xs text-muted-foreground hidden sm:inline">({getVehicleBrand(log.vehicleId)})</span>
-                                    </TableCell>
-                                    <TableCell>{getSiteName(log.siteId)}</TableCell>
-                                    <TableCell className="font-bold">{log.liters} Lt</TableCell>
-                                    <TableCell>{log.mileage} km</TableCell>
-                                    <TableCell className="hidden md:table-cell max-w-[200px] truncate" title={log.description}>
-                                        {log.description || '-'}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => setEditingLog(log)}
-                                                className="h-8 w-8 text-muted-foreground hover:text-blue-600"
-                                                title="Düzenle"
-                                            >
-                                                <Pencil className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={async () => {
-                                                    if (window.confirm('Bu yakıt kaydını silmek istediğinizden emin misiniz?')) {
-                                                        try {
-                                                            const { deleteFuelLog } = await import('@/actions/fuel');
-                                                            const result = await deleteFuelLog(log.id);
-                                                            if (result.success) {
-                                                                // Toast or alert
-                                                                const { toast } = await import('sonner');
-                                                                toast.success('Yakıt kaydı silindi.');
-                                                                router.refresh(); // [FIX] Refresh
-                                                            } else {
-                                                                alert(result.error || 'Silinemedi.');
-                                                            }
-                                                        } catch (error) {
-                                                            console.error(error);
-                                                            alert('Bir hata oluştu.');
-                                                        }
-                                                    }
-                                                }}
-                                                className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                                                title="Sil"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </Button>
-                                        </div>
+                        </TableHeader>
+                        <TableBody>
+                            {userLogs.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                        Henüz yaptığınız bir yakıt işlemi bulunmuyor.
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : (
+                                userLogs.map((log: any) => (
+                                    <TableRow key={log.id}>
+                                        <TableCell className="whitespace-nowrap">
+                                            {format(new Date(log.date), 'dd.MM.yyyy HH:mm', { locale: tr })}
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {getVehiclePlate(log.vehicleId)} <span className="text-xs text-muted-foreground hidden sm:inline">({getVehicleBrand(log.vehicleId)})</span>
+                                        </TableCell>
+                                        <TableCell className="max-w-[80px] truncate" title={getSiteName(log.siteId)}>{getSiteName(log.siteId)}</TableCell>
+                                        <TableCell className="font-bold">{log.liters} Lt</TableCell>
+                                        <TableCell>{log.mileage} km</TableCell>
+                                        <TableCell className="hidden md:table-cell max-w-[200px] truncate" title={log.description}>
+                                            {log.description || '-'}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setEditingLog(log)}
+                                                    className="h-8 w-8 text-muted-foreground hover:text-blue-600"
+                                                    title="Düzenle"
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={async () => {
+                                                        if (window.confirm('Bu yakıt kaydını silmek istediğinizden emin misiniz?')) {
+                                                            try {
+                                                                const { deleteFuelLog } = await import('@/actions/fuel');
+                                                                const result = await deleteFuelLog(log.id);
+                                                                if (result.success) {
+                                                                    // Toast or alert
+                                                                    const { toast } = await import('sonner');
+                                                                    toast.success('Yakıt kaydı silindi.');
+                                                                    router.refresh(); // [FIX] Refresh
+                                                                } else {
+                                                                    alert(result.error || 'Silinemedi.');
+                                                                }
+                                                            } catch (error) {
+                                                                console.error(error);
+                                                                alert('Bir hata oluştu.');
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="h-8 w-8 text-muted-foreground hover:text-red-600"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </CardContent>
 
             {editingLog && (

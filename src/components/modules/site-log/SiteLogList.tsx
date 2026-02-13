@@ -641,14 +641,14 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                             <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="font-semibold text-blue-900 flex items-center gap-2">
-                                                            <MapPin className="w-4 h-4 text-blue-500" />
-                                                            {getSiteName(group.siteId)}
+                                                        <div className="text-sm font-semibold text-blue-900 flex items-center gap-2 max-w-[180px] truncate">
+                                                            <MapPin className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                                                            <span className="truncate">{getSiteName(group.siteId)}</span>
                                                         </div>
                                                         <span className="text-sm text-slate-400">|</span>
                                                         <div className="text-sm text-slate-600 flex items-center gap-2">
                                                             <Calendar className="w-4 h-4 text-slate-400" />
-                                                            {format(new Date(group.date), 'dd MMMM yyyy', { locale: tr })}
+                                                            {format(new Date(group.date), 'dd.MM.yyyy')}
                                                         </div>
                                                         {/* Show all weather info if different, or just first? User requested combined look. Let's join unique weathers. */}
                                                         {(() => {
