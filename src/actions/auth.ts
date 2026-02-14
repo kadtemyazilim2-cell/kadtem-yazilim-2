@@ -9,9 +9,11 @@ export async function authenticate(
 ) {
     try {
         console.log("Authentication started for user:", formData.get('username'));
+        const rememberMe = formData.get('rememberMe') === 'true';
         await signIn('credentials', {
             username: formData.get('username'),
             password: formData.get('password'),
+            rememberMe: rememberMe ? 'true' : 'false',
             redirectTo: '/dashboard'
         });
         console.log("Authentication successful, redirecting...");

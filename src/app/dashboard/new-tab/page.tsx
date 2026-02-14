@@ -1745,46 +1745,50 @@ export default function NewPage() {
             legendY = (doc as any).lastAutoTable.finalY;
         }
 
-        // --- FOOTER: Notes & Overtime Explanations ---
+        // --- FOOTER: Notes & Overtime Table ---
         let finalY = legendY + 10;
 
-        // Collect all notes for the current view
-        const notes: string[] = [];
+        // Collect all notes for the current view as table rows
+        const noteRows: any[][] = [];
         filteredNames.forEach(p => {
             days.forEach(d => {
                 const dateKey = format(d, 'yyyy-MM-dd');
                 const record = p.attendance[dateKey];
                 if (record && (record.note || record.overtime)) {
-                    let text = `${trToAscii(p.name)} - ${format(d, 'dd.MM.yyyy')}: `;
-                    if (record.overtime) text += `Mesai: ${record.overtime} Saat. `;
-                    if (record.note) text += `Not: ${trToAscii(record.note)}`;
-                    notes.push(text);
+                    noteRows.push([
+                        format(d, 'dd.MM.yyyy'),
+                        trToAscii(p.name),
+                        record.overtime ? `${record.overtime} Saat` : '-',
+                        record.note ? trToAscii(record.note) : '-'
+                    ]);
                 }
             });
         });
 
-        if (notes.length > 0) {
+        if (noteRows.length > 0) {
             // Check for page break
-            if (finalY > doc.internal.pageSize.height - 20) {
+            if (finalY > doc.internal.pageSize.height - 30) {
                 doc.addPage();
                 finalY = 15;
             }
 
-            doc.setFontSize(9);
+            doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
-            doc.text(trToAscii("Açıklamalar ve Mesai Detayları:"), 14, finalY);
-            finalY += 5;
+            doc.text(trToAscii("Açıklamalar ve Mesai Detayları"), 14, finalY);
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(8);
-
-            notes.forEach(note => {
-                if (finalY > doc.internal.pageSize.height - 10) {
-                    doc.addPage();
-                    finalY = 15;
+            autoTable(doc, {
+                startY: finalY + 2,
+                head: [['Tarih', trToAscii('Isim'), 'Mesai', 'Not']],
+                body: noteRows,
+                theme: 'grid',
+                headStyles: { fillColor: [100, 100, 100], textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 7, cellPadding: 2, halign: 'center' },
+                columnStyles: {
+                    0: { cellWidth: 22, halign: 'center' },
+                    1: { cellWidth: 45, halign: 'left' },
+                    2: { cellWidth: 20, halign: 'center' },
+                    3: { halign: 'left' }
                 }
-                doc.text(note, 14, finalY);
-                finalY += 4;
             });
         }
 

@@ -6,6 +6,7 @@ export const authConfig = {
     },
     session: {
         strategy: "jwt",
+        maxAge: 30 * 24 * 60 * 60, // 30 days max
     },
     callbacks: {
         async session({ session, token }) {
@@ -27,7 +28,21 @@ export const authConfig = {
                 token.username = (user as any).username;
                 token.assignedSiteIds = (user as any).assignedSiteIds;
                 token.editLookbackDays = (user as any).editLookbackDays;
+                token.rememberMe = (user as any).rememberMe || false;
             }
+
+            // If "Beni Hatırla" is NOT checked, expire session after 1 day
+            // If checked, session lasts for 30 days (maxAge above)
+            if (!token.rememberMe) {
+                const oneDayInSeconds = 24 * 60 * 60;
+                const issuedAt = (token.iat as number) || Math.floor(Date.now() / 1000);
+                const now = Math.floor(Date.now() / 1000);
+                if (now - issuedAt > oneDayInSeconds) {
+                    // Token expired for non-remember-me users
+                    return null as any;
+                }
+            }
+
             return token;
         }
     },

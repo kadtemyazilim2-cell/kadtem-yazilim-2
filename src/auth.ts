@@ -39,11 +39,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             async authorize(credentials) {
                 console.log("Authorize called with credentials:", credentials?.username);
                 const parsedCredentials = z
-                    .object({ username: z.string().min(3), password: z.string().min(3) })
+                    .object({ username: z.string().min(3), password: z.string().min(3), rememberMe: z.string().optional() })
                     .safeParse(credentials);
 
                 if (parsedCredentials.success) {
-                    const { username, password } = parsedCredentials.data;
+                    const { username, password, rememberMe } = parsedCredentials.data;
 
                     // [DEBUG] Bypass DB for admin
 
@@ -66,7 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
                         // Flatten assignedSites to assignedSiteIds
                         const assignedSiteIds = user.assignedSites ? user.assignedSites.map((s: any) => s.id) : [];
-                        return { ...user, assignedSiteIds };
+                        return { ...user, assignedSiteIds, rememberMe: rememberMe === 'true' };
                     } else {
                         console.log("Password mismatch");
                     }

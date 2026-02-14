@@ -17,7 +17,7 @@ import jsPDF from 'jspdf';
 import { FileDown, Loader2, Eye, FileSpreadsheet, FileText } from 'lucide-react'; // Added icons
 import * as XLSX from 'xlsx';
 import autoTable from 'jspdf-autotable';
-import { fontBase64 } from '@/lib/pdf-font';
+import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 
 import { useUserSites } from '@/hooks/use-user-access';
 
@@ -236,11 +236,8 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
             setIsGeneratingPDF(true);
             const doc = new jsPDF('p', 'mm', 'a4');
 
-            // 1. Load Custom Font (Roboto) from Base64 (Reliable & Offline)
-            doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
-            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold'); // Use same font for bold to prevent network errors
-
+            // 1. Load Custom Font (Roboto) from Base64 with Identity-H encoding
+            addTurkishFont(doc);
             doc.setFont('Roboto', 'bold');
 
             const siteName = getSiteName(entry.siteId);
@@ -340,7 +337,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
             const contentBoxTop = 36;
             const contentBoxHeight = 200;
             const endContentY = contentBoxTop + contentBoxHeight;
-            let currentY = contentBoxTop + 6;
+            let currentY = contentBoxTop + 5.5;
 
             dayEntries.forEach((dayEntry: any, index: any) => {
                 const bullet = "• ";
@@ -368,7 +365,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                         doc.addPage();
                         currentSheet++;
                         drawTemplate(currentSheet);
-                        currentY = contentBoxTop + 6;
+                        currentY = contentBoxTop + 5.5;
                     }
 
                     // [FIX] Justify alignment for all lines except the last one
@@ -402,7 +399,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                         doc.addPage();
                         currentSheet++;
                         drawTemplate(currentSheet);
-                        currentY = contentBoxTop + 6;
+                        currentY = contentBoxTop + 5.5;
                         authorY = currentY;
                         currentY += lineSpacing;
                     } else {
@@ -420,7 +417,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                         doc.addPage();
                         currentSheet++;
                         drawTemplate(currentSheet);
-                        currentY = contentBoxTop + 6;
+                        currentY = contentBoxTop + 5.5;
                     }
                 }
             });
@@ -697,7 +694,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                                 {/* Scrollable Content Area if too long, or just stacking */}
                                                 <div className="space-y-4">
                                                     {group.items.map((entry: any) => (
-                                                        <div key={entry.id} className="pl-4 border-l-2 border-slate-200">
+                                                        <div key={entry.id} className="pl-4 border-l-2 border-slate-200 group">
                                                             <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
                                                             <div className="mt-2 flex justify-between items-center">
                                                                 <div className="text-xs text-slate-400 flex items-center gap-1">

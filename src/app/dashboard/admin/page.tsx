@@ -91,6 +91,7 @@ const MODULE_HIERARCHY = [
             { id: 'movement.dispense', label: 'Yakıt Ver (Araç Dolum)' },
             { id: 'movement.transfer', label: 'Transfer (Virman)' },
             { id: 'movement.purchase', label: 'Yakıt Alımı (Stok)' },
+            { id: 'movement.rental-create', label: 'Yeni Kiralık Araç Ekle' },
         ]
     },
     {
@@ -1185,9 +1186,6 @@ export default function AdminPage() {
             if (action === 'CLEAR') {
                 updated = [];
             } else if (action === 'SET_VIEW') {
-                // Ensure VIEW is present, preserve others if needed? 
-                // Logic: "Access Switch" On -> Ensure VIEW. Off -> Clear All.
-                // Here we assume SET_VIEW is turning it ON (adding VIEW).
                 if (!updated.includes('VIEW')) updated.push('VIEW');
             } else if (action === 'ADD') {
                 if (!updated.includes(value)) updated.push(value);
@@ -1197,10 +1195,32 @@ export default function AdminPage() {
                 updated = updated.filter(p => p !== value);
             }
 
-            return {
+            const result = {
                 ...prev,
                 [moduleId]: updated
             };
+
+            // [SYNC] movement.rental-create <-> vehicles.rental-create
+            // If enabling rental-create in movement, also enable in vehicles (and vice versa)
+            const RENTAL_SYNC_PAIRS: Record<string, string> = {
+                'movement.rental-create': 'vehicles.rental-create',
+                'vehicles.rental-create': 'movement.rental-create',
+            };
+
+            const syncTarget = RENTAL_SYNC_PAIRS[moduleId];
+            if (syncTarget && (value === 'VIEW' || value === 'CREATE' || action === 'SET_VIEW')) {
+                if (action === 'ADD' || action === 'SET_VIEW') {
+                    const targetPerms = result[syncTarget] || [];
+                    if (!targetPerms.includes(value)) {
+                        result[syncTarget] = [...targetPerms, value];
+                    }
+                    if (!result[syncTarget].includes('VIEW')) {
+                        result[syncTarget] = [...result[syncTarget], 'VIEW'];
+                    }
+                }
+            }
+
+            return result;
         });
     };
 

@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
     ChevronLeft, ChevronRight, Truck, CheckCircle2, Clock, PauseCircle, Wrench, UserX, CalendarOff, Fuel, Trash2
 } from 'lucide-react';
@@ -177,6 +178,13 @@ export function VehicleAttendanceList() {
     const handleQuickSave = async (newStatus: 'WORK' | 'HALF_DAY' | 'IDLE' | 'REPAIR' | 'NO_OPERATOR' | 'HOLIDAY') => {
         if (!editingCell || !selectedSiteId || isReadOnly) return;
 
+        // [NEW] Mandatory note for specific statuses
+        const requiresNote = ['IDLE', 'REPAIR', 'NO_OPERATOR'].includes(newStatus);
+        if (requiresNote && !note.trim()) {
+            alert('Bu durum için açıklama/not girilmesi zorunludur.');
+            return;
+        }
+
         // Check for cross-site conflict
         const targetDateStr = format(editingCell.date, 'yyyy-MM-dd');
         const existingRecord = vehicleAttendance.find((a: any) =>
@@ -198,12 +206,14 @@ export function VehicleAttendanceList() {
             date: new Date(targetDateStr),
             status: newStatus,
             hours: 8,
+            note: note.trim() || null,
             createdByUserId: user?.id
         };
 
         // 1. Optimistic Update
         addLocal(optimisticPayload as any);
         setIsDialogOpen(false);
+        setNote('');
 
         const [y, m, d] = targetDateStr.split('-').map(Number);
         const utcDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
@@ -214,6 +224,7 @@ export function VehicleAttendanceList() {
             date: utcDate.toISOString(),
             status: newStatus,
             hours: 8,
+            note: note.trim() || null,
             createdByUserId: user?.id
         };
 
@@ -525,6 +536,53 @@ export function VehicleAttendanceList() {
             }
         });
 
+        // [NEW] Notes Table after main attendance table
+        const notesData: any[] = [];
+        const statusLabels: Record<string, string> = {
+            WORK: 'Çalıştı', HALF_DAY: 'Yarım Gün', IDLE: 'Çalışmadı',
+            REPAIR: 'Arızalı', NO_OPERATOR: 'Operatör Yok', HOLIDAY: 'Tatil'
+        };
+
+        activeVehicles.forEach((v: any) => {
+            daysInMonth.forEach((day: any) => {
+                const record = getStatusForDate(v.id, day);
+                if (record && record.siteId === selectedSiteId && record.note) {
+                    notesData.push([
+                        format(day, 'dd.MM.yyyy'),
+                        v.plate,
+                        statusLabels[record.status] || record.status,
+                        record.note
+                    ]);
+                }
+            });
+        });
+
+        if (notesData.length > 0) {
+            // @ts-ignore
+            let notesY = doc.lastAutoTable.finalY + 10;
+            if (notesY > 170) { doc.addPage(); notesY = 15; }
+
+            doc.setFontSize(11);
+            doc.setFont(fontName, 'bold');
+            doc.text('Notlar', 14, notesY);
+            notesY += 2;
+
+            autoTable(doc, {
+                startY: notesY,
+                head: [['Tarih', 'Plaka', 'Durum', 'Not']],
+                body: notesData,
+                styles: { fontSize: 7, cellPadding: 2, font: fontName },
+                headStyles: { fillColor: [100, 100, 100], textColor: 255, fontStyle: 'bold' },
+                columnStyles: {
+                    0: { cellWidth: 25 },
+                    1: { cellWidth: 30 },
+                    2: { cellWidth: 25 },
+                    3: { cellWidth: 'auto' }
+                },
+                theme: 'grid'
+            });
+        }
+
         doc.save(`${siteName} - ${monthStr} - Araç Puantaj.pdf`);
     };
 
@@ -741,6 +799,14 @@ export function VehicleAttendanceList() {
                                                             }}
                                                         >
                                                             <div className="relative w-full h-full flex items-center justify-center">
+                                                                {displayRecord?.note && (
+                                                                    <div className="group/note absolute top-0 left-0 z-20 w-3 h-3 cursor-help">
+                                                                        <span className="absolute top-0 left-0 w-0 h-0 border-l-[6px] border-t-[6px] border-l-blue-500 border-t-blue-500 border-r-[6px] border-b-[6px] border-r-transparent border-b-transparent" />
+                                                                        <div className="hidden group-hover/note:block absolute top-3 left-0 bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap max-w-[200px] break-words z-50">
+                                                                            {displayRecord.note}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                                 {displayRecord ? getStatusBadge(displayRecord.status) : null}
                                                                 {dailyFuel > 0 && (
                                                                     <span className="absolute bottom-0 right-0 text-[8px] leading-3 font-bold bg-yellow-100 text-yellow-800 px-0.5 rounded-tl-sm z-10 border border-yellow-200">
@@ -844,6 +910,19 @@ export function VehicleAttendanceList() {
                                     <span className="font-medium">Tatil</span>
                                 </Button>
                             </div>
+                        </div>
+
+                        {/* [NEW] Note Input */}
+                        <div className="space-y-2">
+                            <Label>Not / Açıklama</Label>
+                            <Textarea
+                                placeholder="Açıklama giriniz... (Arızalı, Çalışmadı, Operatör Yok durumlarında zorunlu)"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                                disabled={isReadOnly}
+                                rows={2}
+                                className="text-sm"
+                            />
                         </div>
 
                         {/* Creator Info */}

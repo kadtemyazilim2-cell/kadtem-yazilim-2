@@ -66,7 +66,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
 
     const [selectedSiteId, setSelectedSiteId] = useState<string>(siteId || 'all');
     const [selectedType, setSelectedType] = useState<'ALL' | 'INCOME' | 'EXPENSE'>(type || 'ALL');
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ALL' | 'CASH' | 'CREDIT_CARD'>('ALL'); // [NEW]
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ALL' | 'CASH' | 'CREDIT_CARD'>('CASH'); // [MOD] Default to CASH
     const [searchTerm, setSearchTerm] = useState('');
 
     // Update state if props change or Perms change
@@ -148,6 +148,9 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
         if (!canViewAll && user) {
             // Force filter to own ID if not Admin/ViewAll
             result = result.filter(t => (t.responsibleUserId || t.createdByUserId) === user.id);
+        } else if (canViewAll && selectedUserId === 'all') {
+            // [MOD] Admin must select a personnel to see transactions
+            return [];
         } else if (selectedUserId !== 'all') {
             // Admin filtering by user
             result = result.filter(t => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
@@ -337,31 +340,45 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
             balances[s.id] = { name: s.name, income: 0, expense: 0, previousBalance: 0 };
         });
 
+        // [FIX] Use cashTransactions filtered ONLY by user (not by site)
+        // so that all sites where the user spent money are shown
+        let userTransactions = [...(cashTransactions || [])].filter(t => t && typeof t === 'object');
+
+        if (!canViewAll && user) {
+            userTransactions = userTransactions.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === user.id);
+        } else if (selectedUserId !== 'all') {
+            userTransactions = userTransactions.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
+        }
+
         // 1. Calculate Previous Balance per Site
         if (startDate) {
             const start = parseISO(startDate);
-
-            // [FIX] Ensure cashTransactions is array
-            let preList = (cashTransactions || []).filter((t: any) => t && t.date && new Date(t.date) < start);
-
-            // Apply same User Filter
-            if (user && user.role !== 'ADMIN' && !hasPermission('cash-book.admin-view', 'VIEW')) {
-                preList = preList.filter((t: any) => t.responsibleUserId === user.id);
-            } else if (selectedUserId !== 'all') {
-                preList = preList.filter((t: any) => (t.responsibleUserId || t.createdByUserId) === selectedUserId);
-            }
+            const preList = userTransactions.filter((t: any) => t.date && new Date(t.date) < start);
 
             preList.forEach((t: any) => {
-                if (!t || !t.siteId || !balances[t.siteId]) return; // Skip if site deleted or unknown
+                if (!t || !t.siteId || !balances[t.siteId]) return;
                 const amt = Number(t.amount || 0);
                 if (t.type === 'INCOME') balances[t.siteId].previousBalance += amt;
                 else balances[t.siteId].previousBalance -= amt;
             });
         }
 
-        // 2. Add Current Period Transactions
-        // filteredTransactions is already filtered by User and Date
-        filteredTransactions.forEach((t: any) => {
+        // 2. Add Current Period Transactions (date-filtered but NOT site-filtered)
+        let currentPeriod = userTransactions;
+        if (startDate && endDate) {
+            const start = parseISO(startDate);
+            const end = new Date(parseISO(endDate));
+            end.setHours(23, 59, 59, 999);
+            if (isValid(start) && isValid(end)) {
+                currentPeriod = currentPeriod.filter((t: any) => {
+                    if (!t.date) return false;
+                    const d = new Date(t.date);
+                    return isValid(d) && isWithinInterval(d, { start, end });
+                });
+            }
+        }
+
+        currentPeriod.forEach((t: any) => {
             if (!t || !t.siteId || !balances[t.siteId]) return;
             const amt = Number(t.amount || 0);
             if (t.type === 'INCOME') balances[t.siteId].income += amt;
@@ -445,224 +462,232 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
     };
 
     const exportPDF = () => {
-        const doc = new jsPDF();
-        addTurkishFont(doc);
-        doc.setFont('Roboto');
+        try {
+            const doc = new jsPDF();
+            addTurkishFont(doc);
+            doc.setFont('Roboto');
 
-        // [NEW] 1. Report Generation Date (Top Right, Gray)
-        const reportGenDate = format(new Date(), 'dd.MM.yyyy HH:mm', { locale: tr });
-        doc.setFontSize(9);
-        doc.setTextColor(150, 150, 150); // Gray
-        doc.text(`Oluşturulma Tarihi: ${reportGenDate}`, 200, 10, { align: 'right' });
+            // [NEW] 1. Report Generation Date (Top Right, Gray)
+            const reportGenDate = format(new Date(), 'dd.MM.yyyy HH:mm', { locale: tr });
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150); // Gray
+            doc.text(`Oluşturulma Tarihi: ${reportGenDate}`, 200, 10, { align: 'right' });
 
-        // [NEW] 2. Left Aligned Header Hierarchy
-        // Date Range
-        const dateStr = `${format(parseISO(startDate), 'dd.MM.yyyy')} - ${format(parseISO(endDate), 'dd.MM.yyyy')}`;
+            // [NEW] 2. Left Aligned Header Hierarchy
+            // Date Range
+            const dateStr = `${format(parseISO(startDate), 'dd.MM.yyyy')} - ${format(parseISO(endDate), 'dd.MM.yyyy')}`;
 
-        doc.setFontSize(11); // [MOD] Reduced from 14
-        doc.setTextColor(0, 0, 0); // Black
-        // Title with Date
-        doc.text(`KASA HAREKETLERİ RAPORU (${dateStr})`, 14, 20, { align: 'left' });
-
-        let currentY = 26; // [MOD] Reduced gap (was 28)
-
-        // Personnel Name
-        if (selectedUserId !== 'all') {
-            doc.setFontSize(10); // [MOD] Reduced from 12
-            doc.text(`Personel: ${getUserName(selectedUserId)}`, 14, currentY, { align: 'left' });
-            currentY += 5; // [MOD] Reduced gap (was 7)
-        }
-
-        // Site Name
-        if (selectedSiteId !== 'all') {
-            doc.setFontSize(10); // [MOD] Reduced from 12
-            doc.text(`Şantiye: ${getSiteName(selectedSiteId)}`, 14, currentY, { align: 'left' });
-            currentY += 5; // [MOD] Reduced gap (was 7)
-        }
-
-        const groupedData: Record<string, typeof filteredTransactionsWithBalance> = {};
-
-        if (selectedUserId === 'all') {
-            groupedData['all'] = [...filteredTransactionsWithBalance];
-        } else {
-            groupedData[selectedUserId] = [...filteredTransactionsWithBalance];
-        }
-
-        let yPos = currentY + 10;
-
-        // Transaction Tables
-        Object.keys(groupedData).forEach((key) => {
-            const transactions = groupedData[key];
-            const userName = key === 'all' ? 'Tüm Personel' : getUserName(key);
-            const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
-            const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
-
-            doc.setFontSize(12);
+            doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
+            // Title with Date - Centered
+            const pageWidth = doc.internal.pageSize.getWidth();
+            doc.text(`KASA HAREKETLERİ RAPORU (${dateStr})`, pageWidth / 2, 20, { align: 'center' });
 
-            // Only show subheading if we are listing ALL users, otherwise header covers it
-            if (selectedUserId === 'all') {
-                if (yPos > 270) { doc.addPage(); yPos = 20; }
-                doc.text(`${userName}`, 14, yPos);
-                yPos += 5;
+            let currentY = 26; // [MOD] Reduced gap (was 28)
+
+            // Personnel Name
+            if (selectedUserId !== 'all') {
+                doc.setFontSize(10); // [MOD] Reduced from 12
+                doc.text(`Personel: ${getUserName(selectedUserId)}`, 14, currentY, { align: 'left' });
+                currentY += 5; // [MOD] Reduced gap (was 7)
             }
-            // Removed "Devreden Bakiye" text by user request
 
-            const tableData = transactions.map(t => {
-                return [
-                    safeFormat(t.date, 'dd.MM.yyyy'),
-                    t.category,
-                    t.description,
-                    t.type === 'INCOME' || t.type === 'BALANCE_START' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
-                    t.type === 'EXPENSE' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
-                    `${t.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
-                ]
-            });
+            // Site Name
+            if (selectedSiteId !== 'all') {
+                doc.setFontSize(10);
+                doc.text(`Şantiye: ${getSiteName(selectedSiteId)}`, 14, currentY, { align: 'left' });
+                currentY += 5;
+            }
 
-            autoTable(doc, {
-                startY: yPos + 4,
-                head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Bakiye']],
-                body: tableData,
-                styles: { font: 'Roboto', fontSize: 8, textColor: 0 },
-                headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
-                columnStyles: {
-                    0: { cellWidth: 22 }, // Tarih
-                    1: { cellWidth: 25 }, // Kategori
-                    2: { cellWidth: 'auto' }, // Açıklama
-                    3: { cellWidth: 25, halign: 'right' }, // Borç
-                    4: { cellWidth: 28, halign: 'right' }, // Alacak
-                    5: { cellWidth: 32, halign: 'right' }  // Bakiye
-                },
-                theme: 'grid',
-                didParseCell: (data) => {
-                    const rowIndex = data.row.index;
-                    const section = data.section;
-                    if (section === 'body') {
-                        const transaction = transactions[rowIndex];
-                        if (transaction) {
-                            if (data.column.index === 3 && (transaction.type === 'INCOME' || transaction.type === 'BALANCE_START')) {
-                                data.cell.styles.textColor = [22, 163, 74];
-                            } else if (data.column.index === 4 && transaction.type === 'EXPENSE') {
-                                data.cell.styles.textColor = [220, 38, 38];
-                            }
-                            if (transaction.type === 'BALANCE_START') {
-                                data.cell.styles.fontStyle = 'bold';
-                                if (data.column.index === 3) data.cell.styles.textColor = [59, 130, 246];
+            // Payment Method
+            if (selectedPaymentMethod !== 'ALL') {
+                doc.setFontSize(10);
+                const methodLabel = selectedPaymentMethod === 'CASH' ? 'Nakit' : 'Kredi Kartı';
+                doc.text(`Harcama Türü: ${methodLabel}`, 14, currentY, { align: 'left' });
+                currentY += 5;
+            }
+
+            const groupedData: Record<string, typeof filteredTransactionsWithBalance> = {};
+
+            if (selectedUserId === 'all') {
+                groupedData['all'] = [...filteredTransactionsWithBalance];
+            } else {
+                groupedData[selectedUserId] = [...filteredTransactionsWithBalance];
+            }
+
+            let yPos = currentY;
+
+            // Transaction Tables
+            Object.keys(groupedData).forEach((key) => {
+                const transactions = groupedData[key];
+                const userName = key === 'all' ? 'Tüm Personel' : getUserName(key);
+                const totalIncome = transactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0);
+                const totalExpense = transactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0);
+
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+
+                // Only show subheading if we are listing ALL users, otherwise header covers it
+                if (selectedUserId === 'all') {
+                    if (yPos > 270) { doc.addPage(); yPos = 20; }
+                    doc.text(`${userName}`, 14, yPos);
+                    yPos += 5;
+                }
+                // Removed "Devreden Bakiye" text by user request
+
+                const tableData = transactions.map(t => {
+                    return [
+                        safeFormat(t.date, 'dd.MM.yyyy'),
+                        t.category,
+                        t.description,
+                        t.type === 'INCOME' || t.type === 'BALANCE_START' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
+                        t.type === 'EXPENSE' ? `${t.amount.toLocaleString('tr-TR')} TL` : '-',
+                        `${t.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} TL`
+                    ]
+                });
+
+                autoTable(doc, {
+                    startY: yPos + 4,
+                    head: [['Tarih', 'Kategori', 'Açıklama', 'Borç', 'Alacak', 'Bakiye']],
+                    body: tableData,
+                    styles: { font: 'Roboto', fontSize: 8, textColor: 0 },
+                    headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+                    columnStyles: {
+                        0: { cellWidth: 22 }, // Tarih
+                        1: { cellWidth: 25 }, // Kategori
+                        2: { cellWidth: 'auto' }, // Açıklama
+                        3: { cellWidth: 25, halign: 'right' }, // Borç
+                        4: { cellWidth: 28, halign: 'right' }, // Alacak
+                        5: { cellWidth: 32, halign: 'right' }  // Bakiye
+                    },
+                    theme: 'grid',
+                    didParseCell: (data) => {
+                        const rowIndex = data.row.index;
+                        const section = data.section;
+                        if (section === 'body') {
+                            const transaction = transactions[rowIndex];
+                            if (transaction) {
+                                if (data.column.index === 3 && (transaction.type === 'INCOME' || transaction.type === 'BALANCE_START')) {
+                                    data.cell.styles.textColor = [22, 163, 74];
+                                } else if (data.column.index === 4 && transaction.type === 'EXPENSE') {
+                                    data.cell.styles.textColor = [220, 38, 38];
+                                }
+                                if (transaction.type === 'BALANCE_START') {
+                                    data.cell.styles.fontStyle = 'bold';
+                                    if (data.column.index === 3) data.cell.styles.textColor = [59, 130, 246];
+                                }
                             }
                         }
                     }
-                }
+                });
+
+                // @ts-ignore
+                yPos = doc.lastAutoTable.finalY + 10;
             });
 
-            // @ts-ignore
-            yPos = doc.lastAutoTable.finalY + 10;
-        });
+            // [NEW] 3. Site Summary Section (Moved before Signatures)
+            const siteBalances = getSiteBalances();
+            if (siteBalances.length > 0) {
+                // Check urgency for page break
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
 
-        // [NEW] 3. Site Summary Section (Moved before Signatures)
-        const siteBalances = getSiteBalances();
-        if (siteBalances.length > 0) {
-            // Check urgency for page break
-            if (yPos > 250) {
+                doc.setFontSize(11); // [MOD] Reduced from 14
+                doc.setTextColor(0, 0, 0);
+                doc.text("Şantiyeler Bakiye Özeti", 14, yPos);
+                yPos += 5; // Space for title
+
+                let totalPrev = 0;
+                let totalInc = 0;
+                let totalExp = 0;
+                let totalBal = 0;
+
+                const summaryData = siteBalances.map(sb => {
+                    const total = sb.previousBalance + sb.income - sb.expense;
+                    totalPrev += sb.previousBalance;
+                    totalInc += sb.income;
+                    totalExp += sb.expense;
+                    totalBal += total;
+
+                    return [
+                        sb.name,
+                        sb.previousBalance.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                        sb.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                        sb.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                        total.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
+                    ];
+                });
+
+                summaryData.push([
+                    'GENEL TOPLAM',
+                    totalPrev.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                    totalInc.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                    totalExp.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
+                    totalBal.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
+                ]);
+
+                autoTable(doc, {
+                    startY: yPos,
+                    head: [['Şantiye', 'Devreden', 'Dönem Gelir', 'Dönem Gider', 'Son Bakiye']],
+                    body: summaryData,
+                    styles: { font: 'Roboto', fontSize: 7, textColor: 50, cellPadding: 1 },
+                    headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
+                    theme: 'grid',
+                    columnStyles: {
+                        0: { cellWidth: 'auto' },
+                        1: { cellWidth: 35, halign: 'right' },
+                        2: { cellWidth: 35, halign: 'right' },
+                        3: { cellWidth: 35, halign: 'right' },
+                        4: { cellWidth: 40, halign: 'right' }
+                    },
+                    didParseCell: (data) => {
+                        if (data.section === 'body' && data.row.index === summaryData.length - 1) {
+                            data.cell.styles.fontStyle = 'bold';
+                            data.cell.styles.fillColor = [200, 200, 200];
+                        }
+                    }
+                });
+
+                // Update yPos after summary table
+                // @ts-ignore
+                yPos = doc.lastAutoTable.finalY + 20;
+            } else {
+                yPos += 20; // Margin if no summary
+            }
+
+            // [FIX] 4. Signature Boxes - Right after table, not at page bottom
+            // Check if enough space for signatures (need ~45mm)
+            const pageHeight = doc.internal.pageSize.height || 297;
+            if (yPos + 45 > pageHeight - 10) {
                 doc.addPage();
                 yPos = 20;
             }
 
-            doc.setFontSize(11); // [MOD] Reduced from 14
+            let signatureY = yPos + 10;
+
+            const boxWidth = 70;
+            const boxHeight = 25;
+            const leftX = 20;
+            const rightX = 120;
+
+            doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
-            doc.text("Şantiyeler Bakiye Özeti", 14, yPos);
-            yPos += 5; // Space for title
 
-            let totalPrev = 0;
-            let totalInc = 0;
-            let totalExp = 0;
-            let totalBal = 0;
+            // Left Box - Harcama Yapan
+            doc.text("Harcama Yapan", leftX + (boxWidth / 2), signatureY - 5, { align: 'center' });
+            doc.rect(leftX, signatureY, boxWidth, boxHeight);
 
-            const summaryData = siteBalances.map(sb => {
-                const total = sb.previousBalance + sb.income - sb.expense;
-                totalPrev += sb.previousBalance;
-                totalInc += sb.income;
-                totalExp += sb.expense;
-                totalBal += total;
+            // Right Box - Harcama Yetkilisi
+            doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), signatureY - 5, { align: 'center' });
+            doc.rect(rightX, signatureY, boxWidth, boxHeight);
 
-                return [
-                    sb.name,
-                    sb.previousBalance.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                    sb.income.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                    sb.expense.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                    total.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
-                ];
-            });
-
-            summaryData.push([
-                'GENEL TOPLAM',
-                totalPrev.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                totalInc.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                totalExp.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL',
-                totalBal.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' TL'
-            ]);
-
-            autoTable(doc, {
-                startY: yPos,
-                head: [['Şantiye', 'Devreden', 'Dönem Gelir', 'Dönem Gider', 'Son Bakiye']],
-                body: summaryData,
-                styles: { font: 'Roboto', fontSize: 7, textColor: 50, cellPadding: 1 },
-                headStyles: { fillColor: [240, 240, 240], textColor: 0, fontStyle: 'bold', lineWidth: 0.1 },
-                theme: 'grid',
-                columnStyles: {
-                    0: { cellWidth: 'auto' },
-                    1: { cellWidth: 35, halign: 'right' },
-                    2: { cellWidth: 35, halign: 'right' },
-                    3: { cellWidth: 35, halign: 'right' },
-                    4: { cellWidth: 40, halign: 'right' }
-                },
-                didParseCell: (data) => {
-                    if (data.section === 'body' && data.row.index === summaryData.length - 1) {
-                        data.cell.styles.fontStyle = 'bold';
-                        data.cell.styles.fillColor = [200, 200, 200];
-                    }
-                }
-            });
-
-            // Update yPos after summary table
-            // @ts-ignore
-            yPos = doc.lastAutoTable.finalY + 20;
-        } else {
-            yPos += 20; // Margin if no summary
+            doc.save(`Kasa_Raporu_${dateStr}.pdf`);
+        } catch (err) {
+            console.error('PDF Export Error:', err);
+            alert('PDF oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
         }
-
-        // [NEW] 4. Signature Boxes (Harcama Yapan & Harcama Yetkilisi)
-        // Position at the bottom of the page
-        const pageHeight = doc.internal.pageSize.height || 297;
-        const signatureHeight = 40;
-        // Check if content overlaps with signature area (leave 50px buffer)
-        // If current yPos is too far down, add a page to put signatures on a clean page bottom (or top)
-        // The user wants them at the BOTTOM.
-
-        let signatureY = pageHeight - signatureHeight - 20;
-
-        if (yPos > signatureY) {
-            doc.addPage();
-            // On new page, signatureY remains at bottom
-        }
-
-        // Draw at predefined bottom position
-        const boxWidth = 70;
-        const boxHeight = 25;
-        const leftX = 20;
-        const rightX = 120;
-
-        doc.setFontSize(11);
-        doc.setTextColor(0, 0, 0);
-
-        // Left Box - Harcama Yapan
-        doc.text("Harcama Yapan", leftX + (boxWidth / 2), signatureY - 5, { align: 'center' });
-        doc.rect(leftX, signatureY, boxWidth, boxHeight); // Box
-
-        // Right Box - Harcama Yetkilisi
-        doc.text("Harcama Yetkilisi", rightX + (boxWidth / 2), signatureY - 5, { align: 'center' });
-        doc.rect(rightX, signatureY, boxWidth, boxHeight); // Box
-
-        doc.save(`Kasa_Raporu_${dateStr}.pdf`);
     };
 
     const handleDelete = async (id: string) => {
@@ -834,7 +859,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tüm Şantiyeler</SelectItem>
-                                        {sites?.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate).map((s: any) => (
+                                        {sites?.filter((s: any) => s.status === 'ACTIVE' && !s.finalAcceptanceDate && (cashTransactions || []).some((t: any) => t.siteId === s.id && (selectedUserId === 'all' || (t.responsibleUserId || t.createdByUserId) === selectedUserId))).map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -850,7 +875,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tüm Personel</SelectItem>
-                                            {users?.map((u: any) => (
+                                            {users?.filter((u: any) => (cashTransactions || []).some((t: any) => (t.responsibleUserId || t.createdByUserId) === u.id && (selectedSiteId === 'all' || t.siteId === selectedSiteId))).map((u: any) => (
                                                 <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                                             ))}
                                         </SelectContent>
@@ -865,7 +890,6 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                         <SelectValue placeholder="Ödeme Tipi" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(canViewAll) && <SelectItem value="ALL">Tüm Ödemeler</SelectItem>}
                                         <SelectItem value="CASH">Nakit</SelectItem>
                                         <SelectItem value="CREDIT_CARD">Kredi Kartı</SelectItem>
                                     </SelectContent>
@@ -913,7 +937,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[70px] md:w-auto">Tarih</TableHead>
-                                    {canViewAll && <TableHead>Personel</TableHead>}
+                                    {canViewAll && selectedUserId === 'all' && <TableHead>Personel</TableHead>}
                                     <TableHead>Açıklama</TableHead>
                                     <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
                                     <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
@@ -937,7 +961,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                                     <span className="text-[9px] text-muted-foreground">{safeFormat(item.createdAt, 'HH:mm')}</span>
                                                 </div>
                                             </TableCell>
-                                            {canViewAll && <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>}
+                                            {canViewAll && selectedUserId === 'all' && <TableCell>{item.type === 'BALANCE_START' ? '-' : getUserName(item.responsibleUserId || item.createdByUserId)}</TableCell>}
                                             <TableCell className="max-w-[200px] truncate font-medium" title={item.description}>{item.description}</TableCell>
 
                                             {/* Borç (Income) */}

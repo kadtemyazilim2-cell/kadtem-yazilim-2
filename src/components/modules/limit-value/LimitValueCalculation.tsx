@@ -19,7 +19,7 @@ import { saveCalculation, getCalculations, deleteCalculation, getBusinessGroups,
 import { getCompanies } from '@/actions/company';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { fontBase64 } from '@/lib/pdf-font';
+import { addTurkishFont } from '@/lib/pdf-font';
 
 // Types for our calculation
 interface Bidder {
@@ -586,7 +586,7 @@ export function LimitValueCalculation() {
                 if (foundCost > 0 && Math.abs(amount - foundCost) < 1) continue;
                 if (prevLine.toLowerCase().includes('yaklaşık maliyet')) continue;
 
-                let name = prevLine.trim();
+                let name = prevLine.trim().toLocaleUpperCase('tr-TR'); // Tender docs always use uppercase names
                 let submitTime: string | undefined = undefined;
 
                 // Try to extract Name and Time
@@ -915,10 +915,9 @@ export function LimitValueCalculation() {
 
         const doc = new jsPDF();
 
-        // Add Custom Font (Roboto-Regular)
-        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
-        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-        doc.setFont('Roboto');
+        // Add Custom Font with Identity-H encoding for Turkish characters
+        const fontName = addTurkishFont(doc);
+        doc.setFont(fontName);
 
         doc.setFontSize(14);
         doc.text("Sınır Değer Analiz Raporu", 14, 15);
@@ -942,7 +941,7 @@ export function LimitValueCalculation() {
                 head: [['Parametre', 'Değer']],
                 body: summaryBody,
                 startY: currentY,
-                styles: { font: 'Roboto', fontSize: 9 },
+                styles: { font: fontName, fontSize: 9 },
                 headStyles: { fillColor: [41, 128, 185] },
                 columnStyles: { 0: { fontStyle: 'bold', cellWidth: 80 } },
                 theme: 'grid'
@@ -952,6 +951,36 @@ export function LimitValueCalculation() {
             currentY = doc.lastAutoTable.finalY + 10;
         }
 
+        // Helper: Shorten company name for PDF
+        const shortenCompanyName = (fullName: string): string => {
+            // Split joint ventures by comma
+            const parts = fullName.split(',').map(p => p.trim()).filter(Boolean);
+
+            const shortenOnePart = (name: string): string => {
+                let s = name.trim();
+                const sUpper = s.toUpperCase();
+                // Remove common legal entity suffixes
+                const suffixes = [
+                    'ANONİM ŞİRKETİ', 'ANONIM SIRKETI', 'ANONIM ŞİRKETİ',
+                    'LİMİTED ŞİRKETİ', 'LIMITED SIRKETI', 'LİMİTED SİRKETİ',
+                    'A.Ş.', 'A.Ş', 'LTD.ŞTİ.', 'LTD. ŞTİ.', 'LTD.ŞTİ', 'LTD ŞTİ',
+                ];
+                for (const suf of suffixes) {
+                    if (sUpper.endsWith(suf.toUpperCase())) {
+                        s = s.slice(0, -suf.length).trim();
+                    }
+                }
+                // Remove filler words (case-insensitive match, preserve original)
+                const fillers = ['SANAYİ', 'SANAYI', 'TİCARET', 'TICARET', 'TAAHHÜT', 'TAAHÜT', 'TAAHHUT', 'NAKLIYE', 'NAKLİYE', 'VE'];
+                const words = s.split(/\s+/).filter(w => !fillers.includes(w.toUpperCase()));
+                // Take first 3 meaningful words max, keep original casing
+                const kept = words.slice(0, 3);
+                return kept.join(' ');
+            };
+
+            return parts.map(shortenOnePart).join(' + ');
+        };
+
         const tableData = targetBidders.map((b: any, i: number) => {
             // Highlight row logic similar to table
             const isOwner = isOwnerCompany(b.name);
@@ -959,7 +988,7 @@ export function LimitValueCalculation() {
             // We can use didParseCell hook later if needed. For now just data.
             return [
                 i + 1,
-                b.name,
+                shortenCompanyName(b.name),
                 b.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL",
                 b.submitTime || '-',
                 b.discountRatio?.toFixed(2) + '%',
@@ -973,14 +1002,14 @@ export function LimitValueCalculation() {
             head: [['Sıra', 'Firma Adı', 'Teklif Tutarı', 'Tarih/Saat', 'Tenzilat', 'Durum']],
             body: tableData,
             startY: currentY,
-            styles: { font: 'Roboto', fontSize: 8 },
+            styles: { font: fontName, fontSize: 8 },
             headStyles: { fillColor: [52, 73, 94] },
             didParseCell: (data) => {
                 // Highlight Owner Company Rows and First Makul Row
                 if (data.section === 'body') {
-                    const rowName = tableData[data.row.index][1] as string;
+                    const originalName = targetBidders[data.row.index]?.name || '';
                     const firstMakulIdx = targetBidders.findIndex((b: any) => b.isValid && b.isAboveLimit);
-                    if (isOwnerCompany(rowName)) {
+                    if (isOwnerCompany(originalName)) {
                         data.cell.styles.fillColor = [180, 250, 200]; // Green for owner companies
                     } else if (data.row.index === firstMakulIdx) {
                         data.cell.styles.fillColor = [255, 237, 180]; // Amber for first reasonable bid
@@ -1081,37 +1110,37 @@ export function LimitValueCalculation() {
 
     const shortenCompanyName = (name: string) => {
         const shortened = name
-            .replace(/İnşaat/gi, 'İnş.')
-            .replace(/Sanayi/gi, 'San.')
-            .replace(/Ticaret/gi, 'Tic.')
-            .replace(/Limited/gi, 'Ltd.')
-            .replace(/Şirketi/gi, 'Şti.')
-            .replace(/Anonim/gi, 'A.Ş.')
-            .replace(/Ortaklığı/gi, 'Ort.')
-            .replace(/Taahhüt/gi, 'Taah.')
-            .replace(/Mühendislik/gi, 'Müh.')
-            .replace(/Mimarlık/gi, 'Mim.')
-            .replace(/Turizm/gi, 'Tur.')
-            .replace(/Nakliyat/gi, 'Nak.')
-            .replace(/Gıda/gi, 'Gıd.')
-            .replace(/Tekstil/gi, 'Teks.')
-            .replace(/Otomotiv/gi, 'Oto.')
-            .replace(/Elektrik/gi, 'Elek.')
-            .replace(/Elektronik/gi, 'Elektro.')
-            .replace(/Madencilik/gi, 'Mad.')
-            .replace(/Enerji/gi, 'Enj.')
-            .replace(/Üretim/gi, 'Ürt.')
-            .replace(/Pazarlama/gi, 'Paz.')
-            .replace(/Gayrimenkul/gi, 'Gayr.')
-            .replace(/Yatırım/gi, 'Yat.')
-            .replace(/İthalat/gi, 'İth.')
-            .replace(/İhracat/gi, 'İhr.')
-            .replace(/Hafriyat/gi, 'Hafr.')
-            .replace(/Peyzaj/gi, 'Peyz.')
-            .replace(/Medikal/gi, 'Med.')
-            .replace(/Sağlık/gi, 'Sağ.')
-            .replace(/Hizmetleri/gi, 'Hiz.')
-            .replace(/Yapı/gi, 'Yap.')
+            .replace(/İNŞAAT/gi, 'İNŞ.')
+            .replace(/SANAYİ/gi, 'SAN.')
+            .replace(/TİCARET/gi, 'TİC.')
+            .replace(/LİMİTED/gi, 'LTD.')
+            .replace(/ŞİRKETİ/gi, 'ŞTİ.')
+            .replace(/ANONİM/gi, 'A.Ş.')
+            .replace(/ORTAKLIĞI/gi, 'ORT.')
+            .replace(/TAAHHÜT/gi, 'TAAH.')
+            .replace(/MÜHENDİSLİK/gi, 'MÜH.')
+            .replace(/MİMARLIK/gi, 'MİM.')
+            .replace(/TURİZM/gi, 'TUR.')
+            .replace(/NAKLİYAT/gi, 'NAK.')
+            .replace(/GIDA/gi, 'GID.')
+            .replace(/TEKSTİL/gi, 'TEKS.')
+            .replace(/OTOMOTİV/gi, 'OTO.')
+            .replace(/ELEKTRONİK/gi, 'ELEKTRO.')
+            .replace(/ELEKTRİK/gi, 'ELEK.')
+            .replace(/MADENCİLİK/gi, 'MAD.')
+            .replace(/ENERJİ/gi, 'ENJ.')
+            .replace(/ÜRETİM/gi, 'ÜRT.')
+            .replace(/PAZARLAMA/gi, 'PAZ.')
+            .replace(/GAYRİMENKUL/gi, 'GAYR.')
+            .replace(/YATIRIM/gi, 'YAT.')
+            .replace(/İTHALAT/gi, 'İTH.')
+            .replace(/İHRACAT/gi, 'İHR.')
+            .replace(/HAFRİYAT/gi, 'HAFR.')
+            .replace(/PEYZAJ/gi, 'PEYZ.')
+            .replace(/MEDİKAL/gi, 'MED.')
+            .replace(/SAĞLIK/gi, 'SAĞ.')
+            .replace(/HİZMETLERİ/gi, 'HİZ.')
+            .replace(/YAPI/gi, 'YAP.')
             .trim();
 
         return shortened.length > 110 ? shortened.slice(0, 110) + '...' : shortened;

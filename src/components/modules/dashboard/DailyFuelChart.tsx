@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FuelLog, Site, FuelTransfer, FuelTank } from '@/lib/types';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -10,7 +10,6 @@ import { tr } from 'date-fns/locale';
 const TANK_COLORS = [
     '#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed',
     '#db2777', '#0891b2', '#ea580c', '#4f46e5', '#059669',
-    '#ca8a04', '#be123c', '#0284c7', '#9333ea', '#c2410c',
 ];
 
 export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
@@ -20,6 +19,13 @@ export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
     sites: Site[];
     vehicles: any[];
 }) {
+    // Delay rendering to avoid ResponsiveContainer dimension bug
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => {
+        const timer = setTimeout(() => setMounted(true), 100);
+        return () => clearTimeout(timer);
+    }, []);
+
     // Active tanks with display names
     const activeTanks = useMemo(() => {
         const tanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
@@ -34,11 +40,10 @@ export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
         });
     }, [fuelTanks, sites]);
 
-    // Build a map: siteId -> tankId (for logs without explicit tankId)
+    // Map: siteId -> tankId (fallback when log has no tankId)
     const siteTankMap = useMemo(() => {
         const map: Record<string, string> = {};
         activeTanks.forEach((t: any) => {
-            // If a site has multiple tanks, prefer the first one
             if (!map[t.siteId]) map[t.siteId] = t.id;
         });
         return map;
@@ -52,21 +57,6 @@ export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
                 key: format(d, 'yyyy-MM-dd')
             };
         });
-
-        // DEBUG: Log input data
-        console.log('[FuelChart] fuelLogs count:', fuelLogs.length);
-        console.log('[FuelChart] activeTanks:', activeTanks.map((t: any) => ({ id: t.id, name: t.name, siteId: t.siteId })));
-        console.log('[FuelChart] siteTankMap:', siteTankMap);
-        if (fuelLogs.length > 0) {
-            const sample = fuelLogs.slice(0, 3).map((l: any) => ({
-                date: l.date,
-                siteId: l.siteId,
-                tankId: l.tankId,
-                liters: l.liters,
-                formattedDate: format(new Date(l.date), 'yyyy-MM-dd'),
-            }));
-            console.log('[FuelChart] Sample logs:', sample);
-        }
 
         return days.map((day) => {
             const row: any = { name: day.label, fullDate: day.key };
@@ -83,20 +73,14 @@ export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
 
             // Sum liters per tank
             dayLogs.forEach((log: any) => {
-                // Try direct tankId first, then fallback to site->tank mapping
                 let resolvedTankId = log.tankId || siteTankMap[log.siteId];
                 if (!resolvedTankId) return;
 
-                // Only count if this tank is in our active list
                 const tank = activeTanks.find((t: any) => t.id === resolvedTankId);
                 if (!tank) return;
 
                 row[resolvedTankId] = (row[resolvedTankId] || 0) + Number(log.liters || 0);
             });
-
-            // DEBUG: Log non-zero days
-            const hasData = Object.entries(row).some(([k, v]) => k !== 'name' && k !== 'fullDate' && (v as number) > 0);
-            if (hasData) console.log('[FuelChart] Day with data:', row);
 
             return row;
         });
@@ -157,49 +141,55 @@ export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">Şantiye depolarından günlük harcanan yakıt (Litre)</p>
             </CardHeader>
-            <CardContent>
-                <div className="h-[350px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={chartData}
-                            margin={{ top: 10, right: 10, left: -10, bottom: 5 }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                            <XAxis
-                                dataKey="name"
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                                tick={{ fill: '#64748b' }}
-                            />
-                            <YAxis
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                                tick={{ fill: '#64748b' }}
-                                allowDecimals={false}
-                                tickFormatter={(v) => `${v} Lt`}
-                            />
-                            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                            <Legend
-                                wrapperStyle={{ paddingTop: '12px', fontSize: '11px' }}
-                                iconType="square"
-                                iconSize={10}
-                            />
-                            {activeTanks.map((tank, index) => (
-                                <Bar
-                                    key={tank.id}
-                                    dataKey={tank.id}
-                                    name={tank.displayName}
-                                    stackId="tanks"
-                                    fill={TANK_COLORS[index % TANK_COLORS.length]}
-                                    radius={index === activeTanks.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
-                                    maxBarSize={45}
+            <CardContent className="px-2 sm:px-6">
+                {!mounted ? (
+                    <div className="flex items-center justify-center" style={{ height: 350 }}>
+                        <span className="text-sm text-muted-foreground">Grafik yükleniyor...</span>
+                    </div>
+                ) : (
+                    <div style={{ width: '100%', height: 350 }}>
+                        <ResponsiveContainer width="100%" height={350} minWidth={0}>
+                            <BarChart
+                                data={chartData}
+                                margin={{ top: 10, right: 10, left: -10, bottom: 5 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis
+                                    dataKey="name"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fill: '#64748b' }}
                                 />
-                            ))}
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                                <YAxis
+                                    fontSize={11}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tick={{ fill: '#64748b' }}
+                                    allowDecimals={false}
+                                    tickFormatter={(v) => `${v} Lt`}
+                                />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
+                                <Legend
+                                    wrapperStyle={{ paddingTop: '12px', fontSize: '11px' }}
+                                    iconType="square"
+                                    iconSize={10}
+                                />
+                                {activeTanks.map((tank, index) => (
+                                    <Bar
+                                        key={tank.id}
+                                        dataKey={tank.id}
+                                        name={tank.displayName}
+                                        stackId="tanks"
+                                        fill={TANK_COLORS[index % TANK_COLORS.length]}
+                                        radius={index === activeTanks.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                                        maxBarSize={45}
+                                    />
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

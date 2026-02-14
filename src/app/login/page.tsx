@@ -13,6 +13,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [pending, setPending] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,6 +26,7 @@ export default function LoginPage() {
             const formData = new FormData();
             formData.append('username', username);
             formData.append('password', password);
+            formData.append('rememberMe', rememberMe ? 'true' : 'false');
 
             const result = await authenticate(undefined, formData);
 
@@ -83,6 +85,20 @@ export default function LoginPage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={pending}
                             />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                id="rememberMe"
+                                type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                disabled={pending}
+                            />
+                            <Label htmlFor="rememberMe" className="text-sm text-slate-600 cursor-pointer select-none">
+                                Beni Hatırla
+                            </Label>
                         </div>
 
                         {error && (
