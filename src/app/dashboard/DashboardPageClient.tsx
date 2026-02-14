@@ -44,9 +44,11 @@ export function DashboardPageClient() {
 
         const loadDashboardData = async () => {
             try {
-                // Dashboard only needs current month fuel data
+                // Dashboard needs at least last 15 days for fuel chart + current month
                 const now = new Date();
-                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+                const fifteenDaysAgo = new Date(now);
+                fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+                const monthStart = new Date(Math.min(fifteenDaysAgo.getTime(), new Date(now.getFullYear(), now.getMonth(), 1).getTime()));
                 const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
                 const [fuelLogsRes, fuelTanksRes, fuelTransfersRes, transactionsRes, siteLogsRes] = await Promise.all([

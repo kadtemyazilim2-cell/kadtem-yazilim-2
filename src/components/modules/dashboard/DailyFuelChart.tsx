@@ -7,156 +7,126 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { format, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
-export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehicles }: {
+const TANK_COLORS = [
+    '#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed',
+    '#db2777', '#0891b2', '#ea580c', '#4f46e5', '#059669',
+    '#ca8a04', '#be123c', '#0284c7', '#9333ea', '#c2410c',
+];
+
+export function DailyFuelChart({ fuelLogs, fuelTanks, sites }: {
     fuelLogs: FuelLog[];
     fuelTransfers?: FuelTransfer[];
     fuelTanks?: FuelTank[];
     sites: Site[];
     vehicles: any[];
 }) {
+    // Active tanks with display names
+    const activeTanks = useMemo(() => {
+        const tanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
+        return tanks.map((t: any) => {
+            const site = sites.find((s: any) => s.id === t.siteId);
+            const siteName = site?.name || '';
+            const shortSite = siteName.length > 15 ? siteName.substring(0, 13) + '..' : siteName;
+            return {
+                ...t,
+                displayName: `${t.name} (${shortSite})`,
+            };
+        });
+    }, [fuelTanks, sites]);
+
+    // Build a map: siteId -> tankId (for logs without explicit tankId)
+    const siteTankMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        activeTanks.forEach((t: any) => {
+            // If a site has multiple tanks, prefer the first one
+            if (!map[t.siteId]) map[t.siteId] = t.id;
+        });
+        return map;
+    }, [activeTanks]);
+
     const chartData = useMemo(() => {
-        // Get last 14 days
         const days = Array.from({ length: 14 }, (_, i) => {
             const d = subDays(new Date(), 13 - i);
             return {
-                date: d,
                 label: format(d, 'dd MMM', { locale: tr }),
                 key: format(d, 'yyyy-MM-dd')
             };
         });
 
-        const activeTanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
-
-        // Initialize data structure
-        const data = days.map((day: any) => {
-            const row: any = {
-                name: day.label,
-                fullDate: day.key,
-                total: 0,
-                details: {} as Record<string, { label: string; liters: number; type: 'IN' | 'OUT' }[]>
-            };
-            activeTanks.forEach((tank: any) => {
-                row[tank.id] = 0;
-                row.details[tank.id] = [];
-            });
-            return row;
-        });
-
-        // 1. Process Logs (OUT from Tank)
-        fuelLogs.forEach((log: any) => {
-            if (!log.tankId) return; // Skip if no tank (Direct Purchase)
-
-            const logDate = format(new Date(log.date), 'yyyy-MM-dd');
-            const dataRow = data.find((d: any) => d.fullDate === logDate);
-
-            if (dataRow) {
-                const tank = activeTanks.find((t: any) => t.id === log.tankId);
-                const vehicle = vehicles.find((v: any) => v.id === log.vehicleId);
-
-                if (tank) {
-                    dataRow[tank.id] = (dataRow[tank.id] || 0) + log.liters;
-                    dataRow.total += log.liters;
-
-                    dataRow.details[tank.id].push({
-                        label: vehicle ? vehicle.plate : 'Araç',
-                        liters: log.liters,
-                        type: 'OUT'
-                    });
-                }
-            }
-        });
-
-        // 2. Process Transfers (IN & OUT)
-        if (fuelTransfers) {
-            fuelTransfers.forEach((t: any) => {
-                const tDate = format(new Date(t.date), 'yyyy-MM-dd');
-                const dataRow = data.find((d: any) => d.fullDate === tDate);
-
-                if (dataRow) {
-                    // A. INCOMING (Target is Tank)
-                    if (t.toType === 'TANK') {
-                        const tank = activeTanks.find((tk: any) => tk.id === t.toId);
-
-                        if (tank) {
-                            dataRow[tank.id] = (dataRow[tank.id] || 0) + t.amount;
-                            dataRow.total += t.amount;
-
-                            const provider = t.fromType === 'EXTERNAL' ? (t.fromId || 'Satın Alma') : 'Transfer Giriş';
-                            dataRow.details[tank.id].push({
-                                label: provider,
-                                liters: t.amount,
-                                type: 'IN'
-                            });
-                        }
-                    }
-
-                    // B. OUTGOING (Source is Tank)
-                    if (t.fromType === 'TANK') {
-                        const tank = activeTanks.find((tk: any) => tk.id === t.fromId);
-
-                        if (tank) {
-                            dataRow[tank.id] = (dataRow[tank.id] || 0) + t.amount;
-                            dataRow.total += t.amount;
-
-                            dataRow.details[tank.id].push({
-                                label: 'Transfer Çıkış',
-                                liters: t.amount,
-                                type: 'OUT'
-                            });
-                        }
-                    }
-                }
-            });
+        // DEBUG: Log input data
+        console.log('[FuelChart] fuelLogs count:', fuelLogs.length);
+        console.log('[FuelChart] activeTanks:', activeTanks.map((t: any) => ({ id: t.id, name: t.name, siteId: t.siteId })));
+        console.log('[FuelChart] siteTankMap:', siteTankMap);
+        if (fuelLogs.length > 0) {
+            const sample = fuelLogs.slice(0, 3).map((l: any) => ({
+                date: l.date,
+                siteId: l.siteId,
+                tankId: l.tankId,
+                liters: l.liters,
+                formattedDate: format(new Date(l.date), 'yyyy-MM-dd'),
+            }));
+            console.log('[FuelChart] Sample logs:', sample);
         }
 
-        return data;
-    }, [fuelLogs, vehicles, fuelTransfers, fuelTanks]);
+        return days.map((day) => {
+            const row: any = { name: day.label, fullDate: day.key };
 
-    // Generate colors
-    const colors = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#ea580c'];
+            // Init all tanks to 0
+            activeTanks.forEach((tank) => { row[tank.id] = 0; });
 
+            // Filter logs for this day
+            const dayLogs = fuelLogs.filter((log: any) => {
+                try {
+                    return format(new Date(log.date), 'yyyy-MM-dd') === day.key;
+                } catch { return false; }
+            });
+
+            // Sum liters per tank
+            dayLogs.forEach((log: any) => {
+                // Try direct tankId first, then fallback to site->tank mapping
+                let resolvedTankId = log.tankId || siteTankMap[log.siteId];
+                if (!resolvedTankId) return;
+
+                // Only count if this tank is in our active list
+                const tank = activeTanks.find((t: any) => t.id === resolvedTankId);
+                if (!tank) return;
+
+                row[resolvedTankId] = (row[resolvedTankId] || 0) + Number(log.liters || 0);
+            });
+
+            // DEBUG: Log non-zero days
+            const hasData = Object.entries(row).some(([k, v]) => k !== 'name' && k !== 'fullDate' && (v as number) > 0);
+            if (hasData) console.log('[FuelChart] Day with data:', row);
+
+            return row;
+        });
+    }, [fuelLogs, activeTanks, siteTankMap]);
+
+    // Custom tooltip
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length > 0) {
-            const sortedPayload = [...payload].sort((a: any, b: any) => b.value - a.value);
-            const total = sortedPayload.reduce((sum: number, entry: any) => sum + entry.value, 0);
+            const sorted = [...payload].filter((p: any) => p.value > 0).sort((a: any, b: any) => b.value - a.value);
+            const total = sorted.reduce((sum: number, e: any) => sum + e.value, 0);
+            if (total === 0) return null;
 
             return (
                 <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg text-xs max-w-[280px] z-50">
-                    <div className="flex justify-between items-center border-b pb-1 mb-2">
+                    <div className="flex justify-between items-center border-b pb-1.5 mb-2">
                         <span className="font-bold text-slate-700">{label}</span>
-                        <span className="font-mono font-bold text-slate-900">{total.toLocaleString('tr-TR')} Lt</span>
+                        <span className="font-mono font-bold text-slate-900">{Math.round(total).toLocaleString('tr-TR')} Lt</span>
                     </div>
-
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
-                        {sortedPayload.map((entry: any) => {
-                            if (entry.value === 0) return null;
-                            const tankId = entry.dataKey;
-                            const tankName = entry.name;
-                            const details = entry.payload.details?.[tankId] || [];
-
-                            return (
-                                <div key={tankId} className="flex flex-col gap-1">
-                                    <div className="flex items-center justify-between font-semibold" style={{ color: entry.color }}>
-                                        <span>{tankName}</span>
-                                        <span>{entry.value.toLocaleString('tr-TR')} Lt</span>
-                                    </div>
-
-                                    <div className="pl-2 border-l-2 border-slate-100 space-y-0.5">
-                                        {details.slice(0, 5).map((d: any, i: number) => (
-                                            <div key={i} className="flex justify-between items-center text-[10px] text-slate-500">
-                                                <span className="truncate max-w-[140px]" title={d.label}>{d.label}</span>
-                                                <span className={d.type === 'IN' ? 'text-green-600' : ''}>
-                                                    {d.type === 'IN' ? '+' : ''}{d.liters.toLocaleString('tr-TR')}
-                                                </span>
-                                            </div>
-                                        ))}
-                                        {details.length > 5 && (
-                                            <div className="text-[9px] text-slate-400 italic">...ve {details.length - 5} işlem daha</div>
-                                        )}
-                                    </div>
+                    <div className="space-y-1.5">
+                        {sorted.map((entry: any) => (
+                            <div key={entry.dataKey} className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: entry.color }} />
+                                    <span className="text-slate-600 truncate">{entry.name}</span>
                                 </div>
-                            );
-                        })}
+                                <span className="font-mono font-semibold text-slate-900 shrink-0">
+                                    {Math.round(entry.value).toLocaleString('tr-TR')} Lt
+                                </span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             );
@@ -164,44 +134,67 @@ export function DailyFuelChart({ fuelLogs, fuelTransfers, fuelTanks, sites, vehi
         return null;
     };
 
-    const activeTanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
+    if (activeTanks.length === 0) {
+        return (
+            <Card className="shadow-sm border-slate-200">
+                <CardHeader className="pb-2">
+                    <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
+                        ⛽ Günlük Depo Harcaması (Son 14 Gün)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="text-center py-8 text-slate-500 text-sm">Aktif depo bulunamadı.</div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
-        <Card className="col-span-4 lg:col-span-7">
-            <CardHeader>
-                <CardTitle>Günlük Yakıt Hareketi (Son 14 Gün)</CardTitle>
+        <Card className="shadow-sm border-slate-200">
+            <CardHeader className="pb-2">
+                <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
+                    ⛽ Günlük Depo Harcaması (Son 14 Gün)
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">Şantiye depolarından günlük harcanan yakıt (Litre)</p>
             </CardHeader>
             <CardContent>
                 <div className="h-[350px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                             data={chartData}
-                            margin={{
-                                top: 20,
-                                right: 30,
-                                left: 20,
-                                bottom: 5,
-                            }}
+                            margin={{ top: 10, right: 10, left: -10, bottom: 5 }}
                         >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis
-                                fontSize={12}
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis
+                                dataKey="name"
+                                fontSize={11}
                                 tickLine={false}
                                 axisLine={false}
-                                tickFormatter={(value) => `${value} Lt`}
+                                tick={{ fill: '#64748b' }}
+                            />
+                            <YAxis
+                                fontSize={11}
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: '#64748b' }}
+                                allowDecimals={false}
+                                tickFormatter={(v) => `${v} Lt`}
                             />
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                            <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                            {activeTanks.map((tank: any, index: any) => (
+                            <Legend
+                                wrapperStyle={{ paddingTop: '12px', fontSize: '11px' }}
+                                iconType="square"
+                                iconSize={10}
+                            />
+                            {activeTanks.map((tank, index) => (
                                 <Bar
                                     key={tank.id}
                                     dataKey={tank.id}
-                                    name={tank.name}
-                                    stackId="a"
-                                    fill={colors[index % colors.length]}
-                                    radius={[0, 0, 0, 0]}
-                                    maxBarSize={50}
+                                    name={tank.displayName}
+                                    stackId="tanks"
+                                    fill={TANK_COLORS[index % TANK_COLORS.length]}
+                                    radius={index === activeTanks.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
+                                    maxBarSize={45}
                                 />
                             ))}
                         </BarChart>
