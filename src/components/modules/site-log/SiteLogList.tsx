@@ -413,6 +413,9 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
 
                 if (index < dayEntries.length - 1) {
                     currentY += 2;
+                    // [FIX] Snap currentY to the nearest ruled line to prevent drift
+                    const baseY = contentBoxTop + 5.5;
+                    currentY = Math.ceil((currentY - baseY) / lineSpacing) * lineSpacing + baseY;
                     if (currentY > endContentY - 4) {
                         doc.addPage();
                         currentSheet++;
