@@ -32,6 +32,49 @@ const toDate = (d: any): Date => {
 
 // Rogue handleUpdate removed
 
+// Vehicle-type-specific consumption ratio bounds (consumption / lifetimeAvg)
+// If ratio < lower or ratio > upper → anomaly (red highlight)
+const CONSUMPTION_BOUNDS: Record<string, { lower: number; upper: number }> = {
+    CAR: { lower: 1, upper: 1.5 },           // Binek
+    TRUCK: { lower: 0.5, upper: 2 },          // Kamyon
+    EXCAVATOR: { lower: 0.5, upper: 1.5 },    // Ekskavatör
+    TRACTOR: { lower: 0.5, upper: 1 },        // Traktör
+    KAMYONET: { lower: 0.8, upper: 1.5 },     // Kamyonet
+    GREYDER: { lower: 0.5, upper: 1.2 },      // Greyder
+    SILINDIR: { lower: 0.5, upper: 1.2 },     // Silindir
+    BEKO_LODER: { lower: 0.7, upper: 1.2 },   // Beko Loder
+    DEFAULT: { lower: 0.5, upper: 2 },        // Fallback
+};
+
+function getVehicleCategory(vehicle: any): string {
+    const def = (vehicle.definition || '').toLowerCase();
+
+    // Definition-based matching (more specific, takes priority)
+    if (def.includes('kamyonet')) return 'KAMYONET';
+    if (def.includes('greyder') || def.includes('grader')) return 'GREYDER';
+    if (def.includes('silindir') || def.includes('roller')) return 'SILINDIR';
+    if (def.includes('beko') || def.includes('loder') || def.includes('backhoe')) return 'BEKO_LODER';
+
+    // Type-based matching
+    const type = (vehicle.type || '').toUpperCase();
+    if (type === 'CAR') return 'CAR';
+    if (type === 'TRUCK') return 'TRUCK';
+    if (type === 'EXCAVATOR') return 'EXCAVATOR';
+    if (type === 'TRACTOR') return 'TRACTOR';
+    if (type === 'LORRY') return 'TRUCK'; // Tır → same as Kamyon
+    if (type === 'PICKUP') return 'KAMYONET'; // Kamyonet
+
+    return 'DEFAULT';
+}
+
+function isConsumptionAnomaly(consumption: number, lifetimeAvg: number, vehicle: any): boolean {
+    if (lifetimeAvg <= 0 || consumption <= 0) return false;
+    const ratio = consumption / lifetimeAvg;
+    const category = getVehicleCategory(vehicle);
+    const bounds = CONSUMPTION_BOUNDS[category] || CONSUMPTION_BOUNDS.DEFAULT;
+    return ratio < bounds.lower || ratio > bounds.upper;
+}
+
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
 
 interface FuelConsumptionReportProps {
@@ -789,11 +832,14 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                                         <TableCell>
                                             {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
                                                 <div className="flex flex-col items-center">
-                                                    {row.consumption > 0 ? (
-                                                        <Badge variant={row.consumption > row.lifetimeAvg * 1.2 ? 'destructive' : 'secondary'}>
-                                                            {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
-                                                        </Badge>
-                                                    ) : '-'}
+                                                    {row.consumption > 0 ? (() => {
+                                                        const isAnomaly = row.lifetimeAvg > 0 && isConsumptionAnomaly(row.consumption, row.lifetimeAvg, row.vehicle);
+                                                        return (
+                                                            <Badge variant={isAnomaly ? 'destructive' : 'secondary'}>
+                                                                {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}
+                                                            </Badge>
+                                                        );
+                                                    })() : '-'}
                                                     {!row.fullTank && row.recordType === 'LOG' && <Badge variant="outline" className="text-[9px] mt-1 w-fit border-amber-500 text-amber-600 bg-amber-50">Full Değil</Badge>}
                                                 </div>
                                             )}

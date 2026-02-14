@@ -5,7 +5,7 @@ import { useAppStore } from '@/lib/store/use-store';
 import { FileText, Wallet, Droplet, Users, AlertTriangle, ArrowRight, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SiteStockOverview } from '@/components/modules/dashboard/SiteStockOverview';
-import { DailyFuelChart } from '@/components/modules/dashboard/DailyFuelChart';
+import { SiteSummaryTable } from '@/components/modules/dashboard/SiteSummaryTable';
 import { useUserSites } from '@/hooks/use-user-access';
 import { useAuth } from '@/lib/store/use-auth';
 import { useRouter } from 'next/navigation';
@@ -591,10 +591,10 @@ export function DashboardPageClient() {
                         </div>
                     )}
 
-                    {/* Daily Chart */}
+                    {/* Site Summary Table */}
                     {hasPermission('dashboard.fuel-chart', 'VIEW') && (
                         <div className="col-span-1 md:col-span-1 lg:col-span-12 h-full">
-                            <DailyFuelChart fuelLogs={fuelLogs} fuelTransfers={fuelTransfers} fuelTanks={fuelTanks} sites={userSites} vehicles={vehicles} />
+                            <SiteSummaryTable sites={userSites} personnel={personnel} vehicles={vehicles} fuelLogs={fuelLogs} fuelTanks={fuelTanks} fuelTransfers={fuelTransfers} cashTransactions={cashTransactions} />
                         </div>
                     )}
                 </>

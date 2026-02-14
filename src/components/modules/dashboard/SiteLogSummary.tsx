@@ -88,7 +88,7 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                 doc.setFont('Roboto', 'bold');
                 doc.text("SAYFA NO", 137, 25);
                 doc.setFont('Roboto', 'normal');
-                doc.text(`: ${pageNumber} (${currentSheet})`, 155, 25);
+                doc.text(`: ${pageNumber}`, 155, 25);
 
                 // Row 2
                 const uniqueWeather = Array.from(new Set(dayEntries.map((e: any) => e.weather).filter(Boolean)));
