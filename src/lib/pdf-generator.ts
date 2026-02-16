@@ -28,13 +28,21 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
     const companyName = company?.name || '-';
     const normalizedName = companyName.toLocaleLowerCase('tr');
 
-    let logoToUse: string | null | undefined = company?.letterhead || company?.logoUrl;
+    let logoToUse: string | null | undefined = null;
 
-
-
-    // [FIX] Priority: Database only.
-    // If a company has a logo/letterhead in DB, use it. Otherwise text header.
-    // Removed hardcoded fallbacks to prevent confusion.
+    // [FIX] letterhead ve logoUrl artık store'da yok (PERF: base64 hariç tutuldu).
+    // İhtiyaç duyulduğunda getCompanyFull ile çekiyoruz.
+    if (company) {
+        try {
+            const { getCompanyFull } = await import('@/actions/company');
+            const fullResult = await getCompanyFull(company.id);
+            if (fullResult.success && fullResult.data) {
+                logoToUse = fullResult.data.letterhead || fullResult.data.logoUrl || null;
+            }
+        } catch (e) {
+            console.error('Error fetching company letterhead:', e);
+        }
+    }
 
     if (logoToUse) {
         try {
@@ -42,8 +50,6 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
             const pdfWidth = 160; // Slightly smaller to fit margins
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            // Center Logo? Or Left? Usually Top Left or Center. 
-            // Image example shows Top Left.
             doc.addImage(logoToUse, 'PNG', marginLeft, 10, pdfWidth, pdfHeight);
             yPos = 10 + pdfHeight + 6; // 3mm gap + Line + 3mm gap
         } catch (e) {
