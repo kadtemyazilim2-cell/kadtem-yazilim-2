@@ -1010,9 +1010,11 @@ export function LimitValueCalculation() {
                     const originalName = targetBidders[data.row.index]?.name || '';
                     const firstMakulIdx = targetBidders.findIndex((b: any) => b.isValid && b.isAboveLimit);
                     if (isOwnerCompany(originalName)) {
-                        data.cell.styles.fillColor = [180, 250, 200]; // Green for owner companies
+                        data.cell.styles.fillColor = [180, 210, 255]; // Blue for owner companies
+                        data.cell.styles.textColor = [20, 50, 120];
                     } else if (data.row.index === firstMakulIdx) {
-                        data.cell.styles.fillColor = [255, 237, 180]; // Amber for first reasonable bid
+                        data.cell.styles.fillColor = [255, 225, 170]; // Orange-amber for first reasonable bid
+                        data.cell.styles.textColor = [120, 60, 0];
                     }
                 }
             }
@@ -1372,8 +1374,8 @@ export function LimitValueCalculation() {
                                                 key={idx}
                                                 className={cn(
                                                     !bidder.isValid ? 'bg-red-50/50 opacity-70'
-                                                        : isOwnerCompany(bidder.name) ? 'bg-emerald-100/70 hover:bg-emerald-100'
-                                                            : isFirstMakul ? 'bg-amber-100/70 hover:bg-amber-100'
+                                                        : isOwnerCompany(bidder.name) ? 'bg-blue-100/80 hover:bg-blue-100 border-l-4 border-l-blue-500'
+                                                            : isFirstMakul ? 'bg-orange-50/80 hover:bg-orange-100 border-l-4 border-l-orange-400'
                                                                 : ''
                                                 )}
                                             >
@@ -1426,7 +1428,7 @@ export function LimitValueCalculation() {
                                                     {bidder.isValid ? (
                                                         bidder.isAboveLimit ? (
                                                             isFirstMakul ? (
-                                                                <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100">
+                                                                <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-100">
                                                                     <CheckCircle2 className="w-3 h-3 mr-1" />
                                                                     İlk Makul Teklif
                                                                 </Badge>
