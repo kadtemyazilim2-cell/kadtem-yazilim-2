@@ -79,12 +79,22 @@ export async function getAllTransactions() {
                 createdByUserId: true,
                 paymentMethod: true,
                 createdAt: true
-                // imageUrl excluded
+                // imageUrl excluded (base64 is heavy)
             }
         });
 
-        console.log(`[getAllTransactions] Found ${transactions.length} transactions.`);
-        return { success: true, data: transactions };
+        // [NEW] Lightweight query: only IDs of transactions that have an image attached
+        const idsWithImages = await prisma.cashTransaction.findMany({
+            where: { ...where, imageUrl: { not: null } },
+            select: { id: true }
+        });
+        const imageSet = new Set(idsWithImages.map((t: any) => t.id));
+
+        // Merge hasImage boolean into results
+        const result = transactions.map((t: any) => ({ ...t, hasImage: imageSet.has(t.id) }));
+
+        console.log(`[getAllTransactions] Found ${transactions.length} transactions, ${idsWithImages.length} with images.`);
+        return { success: true, data: result };
     } catch (error) {
         console.error('getAllTransactions Error:', error);
         return { success: false, error: 'İşlemler alınamadı.' };

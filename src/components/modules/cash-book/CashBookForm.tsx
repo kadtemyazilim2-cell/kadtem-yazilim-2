@@ -358,6 +358,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                         ...res.data,
                         date: new Date(res.data.date).toISOString(),
                         createdAt: new Date(res.data.createdAt).toISOString(),
+                        hasImage: !!res.data.imageUrl, // [NEW] Flag for receipt icon display
                     } as any);
                     resetForm();
                 } else {
@@ -365,6 +366,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     updateCashTransaction(initialData.id, {
                         ...res.data,
                         date: new Date(res.data.date).toISOString(),
+                        hasImage: !!res.data.imageUrl, // [NEW] Flag for receipt icon display
                     } as any);
                 }
 

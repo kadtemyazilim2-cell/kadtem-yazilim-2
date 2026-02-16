@@ -23,7 +23,7 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
 
     useEffect(() => {
         if (open && vehicle) {
-            setMonthlyFee(vehicle.monthlyRentalFee?.toString() || '');
+            setMonthlyFee(vehicle.monthlyRentalFee && vehicle.monthlyRentalFee > 0 ? vehicle.monthlyRentalFee.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '');
             setAssignedSiteId(vehicle.assignedSiteId || '');
         }
     }, [open, vehicle]);
@@ -46,8 +46,7 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
 
         const payload: any = {
             monthlyRentalFee: isNaN(fee) ? 0 : fee,
-            assignedSiteId: assignedSiteId, // [NEW] Update Assigned Site
-            assignedSiteIds: [], // [NEW] Clear multi-site to ensure single rental site
+            assignedSiteId: assignedSiteId || null,
         };
 
         // Only update timestamp if something meaningful changed
@@ -55,18 +54,20 @@ export function RentalUpdateDialog({ vehicle, open, onOpenChange }: RentalUpdate
             payload.rentalLastUpdate = new Date().toISOString();
         }
 
-        // 1. Server Update
-        const res = await updateVehicleAction(vehicle.id, payload);
+        try {
+            // 1. Server Update
+            const res = await updateVehicleAction(vehicle.id, payload);
 
-        if (res.success) {
-            // 2. Local Update
-            updateLocal(vehicle.id, payload);
-            if (payload.assignedSiteId) {
-                // We might need to handle assignment helper if needed, but updateVehicle action handles it.
+            if (res.success) {
+                // 2. Local Update
+                updateLocal(vehicle.id, payload);
+                onOpenChange(false);
+            } else {
+                alert(res.error || 'Güncellenemedi.');
             }
-            onOpenChange(false);
-        } else {
-            alert(res.error || 'Güncellenemedi.');
+        } catch (error) {
+            console.error('RentalUpdateDialog Error:', error);
+            alert('Bir hata oluştu.');
         }
     };
 

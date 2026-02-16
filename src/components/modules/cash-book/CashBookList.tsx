@@ -17,7 +17,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
-import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart } from 'lucide-react'; // [NEW] Edit, Icons
+import { Download, FileSpreadsheet, FileText, Trash2, Edit, CreditCard, Banknote, BarChart, Paperclip, X } from 'lucide-react'; // [NEW] Edit, Icons
+import { Dialog as ImageDialog, DialogContent as ImageDialogContent, DialogHeader as ImageDialogHeader, DialogTitle as ImageDialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isWithinInterval, parseISO, isValid, startOfMonth } from 'date-fns';
 import { deleteTransaction, getTransaction } from '@/actions/transaction';
@@ -86,6 +87,32 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
     const [editingTransaction, setEditingTransaction] = useState<any>(null);
     const [formDefaultValues, setFormDefaultValues] = useState<any>(undefined); // [NEW] Default values for form
     const [showReport, setShowReport] = useState(false); // [NEW] Toggle report view for restricted users
+
+    // [NEW] Receipt Image Viewer State
+    const [imageDialogOpen, setImageDialogOpen] = useState(false);
+    const [imageDialogUrl, setImageDialogUrl] = useState<string | null>(null);
+    const [imageLoading, setImageLoading] = useState(false);
+
+    const handleViewImage = async (id: string) => {
+        setImageLoading(true);
+        setImageDialogOpen(true);
+        setImageDialogUrl(null);
+        try {
+            const res = await getTransaction(id);
+            if (res.success && res.data?.imageUrl) {
+                setImageDialogUrl(res.data.imageUrl);
+            } else {
+                alert('Bu işleme ait belge/fiş bulunamadı.');
+                setImageDialogOpen(false);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Belge yüklenirken hata oluştu.');
+            setImageDialogOpen(false);
+        } finally {
+            setImageLoading(false);
+        }
+    };
 
     // Date Filters - Default to last 1 month
     const currentDate = new Date();
@@ -942,6 +969,7 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                                     <TableHead className="text-right text-green-700">Borç (Gelir)</TableHead>
                                     <TableHead className="text-right text-red-700">Alacak (Gider)</TableHead>
                                     <TableHead>Bakiye</TableHead>
+                                    <TableHead className="w-10 text-center">Belge</TableHead>
                                     <TableHead className="w-10"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -976,6 +1004,19 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
 
                                             <TableCell className="font-mono font-medium whitespace-nowrap">
                                                 {Number(item.balance || 0).toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                {item.type !== 'BALANCE_START' && item.hasImage && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                                        onClick={() => handleViewImage(item.id)}
+                                                        title="Belge / Fiş Görseli"
+                                                    >
+                                                        <Paperclip className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 {item.type !== 'BALANCE_START' && (
@@ -1043,8 +1084,28 @@ export function CashBookList({ siteId, userId, type, initialData, currentUser }:
                 }}
             />
 
-
-
+            {/* [NEW] Receipt Image Preview Dialog */}
+            <ImageDialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
+                <ImageDialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-auto p-4">
+                    <ImageDialogHeader>
+                        <ImageDialogTitle>Belge / Fiş Görseli</ImageDialogTitle>
+                    </ImageDialogHeader>
+                    {imageLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            <span className="ml-3 text-muted-foreground">Yükleniyor...</span>
+                        </div>
+                    ) : imageDialogUrl ? (
+                        imageDialogUrl.startsWith('data:application/pdf') ? (
+                            <iframe src={imageDialogUrl} className="w-full h-[70vh] border rounded" title="PDF Belge" />
+                        ) : (
+                            <img src={imageDialogUrl} alt="Belge / Fiş" className="w-full rounded-lg shadow-md" />
+                        )
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">Belge bulunamadı.</p>
+                    )}
+                </ImageDialogContent>
+            </ImageDialog>
 
         </Card >
     );

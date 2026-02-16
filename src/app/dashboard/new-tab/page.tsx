@@ -128,7 +128,7 @@ const SalaryEditableCell = ({
 
 export default function NewPage() {
     const { user, getAccessibleSites } = useAuth();
-    const { sites } = useAppStore();
+    const { sites, personnel } = useAppStore();
     const availableSites = getAccessibleSites(sites);
 
     // [NEW] Granular Permissions
@@ -359,11 +359,9 @@ export default function NewPage() {
             setSelectedSiteId(targetSiteId);
         }
 
-        if (!targetSiteId || targetSiteId === 'all') {
-            console.warn("refreshData: No site selected");
-            setNames([]);
-            setLoading(false);
-            return;
+        if (!targetSiteId) {
+            targetSiteId = 'all';
+            setSelectedSiteId('all');
         }
 
         console.log(`refreshData: Fetching for site ${targetSiteId} date ${date.toISOString()}`);
@@ -1821,7 +1819,8 @@ export default function NewPage() {
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableSites.map(s => (
+                                    <SelectItem key="all" value="all">Tüm Şantiyeler</SelectItem>
+                                    {availableSites.filter(s => personnel.some((p: any) => p.siteId === s.id)).map(s => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>

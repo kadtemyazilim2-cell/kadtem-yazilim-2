@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access'; // [NEW]
@@ -27,7 +27,7 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
     const setOpen = externalOnOpenChange || setInternalOpen;
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { addFuelLog, updateFuelLog, vehicles, fuelTanks } = useAppStore();
+    const { addFuelLog, updateFuelLog, vehicles, fuelTanks, fuelLogs } = useAppStore();
     const { user, refreshSession } = useAuth(); // [NEW] Get refresh
     const accessibleSites = useUserSites(); // [NEW]
 
@@ -55,6 +55,21 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
         mileage: 0,
         description: '', // [NEW] Notes
     });
+
+    // [NEW] Find selected vehicle for meterType label
+    const selectedVehicle = useMemo(() => {
+        if (!formData.vehicleId) return null;
+        return vehicles.find((v: any) => v.id === formData.vehicleId) || null;
+    }, [formData.vehicleId, vehicles]);
+
+    // [NEW] Compute last mileage for selected vehicle from fuel logs
+    const lastMileage = useMemo(() => {
+        if (!formData.vehicleId) return null;
+        const vehicleLogs = (fuelLogs || [])
+            .filter((l: any) => l.vehicleId === formData.vehicleId && l.mileage != null && l.mileage > 0)
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return vehicleLogs.length > 0 ? vehicleLogs[0].mileage : null;
+    }, [formData.vehicleId, fuelLogs]);
 
     // Store original time to preserve when editing
     const [originalTime, setOriginalTime] = useState<string | null>(null);
@@ -136,6 +151,12 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
                 alert(`Geriye dönük en fazla ${user.editLookbackDays} gün işlem yapabilirsiniz.`);
                 return;
             }
+        }
+
+        // [NEW] KM/Saat validation: non-admin users cannot enter lower than last recorded mileage
+        if (user.role !== 'ADMIN' && lastMileage != null && Number(formData.mileage) > 0 && Number(formData.mileage) < lastMileage) {
+            alert(`Girilen KM/Saat (${Number(formData.mileage).toLocaleString('tr-TR')}) son girilen değerden (${lastMileage.toLocaleString('tr-TR')}) düşük olamaz.`);
+            return;
         }
 
         setIsSubmitting(true);
@@ -274,14 +295,19 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Güncel KM</Label>
+                            <Label>Güncel {selectedVehicle?.meterType === 'HOURS' ? 'Saat' : 'KM'}</Label>
                             <Input
                                 type="number"
                                 required
-                                placeholder="Güncel KM"
+                                placeholder={`Güncel ${selectedVehicle?.meterType === 'HOURS' ? 'Saat' : 'KM'}`}
                                 value={formData.mileage}
                                 onChange={(e) => setFormData({ ...formData, mileage: Number(e.target.value) })}
                             />
+                            {lastMileage != null && (
+                                <p className="text-xs text-muted-foreground">
+                                    Son girilen: <span className="font-semibold text-blue-600">{lastMileage.toLocaleString('tr-TR')}</span> {selectedVehicle?.meterType === 'HOURS' ? 'Saat' : 'KM'}
+                                </p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <Label>Verilen Litre</Label>

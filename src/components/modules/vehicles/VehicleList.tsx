@@ -35,15 +35,17 @@ import { deleteVehicle as deleteVehicleAction, updateVehicle as updateVehicleAct
 
 const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleId: string, initialValue: number | null, onUpdate: (id: string, data: any, msg: string) => Promise<void> }) => {
     const [isEditing, setIsEditing] = useState(false);
-    const [value, setValue] = useState(initialValue?.toString() || '');
+    const [value, setValue] = useState(initialValue ? initialValue.toString().replace('.', ',') : '');
 
     // [FIX] Sync state with props when initialValue changes (e.g. after successful update)
     useEffect(() => {
-        setValue(initialValue?.toString() || '');
+        setValue(initialValue ? initialValue.toString().replace('.', ',') : '');
     }, [initialValue]);
 
     const handleSave = async () => {
-        const numVal = parseFloat(value);
+        // Handle Turkish comma decimal
+        const cleanValue = value.replace(/\./g, '').replace(',', '.');
+        const numVal = parseFloat(cleanValue);
 
         if (isNaN(numVal)) {
             setIsEditing(false);
@@ -72,9 +74,10 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
                         if (e.key === 'Enter') handleSave();
                         if (e.key === 'Escape') setIsEditing(false);
                     }}
-                    className="h-8 w-24 text-right"
+                    className="h-8 w-28 text-right"
                     type="text"
-                    placeholder="0.00"
+                    inputMode="decimal"
+                    placeholder="0,00"
                 />
             </div>
         );
@@ -89,7 +92,10 @@ const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleI
             className="cursor-pointer hover:bg-slate-100 p-1 px-2 rounded border border-transparent hover:border-slate-300 text-right transition-all flex justify-end items-center gap-2 group"
             title="Düzenlemek için tıkla"
         >
-            {initialValue ? `${initialValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}
+            {initialValue && initialValue > 0
+                ? <span>{initialValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</span>
+                : <span className="text-slate-300">0,00 ₺</span>
+            }
             <FileEdit className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
     );
@@ -713,65 +719,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
 
         let currentY = 15;
 
-        // Helper to add table
-        const addTable = (title: string, data: typeof vehicles) => {
-            if (data.length === 0) return;
 
-            // Check if we need a page break before title
-            if (currentY > 250) {
-                doc.addPage();
-                currentY = 15;
-            }
-
-            doc.setFontSize(14);
-            doc.text(`${title} (${data.length})`, 14, currentY);
-            doc.setFontSize(10);
-            currentY += 5;
-
-            const rows = data.map(v => [
-                v.plate,
-                getCompanyName(v),
-                v.ownership === 'RENTAL' ? 'Kiralık' : 'Öz Mal',
-                v.brand,
-                v.model,
-                v.year,
-                typeMap[v.type] || v.type,
-                statusMap[v.status] || v.status
-            ]);
-
-            autoTable(doc, {
-                head: [tableColumn],
-                body: rows,
-                styles: { font: 'Roboto', fontSize: 8 },
-                headStyles: { fillColor: title.includes('Pasif') ? [108, 117, 125] : [41, 128, 185] }, // Grey for Passive, Blue for Active
-                startY: currentY,
-                margin: { top: 20 },
-                didDrawPage: (data) => {
-                    // Update currentY to end of table for next iteration
-                    currentY = data.cursor?.y ? data.cursor.y + 10 : 0;
-                }
-            });
-        };
-
-        // 1. Active Vehicles Table
-        if (activeVehicles.length > 0) {
-            addTable("Aktif Araçlar", activeVehicles);
-        }
-
-        // 2. Passive Vehicles Table
-        if (passiveVehicles.length > 0) {
-            // Ensure spacing or page break if needed exists handled by addTable logic somewhat, 
-            // but autoTable handles pagination. We need to respect the FINAL Y position.
-            // The `didDrawPage` hook or return value of autoTable helps. 
-            // `autoTable` modifies the doc. But we need to update `currentY` correctly.
-            // Actually `lastAutoTable.finalY` is standard property.
-
-            // Re-implementing simplified flow using sequential calls and autoTable's return state
-            // NOTE: `autoTable` is attached to `doc` in some versions, or imported.
-            // We used `autoTable(doc, ...)`
-        }
-
-        // RE-WRITING LOGIC TO BE SAFER with `lastAutoTable` pattern:
 
         // -- Active Table --
         if (activeVehicles.length > 0) {

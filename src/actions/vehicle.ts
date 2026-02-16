@@ -27,6 +27,8 @@ const getVehiclesFromDb = async () => {
             assignedSiteId: true,
             rentalCompanyName: true,
             rentalContact: true,
+            monthlyRentalFee: true,
+            rentalLastUpdate: true,
             engineNumber: true,
             chassisNumber: true,
             fuelType: true,

@@ -85,6 +85,7 @@ export function VehicleAttendanceList() {
     const [status, setStatus] = useState<'WORK' | 'HALF_DAY' | 'IDLE' | 'REPAIR' | 'NO_OPERATOR' | 'HOLIDAY'>('WORK');
     const [note, setNote] = useState('');
     const [isReadOnly, setIsReadOnly] = useState(false); // [NEW] Read-only mode
+    const [hoveredData, setHoveredData] = useState<{ x: number, y: number, record: any } | null>(null);
 
     const daysInMonth = eachDayOfInterval({
         start: startOfMonth(selectedDate),
@@ -617,7 +618,7 @@ export function VehicleAttendanceList() {
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    {sites.filter((s: any) => s.status === 'ACTIVE' && vehicles.some((v: any) => v.status !== 'PASSIVE' && ((v.assignedSiteIds && v.assignedSiteIds.includes(s.id)) || v.assignedSiteId === s.id))).map((s: any) => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -797,15 +798,21 @@ export function VehicleAttendanceList() {
                                                                 if (isLocked) return;
                                                                 handleCellClick(v.id, day);
                                                             }}
+                                                            onMouseEnter={(e) => {
+                                                                if (displayRecord?.note) {
+                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                    setHoveredData({
+                                                                        x: rect.left + rect.width / 2,
+                                                                        y: rect.top,
+                                                                        record: displayRecord
+                                                                    });
+                                                                }
+                                                            }}
+                                                            onMouseLeave={() => setHoveredData(null)}
                                                         >
                                                             <div className="relative w-full h-full flex items-center justify-center">
                                                                 {displayRecord?.note && (
-                                                                    <div className="group/note absolute top-0 left-0 z-20 w-3 h-3 cursor-help">
-                                                                        <span className="absolute top-0 left-0 w-0 h-0 border-l-[6px] border-t-[6px] border-l-blue-500 border-t-blue-500 border-r-[6px] border-b-[6px] border-r-transparent border-b-transparent" />
-                                                                        <div className="hidden group-hover/note:block absolute top-3 left-0 bg-gray-900 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap max-w-[200px] break-words z-50">
-                                                                            {displayRecord.note}
-                                                                        </div>
-                                                                    </div>
+                                                                    <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-blue-600 z-20" />
                                                                 )}
                                                                 {displayRecord ? getStatusBadge(displayRecord.status) : null}
                                                                 {dailyFuel > 0 && (
@@ -826,6 +833,29 @@ export function VehicleAttendanceList() {
                         </div>
                     )}
                 </CardContent>
+                {/* Rich Tooltip Overlay (same style as Personnel Puantaj) */}
+                {hoveredData && hoveredData.record?.note && (
+                    <div
+                        className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
+                        style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
+                    >
+                        <div className="font-bold text-center mb-1 text-slate-100 text-sm">
+                            {hoveredData.record.status === 'WORK' && 'Çalıştı'}
+                            {hoveredData.record.status === 'HALF_DAY' && 'Yarım Gün'}
+                            {hoveredData.record.status === 'IDLE' && 'Çalışmadı (Yattı)'}
+                            {hoveredData.record.status === 'REPAIR' && 'Arızalı'}
+                            {hoveredData.record.status === 'NO_OPERATOR' && 'Operatör Yok'}
+                            {hoveredData.record.status === 'HOLIDAY' && 'Tatil'}
+                        </div>
+
+                        <div className="italic text-white break-words leading-relaxed text-sm font-medium border-t border-slate-700/50 pt-1 mt-1">
+                            {hoveredData.record.note}
+                        </div>
+
+                        {/* Tooltip Arrow */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900" />
+                    </div>
+                )}
                 <div className="px-3 sm:px-6 pb-4 sm:pb-6 mt-[-10px]">
                     <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2 sm:gap-4 text-[10px] sm:text-xs text-muted-foreground border-t pt-3 sm:pt-4">
                         <div className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-600" /> Çalıştı</div>
