@@ -11,9 +11,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format, eachDayOfInterval, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil, Users, ReceiptTurkishLira } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil, Users, ReceiptTurkishLira, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -169,13 +169,10 @@ export default function NewPage() {
     }, [selectedSiteId]);
     */
 
-    // Auto-select site if only one available (overrides storage if conflict? No, strict restriction)
+    // Auto-select site only if user has exactly 1 site (restricted users)
     useEffect(() => {
-        if (availableSites.length === 1) {
-            const onlySiteId = availableSites[0].id;
-            if (selectedSiteId !== onlySiteId) {
-                setSelectedSiteId(onlySiteId);
-            }
+        if (availableSites.length === 1 && !selectedSiteId) {
+            setSelectedSiteId(availableSites[0].id);
         }
     }, [availableSites.length, availableSites]);
 
@@ -359,18 +356,21 @@ export default function NewPage() {
             setSelectedSiteId(targetSiteId);
         }
 
-        if (!targetSiteId) {
-            // No site selected - don't fetch, just clear
+        if (!targetSiteId || targetSiteId === 'all') {
+            // No site selected or 'Şantiye Seçiniz' - don't fetch, just clear
             setNames([]);
             setLoading(false);
             return;
         }
 
+        // 'all' means fetch all company personnel (no site filter)
+        const fetchSiteId = targetSiteId === 'all' ? undefined : targetSiteId;
+
         console.log(`refreshData: Fetching for site ${targetSiteId} date ${date.toISOString()}`);
         setLoading(true);
         try {
             // Pass date as string to avoid serialization issues
-            const res: any = await getPersonnelWithAttendance(date.toISOString(), selectedSiteId);
+            const res: any = await getPersonnelWithAttendance(date.toISOString(), fetchSiteId);
 
             if (res.success && res.data) {
                 // Map DB Personnel to IndependentPerson format
@@ -419,7 +419,7 @@ export default function NewPage() {
                         inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
                         transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
                         attendance: attendanceMap,
-                        salaryHistory: [],
+                        salaryHistory: p.salaryHistory || [],
                         salaryAdjustments: adjMap
                     };
                 });
@@ -743,7 +743,7 @@ export default function NewPage() {
         if (!formData.profession) { toast.error("Meslek bilgisi zorunludur."); return; }
         if (!formData.role) { toast.error("Görev bilgisi zorunludur."); return; }
         if (!formData.siteId) { toast.error("Şantiye seçimi zorunludur."); return; }
-        if (!formData.leaveAllowance) { toast.error("İzin hakkı girilmelidir."); return; }
+        if (formData.leaveAllowance === '' || formData.leaveAllowance === undefined) { toast.error("İzin hakkı girilmelidir."); return; }
 
         // Salary Validation: Allow empty 'salary' IF 'newSalary' is provided during edit
         // Or if salary is explicitly "0" or "0,00"
@@ -757,19 +757,39 @@ export default function NewPage() {
 
         if (editingId) {
             // Update
+            const newSalary = parseFloat(parseMoney(formData.salary));
+            const existingPerson = names.find(p => p.id === editingId);
+            const oldSalary = existingPerson ? parseFloat(existingPerson.salary || '0') : 0;
+
+            // Build salary history entry if salary changed
+            let salaryHistoryUpdate: any = undefined;
+            if (existingPerson && Math.abs(newSalary - oldSalary) > 0.01) {
+                const existingHistory = (existingPerson as any).salaryHistory || [];
+                salaryHistoryUpdate = [
+                    ...existingHistory,
+                    {
+                        oldSalary,
+                        newSalary,
+                        date: new Date().toISOString(),
+                    }
+                ];
+            }
+
             const res = await updatePersonnel(editingId, {
                 siteId: formData.siteId,
                 tcNumber: formData.tc,
                 fullName: formData.name,
                 profession: formData.profession,
                 role: formData.role,
-                salary: parseFloat(parseMoney(formData.newSalary || formData.salary)),
+                salary: newSalary,
                 category: 'FIELD',
                 leaveAllowance: formData.leaveAllowance,
                 hasOvertime: formData.hasOvertime,
                 startDate: formData.inputDate ? new Date(formData.inputDate) : undefined,
-                note: formData.note
+                note: formData.note,
+                ...(salaryHistoryUpdate ? { salaryHistory: salaryHistoryUpdate } : {})
             } as any);
+
 
             if (res.success) {
                 setEditingId(null);
@@ -786,7 +806,7 @@ export default function NewPage() {
                             name: formData.name,
                             profession: formData.profession,
                             role: formData.role,
-                            salary: parseMoney(formData.newSalary || formData.salary),
+                            salary: parseMoney(formData.salary),
                             leaveAllowance: formData.leaveAllowance,
                             hasOvertime: formData.hasOvertime,
                             note: formData.note,
@@ -1805,1092 +1825,1119 @@ export default function NewPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="attendance" className="w-full space-y-6">
-                {user?.role === 'ADMIN' && (
-                    <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
-                        <TabsTrigger value="attendance" className="px-6 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj</TabsTrigger>
+            <Tabs defaultValue="grid" className="w-full space-y-6">
+                <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
+                    <TabsTrigger value="grid" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj Tablosu</TabsTrigger>
+                    {canViewSalary && <TabsTrigger value="salary-list" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Maaş Tablosu</TabsTrigger>}
+                    {canViewAllPersonnel && <TabsTrigger value="site-list" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Şantiye Personel Listesi</TabsTrigger>}
+                    {canViewAllPersonnel && <TabsTrigger value="all-list" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Tüm Personel</TabsTrigger>}
+                </TabsList>
 
-                    </TabsList>
-                )}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 sm:p-4 rounded-lg border shadow-sm">
+                    <div className="flex flex-wrap gap-2">
+                        {canExport && (
+                            <>
+                                <Button variant="outline" size="sm" onClick={handleExportExcel}>
+                                    <FileSpreadsheet className="w-4 h-4 mr-1 text-green-600" />
+                                    <span className="hidden sm:inline">Excel</span>
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                                    <Download className="w-4 h-4 mr-1 text-red-600" />
+                                    <span className="hidden sm:inline">PDF</span>
+                                </Button>
+                            </>
+                        )}
 
-                <TabsContent value="attendance" className="space-y-6">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 sm:p-4 rounded-lg border shadow-sm">
-                        <div className="w-full sm:w-[300px]">
+                        {canCreatePersonnel && (
+                            <Button size="sm" onClick={() => {
+                                setEditingId(null);
+                                setFormData({
+                                    siteId: selectedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''),
+                                    tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
+                                    inputDate: format(new Date(), 'yyyy-MM-dd'),
+                                    salaryHistory: []
+                                });
+                                setShowSalaryInput(false);
+                                setIsDialogOpen(true);
+                            }}>
+                                <Plus className="w-4 h-4 mr-1" />
+                                <span className="hidden sm:inline">Personel Ekle</span>
+                                <span className="sm:hidden">Ekle</span>
+                            </Button>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        {isAdmin && (
+                            <div className="flex items-center gap-1 border rounded-md p-1 bg-white">
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDate(subMonths(date, 1))}>
+                                    <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <span className="font-semibold w-36 text-center select-none text-sm capitalize">
+                                    {format(date, 'MMMM yyyy', { locale: tr })}
+                                </span>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDate(addMonths(date, 1))}>
+                                    <ChevronRight className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        )}
+                        <div className="w-full sm:w-[250px]">
                             <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    {isAdmin && (
+                                        <SelectItem value="all" className="font-semibold text-blue-700">Şantiye Seçiniz</SelectItem>
+                                    )}
                                     {availableSites.filter(s => personnel.some((p: any) => p.siteId === s.id)).map(s => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        <div className="flex flex-wrap gap-2">
-                            {canExport && (
-                                <>
-                                    <Button variant="outline" size="sm" onClick={handleExportExcel}>
-                                        <FileSpreadsheet className="w-4 h-4 mr-1 text-green-600" />
-                                        <span className="hidden sm:inline">Excel</span>
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                                        <Download className="w-4 h-4 mr-1 text-red-600" />
-                                        <span className="hidden sm:inline">PDF</span>
-                                    </Button>
-                                </>
-                            )}
-
-                            {canCreatePersonnel && (
-                                <Button size="sm" onClick={() => {
-                                    setEditingId(null);
-                                    setFormData({
-                                        siteId: selectedSiteId || (availableSites.length === 1 ? availableSites[0].id : ''),
-                                        tc: '', name: '', profession: '', role: '', salary: '', newSalary: '', newSalaryDate: format(new Date(), 'yyyy-MM-dd'), leaveAllowance: '', hasOvertime: false, note: '',
-                                        inputDate: format(new Date(), 'yyyy-MM-dd'),
-                                        salaryHistory: []
-                                    });
-                                    setShowSalaryInput(false);
-                                    setIsDialogOpen(true);
-                                }}>
-                                    <Plus className="w-4 h-4 mr-1" />
-                                    <span className="hidden sm:inline">Personel Ekle</span>
-                                    <span className="sm:hidden">Ekle</span>
-                                </Button>
-                            )}
-                        </div>
                     </div>
+                </div>
 
-                    <Tabs defaultValue="grid" className="w-full">
-                        <div className="flex justify-between items-center mb-4">
-                            <TabsList>
-                                <TabsTrigger value="grid">Puantaj Tablosu</TabsTrigger>
-                                {canViewSalary && <TabsTrigger value="salary-list">Maaş Tablosu</TabsTrigger>}
-                                {canViewAllPersonnel && <TabsTrigger value="site-list">Şantiye Personel Listesi</TabsTrigger>}
-                                {canViewAllPersonnel && <TabsTrigger value="all-list">Tüm Personel</TabsTrigger>}
-                            </TabsList>
-                        </div>
+                <TabsContent value="grid" className="space-y-4">
 
-                        <TabsContent value="grid" className="space-y-4">
-                            {isAdmin && (
-                                <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center bg-slate-50/50 p-2 rounded-lg border">
-                                    <div className="flex flex-wrap gap-1">
-                                        {["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"].map((month, index) => (
-                                            <Button
-                                                key={month}
-                                                variant={date.getMonth() === index ? "default" : "outline"}
-                                                size="sm"
-                                                onClick={() => {
-                                                    const newDate = new Date(date);
-                                                    newDate.setMonth(index);
-                                                    setDate(newDate);
-                                                }}
-                                                className={`h-8 ${date.getMonth() === index ? "bg-blue-600 hover:bg-blue-700 border-blue-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}
-                                            >
-                                                {month}
-                                            </Button>
-                                        ))}
-                                    </div>
+                    <div className="border rounded-md overflow-x-auto bg-white">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[90px] sm:w-[200px] sticky left-0 z-20 bg-slate-100 font-bold border-r shadow-[1px_0_2px_rgba(0,0,0,0.05)] text-[10px] sm:text-sm">Ad Soyad</TableHead>
+                                    {days.map(d => (
+                                        <TableHead key={d.toString()} className="p-0 text-center w-8 min-w-[32px] text-[10px] font-medium border-l">
+                                            <div className="flex flex-col items-center justify-center py-1">
+                                                <span className="font-bold text-slate-700">{format(d, 'd')}</span>
+                                                <span>{format(d, 'EEE', { locale: tr }).substring(0, 1)}</span>
+                                            </div>
+                                        </TableHead>
+                                    ))}
+                                    <TableHead className="w-16 text-xs text-center font-bold bg-slate-50 border-l text-slate-700">Çalışma</TableHead>
+                                    <TableHead className="w-16 text-xs text-center font-bold bg-blue-50 border-l text-blue-700">Mesai</TableHead>
+                                    <TableHead className="w-16 text-xs text-center font-bold bg-orange-50 border-l text-orange-700">Kalan İzin</TableHead>
+                                    <TableHead className="w-10"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredNames.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={days.length + 5} className="h-24 text-center text-muted-foreground">
+                                            Bu şantiyede personel bulunamadı.
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredNames.map(person => {
+                                        const stats = calculateStats(person, date);
+                                        // Track exit state sequentially for this person
+                                        let isExited = false;
 
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex items-center gap-1 bg-white p-1 rounded-md border shadow-sm">
-                                            {[2024, 2025, 2026, 2027].map(year => (
-                                                <Button
-                                                    key={year}
-                                                    variant={date.getFullYear() === year ? "secondary" : "ghost"}
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        const newDate = new Date(date);
-                                                        newDate.setFullYear(year);
-                                                        setDate(newDate);
-                                                    }}
-                                                    className={`h-8 px-3 font-semibold ${date.getFullYear() === year ? "bg-slate-800 text-white hover:bg-slate-700" : "text-slate-500 hover:bg-slate-100"}`}
-                                                >
-                                                    {year}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="border rounded-md overflow-x-auto bg-white">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[90px] sm:w-[200px] sticky left-0 z-20 bg-slate-100 font-bold border-r shadow-[1px_0_2px_rgba(0,0,0,0.05)] text-[10px] sm:text-sm">Ad Soyad</TableHead>
-                                            {days.map(d => (
-                                                <TableHead key={d.toString()} className="p-0 text-center w-8 min-w-[32px] text-[10px] font-medium border-l">
-                                                    <div className="flex flex-col items-center justify-center py-1">
-                                                        <span className="font-bold text-slate-700">{format(d, 'd')}</span>
-                                                        <span>{format(d, 'EEE', { locale: tr }).substring(0, 1)}</span>
+                                        return (
+                                            <TableRow key={person.id} className="hover:bg-slate-50">
+                                                <TableCell className="font-medium sticky left-0 z-30 bg-background border-r p-1 sm:p-2 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
+                                                    <div className="flex flex-col w-full">
+                                                        <span className="text-[11px] sm:text-sm font-bold truncate">{person.name}</span>
+                                                        <span className="text-[9px] text-muted-foreground truncate">{person.role}</span>
                                                     </div>
-                                                </TableHead>
-                                            ))}
-                                            <TableHead className="w-16 text-xs text-center font-bold bg-slate-50 border-l text-slate-700">Çalışma</TableHead>
-                                            <TableHead className="w-16 text-xs text-center font-bold bg-blue-50 border-l text-blue-700">Mesai</TableHead>
-                                            <TableHead className="w-16 text-xs text-center font-bold bg-orange-50 border-l text-orange-700">Kalan İzin</TableHead>
-                                            <TableHead className="w-10"></TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredNames.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={days.length + 5} className="h-24 text-center text-muted-foreground">
-                                                    Bu şantiyede personel bulunamadı.
+                                                </TableCell>
+                                                {days.map(d => {
+                                                    const dateKey = format(d, 'yyyy-MM-dd');
+                                                    const record = (person.attendance || {})[dateKey];
+                                                    const isLocked = !canEditRecord(person, record, d);
+
+                                                    // Sequential Logic:
+                                                    const showLine = !record && isExited;
+                                                    const isStartDate = person.inputDate === dateKey;
+
+                                                    // Update State for NEXT iteration (or subsequent empty cells)
+                                                    if (record?.status === 'EXIT') {
+                                                        isExited = true;
+                                                    } else if (record?.status) {
+                                                        isExited = false;
+                                                    }
+
+                                                    let cellClass = "";
+
+                                                    // Non-editable days: gray background, no click
+                                                    if (isLocked) {
+                                                        cellClass = "bg-gray-100 cursor-default";
+                                                    }
+
+                                                    // Default empty state: Centered dot
+                                                    let cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-lg select-none">·</div>;
+
+                                                    if (showLine) {
+                                                        cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
+                                                    }
+
+                                                    // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
+                                                    if (isStartDate && !record) {
+                                                        // Treat as FULL WORK
+                                                        cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                    }
+
+                                                    if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'HALF') cellContent = <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-500"><Clock className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'ABSENT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><XCircle className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
+                                                    if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
+
+                                                    // (Logic handled sequentially above via showLine)
+
+                                                    return (
+                                                        <TableCell
+                                                            key={d.toString()}
+                                                            className={`p-0 border-l text-center transition-colors ${isLocked ? '' : 'hover:opacity-80 cursor-pointer'} h-10 w-8 min-w-[32px] ${cellClass} relative`}
+                                                            onClick={() => {
+                                                                if (isLocked) return;
+                                                                setSelectedCell({ personId: person.id, date: d });
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setHoveredData({
+                                                                    x: rect.left + rect.width / 2,
+                                                                    y: rect.top,
+                                                                    record: record,
+                                                                    date: d
+                                                                });
+                                                            }}
+                                                            onMouseLeave={() => setHoveredData(null)}
+                                                        >
+                                                            {cellContent}
+                                                            {record?.note && (
+                                                                <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-blue-600 z-20"></div>
+                                                            )}
+                                                            {record?.overtime && (
+                                                                <span className="absolute bottom-0.5 left-0.5 text-[8px] font-bold bg-blue-600 text-white px-0.5 rounded shadow-sm z-10">
+                                                                    +{record.overtime}
+                                                                </span>
+                                                            )}
+                                                            {isLocked && record && (
+                                                                <Lock className="absolute top-0.5 right-0.5 w-3 h-3 text-slate-400 opacity-70" />
+                                                            )}
+                                                        </TableCell>
+                                                    );
+                                                })}
+
+                                                <TableCell className="text-center font-bold text-slate-700 border-l bg-slate-50">
+                                                    {stats.workedDays}
+                                                </TableCell>
+                                                <TableCell className="text-center font-bold text-blue-700 border-l bg-blue-50">
+                                                    {stats.overtimeTotal > 0 ? stats.overtimeTotal : '-'}
+                                                </TableCell>
+                                                <TableCell className="text-center font-bold text-orange-700 border-l bg-orange-50">
+                                                    {stats.remainingLeave}
+                                                </TableCell>
+
+                                                <TableCell className="text-right whitespace-nowrap">
+                                                    {canTransfer && (
+                                                        <Button variant="ghost" size="icon" onClick={() => openTransferModal(person)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 mr-1" title="Transfer Et">
+                                                            <ArrowRightLeft className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                    {canEditPersonnel && (
+                                                        <Button variant="ghost" size="icon" onClick={() => handleDelete(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" title="Sil">
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
-                                        ) : (
-                                            filteredNames.map(person => {
-                                                const stats = calculateStats(person, date);
-                                                // Track exit state sequentially for this person
-                                                let isExited = false;
+                                        )
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabsContent>
 
-                                                return (
-                                                    <TableRow key={person.id} className="hover:bg-slate-50">
-                                                        <TableCell className="font-medium sticky left-0 z-30 bg-background border-r p-1 sm:p-2 shadow-[2px_0_4px_rgba(0,0,0,0.1)]">
-                                                            <div className="flex flex-col w-full">
-                                                                <span className="text-[11px] sm:text-sm font-bold truncate">{person.name}</span>
-                                                                <span className="text-[9px] text-muted-foreground truncate">{person.role}</span>
-                                                            </div>
+
+
+                <TabsContent value="site-list">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
+                            <div className="space-y-1">
+                                <CardTitle className="text-base font-semibold text-slate-700">Şantiye Personel Özeti</CardTitle>
+                                <CardDescription>Şantiyelere göre toplam personel ve maaş dağılımı.</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {/* Optional: Add Export for Summary */}
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader className="bg-slate-50">
+                                    <TableRow>
+                                        <TableHead className="font-semibold text-slate-600 pl-6">Şantiye Adı</TableHead>
+                                        <TableHead className="font-semibold text-slate-600 text-center w-[150px]">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <Users className="h-4 w-4 text-slate-500" /> Çalışan Sayısı
+                                            </div>
+                                        </TableHead>
+                                        <TableHead className="font-semibold text-slate-600 text-right pr-6 w-[200px]">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <ReceiptTurkishLira className="h-4 w-4 text-slate-500" /> Toplam Maaş
+                                            </div>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {(() => {
+                                        // Calculate Summary on the fly
+                                        const summary: Record<string, { name: string; count: number; totalSalary: number }> = {};
+
+                                        // 1. Initialize with active sites (to show empty ones if "All" is selected)
+                                        // Only if showing ALL sites, otherwise just show filtered
+                                        const showAllSites = !selectedSiteId || selectedSiteId === 'all';
+
+                                        if (showAllSites) {
+                                            sites.filter((s: any) => s.status === 'ACTIVE').forEach((s: any) => {
+                                                summary[s.id] = { name: s.name, count: 0, totalSalary: 0 };
+                                            });
+                                        }
+
+                                        // 2. Aggregate from filtered list
+                                        // [FIX] Use 'names' directly to avoid TC Deduplication merging (which hides multi-site personnel)
+                                        // We want to count every active active record per site.
+                                        const sourceList = names;
+
+                                        sourceList.forEach(p => {
+                                            // 1. Basic Date Visibility Filter
+                                            // Skip if start date is strictly in the future (next month or later)
+                                            if (p.inputDate) {
+                                                const startDate = new Date(p.inputDate);
+                                                // If View Month is BEFORE Start Month
+                                                if (differenceInCalendarMonths(startOfMonth(date), startDate) < 0) {
+                                                    // Check if they have unexpected attendance this month (e.g. started early)
+                                                    const hasAtt = Object.keys(p.attendance).some(k => k.startsWith(format(date, 'yyyy-MM')));
+                                                    if (!hasAtt) return;
+                                                }
+                                            }
+
+                                            const sId = p.siteId || 'unknown';
+
+                                            // Initialize if missing (e.g. Passive site or Unknown)
+                                            if (!summary[sId]) {
+                                                const sName = sites.find((s: any) => s.id === sId)?.name || 'Bilinmeyen Şantiye';
+                                                summary[sId] = { name: sName, count: 0, totalSalary: 0 };
+                                            }
+
+                                            summary[sId].count += 1;
+                                            summary[sId].totalSalary += parseCurrency(p.salary);
+                                        });
+
+                                        // 3. Convert to Array & Sort
+                                        // Filter out empty sites ONLY if we are filtering? No, usually summarized view shows 0 counts nicely.
+                                        // But let's keep it clean.
+                                        const summaryList = Object.values(summary).sort((a, b) => b.totalSalary - a.totalSalary);
+
+                                        const grandTotalCount = summaryList.reduce((acc, curr) => acc + curr.count, 0);
+                                        const grandTotalSalary = summaryList.reduce((acc, curr) => acc + curr.totalSalary, 0);
+
+                                        if (summaryList.length === 0) {
+                                            return (
+                                                <TableRow>
+                                                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Veri bulunamadı.</TableCell>
+                                                </TableRow>
+                                            );
+                                        }
+
+                                        return (
+                                            <>
+                                                {summaryList.map((item) => (
+                                                    <TableRow key={item.name} className="hover:bg-slate-50">
+                                                        <TableCell className="font-medium text-slate-700 pl-6">
+                                                            {item.name}
                                                         </TableCell>
-                                                        {days.map(d => {
-                                                            const dateKey = format(d, 'yyyy-MM-dd');
-                                                            const record = (person.attendance || {})[dateKey];
-                                                            const isLocked = !canEditRecord(person, record, d);
-
-                                                            // Sequential Logic:
-                                                            const showLine = !record && isExited;
-                                                            const isStartDate = person.inputDate === dateKey;
-
-                                                            // Update State for NEXT iteration (or subsequent empty cells)
-                                                            if (record?.status === 'EXIT') {
-                                                                isExited = true;
-                                                            } else if (record?.status) {
-                                                                isExited = false;
-                                                            }
-
-                                                            let cellClass = "";
-
-                                                            // Non-editable days: gray background, no click
-                                                            if (isLocked) {
-                                                                cellClass = "bg-gray-100 cursor-default";
-                                                            }
-
-                                                            // Default empty state: Centered dot
-                                                            let cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-lg select-none">·</div>;
-
-                                                            if (showLine) {
-                                                                cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
-                                                            }
-
-                                                            // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
-                                                            if (isStartDate && !record) {
-                                                                // Treat as FULL WORK
-                                                                cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
-                                                            }
-
-                                                            if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'HALF') cellContent = <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-500"><Clock className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'ABSENT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><XCircle className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
-                                                            if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
-
-                                                            // (Logic handled sequentially above via showLine)
-
-                                                            return (
-                                                                <TableCell
-                                                                    key={d.toString()}
-                                                                    className={`p-0 border-l text-center transition-colors ${isLocked ? '' : 'hover:opacity-80 cursor-pointer'} h-10 w-8 min-w-[32px] ${cellClass} relative`}
-                                                                    onClick={() => {
-                                                                        if (isLocked) return;
-                                                                        setSelectedCell({ personId: person.id, date: d });
-                                                                    }}
-                                                                    onMouseEnter={(e) => {
-                                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                                        setHoveredData({
-                                                                            x: rect.left + rect.width / 2,
-                                                                            y: rect.top,
-                                                                            record: record,
-                                                                            date: d
-                                                                        });
-                                                                    }}
-                                                                    onMouseLeave={() => setHoveredData(null)}
-                                                                >
-                                                                    {cellContent}
-                                                                    {record?.note && (
-                                                                        <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-blue-600 z-20"></div>
-                                                                    )}
-                                                                    {record?.overtime && (
-                                                                        <span className="absolute bottom-0.5 left-0.5 text-[8px] font-bold bg-blue-600 text-white px-0.5 rounded shadow-sm z-10">
-                                                                            +{record.overtime}
-                                                                        </span>
-                                                                    )}
-                                                                    {isLocked && record && (
-                                                                        <Lock className="absolute top-0.5 right-0.5 w-3 h-3 text-slate-400 opacity-70" />
-                                                                    )}
-                                                                </TableCell>
-                                                            );
-                                                        })}
-
-                                                        <TableCell className="text-center font-bold text-slate-700 border-l bg-slate-50">
-                                                            {stats.workedDays}
+                                                        <TableCell className="text-center">
+                                                            <Badge variant="secondary" className="font-mono text-sm px-3">
+                                                                {item.count}
+                                                            </Badge>
                                                         </TableCell>
-                                                        <TableCell className="text-center font-bold text-blue-700 border-l bg-blue-50">
-                                                            {stats.overtimeTotal > 0 ? stats.overtimeTotal : '-'}
-                                                        </TableCell>
-                                                        <TableCell className="text-center font-bold text-orange-700 border-l bg-orange-50">
-                                                            {stats.remainingLeave}
-                                                        </TableCell>
-
-                                                        <TableCell className="text-right whitespace-nowrap">
-                                                            {canTransfer && (
-                                                                <Button variant="ghost" size="icon" onClick={() => openTransferModal(person)} className="h-8 w-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 mr-1" title="Transfer Et">
-                                                                    <ArrowRightLeft className="w-4 h-4" />
-                                                                </Button>
-                                                            )}
-                                                            {canEditPersonnel && (
-                                                                <Button variant="ghost" size="icon" onClick={() => handleDelete(person.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50" title="Sil">
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </Button>
-                                                            )}
+                                                        <TableCell className="text-right font-mono font-medium text-slate-700 pr-6">
+                                                            {item.totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
                                                         </TableCell>
                                                     </TableRow>
-                                                )
-                                            })
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </TabsContent>
+                                                ))}
+                                                <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+                                                    <TableCell className="font-bold text-slate-800 pl-6">GENEL TOPLAM</TableCell>
+                                                    <TableCell className="font-bold text-slate-800 text-center">
+                                                        <Badge className="font-mono text-sm px-3 bg-slate-800 hover:bg-slate-700">
+                                                            {grandTotalCount}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="font-bold text-emerald-700 text-right font-mono pr-6 text-lg">
+                                                        {grandTotalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
+                                                    </TableCell>
+                                                </TableRow>
+                                            </>
+                                        );
+                                    })()}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
 
 
-                        <TabsContent value="site-list">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between pb-2 border-b">
-                                    <div className="space-y-1">
-                                        <CardTitle className="text-base font-semibold text-slate-700">Şantiye Personel Özeti</CardTitle>
-                                        <CardDescription>Şantiyelere göre toplam personel ve maaş dağılımı.</CardDescription>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {/* Optional: Add Export for Summary */}
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-0">
-                                    <Table>
-                                        <TableHeader className="bg-slate-50">
-                                            <TableRow>
-                                                <TableHead className="font-semibold text-slate-600 pl-6">Şantiye Adı</TableHead>
-                                                <TableHead className="font-semibold text-slate-600 text-center w-[150px]">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Users className="h-4 w-4 text-slate-500" /> Çalışan Sayısı
-                                                    </div>
-                                                </TableHead>
-                                                <TableHead className="font-semibold text-slate-600 text-right pr-6 w-[200px]">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <ReceiptTurkishLira className="h-4 w-4 text-slate-500" /> Toplam Maaş
-                                                    </div>
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {(() => {
-                                                // Calculate Summary on the fly
-                                                const summary: Record<string, { name: string; count: number; totalSalary: number }> = {};
 
-                                                // 1. Initialize with active sites (to show empty ones if "All" is selected)
-                                                // Only if showing ALL sites, otherwise just show filtered
-                                                const showAllSites = !selectedSiteId || selectedSiteId === 'all';
+                {/* SALARY TABLE */}
+                <TabsContent value="salary-list" className="space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between pb-2">
+                            <CardTitle>Maaş Hesaplama Tablosu</CardTitle>
+                            <Button variant="outline" size="sm" onClick={handleExportSalaryExcel}>
+                                <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+                                Excel İndir
+                            </Button>
+                        </CardHeader>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[50px]">#</TableHead>
+                                    <TableHead>Ad Soyad</TableHead>
+                                    <TableHead>Maaş</TableHead>
+                                    <TableHead className="text-center">Gün</TableHead>
+                                    <TableHead className="text-center">Mesai</TableHead>
+                                    <TableHead className="text-right">Hakediş</TableHead>
+                                    <TableHead className="text-right">Mesai Tutarı</TableHead>
+                                    <TableHead className="text-right bg-green-50/50">Prim</TableHead>
+                                    <TableHead className="text-right bg-red-50/50">Kesinti</TableHead>
+                                    <TableHead className="text-right font-bold">TOPLAM</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredNames.map((person, index) => {
+                                    const stats = calculateStats(person, date);
+                                    const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-                                                if (showAllSites) {
-                                                    sites.filter((s: any) => s.status === 'ACTIVE').forEach((s: any) => {
-                                                        summary[s.id] = { name: s.name, count: 0, totalSalary: 0 };
-                                                    });
-                                                }
-
-                                                // 2. Aggregate from filtered list
-                                                // [FIX] Use 'names' directly to avoid TC Deduplication merging (which hides multi-site personnel)
-                                                // We want to count every active active record per site.
-                                                const sourceList = names;
-
-                                                sourceList.forEach(p => {
-                                                    // 1. Basic Date Visibility Filter
-                                                    // Skip if start date is strictly in the future (next month or later)
-                                                    if (p.inputDate) {
-                                                        const startDate = new Date(p.inputDate);
-                                                        // If View Month is BEFORE Start Month
-                                                        if (differenceInCalendarMonths(startOfMonth(date), startDate) < 0) {
-                                                            // Check if they have unexpected attendance this month (e.g. started early)
-                                                            const hasAtt = Object.keys(p.attendance).some(k => k.startsWith(format(date, 'yyyy-MM')));
-                                                            if (!hasAtt) return;
-                                                        }
-                                                    }
-
-                                                    const sId = p.siteId || 'unknown';
-
-                                                    // Initialize if missing (e.g. Passive site or Unknown)
-                                                    if (!summary[sId]) {
-                                                        const sName = sites.find((s: any) => s.id === sId)?.name || 'Bilinmeyen Şantiye';
-                                                        summary[sId] = { name: sName, count: 0, totalSalary: 0 };
-                                                    }
-
-                                                    summary[sId].count += 1;
-                                                    summary[sId].totalSalary += parseCurrency(p.salary);
-                                                });
-
-                                                // 3. Convert to Array & Sort
-                                                // Filter out empty sites ONLY if we are filtering? No, usually summarized view shows 0 counts nicely.
-                                                // But let's keep it clean.
-                                                const summaryList = Object.values(summary).sort((a, b) => b.totalSalary - a.totalSalary);
-
-                                                const grandTotalCount = summaryList.reduce((acc, curr) => acc + curr.count, 0);
-                                                const grandTotalSalary = summaryList.reduce((acc, curr) => acc + curr.totalSalary, 0);
-
-                                                if (summaryList.length === 0) {
-                                                    return (
-                                                        <TableRow>
-                                                            <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Veri bulunamadı.</TableCell>
-                                                        </TableRow>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <>
-                                                        {summaryList.map((item) => (
-                                                            <TableRow key={item.name} className="hover:bg-slate-50">
-                                                                <TableCell className="font-medium text-slate-700 pl-6">
-                                                                    {item.name}
-                                                                </TableCell>
-                                                                <TableCell className="text-center">
-                                                                    <Badge variant="secondary" className="font-mono text-sm px-3">
-                                                                        {item.count}
-                                                                    </Badge>
-                                                                </TableCell>
-                                                                <TableCell className="text-right font-mono font-medium text-slate-700 pr-6">
-                                                                    {item.totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                        <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
-                                                            <TableCell className="font-bold text-slate-800 pl-6">GENEL TOPLAM</TableCell>
-                                                            <TableCell className="font-bold text-slate-800 text-center">
-                                                                <Badge className="font-mono text-sm px-3 bg-slate-800 hover:bg-slate-700">
-                                                                    {grandTotalCount}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="font-bold text-emerald-700 text-right font-mono pr-6 text-lg">
-                                                                {grandTotalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    </>
-                                                );
-                                            })()}
-                                        </TableBody>
-                                    </Table>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        <TabsContent value="all-list">
-                            <div className="border rounded-md overflow-hidden bg-white">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('tc', e)}>
-                                                        TC Kimlik {sortConfig.find(s => s.key === 'tc') && (sortConfig.find(s => s.key === 'tc')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                    </div>
-                                                    <ColumnFilter
-                                                        title="TC"
-                                                        options={names.map(n => ({ label: n.tc, value: n.tc }))}
-                                                        selectedValues={columnFilters['tc'] || []}
-                                                        onSelect={(v) => handleFilterChange('tc', v)}
-                                                        onClear={() => clearFilter('tc')}
-                                                    />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('name', e)}>
-                                                        Ad Soyad {sortConfig.find(s => s.key === 'name') && (sortConfig.find(s => s.key === 'name')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                    </div>
-                                                    <ColumnFilter
-                                                        title="İsim"
-                                                        options={names.map(n => ({ label: n.name, value: n.name }))}
-                                                        selectedValues={columnFilters['name'] || []}
-                                                        onSelect={(v) => handleFilterChange('name', v)}
-                                                        onClear={() => clearFilter('name')}
-                                                    />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('profession', e)}>
-                                                        Meslek {sortConfig.find(s => s.key === 'profession') && (sortConfig.find(s => s.key === 'profession')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                    </div>
-                                                    <ColumnFilter
-                                                        title="Meslek"
-                                                        options={professionOptions}
-                                                        selectedValues={columnFilters['profession'] || []}
-                                                        onSelect={(v) => handleFilterChange('profession', v)}
-                                                        onClear={() => clearFilter('profession')}
-                                                    />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('role', e)}>
-                                                        Görev {sortConfig.find(s => s.key === 'role') && (sortConfig.find(s => s.key === 'role')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                    </div>
-                                                    <ColumnFilter
-                                                        title="Görev"
-                                                        options={roleOptions}
-                                                        selectedValues={columnFilters['role'] || []}
-                                                        onSelect={(v) => handleFilterChange('role', v)}
-                                                        onClear={() => clearFilter('role')}
-                                                    />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead>
-                                                <div className="flex items-center space-x-2">
-                                                    <div className="flex items-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('siteName', e)}>
-                                                        Şantiye {sortConfig.find(s => s.key === 'siteName') && (sortConfig.find(s => s.key === 'siteName')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                    </div>
-                                                    <ColumnFilter
-                                                        title="Şantiye"
-                                                        options={siteOptions}
-                                                        selectedValues={columnFilters['siteName'] || []}
-                                                        onSelect={(v) => handleFilterChange('siteName', v)}
-                                                        onClear={() => clearFilter('siteName')}
-                                                    />
-                                                </div>
-                                            </TableHead>
-                                            <TableHead>
-                                                <div className="flex items-center space-x-2 justify-center">
-                                                    <div className="flex items-center justify-center gap-1 cursor-pointer hover:bg-slate-100 select-none px-1 rounded" onClick={(e) => handleSort('hasOvertime', e)}>
-                                                        Mesai? {sortConfig.find(s => s.key === 'hasOvertime') && (sortConfig.find(s => s.key === 'hasOvertime')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
-                                                    </div>
-                                                    <ColumnFilter
-                                                        title="Mesai"
-                                                        options={overtimeOptions}
-                                                        selectedValues={columnFilters['hasOvertime'] || []}
-                                                        onSelect={(v) => handleFilterChange('hasOvertime', v)}
-                                                        onClear={() => clearFilter('hasOvertime')}
-                                                    />
-                                                </div>
-                                            </TableHead>
-                                            {canViewSalary && (
-                                                <TableHead className="cursor-pointer hover:bg-slate-100 select-none" onClick={(e) => handleSort('salary', e)}>
-                                                    <div className="flex items-center gap-1">Maaş {sortConfig.find(s => s.key === 'salary') && (sortConfig.find(s => s.key === 'salary')?.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}</div>
-                                                </TableHead>
-                                            )}
-                                            <TableHead>İzin</TableHead>
-                                            <TableHead className="text-right">İşlem</TableHead>
+                                    return (
+                                        <TableRow key={person.id}>
+                                            <TableCell>{index + 1}</TableCell>
+                                            <TableCell className="font-medium">{person.name}</TableCell>
+                                            <TableCell>{formatCurrency(person.salary)}</TableCell>
+                                            <TableCell className="text-center">{stats.workedDays}</TableCell>
+                                            <TableCell className="text-center">{stats.overtimeTotal || '-'}</TableCell>
+                                            <TableCell className="text-right">{fmt(stats.basePay)} ₺</TableCell>
+                                            <TableCell className="text-right">{fmt(stats.overtimePay)} ₺</TableCell>
+                                            <TableCell className="p-0 bg-green-50/30">
+                                                <SalaryEditableCell
+                                                    value={stats.bonus}
+                                                    type="Prim"
+                                                    colorClass="text-green-700"
+                                                    onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="p-0 bg-red-50/30">
+                                                <SalaryEditableCell
+                                                    value={stats.deduction}
+                                                    type="Kesinti"
+                                                    colorClass="text-red-700"
+                                                    onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="text-right font-bold text-blue-700">
+                                                {fmt(stats.totalPay)} ₺
+                                            </TableCell>
                                         </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {allList.length === 0 ? (
-                                            <TableRow><TableCell colSpan={8} className="text-center h-24 text-muted-foreground">Kayıt Yok</TableCell></TableRow>
-                                        ) : allList.map(p => (
-                                            <TableRow key={p.id}>
-                                                <TableCell className="font-mono">{p.tc}</TableCell>
-                                                <TableCell className="font-medium">{p.name}</TableCell>
-                                                <TableCell>{p.profession}</TableCell>
-                                                <TableCell>{p.role}</TableCell>
-                                                <TableCell className="max-w-[120px] truncate" title={sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}>
-                                                    {sites.find((s: any) => s.id === p.siteId)?.name || 'Bilinmiyor'}
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    {p.hasOvertime ? <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" /> : <span className="text-slate-300">-</span>}
-                                                </TableCell>
-                                                {canViewSalary && <TableCell>{formatCurrency(p.salary)}</TableCell>}
-                                                <TableCell>{p.leaveAllowance} Gün</TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        {canTransfer && (
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => openTransferModal(p)}
-                                                                title="Şantiye Ata"
-                                                            >
-                                                                <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                                                Şantiye Ata
-                                                            </Button>
-                                                        )}
-                                                        {canEditPersonnel && (
-                                                            <>
-                                                                <Button variant="outline" size="sm" onClick={() => handleEdit(p)}>Düzenle</Button>
-                                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(p.id)} className="text-red-500">Sil</Button>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            {/* LEGEND (Antet) */}
-                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mt-4 p-2 bg-slate-50 rounded border border-slate-100 w-fit">
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-green-50 text-green-600 flex items-center justify-center"><CheckCircle2 className="w-3 h-3" /></div> Çalıştı</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center"><Clock className="w-3 h-3" /></div> Yarım Gün</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-red-50 text-red-500 flex items-center justify-center"><XCircle className="w-3 h-3" /></div> Gelmedi</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center"><Umbrella className="w-3 h-3" /></div> İzinli</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center"><FileText className="w-3 h-3" /></div> Raporlu</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded-full bg-cyan-50 text-cyan-500 flex items-center justify-center"><Car className="w-3 h-3" /></div> Dış Görev</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-slate-50 text-slate-400 flex items-center justify-center"><Plane className="w-3 h-3" /></div> Transfer</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded bg-red-50 text-red-500 flex items-center justify-center"><LogOut className="w-3 h-3" /></div> İşten Çıkış</div>
-                                <div className="flex items-center gap-1.5"><div className="w-4 h-4 rounded flex items-center justify-center"><LogIn className="w-3 h-3 text-green-600" /></div> İşe Giriş</div>
-                            </div>
-                        </TabsContent>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </Card>
+                </TabsContent>
 
-                        {/* SALARY TABLE */}
-                        <TabsContent value="salary-list" className="space-y-4">
-                            <Card>
-                                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                    <CardTitle>Maaş Hesaplama Tablosu</CardTitle>
-                                    <Button variant="outline" size="sm" onClick={handleExportSalaryExcel}>
-                                        <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                        Excel İndir
-                                    </Button>
-                                </CardHeader>
+                {/* SITE PERSONNEL LIST */}
+                {canViewAllPersonnel && (
+                    <TabsContent value="site-list" className="space-y-4">
+                        {availableSites.map(site => {
+                            const sitePersonnel = personnel.filter((p: any) => p.siteId === site.id && p.status === 'ACTIVE');
+                            if (sitePersonnel.length === 0) return null;
+                            return (
+                                <Card key={site.id}>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-base flex items-center gap-2">
+                                            {site.name}
+                                            <Badge variant="secondary">{sitePersonnel.length} kişi</Badge>
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-0">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead className="w-[50px]">#</TableHead>
+                                                    <TableHead>Ad Soyad</TableHead>
+                                                    <TableHead>Meslek</TableHead>
+                                                    <TableHead>Görev</TableHead>
+                                                    <TableHead className="text-right">Maaş</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {sitePersonnel.map((p: any, i: number) => (
+                                                    <TableRow key={p.id}>
+                                                        <TableCell>{i + 1}</TableCell>
+                                                        <TableCell className="font-medium">{p.fullName}</TableCell>
+                                                        <TableCell>{p.profession || '-'}</TableCell>
+                                                        <TableCell>{p.role || '-'}</TableCell>
+                                                        <TableCell className="text-right">{formatCurrency(p.salary)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </TabsContent>
+                )}
+
+                {/* ALL PERSONNEL LIST */}
+                {canViewAllPersonnel && (
+                    <TabsContent value="all-list" className="space-y-4">
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                <CardTitle className="flex items-center gap-2">
+                                    Tüm Personel
+                                    <Badge variant="secondary">{personnel.filter((p: any) => p.status === 'ACTIVE' && (!selectedSiteId || selectedSiteId === 'all' || p.siteId === selectedSiteId)).length} aktif</Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-[50px]">#</TableHead>
-                                            <TableHead>Ad Soyad</TableHead>
-                                            <TableHead>Maaş</TableHead>
-                                            <TableHead className="text-center">Gün</TableHead>
-                                            <TableHead className="text-center">Mesai</TableHead>
-                                            <TableHead className="text-right">Hakediş</TableHead>
-                                            <TableHead className="text-right">Mesai Tutarı</TableHead>
-                                            <TableHead className="text-right bg-green-50/50">Prim</TableHead>
-                                            <TableHead className="text-right bg-red-50/50">Kesinti</TableHead>
-                                            <TableHead className="text-right font-bold">TOPLAM</TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center gap-1">
+                                                    TC Kimlik No
+                                                    <ColumnFilter
+                                                        title="TC"
+                                                        options={generateOptions(personnel.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ tc: p.tcNumber || '' })), 'tc')}
+                                                        selectedValues={columnFilters['allList_tc'] || []}
+                                                        onSelect={(val) => handleFilterChange('allList_tc', val)}
+                                                        onClear={() => clearFilter('allList_tc')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center gap-1">
+                                                    Ad Soyad
+                                                    <ColumnFilter
+                                                        title="Ad Soyad"
+                                                        options={generateOptions(personnel.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ name: p.fullName || '' })), 'name')}
+                                                        selectedValues={columnFilters['allList_name'] || []}
+                                                        onSelect={(val) => handleFilterChange('allList_name', val)}
+                                                        onClear={() => clearFilter('allList_name')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center gap-1">
+                                                    Şantiye
+                                                    <ColumnFilter
+                                                        title="Şantiye"
+                                                        options={availableSites.map(s => ({ label: s.name, value: s.id }))}
+                                                        selectedValues={columnFilters['allList_site'] || []}
+                                                        onSelect={(val) => handleFilterChange('allList_site', val)}
+                                                        onClear={() => clearFilter('allList_site')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center gap-1">
+                                                    Meslek
+                                                    <ColumnFilter
+                                                        title="Meslek"
+                                                        options={generateOptions(personnel.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ profession: p.profession || '' })), 'profession')}
+                                                        selectedValues={columnFilters['allList_profession'] || []}
+                                                        onSelect={(val) => handleFilterChange('allList_profession', val)}
+                                                        onClear={() => clearFilter('allList_profession')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center gap-1">
+                                                    Görev
+                                                    <ColumnFilter
+                                                        title="Görev"
+                                                        options={generateOptions(personnel.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({ role: p.role || '' })), 'role')}
+                                                        selectedValues={columnFilters['allList_role'] || []}
+                                                        onSelect={(val) => handleFilterChange('allList_role', val)}
+                                                        onClear={() => clearFilter('allList_role')}
+                                                    />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead className="text-center">İzin Hakkı</TableHead>
+                                            <TableHead className="text-right">Maaş</TableHead>
+                                            <TableHead className="text-center">İşlemler</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredNames.map((person, index) => {
-                                            const stats = calculateStats(person, date);
-                                            const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-                                            return (
-                                                <TableRow key={person.id}>
-                                                    <TableCell>{index + 1}</TableCell>
-                                                    <TableCell className="font-medium">{person.name}</TableCell>
-                                                    <TableCell>{formatCurrency(person.salary)}</TableCell>
-                                                    <TableCell className="text-center">{stats.workedDays}</TableCell>
-                                                    <TableCell className="text-center">{stats.overtimeTotal || '-'}</TableCell>
-                                                    <TableCell className="text-right">{fmt(stats.basePay)} ₺</TableCell>
-                                                    <TableCell className="text-right">{fmt(stats.overtimePay)} ₺</TableCell>
-                                                    <TableCell className="p-0 bg-green-50/30">
-                                                        <SalaryEditableCell
-                                                            value={stats.bonus}
-                                                            type="Prim"
-                                                            colorClass="text-green-700"
-                                                            onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="p-0 bg-red-50/30">
-                                                        <SalaryEditableCell
-                                                            value={stats.deduction}
-                                                            type="Kesinti"
-                                                            colorClass="text-red-700"
-                                                            onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-bold text-blue-700">
-                                                        {fmt(stats.totalPay)} ₺
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
+                                        {personnel
+                                            .filter((p: any) => p.status === 'ACTIVE')
+                                            .filter((p: any) => {
+                                                // Site filter from top dropdown
+                                                if (selectedSiteId && selectedSiteId !== 'all') {
+                                                    if (p.siteId !== selectedSiteId) return false;
+                                                }
+                                                return true;
+                                            })
+                                            .filter((p: any) => {
+                                                const tcFilter = columnFilters['allList_tc'] || [];
+                                                if (tcFilter.length > 0 && !tcFilter.includes(p.tcNumber || '')) return false;
+                                                const nameFilter = columnFilters['allList_name'] || [];
+                                                if (nameFilter.length > 0 && !nameFilter.includes(p.fullName || '')) return false;
+                                                const siteFilter = columnFilters['allList_site'] || [];
+                                                if (siteFilter.length > 0 && !siteFilter.includes(p.siteId || '')) return false;
+                                                const profFilter = columnFilters['allList_profession'] || [];
+                                                if (profFilter.length > 0 && !profFilter.includes(p.profession || '')) return false;
+                                                const roleFilter = columnFilters['allList_role'] || [];
+                                                if (roleFilter.length > 0 && !roleFilter.includes(p.role || '')) return false;
+                                                return true;
+                                            })
+                                            .sort((a: any, b: any) => (a.fullName || '').localeCompare(b.fullName || '', 'tr'))
+                                            .map((p: any, i: number) => {
+                                                const site = sites.find((s: any) => s.id === p.siteId);
+                                                return (
+                                                    <TableRow key={p.id}>
+                                                        <TableCell className="text-muted-foreground">{i + 1}</TableCell>
+                                                        <TableCell className="font-mono text-xs">{p.tcNumber || '-'}</TableCell>
+                                                        <TableCell className="font-medium">{p.fullName}</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant="outline" className="text-xs">{site?.name || '-'}</Badge>
+                                                        </TableCell>
+                                                        <TableCell>{p.profession || '-'}</TableCell>
+                                                        <TableCell>{p.role || '-'}</TableCell>
+                                                        <TableCell className="text-center">{p.leaveAllowance || '0'} gün</TableCell>
+                                                        <TableCell className="text-right">{formatCurrency(p.salary)}</TableCell>
+                                                        <TableCell>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                {canEditPersonnel && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                                        title="Düzenle"
+                                                                        onClick={() => {
+                                                                            const person = names.find(n => n.id === p.id);
+                                                                            if (person) {
+                                                                                handleEdit(person);
+                                                                            } else {
+                                                                                // Fallback: construct from store data
+                                                                                handleEdit({
+                                                                                    id: p.id,
+                                                                                    siteId: p.siteId || '',
+                                                                                    tc: p.tcNumber || '',
+                                                                                    name: p.fullName,
+                                                                                    profession: p.profession || '',
+                                                                                    role: p.role || '',
+                                                                                    salary: p.salary?.toString() || '',
+                                                                                    leaveAllowance: p.leaveAllowance || '',
+                                                                                    hasOvertime: p.hasOvertime || false,
+                                                                                    note: p.note || '',
+                                                                                    inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
+                                                                                    attendance: {},
+                                                                                    salaryHistory: [],
+                                                                                    salaryAdjustments: {}
+                                                                                });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <Pencil className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                )}
+                                                                {canTransfer && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                                        title="Şantiye Ata"
+                                                                        onClick={() => {
+                                                                            setTransferData({
+                                                                                personId: p.id,
+                                                                                targetSiteId: '',
+                                                                                transferDate: new Date(),
+                                                                                mode: 'move'
+                                                                            });
+                                                                            setIsTransferOpen(true);
+                                                                        }}
+                                                                    >
+                                                                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                )}
+                                                                {canEditPersonnel && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                        title="Sil"
+                                                                        onClick={() => handleDelete(p.id)}
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
                                     </TableBody>
                                 </Table>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+                )}
 
-                    <Dialog open={!!selectedCell} onOpenChange={(open) => !open && setSelectedCell(null)}>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Puantaj Detayı</DialogTitle>
-                            </DialogHeader>
-                            {selectedCell && (
-                                <div className="space-y-4 py-4">
-                                    <div className="bg-slate-50 p-3 rounded-lg text-center border pb-4">
-                                        <p className="font-bold text-lg">{names.find(n => n.id === selectedCell.personId)?.name}</p>
-                                        <p className="text-muted-foreground text-sm">{format(selectedCell.date, 'd MMMM yyyy', { locale: tr })}</p>
-                                    </div>
+                <Dialog open={!!selectedCell} onOpenChange={(open) => !open && setSelectedCell(null)}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Puantaj Detayı</DialogTitle>
+                        </DialogHeader>
+                        {selectedCell && (
+                            <div className="space-y-4 py-4">
+                                <div className="bg-slate-50 p-3 rounded-lg text-center border pb-4">
+                                    <p className="font-bold text-lg">{names.find(n => n.id === selectedCell.personId)?.name}</p>
+                                    <p className="text-muted-foreground text-sm">{format(selectedCell.date, 'd MMMM yyyy', { locale: tr })}</p>
+                                </div>
 
-                                    <div className="space-y-3">
-                                        <Label>Durum Seçiniz (Seçim anında kaydedilir)</Label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Button
-                                                variant={attendanceForm.status === 'FULL' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'FULL' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-green-50 text-green-700 border-green-200'}`}
-                                                onClick={() => saveAttendance('FULL')}
-                                            >
-                                                <CheckCircle2 className="w-5 h-5" />
-                                                <span className="text-xs font-medium">Çalıştı</span>
-                                            </Button>
-                                            <Button
-                                                variant={attendanceForm.status === 'HALF' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'HALF' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50 text-orange-700 border-orange-200'}`}
-                                                onClick={() => saveAttendance('HALF')}
-                                            >
-                                                <Clock className="w-5 h-5" />
-                                                <span className="text-xs font-medium">Yarım Gün</span>
-                                            </Button>
-                                            <Button
-                                                variant={attendanceForm.status === 'ABSENT' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'ABSENT' ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-50 text-red-700 border-red-200'}`}
-                                                onClick={() => saveAttendance('ABSENT')}
-                                            >
-                                                <XCircle className="w-5 h-5" />
-                                                <span className="text-xs font-medium">Gelmedi</span>
-                                            </Button>
-                                            <Button
-                                                variant={attendanceForm.status === 'LEAVE' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'LEAVE' ? 'bg-blue-500 hover:bg-blue-600' : 'hover:bg-blue-50 text-blue-700 border-blue-200'}`}
-                                                onClick={() => saveAttendance('LEAVE')}
-                                            >
-                                                <Umbrella className="w-5 h-5" />
-                                                <span className="text-xs font-medium">İzinli</span>
-                                            </Button>
-                                            <Button
-                                                variant={attendanceForm.status === 'REPORT' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'REPORT' ? 'bg-purple-500 hover:bg-purple-600' : 'hover:bg-purple-50 text-purple-700 border-purple-200'}`}
-                                                onClick={() => saveAttendance('REPORT')}
-                                            >
-                                                <FileText className="w-5 h-5" />
-                                                <span className="text-xs font-medium">Raporlu</span>
-                                            </Button>
-                                            <Button
-                                                variant={attendanceForm.status === 'OUT' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'OUT' ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50 text-cyan-700 border-cyan-200'}`}
-                                                onClick={() => saveAttendance('OUT')}
-                                            >
-                                                <Car className="w-5 h-5" />
-                                                <span className="text-xs font-medium">Dış Görev</span>
-                                            </Button>
-                                            <Button
-                                                variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
-                                                className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-2 font-bold transition-colors shadow-sm`}
-                                                onClick={() => {
-                                                    if (window.confirm("Bu personeli işten çıkarmak istediğinize emin misiniz?")) {
-                                                        saveAttendance('EXIT');
-                                                    }
-                                                }}
-                                            >
-                                                <LogOut className="w-5 h-5" />
-                                                <span className="text-xs font-medium">İşten Ayrıldı</span>
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {names.find(n => n.id === selectedCell.personId)?.hasOvertime && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Mesai (Saat)</Label>
-                                                <Input
-                                                    type="number"
-                                                    placeholder="0"
-                                                    value={attendanceForm.overtime || ''}
-                                                    onChange={e => setAttendanceForm({ ...attendanceForm, overtime: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-2">
-                                        <Label>
-                                            Açıklama
-                                            {names.find(n => n.id === selectedCell.personId)?.hasOvertime && attendanceForm.overtime && <span className="text-red-500 ml-1">(Mesai için zorunlu *)</span>}
-                                        </Label>
-                                        <Textarea
-                                            placeholder="Not giriniz..."
-                                            value={attendanceForm.note || ''}
-                                            onChange={e => setAttendanceForm({ ...attendanceForm, note: e.target.value })}
-                                            className="resize-none"
-                                        />
-                                    </div>
-
-                                    <div className="pt-2">
-                                        <Button variant="ghost" className="w-full text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => { setAttendanceForm({ status: '', overtime: '', note: '' }); saveAttendance(''); }}>
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Kaydı Temizle
+                                <div className="space-y-3">
+                                    <Label>Durum Seçiniz (Seçim anında kaydedilir)</Label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button
+                                            variant={attendanceForm.status === 'FULL' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'FULL' ? 'bg-green-600 hover:bg-green-700' : 'hover:bg-green-50 text-green-700 border-green-200'}`}
+                                            onClick={() => saveAttendance('FULL')}
+                                        >
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Çalıştı</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'HALF' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'HALF' ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50 text-orange-700 border-orange-200'}`}
+                                            onClick={() => saveAttendance('HALF')}
+                                        >
+                                            <Clock className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Yarım Gün</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'ABSENT' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'ABSENT' ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-50 text-red-700 border-red-200'}`}
+                                            onClick={() => saveAttendance('ABSENT')}
+                                        >
+                                            <XCircle className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Gelmedi</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'LEAVE' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'LEAVE' ? 'bg-blue-500 hover:bg-blue-600' : 'hover:bg-blue-50 text-blue-700 border-blue-200'}`}
+                                            onClick={() => saveAttendance('LEAVE')}
+                                        >
+                                            <Umbrella className="w-5 h-5" />
+                                            <span className="text-xs font-medium">İzinli</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'REPORT' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'REPORT' ? 'bg-purple-500 hover:bg-purple-600' : 'hover:bg-purple-50 text-purple-700 border-purple-200'}`}
+                                            onClick={() => saveAttendance('REPORT')}
+                                        >
+                                            <FileText className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Raporlu</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'OUT' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'OUT' ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50 text-cyan-700 border-cyan-200'}`}
+                                            onClick={() => saveAttendance('OUT')}
+                                        >
+                                            <Car className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Dış Görev</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-2 font-bold transition-colors shadow-sm`}
+                                            onClick={() => {
+                                                if (window.confirm("Bu personeli işten çıkarmak istediğinize emin misiniz?")) {
+                                                    saveAttendance('EXIT');
+                                                }
+                                            }}
+                                        >
+                                            <LogOut className="w-5 h-5" />
+                                            <span className="text-xs font-medium">İşten Ayrıldı</span>
                                         </Button>
                                     </div>
                                 </div>
-                            )}
-                        </DialogContent>
-                    </Dialog>
 
-                    <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Personel Transfer İşlemi</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
+                                {names.find(n => n.id === selectedCell.personId)?.hasOvertime && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Mesai (Saat)</Label>
+                                            <Input
+                                                type="number"
+                                                placeholder="0"
+                                                value={attendanceForm.overtime || ''}
+                                                onChange={e => setAttendanceForm({ ...attendanceForm, overtime: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="space-y-2">
-                                    <Label>Transfer Edilecek Personel</Label>
-                                    <Input disabled value={names.find(n => n.id === transferData.personId)?.name || ''} className="bg-muted" />
+                                    <Label>
+                                        Açıklama
+                                        {names.find(n => n.id === selectedCell.personId)?.hasOvertime && attendanceForm.overtime && <span className="text-red-500 ml-1">(Mesai için zorunlu *)</span>}
+                                    </Label>
+                                    <Textarea
+                                        placeholder="Not giriniz..."
+                                        value={attendanceForm.note || ''}
+                                        onChange={e => setAttendanceForm({ ...attendanceForm, note: e.target.value })}
+                                        className="resize-none"
+                                    />
                                 </div>
 
+                                <div className="pt-2">
+                                    <Button variant="ghost" className="w-full text-red-500 hover:bg-red-50 hover:text-red-600" onClick={() => { setAttendanceForm({ status: '', overtime: '', note: '' }); saveAttendance(''); }}>
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Kaydı Temizle
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={isTransferOpen} onOpenChange={setIsTransferOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Personel Transfer İşlemi</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>Transfer Edilecek Personel</Label>
+                                <Input disabled value={names.find(n => n.id === transferData.personId)?.name || ''} className="bg-muted" />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Hedef Şantiye</Label>
+                                <Select
+                                    value={transferData.targetSiteId}
+                                    onValueChange={(val) => setTransferData({ ...transferData, targetSiteId: val })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Şantiye Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableSites
+                                            .filter(s => s.id !== names.find(n => n.id === transferData.personId)?.siteId)
+                                            .map(s => (
+                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Transfer Tarihi (Bu tarih ve sonrası yeni şantiyeye geçer)</Label>
+                                <Input
+                                    type="date"
+                                    value={transferData.transferDate instanceof Date && !isNaN(transferData.transferDate.getTime()) ? format(transferData.transferDate, 'yyyy-MM-dd') : ''}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val) {
+                                            const [y, m, d] = val.split('-').map(Number);
+                                            const date = new Date(y, m - 1, d);
+                                            setTransferData({ ...transferData, transferDate: date });
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 border">
+                                <p className="flex items-center gap-2 font-bold mb-1"><Plane className="w-4 h-4" /> Transfer Bilgisi:</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Seçilen tarihten <b>önceki</b> günler bu şantiyede kalır.</li>
+                                    <li>Seçilen tarih ve <b>sonrası</b> yeni şantiyeye taşınır.</li>
+                                    <li>Boş kalan günler "Transfer" (Uçak) simgesi ile doldurulur.</li>
+                                </ul>
+                            </div>
+
+                            <div className="pt-4 flex justify-end">
+                                <Button onClick={handleTransferSubmit} disabled={!transferData.targetSiteId}>
+                                    Transfer Et
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+
+
+
+
+                {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
+                <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                    setIsDialogOpen(open);
+                    if (!open) setEditingId(null);
+                }}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="space-y-2">
+                                <Label>İşe Giriş Tarihi</Label>
+                                <Input
+                                    type="date"
+                                    value={formData.inputDate}
+                                    onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
+                                <Input
+                                    value={formData.tc}
+                                    onChange={e => setFormData({ ...formData, tc: e.target.value })}
+                                    placeholder="11 haneli TC no"
+                                    maxLength={11}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
+                                <Input
+                                    value={formData.name}
+                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Ad Soyad"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Hedef Şantiye</Label>
+                                    <Label>Mesleği <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={formData.profession}
+                                        onChange={e => setFormData({ ...formData, profession: e.target.value })}
+                                        placeholder="Örn: Kalıpçı"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Görevi <span className="text-red-500">*</span></Label>
+                                    <Input
+                                        value={formData.role}
+                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                        placeholder="Örn: Usta"
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Şantiye <span className="text-red-500">*</span></Label>
+                                {availableSites.length > 1 ? (
                                     <Select
-                                        value={transferData.targetSiteId}
-                                        onValueChange={(val) => setTransferData({ ...transferData, targetSiteId: val })}
+                                        value={formData.siteId}
+                                        onValueChange={(val) => setFormData({ ...formData, siteId: val })}
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Şantiye Seçiniz" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {availableSites
-                                                .filter(s => s.id !== names.find(n => n.id === transferData.personId)?.siteId)
-                                                .map(s => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
+                                            {availableSites.map(s => (
+                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Transfer Tarihi (Bu tarih ve sonrası yeni şantiyeye geçer)</Label>
+                                ) : (
                                     <Input
-                                        type="date"
-                                        value={transferData.transferDate instanceof Date && !isNaN(transferData.transferDate.getTime()) ? format(transferData.transferDate, 'yyyy-MM-dd') : ''}
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val) {
-                                                const [y, m, d] = val.split('-').map(Number);
-                                                const date = new Date(y, m - 1, d);
-                                                setTransferData({ ...transferData, transferDate: date });
-                                            }
+                                        value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
+                                        disabled
+                                        className="bg-muted"
+                                    />
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>
+                                    Maaşı (₺) <span className="text-red-500">*</span>
+                                    {editingId && (() => {
+                                        const person = names.find(p => p.id === editingId);
+                                        const history = (person as any)?.salaryHistory;
+                                        if (history && Array.isArray(history) && history.length > 0) {
+                                            const lastEntry = history[history.length - 1];
+                                            const dateStr = lastEntry.date ? new Date(lastEntry.date).toLocaleDateString('tr-TR') : '';
+                                            return <span className="text-xs text-muted-foreground ml-2">(Son güncelleme: {dateStr})</span>;
+                                        }
+                                        return null;
+                                    })()}
+                                </Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        type="text"
+                                        value={formData.salary}
+                                        onChange={e => {
+                                            const formatted = formatMoneyInput(e.target.value);
+                                            setFormData({ ...formData, salary: formatted });
                                         }}
+                                        placeholder="0,00"
                                     />
-                                </div>
 
-                                <div className="bg-slate-50 p-3 rounded text-sm text-slate-600 border">
-                                    <p className="flex items-center gap-2 font-bold mb-1"><Plane className="w-4 h-4" /> Transfer Bilgisi:</p>
-                                    <ul className="list-disc list-inside space-y-1">
-                                        <li>Seçilen tarihten <b>önceki</b> günler bu şantiyede kalır.</li>
-                                        <li>Seçilen tarih ve <b>sonrası</b> yeni şantiyeye taşınır.</li>
-                                        <li>Boş kalan günler "Transfer" (Uçak) simgesi ile doldurulur.</li>
-                                    </ul>
-                                </div>
 
-                                <div className="pt-4 flex justify-end">
-                                    <Button onClick={handleTransferSubmit} disabled={!transferData.targetSiteId}>
-                                        Transfer Et
-                                    </Button>
                                 </div>
                             </div>
-                        </DialogContent>
-                    </Dialog>
-
-
-
-
-
-                    {/* MAIN ADD/EDIT DIALOG (Moved Outside Tabs) */}
-                    <Dialog open={isDialogOpen} onOpenChange={(open) => {
-                        setIsDialogOpen(open);
-                        if (!open) setEditingId(null);
-                    }}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>{editingId ? 'Personel Düzenle' : 'Yeni Personel Ekle (Bağımsız)'}</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>İşe Giriş Tarihi</Label>
+                                    <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
                                     <Input
-                                        type="date"
-                                        value={formData.inputDate}
-                                        onChange={e => setFormData({ ...formData, inputDate: e.target.value })}
+                                        type="number"
+                                        value={formData.leaveAllowance}
+                                        onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
+                                        placeholder="0"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label>T.C. Kimlik Numarası <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.tc}
-                                        onChange={e => setFormData({ ...formData, tc: e.target.value })}
-                                        placeholder="11 haneli TC no"
-                                        maxLength={11}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Adı Soyadı <span className="text-red-500">*</span></Label>
-                                    <Input
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Ad Soyad"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Mesleği <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={formData.profession}
-                                            onChange={e => setFormData({ ...formData, profession: e.target.value })}
-                                            placeholder="Örn: Kalıpçı"
+                                <div className="flex items-end pb-2">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="overtime"
+                                            checked={formData.hasOvertime}
+                                            onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
                                         />
+                                        <Label htmlFor="overtime">Mesai Hakkı Var</Label>
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label>Görevi <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            value={formData.role}
-                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                            placeholder="Örn: Usta"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Şantiye <span className="text-red-500">*</span></Label>
-                                    {availableSites.length > 1 ? (
-                                        <Select
-                                            value={formData.siteId}
-                                            onValueChange={(val) => setFormData({ ...formData, siteId: val })}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Şantiye Seçiniz" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {availableSites.map(s => (
-                                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <Input
-                                            value={availableSites[0]?.name || 'Yetkili Şantiye Yok'}
-                                            disabled
-                                            className="bg-muted"
-                                        />
-                                    )}
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Maaşı (₺) <span className="text-red-500">*</span></Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            type="text"
-                                            value={formData.salary}
-                                            onChange={e => {
-                                                const formatted = formatMoneyInput(e.target.value);
-                                                setFormData({ ...formData, salary: formatted });
-                                            }}
-                                            placeholder="0,00"
-                                            disabled={!!editingId}
-                                            className={editingId ? "bg-slate-100" : ""}
-                                        />
-                                        {editingId && (
-                                            <Button
-                                                type="button"
-                                                variant={showSalaryInput ? "secondary" : "outline"}
-                                                onClick={() => setShowSalaryInput(!showSalaryInput)}
-                                            >
-                                                {showSalaryInput ? "İptal" : "Yeni Maaş"}
-                                            </Button>
-                                        )}
-                                    </div>
-
-                                    {showSalaryInput && editingId && (
-                                        <div className="mt-2 p-3 bg-slate-50 border rounded-md animate-in fade-in slide-in-from-top-2 space-y-2">
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-slate-500 block">Yeni Maaş Tutarı</Label>
-                                                <Input
-                                                    type="text"
-                                                    value={formData.newSalary}
-                                                    onChange={e => {
-                                                        const formatted = formatMoneyInput(e.target.value);
-                                                        setFormData({ ...formData, newSalary: formatted });
-                                                    }}
-                                                    placeholder="Yeni tutarı giriniz..."
-                                                    autoFocus
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-slate-500 block">Güncelleme Tarihi</Label>
-                                                <Input
-                                                    type="date"
-                                                    value={formData.newSalaryDate}
-                                                    onChange={e => setFormData({ ...formData, newSalaryDate: e.target.value })}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-
-
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>İzin Hakkı (Gün) <span className="text-red-500">*</span></Label>
-                                        <Input
-                                            type="number"
-                                            value={formData.leaveAllowance}
-                                            onChange={e => setFormData({ ...formData, leaveAllowance: e.target.value })}
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    <div className="flex items-end pb-2">
-                                        <div className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id="overtime"
-                                                checked={formData.hasOvertime}
-                                                onCheckedChange={(checked) => setFormData({ ...formData, hasOvertime: checked as boolean })}
-                                            />
-                                            <Label htmlFor="overtime">Mesai Hakkı Var</Label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Notlar</Label>
-                                    <Textarea
-                                        value={formData.note}
-                                        onChange={e => setFormData({ ...formData, note: e.target.value })}
-                                        placeholder="Kısa notlar..."
-                                    />
-                                </div>
-                                <div className="pt-4 flex justify-end">
-                                    <Button onClick={handleAdd}>
-                                        {editingId ? 'Güncelle' : 'Kaydet'}
-                                    </Button>
                                 </div>
                             </div>
-                        </DialogContent>
-                    </Dialog>
-
-                    {/* Salary Adjustment Dialog */}
-                    <Dialog open={isSalaryAdjustmentOpen} onOpenChange={setIsSalaryAdjustmentOpen}>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Maaş Düzenlemesi ({salaryAdjustmentForm.dateKey})</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-4">
-                                    Bu ay için hesaplanan değerleri buradan manuel olarak değiştirebilirsiniz. Değişiklikler sadece bu ay için geçerli olacaktır.
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label>Çalışılan Gün</Label>
-                                        <Input
-                                            type="number"
-                                            value={salaryAdjustmentForm.workedDays}
-                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, workedDays: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Mesai Saati</Label>
-                                        <Input
-                                            type="number"
-                                            value={salaryAdjustmentForm.overtimeHours}
-                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, overtimeHours: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Ekstra Prim (₺)</Label>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            value={salaryAdjustmentForm.bonus}
-                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, bonus: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Kesinti / Avans (₺)</Label>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            value={salaryAdjustmentForm.deduction}
-                                            onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, deduction: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label>Not</Label>
-                                    <Textarea
-                                        placeholder="Düzenleme nedeni..."
-                                        value={salaryAdjustmentForm.note}
-                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, note: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="flex justify-end pt-4">
-                                    <Button onClick={() => {
-                                        setNames(prev => prev.map(p => {
-                                            if (p.id === salaryAdjustmentForm.personId) {
-                                                return {
-                                                    ...p,
-                                                    salaryAdjustments: {
-                                                        ...p.salaryAdjustments,
-                                                        [salaryAdjustmentForm.dateKey]: {
-                                                            workedDays: salaryAdjustmentForm.workedDays ? parseFloat(salaryAdjustmentForm.workedDays) : undefined,
-                                                            overtimeHours: salaryAdjustmentForm.overtimeHours ? parseFloat(salaryAdjustmentForm.overtimeHours) : undefined,
-                                                            bonus: salaryAdjustmentForm.bonus ? parseFloat(salaryAdjustmentForm.bonus) : undefined,
-                                                            deduction: salaryAdjustmentForm.deduction ? parseFloat(salaryAdjustmentForm.deduction) : undefined,
-                                                            note: salaryAdjustmentForm.note
-                                                        }
-                                                    }
-                                                };
-                                            }
-                                            return p;
-                                        }));
-                                        setIsSalaryAdjustmentOpen(false);
-                                    }}>
-                                        Kaydet
-                                    </Button>
-                                </div>
+                            <div className="space-y-2">
+                                <Label>Notlar</Label>
+                                <Textarea
+                                    value={formData.note}
+                                    onChange={e => setFormData({ ...formData, note: e.target.value })}
+                                    placeholder="Kısa notlar..."
+                                />
                             </div>
-                        </DialogContent>
-                    </Dialog>
-
-                    {/* Rich Tooltip Overlay */}
-                    {hoveredData && (hoveredData.record?.note || hoveredData.record?.overtime) && (
-                        <div
-                            className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
-                            style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
-                        >
-                            <div className="font-bold text-center mb-1 text-slate-100 text-sm">
-                                {hoveredData.record?.status === 'FULL' && 'Tam Gün'}
-                                {hoveredData.record?.status === 'HALF' && 'Yarım Gün'}
-                                {hoveredData.record?.status === 'ABSENT' && 'Gelmedi'}
-                                {hoveredData.record?.status === 'LEAVE' && 'İzinli'}
-                                {hoveredData.record?.status === 'REPORT' && 'Raporlu'}
-                                {hoveredData.record?.status === 'OUT' && 'Dış Görev'}
-                                {hoveredData.record?.status === 'EXIT' && 'İşten Çıkış'}
-                                {hoveredData.record?.status === 'TRANSFER' && 'Transfer'}
-                                {!hoveredData.record && 'Kayıt Yok'}
+                            <div className="pt-4 flex justify-end">
+                                <Button onClick={handleAdd}>
+                                    {editingId ? 'Güncelle' : 'Kaydet'}
+                                </Button>
                             </div>
-
-                            {hoveredData.record?.overtime && (
-                                <div className="text-orange-400 font-extrabold text-center text-sm border-b border-slate-700/50 pb-1 mb-1">
-                                    +{hoveredData.record.overtime} Saat Mesai
-                                </div>
-                            )}
-
-                            {hoveredData.record?.note && (
-                                <div className={`italic text-white break-words leading-relaxed text-sm font-medium ${hoveredData.record.overtime ? 'mt-1' : 'border-t border-slate-700/50 pt-1 mt-1'}`}>
-                                    {hoveredData.record.note}
-                                </div>
-                            )}
-
-                            {/* Tooltip Arrow */}
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
                         </div>
-                    )}
-                </TabsContent>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Salary Adjustment Dialog */}
+                <Dialog open={isSalaryAdjustmentOpen} onOpenChange={setIsSalaryAdjustmentOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Maaş Düzenlemesi ({salaryAdjustmentForm.dateKey})</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            <div className="bg-blue-50 p-3 rounded text-sm text-blue-700 mb-4">
+                                Bu ay için hesaplanan değerleri buradan manuel olarak değiştirebilirsiniz. Değişiklikler sadece bu ay için geçerli olacaktır.
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Çalışılan Gün</Label>
+                                    <Input
+                                        type="number"
+                                        value={salaryAdjustmentForm.workedDays}
+                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, workedDays: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Mesai Saati</Label>
+                                    <Input
+                                        type="number"
+                                        value={salaryAdjustmentForm.overtimeHours}
+                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, overtimeHours: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Ekstra Prim (₺)</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0"
+                                        value={salaryAdjustmentForm.bonus}
+                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, bonus: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Kesinti / Avans (₺)</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="0"
+                                        value={salaryAdjustmentForm.deduction}
+                                        onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, deduction: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Not</Label>
+                                <Textarea
+                                    placeholder="Düzenleme nedeni..."
+                                    value={salaryAdjustmentForm.note}
+                                    onChange={e => setSalaryAdjustmentForm({ ...salaryAdjustmentForm, note: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="flex justify-end pt-4">
+                                <Button onClick={() => {
+                                    setNames(prev => prev.map(p => {
+                                        if (p.id === salaryAdjustmentForm.personId) {
+                                            return {
+                                                ...p,
+                                                salaryAdjustments: {
+                                                    ...p.salaryAdjustments,
+                                                    [salaryAdjustmentForm.dateKey]: {
+                                                        workedDays: salaryAdjustmentForm.workedDays ? parseFloat(salaryAdjustmentForm.workedDays) : undefined,
+                                                        overtimeHours: salaryAdjustmentForm.overtimeHours ? parseFloat(salaryAdjustmentForm.overtimeHours) : undefined,
+                                                        bonus: salaryAdjustmentForm.bonus ? parseFloat(salaryAdjustmentForm.bonus) : undefined,
+                                                        deduction: salaryAdjustmentForm.deduction ? parseFloat(salaryAdjustmentForm.deduction) : undefined,
+                                                        note: salaryAdjustmentForm.note
+                                                    }
+                                                }
+                                            };
+                                        }
+                                        return p;
+                                    }));
+                                    setIsSalaryAdjustmentOpen(false);
+                                }}>
+                                    Kaydet
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Rich Tooltip Overlay */}
+                {hoveredData && (hoveredData.record?.note || hoveredData.record?.overtime) && (
+                    <div
+                        className="fixed z-[100] p-3 rounded-lg shadow-2xl bg-slate-900 text-white text-xs pointer-events-none transform -translate-x-1/2 -translate-y-full mb-2 border border-slate-700 w-max max-w-[250px]"
+                        style={{ left: hoveredData.x, top: hoveredData.y - 4 }}
+                    >
+                        <div className="font-bold text-center mb-1 text-slate-100 text-sm">
+                            {hoveredData.record?.status === 'FULL' && 'Tam Gün'}
+                            {hoveredData.record?.status === 'HALF' && 'Yarım Gün'}
+                            {hoveredData.record?.status === 'ABSENT' && 'Gelmedi'}
+                            {hoveredData.record?.status === 'LEAVE' && 'İzinli'}
+                            {hoveredData.record?.status === 'REPORT' && 'Raporlu'}
+                            {hoveredData.record?.status === 'OUT' && 'Dış Görev'}
+                            {hoveredData.record?.status === 'EXIT' && 'İşten Çıkış'}
+                            {hoveredData.record?.status === 'TRANSFER' && 'Transfer'}
+                            {!hoveredData.record && 'Kayıt Yok'}
+                        </div>
+
+                        {hoveredData.record?.overtime && (
+                            <div className="text-orange-400 font-extrabold text-center text-sm border-b border-slate-700/50 pb-1 mb-1">
+                                +{hoveredData.record.overtime} Saat Mesai
+                            </div>
+                        )}
+
+                        {hoveredData.record?.note && (
+                            <div className={`italic text-white break-words leading-relaxed text-sm font-medium ${hoveredData.record.overtime ? 'mt-1' : 'border-t border-slate-700/50 pt-1 mt-1'}`}>
+                                {hoveredData.record.note}
+                            </div>
+                        )}
+
+                        {/* Tooltip Arrow */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                    </div>
+                )}
             </Tabs>
         </div >
     );

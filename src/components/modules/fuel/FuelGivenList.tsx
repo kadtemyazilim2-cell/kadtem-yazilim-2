@@ -59,8 +59,10 @@ export function FuelGivenList() {
                                 <TableHead>Tarih</TableHead>
                                 <TableHead>Plaka</TableHead>
                                 <TableHead>Şantiye</TableHead>
-                                <TableHead>Miktar</TableHead>
-                                <TableHead>KM</TableHead>
+                                <TableHead className="text-right">Miktar</TableHead>
+                                <TableHead className="text-left w-[30px]"></TableHead>
+                                <TableHead className="text-right">Km/Saat</TableHead>
+                                <TableHead className="text-left w-[50px]"></TableHead>
                                 <TableHead className="hidden md:table-cell">Not</TableHead>
                                 <TableHead className="w-[50px]"></TableHead>
                             </TableRow>
@@ -68,7 +70,7 @@ export function FuelGivenList() {
                         <TableBody>
                             {userLogs.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                                         Henüz yaptığınız bir yakıt işlemi bulunmuyor.
                                     </TableCell>
                                 </TableRow>
@@ -82,8 +84,10 @@ export function FuelGivenList() {
                                             {getVehiclePlate(log.vehicleId)} <span className="text-xs text-muted-foreground hidden sm:inline">({getVehicleBrand(log.vehicleId)})</span>
                                         </TableCell>
                                         <TableCell className="max-w-[80px] truncate" title={getSiteName(log.siteId)}>{getSiteName(log.siteId)}</TableCell>
-                                        <TableCell className="font-bold">{log.liters} Lt</TableCell>
-                                        <TableCell>{log.mileage} km</TableCell>
+                                        <TableCell className="font-bold text-right tabular-nums">{log.liters.toLocaleString('tr-TR')}</TableCell>
+                                        <TableCell className="text-left text-muted-foreground">Lt</TableCell>
+                                        <TableCell className="text-right tabular-nums">{log.mileage.toLocaleString('tr-TR')}</TableCell>
+                                        <TableCell className="text-left text-muted-foreground">Km/Saat</TableCell>
                                         <TableCell className="hidden md:table-cell max-w-[200px] truncate" title={log.description}>
                                             {log.description || '-'}
                                         </TableCell>

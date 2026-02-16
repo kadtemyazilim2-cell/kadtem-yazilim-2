@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    ChevronLeft, ChevronRight, Truck, CheckCircle2, Clock, PauseCircle, Wrench, UserX, CalendarOff, Fuel, Trash2
+    ChevronLeft, ChevronRight, Truck, CheckCircle2, Clock, PauseCircle, Wrench, UserX, CalendarOff, Fuel, Trash2, FileSpreadsheet, Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
@@ -607,41 +607,53 @@ export function VehicleAttendanceList() {
             <Card>
                 <CardHeader className="px-3 sm:px-6">
                     <div className="flex flex-col gap-3">
-                        {/* Row 1: Title + Site Selector */}
+                        {/* Row 1: Title + Month Nav + Site Selector */}
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                                 <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
                                 Araç Puantaj Takibi
                             </CardTitle>
-                            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-                                <SelectTrigger className="w-full sm:w-[200px]">
-                                    <SelectValue placeholder="Şantiye Seçiniz" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {sites.filter((s: any) => s.status === 'ACTIVE' && vehicles.some((v: any) => v.status !== 'PASSIVE' && ((v.assignedSiteIds && v.assignedSiteIds.includes(s.id)) || v.assignedSiteId === s.id))).map((s: any) => (
-                                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Row 2: Month Navigator (centered) */}
-                        {user?.role === 'ADMIN' && (
-                            <div className="flex items-center justify-center gap-2 border rounded-md p-1 bg-white">
-                                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}>
-                                    <ChevronLeft className="w-4 h-4" />
-                                </Button>
-                                <span className="font-semibold w-32 text-center select-none text-sm sm:text-base">
-                                    {format(selectedDate, 'MMMM yyyy', { locale: tr })}
-                                </span>
-                                <Button variant="ghost" size="icon" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}>
-                                    <ChevronRight className="w-4 h-4" />
-                                </Button>
+                            <div className="flex items-center gap-3">
+                                {user?.role === 'ADMIN' && (
+                                    <div className="flex items-center gap-1 border rounded-md p-1 bg-white">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(subMonths(selectedDate, 1))}>
+                                            <ChevronLeft className="w-4 h-4" />
+                                        </Button>
+                                        <span className="font-semibold w-32 text-center select-none text-sm capitalize">
+                                            {format(selectedDate, 'MMMM yyyy', { locale: tr })}
+                                        </span>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedDate(addMonths(selectedDate, 1))}>
+                                            <ChevronRight className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                )}
+                                <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                                    <SelectTrigger className="w-full sm:w-[200px]">
+                                        <SelectValue placeholder="Şantiye Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {sites.filter((s: any) => s.status === 'ACTIVE' && vehicles.some((v: any) => v.status !== 'PASSIVE' && ((v.assignedSiteIds && v.assignedSiteIds.includes(s.id)) || v.assignedSiteId === s.id))).map((s: any) => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
-                        )}
+                        </div>
 
                         {/* Row 3: Action buttons (wrap on mobile) */}
                         <div className="flex flex-wrap items-center gap-2">
+                            {canExport && (
+                                <>
+                                    <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!selectedSiteId}>
+                                        <FileSpreadsheet className="w-4 h-4 mr-1 text-green-600" />
+                                        <span className="hidden sm:inline">Excel</span>
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!selectedSiteId}>
+                                        <Download className="w-4 h-4 mr-1 text-red-600" />
+                                        <span className="hidden sm:inline">PDF</span>
+                                    </Button>
+                                </>
+                            )}
                             <VehicleForm
                                 initialOwnership="RENTAL"
                                 defaultSiteId={selectedSiteId}
@@ -669,16 +681,6 @@ export function VehicleAttendanceList() {
                                 <span className="hidden sm:inline">{showFuel ? 'Yakıtı Gizle' : 'Yakıtı Göster'}</span>
                                 <span className="sm:hidden">Yakıt</span>
                             </Button>
-                            {canExport && (
-                                <>
-                                    <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={!selectedSiteId} className="text-xs sm:text-sm">
-                                        Excel İndir
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={!selectedSiteId} className="text-xs sm:text-sm">
-                                        PDF İndir
-                                    </Button>
-                                </>
-                            )}
                         </div>
                     </div>
                 </CardHeader>

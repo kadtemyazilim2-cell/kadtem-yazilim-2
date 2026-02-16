@@ -25,6 +25,17 @@ export function FuelTransferForm() {
     const [amount, setAmount] = useState(0);
     const [date] = useState(new Date().toISOString().split('T')[0]); // Date is auto-set
 
+    // Reset form when dialog opens/closes
+    const handleOpenChange = (isOpen: boolean) => {
+        setOpen(isOpen);
+        if (isOpen) {
+            // Reset form on open to prevent stale data
+            setFromId('');
+            setToId('');
+            setAmount(0);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
@@ -57,7 +68,7 @@ export function FuelTransferForm() {
     };
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button variant="secondary" className="bg-orange-100 text-orange-800 hover:bg-orange-200">
                     <ArrowRightLeft className="w-4 h-4 mr-2" /> Yakıt Virman / Transfer

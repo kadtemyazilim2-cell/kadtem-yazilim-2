@@ -992,7 +992,7 @@ export function LimitValueCalculation() {
                 b.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " TL",
                 b.submitTime || '-',
                 b.discountRatio?.toFixed(2) + '%',
-                b.isValid ? (b.isAboveLimit ? (i === targetBidders.findIndex((x: any) => x.isValid && x.isAboveLimit) ? 'İlk Makul Teklif' : '') : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
+                b.isValid ? (b.isAboveLimit ? (i === targetBidders.findIndex((x: any) => x.isValid && x.isAboveLimit) ? 'Makul Teklif' : '') : 'Sınır Altı') : (b.exclusionReason || 'Geçersiz')
             ]
         });
 
@@ -1002,9 +1002,21 @@ export function LimitValueCalculation() {
             head: [['Sıra', 'Firma Adı', 'Teklif Tutarı', 'Tarih/Saat', 'Tenzilat', 'Durum']],
             body: tableData,
             startY: currentY,
-            styles: { font: fontName, fontSize: 8 },
+            styles: { font: fontName, fontSize: 8, cellPadding: 2 },
             headStyles: { fillColor: [52, 73, 94] },
+            columnStyles: {
+                0: { cellWidth: 10, halign: 'center' },  // Sıra
+                1: { cellWidth: 'auto' },                  // Firma Adı
+                2: { cellWidth: 38, halign: 'right' },     // Teklif Tutarı - wide enough for TL
+                3: { cellWidth: 30, halign: 'center' },    // Tarih/Saat - no wrap
+                4: { cellWidth: 18, halign: 'center' },   // Tenzilat
+                5: { cellWidth: 22, halign: 'center' },   // Durum
+            },
             didParseCell: (data) => {
+                // Prevent line wrapping in Teklif Tutarı and Tarih/Saat columns
+                if (data.section === 'body' && (data.column.index === 2 || data.column.index === 3)) {
+                    data.cell.styles.overflow = 'visible';
+                }
                 // Highlight Owner Company Rows and First Makul Row
                 if (data.section === 'body') {
                     const originalName = targetBidders[data.row.index]?.name || '';

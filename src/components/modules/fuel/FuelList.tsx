@@ -153,9 +153,11 @@ export function FuelList() {
                             <TableHead className="w-[100px]">Tarih</TableHead>
                             <TableHead className="w-[120px]">Plaka</TableHead>
                             <TableHead className="w-[150px]">Şantiye</TableHead>
-                            <TableHead>Litre</TableHead>
+                            <TableHead className="text-right">Litre</TableHead>
+                            <TableHead className="text-left w-[30px]"></TableHead>
                             <TableHead>Tutar</TableHead>
-                            <TableHead>KM</TableHead>
+                            <TableHead className="text-right">Km/Saat</TableHead>
+                            <TableHead className="text-left w-[50px]"></TableHead>
                             <TableHead>Yakıt Veren</TableHead>
                             <TableHead className="w-[100px]">İşlemler</TableHead>
                         </TableRow>
@@ -180,8 +182,10 @@ export function FuelList() {
                                 />
                             </TableHead>
                             <TableHead className="p-1">-</TableHead>
+                            <TableHead className="p-1"></TableHead>
                             <TableHead className="p-1">-</TableHead>
                             <TableHead className="p-1">-</TableHead>
+                            <TableHead className="p-1"></TableHead>
                             <TableHead className="p-1">-</TableHead>
                             <TableHead className="p-1">-</TableHead>
                         </TableRow>
@@ -189,7 +193,7 @@ export function FuelList() {
                     <TableBody>
                         {filteredLogs.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={8} className="text-center text-slate-500 py-8">
+                                <TableCell colSpan={10} className="text-center text-slate-500 py-8">
                                     Kayıt bulunamadı.
                                 </TableCell>
                             </TableRow>
@@ -199,9 +203,11 @@ export function FuelList() {
                                     <TableCell className="whitespace-nowrap">{format(new Date(log.date), 'dd MMM yyyy', { locale: tr })}</TableCell>
                                     <TableCell className="font-bold whitespace-nowrap">{getVehiclePlate(log.vehicleId)}</TableCell>
                                     <TableCell className="text-sm">{getSiteName(log.siteId)}</TableCell>
-                                    <TableCell>{log.liters.toFixed(2)} Lt</TableCell>
+                                    <TableCell className="text-right tabular-nums font-medium">{log.liters.toFixed(2)}</TableCell>
+                                    <TableCell className="text-left text-muted-foreground">Lt</TableCell>
                                     <TableCell>{log.cost.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}</TableCell>
-                                    <TableCell>{log.mileage.toLocaleString()} km</TableCell>
+                                    <TableCell className="text-right tabular-nums">{log.mileage.toLocaleString('tr-TR')}</TableCell>
+                                    <TableCell className="text-left text-muted-foreground">Km/Saat</TableCell>
                                     <TableCell className="text-xs text-muted-foreground">{users.find((u: any) => u.id === log.filledByUserId)?.name || '-'}</TableCell>
                                     <TableCell className="p-1">
                                         <div className="flex items-center gap-1">

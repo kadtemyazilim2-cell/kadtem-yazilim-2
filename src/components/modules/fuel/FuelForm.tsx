@@ -94,8 +94,8 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
             });
         } else if (open) {
             setOriginalTime(null);
-            // Reset if opening new
-            if (!externalOpen) resetForm();
+            // Always reset if opening new (no edit data)
+            resetForm();
         }
     }, [initialData, open]);
 
