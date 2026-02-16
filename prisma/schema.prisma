@@ -613,3 +613,15 @@ model BusinessGroup {
     name      String   @unique
     createdAt DateTime @default(now())
 }
+
+// -----------------------------------------------------------------------------
+// VEHICLE TYPE CONSUMPTION RATIOS
+// -----------------------------------------------------------------------------
+
+model VehicleTypeConsumption {
+  id             String      @id @default(cuid())
+  vehicleType    VehicleType @unique
+  consumptionMin Float?
+  consumptionMax Float?
+  updatedAt      DateTime    @updatedAt
+}

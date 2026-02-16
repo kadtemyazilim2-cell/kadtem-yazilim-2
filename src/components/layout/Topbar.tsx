@@ -19,6 +19,7 @@ export function Topbar() {
         if (pathname.includes('/fuel')) return 'Yakıt Takip';
         if (pathname.includes('/cash-book')) return 'Kasa Defteri';
         if (pathname.includes('/personnel')) return 'Personel';
+        if (pathname.includes('/attendance')) return 'Puantaj';
         if (pathname.includes('/vehicle-attendance')) return 'Araç Puantaj';
         if (pathname.includes('/new-tab')) return 'Personel Puantaj';
         if (pathname.includes('/site-log')) return 'Şantiye Defteri';

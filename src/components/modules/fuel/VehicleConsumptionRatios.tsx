@@ -1,75 +1,96 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useAppStore } from '@/lib/store/use-store';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { updateVehicle } from '@/actions/vehicle';
-import { Loader2, Fuel, Search } from 'lucide-react';
+import { Loader2, Fuel } from 'lucide-react';
+import { getVehicleTypeConsumptions, upsertVehicleTypeConsumption } from '@/actions/vehicle-type-consumption';
 
-const VEHICLE_TYPE_LABELS: Record<string, string> = {
-    TRUCK: 'Kamyon',
-    LORRY: 'Tır',
-    CAR: 'Binek',
-    EXCAVATOR: 'Ekskavatör',
-    TRACTOR: 'Traktör',
-    MOTORCYCLE: 'Motosiklet',
-    PICKUP: 'Pikap',
-    OTHER: 'Diğer'
-};
+const VEHICLE_TYPES = [
+    { key: 'TRUCK', label: 'Kamyon', unit: 'Lt/100km' },
+    { key: 'LORRY', label: 'Tır', unit: 'Lt/100km' },
+    { key: 'CAR', label: 'Binek', unit: 'Lt/100km' },
+    { key: 'EXCAVATOR', label: 'Ekskavatör', unit: 'Lt/saat' },
+    { key: 'TRACTOR', label: 'Traktör', unit: 'Lt/saat' },
+    { key: 'MOTORCYCLE', label: 'Motosiklet', unit: 'Lt/100km' },
+    { key: 'PICKUP', label: 'Pikap', unit: 'Lt/100km' },
+    { key: 'OTHER', label: 'Diğer', unit: 'Lt/100km' },
+];
+
+interface TypeConsumption {
+    vehicleType: string;
+    consumptionMin: number | null;
+    consumptionMax: number | null;
+}
 
 export function VehicleConsumptionRatios() {
-    const vehicles = useAppStore((s) => s.vehicles);
-    const updateVehicleStore = useAppStore((s) => s.updateVehicle);
-    const [editingCell, setEditingCell] = useState<{ vehicleId: string; field: 'min' | 'max' } | null>(null);
-    const [savingId, setSavingId] = useState<string | null>(null);
-    const [filterText, setFilterText] = useState('');
+    const [data, setData] = useState<TypeConsumption[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [editingCell, setEditingCell] = useState<{ type: string; field: 'min' | 'max' } | null>(null);
+    const [savingType, setSavingType] = useState<string | null>(null);
 
-    // Only show ACTIVE vehicles
-    const activeVehicles = vehicles
-        .filter(v => v.status === 'ACTIVE')
-        .filter(v => {
-            if (!filterText) return true;
-            const lower = filterText.toLocaleLowerCase('tr');
-            return (
-                v.plate.toLocaleLowerCase('tr').includes(lower) ||
-                v.brand.toLocaleLowerCase('tr').includes(lower) ||
-                v.model.toLocaleLowerCase('tr').includes(lower) ||
-                (VEHICLE_TYPE_LABELS[v.type] || '').toLocaleLowerCase('tr').includes(lower)
-            );
-        });
+    useEffect(() => {
+        loadData();
+    }, []);
 
-    const handleSave = useCallback(async (vehicleId: string, field: 'min' | 'max', rawValue: string) => {
+    const loadData = async () => {
+        try {
+            const res = await getVehicleTypeConsumptions();
+            if (res.success) {
+                setData(res.data as TypeConsumption[]);
+            }
+        } catch (e) {
+            console.error('Failed to load consumption ratios:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getValueForType = (type: string, field: 'consumptionMin' | 'consumptionMax'): number | null => {
+        const record = data.find(d => d.vehicleType === type);
+        return record ? record[field] : null;
+    };
+
+    const formatValue = (val: number | null | undefined): string => {
+        if (val == null) return '';
+        return val.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+    };
+
+    const handleSave = useCallback(async (vehicleType: string, field: 'min' | 'max', rawValue: string) => {
         setEditingCell(null);
 
-        // Parse Turkish comma format
         const parsed = parseFloat(rawValue.replace(',', '.'));
         const value = isNaN(parsed) ? null : parsed;
 
-        // Find current vehicle
-        const vehicle = vehicles.find(v => v.id === vehicleId);
-        if (!vehicle) return;
-
-        const currentValue = field === 'min' ? vehicle.consumptionMin : vehicle.consumptionMax;
+        const dbField = field === 'min' ? 'consumptionMin' : 'consumptionMax';
+        const currentValue = getValueForType(vehicleType, dbField);
 
         // Skip if unchanged
-        if (value === currentValue || (value === null && currentValue === undefined)) return;
+        if (value === currentValue || (value === null && currentValue === null)) return;
 
-        setSavingId(vehicleId);
+        setSavingType(vehicleType);
 
         try {
-            const updateData = field === 'min'
-                ? { consumptionMin: value }
-                : { consumptionMax: value };
-
-            const result = await updateVehicle(vehicleId, updateData as any);
+            const result = await upsertVehicleTypeConsumption(vehicleType, dbField, value);
             if (result?.success) {
-                // Update store
-                updateVehicleStore(vehicleId, updateData as any);
-                toast.success(`${vehicle.plate} - ${field === 'min' ? 'Alt' : 'Üst'} oran güncellendi.`);
+                // Update local state
+                setData(prev => {
+                    const existing = prev.find(d => d.vehicleType === vehicleType);
+                    if (existing) {
+                        return prev.map(d =>
+                            d.vehicleType === vehicleType
+                                ? { ...d, [dbField]: value }
+                                : d
+                        );
+                    }
+                    return [...prev, { vehicleType, consumptionMin: field === 'min' ? value : null, consumptionMax: field === 'max' ? value : null }];
+                });
+
+                const typeLabel = VEHICLE_TYPES.find(t => t.key === vehicleType)?.label || vehicleType;
+                toast.success(`${typeLabel} - ${field === 'min' ? 'Alt' : 'Üst'} oran güncellendi.`);
             } else {
                 toast.error('Güncelleme başarısız oldu.');
             }
@@ -77,129 +98,111 @@ export function VehicleConsumptionRatios() {
             console.error('Consumption ratio update error:', error);
             toast.error('Güncelleme sırasında hata oluştu.');
         } finally {
-            setSavingId(null);
+            setSavingType(null);
         }
-    }, [vehicles, updateVehicleStore]);
+    }, [data]);
 
-    const formatValue = (val: number | null | undefined): string => {
-        if (val == null) return '';
-        return val.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
-    };
+    if (loading) {
+        return (
+            <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card>
             <CardHeader>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <Fuel className="w-5 h-5 text-orange-500" />
-                            Araç Tüketim Oranları
-                        </CardTitle>
-                        <CardDescription>
-                            Her araç için alt ve üst tüketim oranlarını giriniz. (Birim: Lt/100km veya Lt/saat)
-                        </CardDescription>
-                    </div>
-                    <div className="relative w-full md:w-64">
-                        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Plaka, marka, tür ara..."
-                            value={filterText}
-                            onChange={(e) => setFilterText(e.target.value)}
-                            className="pl-9 h-9"
-                        />
-                    </div>
-                </div>
+                <CardTitle className="flex items-center gap-2">
+                    <Fuel className="w-5 h-5 text-orange-500" />
+                    Araç Türü Tüketim Oranları
+                </CardTitle>
+                <CardDescription>
+                    Her araç türü için alt ve üst tüketim oranlarını belirleyiniz. Hücreye tıklayarak düzenleyebilirsiniz.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-10">No</TableHead>
-                            <TableHead>Plaka</TableHead>
-                            <TableHead>Marka / Model</TableHead>
-                            <TableHead>Tür</TableHead>
+                            <TableHead>Araç Türü</TableHead>
                             <TableHead className="text-center">Birim</TableHead>
-                            <TableHead className="text-right w-[140px]">Alt Oran</TableHead>
-                            <TableHead className="text-right w-[140px]">Üst Oran</TableHead>
+                            <TableHead className="text-right w-[160px]">Alt Oran (Min)</TableHead>
+                            <TableHead className="text-right w-[160px]">Üst Oran (Max)</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {activeVehicles.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                                    {filterText ? 'Filtreye uygun araç bulunamadı.' : 'Aktif araç bulunamadı.'}
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            activeVehicles.map((vehicle, idx) => (
-                                <TableRow key={vehicle.id} className={savingId === vehicle.id ? 'opacity-60' : ''}>
+                        {VEHICLE_TYPES.map((vt, idx) => {
+                            const minVal = getValueForType(vt.key, 'consumptionMin');
+                            const maxVal = getValueForType(vt.key, 'consumptionMax');
+                            const isSaving = savingType === vt.key;
+
+                            return (
+                                <TableRow key={vt.key} className={isSaving ? 'opacity-60' : ''}>
                                     <TableCell className="font-mono text-xs text-muted-foreground">{idx + 1}</TableCell>
-                                    <TableCell className="font-medium font-mono">{vehicle.plate}</TableCell>
-                                    <TableCell className="text-sm">{vehicle.brand} {vehicle.model}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline" className="text-xs">
-                                            {VEHICLE_TYPE_LABELS[vehicle.type] || vehicle.type}
-                                        </Badge>
-                                    </TableCell>
+                                    <TableCell className="font-medium">{vt.label}</TableCell>
                                     <TableCell className="text-center">
                                         <Badge variant="secondary" className="text-[10px]">
-                                            {vehicle.meterType === 'HOURS' ? 'Lt/saat' : 'Lt/100km'}
+                                            {vt.unit}
                                         </Badge>
                                     </TableCell>
 
                                     {/* Alt Oran (Min) */}
                                     <TableCell
-                                        className="text-right font-mono cursor-pointer hover:bg-slate-50 relative group"
-                                        onClick={() => setEditingCell({ vehicleId: vehicle.id, field: 'min' })}
+                                        className="text-right font-mono cursor-pointer hover:bg-slate-50 relative"
+                                        onClick={() => setEditingCell({ type: vt.key, field: 'min' })}
                                     >
-                                        {editingCell?.vehicleId === vehicle.id && editingCell?.field === 'min' ? (
+                                        {editingCell?.type === vt.key && editingCell?.field === 'min' ? (
                                             <Input
                                                 autoFocus
                                                 className="h-8 text-right font-mono w-full border-2 border-blue-500"
-                                                defaultValue={formatValue(vehicle.consumptionMin)}
+                                                defaultValue={formatValue(minVal)}
                                                 onClick={(e) => e.stopPropagation()}
-                                                onBlur={(e) => handleSave(vehicle.id, 'min', e.target.value)}
+                                                onBlur={(e) => handleSave(vt.key, 'min', e.target.value)}
                                                 onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleSave(vehicle.id, 'min', e.currentTarget.value);
+                                                    if (e.key === 'Enter') handleSave(vt.key, 'min', e.currentTarget.value);
                                                     if (e.key === 'Escape') setEditingCell(null);
                                                 }}
                                             />
                                         ) : (
-                                            <span className={vehicle.consumptionMin != null ? 'text-slate-800' : 'text-slate-300'}>
-                                                {vehicle.consumptionMin != null ? formatValue(vehicle.consumptionMin) : '—'}
+                                            <span className={minVal != null ? 'text-slate-800' : 'text-slate-300'}>
+                                                {minVal != null ? formatValue(minVal) : '—'}
                                             </span>
                                         )}
-                                        {savingId === vehicle.id && (
+                                        {isSaving && (
                                             <Loader2 className="w-3 h-3 animate-spin absolute right-2 top-1/2 -translate-y-1/2 text-blue-500" />
                                         )}
                                     </TableCell>
 
                                     {/* Üst Oran (Max) */}
                                     <TableCell
-                                        className="text-right font-mono cursor-pointer hover:bg-slate-50 relative group"
-                                        onClick={() => setEditingCell({ vehicleId: vehicle.id, field: 'max' })}
+                                        className="text-right font-mono cursor-pointer hover:bg-slate-50 relative"
+                                        onClick={() => setEditingCell({ type: vt.key, field: 'max' })}
                                     >
-                                        {editingCell?.vehicleId === vehicle.id && editingCell?.field === 'max' ? (
+                                        {editingCell?.type === vt.key && editingCell?.field === 'max' ? (
                                             <Input
                                                 autoFocus
                                                 className="h-8 text-right font-mono w-full border-2 border-blue-500"
-                                                defaultValue={formatValue(vehicle.consumptionMax)}
+                                                defaultValue={formatValue(maxVal)}
                                                 onClick={(e) => e.stopPropagation()}
-                                                onBlur={(e) => handleSave(vehicle.id, 'max', e.target.value)}
+                                                onBlur={(e) => handleSave(vt.key, 'max', e.target.value)}
                                                 onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') handleSave(vehicle.id, 'max', e.currentTarget.value);
+                                                    if (e.key === 'Enter') handleSave(vt.key, 'max', e.currentTarget.value);
                                                     if (e.key === 'Escape') setEditingCell(null);
                                                 }}
                                             />
                                         ) : (
-                                            <span className={vehicle.consumptionMax != null ? 'text-slate-800' : 'text-slate-300'}>
-                                                {vehicle.consumptionMax != null ? formatValue(vehicle.consumptionMax) : '—'}
+                                            <span className={maxVal != null ? 'text-slate-800' : 'text-slate-300'}>
+                                                {maxVal != null ? formatValue(maxVal) : '—'}
                                             </span>
                                         )}
                                     </TableCell>
                                 </TableRow>
-                            ))
-                        )}
+                            );
+                        })}
                     </TableBody>
                 </Table>
             </CardContent>

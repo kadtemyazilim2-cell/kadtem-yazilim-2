@@ -215,6 +215,23 @@ export function DashboardPageClient() {
         )
     );
 
+    // Group missing docs by creator for summary
+    const missingDocsByUser = useMemo(() => {
+        const storeUsers = useAppStore.getState().users || [];
+        const grouped: Record<string, { name: string; count: number }> = {};
+
+        missingDocs.forEach((doc: any) => {
+            const userId = doc.createdByUserId;
+            if (!grouped[userId]) {
+                const u = storeUsers.find((u: any) => u.id === userId);
+                grouped[userId] = { name: u?.name || 'Bilinmeyen', count: 0 };
+            }
+            grouped[userId].count++;
+        });
+
+        return Object.values(grouped).sort((a, b) => b.count - a.count);
+    }, [missingDocs]);
+
     // 1. Financial Status (Balance per User)
     // [FIX] Use prop `cashTransactions` instead of store for immediate calculation
     const userBalances = useMemo(() => {
@@ -611,6 +628,17 @@ export function DashboardPageClient() {
                                         {missingDocs.length} Adet
                                     </span>
                                 </CardTitle>
+                                {/* Per-User Summary */}
+                                {missingDocsByUser.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {missingDocsByUser.map((u) => (
+                                            <div key={u.name} className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5">
+                                                <span className="text-xs font-medium text-slate-700">{u.name}</span>
+                                                <span className="text-xs font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{u.count}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </CardHeader>
                             <CardContent className="p-0">
                                 {missingDocs.length === 0 ? (

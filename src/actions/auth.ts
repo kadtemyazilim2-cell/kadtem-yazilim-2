@@ -2,6 +2,7 @@
 
 import { signIn, signOut } from '@/auth';
 import { AuthError } from 'next-auth';
+import { cookies } from 'next/headers';
 
 export async function authenticate(
     prevState: string | undefined,
@@ -18,6 +19,38 @@ export async function authenticate(
         });
         console.log("Authentication successful, redirecting...");
     } catch (error) {
+        // signIn throws NEXT_REDIRECT on success — intercept to adjust cookie
+        if (error && typeof error === 'object' && 'digest' in error) {
+            const digest = (error as any).digest;
+            if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
+                const rememberMe = formData.get('rememberMe') === 'true';
+
+                if (!rememberMe) {
+                    // Convert session cookie to a session cookie (no maxAge)
+                    // so it's deleted when browser closes
+                    const cookieStore = await cookies();
+                    const sessionCookieName = process.env.NODE_ENV === 'production'
+                        ? '__Secure-authjs.session-token'
+                        : 'authjs.session-token';
+
+                    const existingCookie = cookieStore.get(sessionCookieName);
+                    if (existingCookie) {
+                        // Re-set the cookie WITHOUT maxAge → browser session cookie
+                        cookieStore.set(sessionCookieName, existingCookie.value, {
+                            httpOnly: true,
+                            secure: process.env.NODE_ENV === 'production',
+                            sameSite: 'lax',
+                            path: '/',
+                            // No maxAge or expires → session cookie, deleted on browser close
+                        });
+                    }
+                }
+
+                // Re-throw so Next.js handles the redirect
+                throw error;
+            }
+        }
+
         console.error("Authentication error:", error);
         if (error instanceof AuthError) {
             switch (error.type) {
@@ -38,3 +71,4 @@ export async function authenticate(
 export async function logout() {
     await signOut();
 }
+

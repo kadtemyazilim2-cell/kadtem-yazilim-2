@@ -1010,8 +1010,8 @@ export function LimitValueCalculation() {
                     const originalName = targetBidders[data.row.index]?.name || '';
                     const firstMakulIdx = targetBidders.findIndex((b: any) => b.isValid && b.isAboveLimit);
                     if (isOwnerCompany(originalName)) {
-                        data.cell.styles.fillColor = [180, 210, 255]; // Blue for owner companies
-                        data.cell.styles.textColor = [20, 50, 120];
+                        data.cell.styles.fillColor = [180, 230, 190]; // Green for owner companies
+                        data.cell.styles.textColor = [20, 80, 30];
                     } else if (data.row.index === firstMakulIdx) {
                         data.cell.styles.fillColor = [255, 225, 170]; // Orange-amber for first reasonable bid
                         data.cell.styles.textColor = [120, 60, 0];
@@ -1374,7 +1374,7 @@ export function LimitValueCalculation() {
                                                 key={idx}
                                                 className={cn(
                                                     !bidder.isValid ? 'bg-red-50/50 opacity-70'
-                                                        : isOwnerCompany(bidder.name) ? 'bg-blue-100/80 hover:bg-blue-100 border-l-4 border-l-blue-500'
+                                                        : isOwnerCompany(bidder.name) ? 'bg-emerald-100/80 hover:bg-emerald-100 border-l-4 border-l-emerald-500'
                                                             : isFirstMakul ? 'bg-orange-50/80 hover:bg-orange-100 border-l-4 border-l-orange-400'
                                                                 : ''
                                                 )}

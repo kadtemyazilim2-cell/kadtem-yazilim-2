@@ -360,8 +360,10 @@ export default function NewPage() {
         }
 
         if (!targetSiteId) {
-            targetSiteId = 'all';
-            setSelectedSiteId('all');
+            // No site selected - don't fetch, just clear
+            setNames([]);
+            setLoading(false);
+            return;
         }
 
         console.log(`refreshData: Fetching for site ${targetSiteId} date ${date.toISOString()}`);
@@ -1819,7 +1821,6 @@ export default function NewPage() {
                                     <SelectValue placeholder="Şantiye Seçiniz" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem key="all" value="all">Tüm Şantiyeler</SelectItem>
                                     {availableSites.filter(s => personnel.some((p: any) => p.siteId === s.id)).map(s => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}

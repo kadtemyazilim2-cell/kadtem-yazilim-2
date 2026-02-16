@@ -8,13 +8,12 @@ import {
     Truck,
     Fuel,
     Wallet,
-    Users,
-    Clock,
     BookOpen,
     Settings,
     LogOut,
     ArrowRightLeft,
-    Calculator
+    Calculator,
+    ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/store/use-auth';
@@ -27,13 +26,10 @@ const NAV_ITEMS = [
     { label: 'Yakıt Takip', href: '/dashboard/fuel', icon: Fuel },
     { label: 'Yakıt Hareketleri', href: '/dashboard/fuel/movement', icon: ArrowRightLeft },
     { label: 'Kasa Defteri', href: '/dashboard/cash-book', icon: Wallet },
-
-    { label: 'Puantaj', href: '/dashboard/new-tab', icon: Users },
-
-    { label: 'Araç Puantaj', href: '/dashboard/vehicle-attendance', icon: Clock },
+    { label: 'Puantaj', href: '/dashboard/attendance', icon: ClipboardList },
     { label: 'Şantiye Defteri', href: '/dashboard/site-log', icon: BookOpen },
-    { label: 'Sınır Değer', href: '/dashboard/limit-value', icon: Calculator }, // [NEW] Limit Value Calculation
-    { label: 'Yönetim', href: '/dashboard/admin', icon: Settings }, // [NEW] Admin Link
+    { label: 'Sınır Değer', href: '/dashboard/limit-value', icon: Calculator },
+    { label: 'Yönetim', href: '/dashboard/admin', icon: Settings },
 ];
 
 export function Sidebar({ className, onNavItemClick }: { className?: string, onNavItemClick?: () => void }) {
@@ -53,16 +49,14 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                 <ul className="space-y-1 px-3">
                     {NAV_ITEMS.map((item) => {
                         // Permission Check
-                        // [FIX] Explicit Permission Mapping
                         const PERMISSION_MAP: Record<string, string> = {
                             '/dashboard': 'dashboard',
                             '/dashboard/correspondence': 'correspondence',
                             '/dashboard/vehicles': 'vehicles',
                             '/dashboard/fuel': 'fuel',
-                            '/dashboard/fuel/movement': 'movement', // Separate permission for Fuel Movements
+                            '/dashboard/fuel/movement': 'movement',
                             '/dashboard/cash-book': 'cash-book',
-                            '/dashboard/new-tab': 'new-tab', // Main Attendance
-                            '/dashboard/vehicle-attendance': 'vehicle-attendance',
+                            '/dashboard/attendance': 'attendance',
                             '/dashboard/site-log': 'site-log',
                             '/dashboard/limit-value': 'limit-value',
                             '/dashboard/admin': 'admin'
@@ -74,25 +68,26 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             // Block Admin Page for non-admins
                             if (item.href === '/dashboard/admin') return null;
 
-                            // Block modules if permission is NONE or missing
                             const perms = (user?.permissions || {}) as Record<string, string[]>;
                             const userPerm = perms[permissionId];
 
-                            // If no permission defined or explicitly NONE, hide link
-                            // [FIX] Special handling for 'new-tab' (Puantaj) to allow specific sub-modules
-                            if (permissionId === 'new-tab') {
-                                // Check if ANY new-tab.* permission exists
-                                const hasAnySubPermission = Object.keys(perms).some(p => p.startsWith('new-tab.') && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE'));
-                                const hasMainPermission = userPerm && userPerm.length > 0 && !userPerm.includes('NONE');
-
-                                if (!hasMainPermission && !hasAnySubPermission) return null;
+                            // For Puantaj (attendance), check if user has ANY attendance-related permission
+                            if (permissionId === 'attendance') {
+                                const hasNewTabPerm = Object.keys(perms).some(p =>
+                                    (p === 'new-tab' || p.startsWith('new-tab.')) && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE')
+                                );
+                                const hasVehicleAttendancePerm = Object.keys(perms).some(p =>
+                                    (p === 'vehicle-attendance' || p.startsWith('vehicle-attendance.')) && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE')
+                                );
+                                if (!hasNewTabPerm && !hasVehicleAttendancePerm) return null;
                             } else {
                                 if (!userPerm || userPerm.length === 0 || userPerm.includes('NONE')) return null;
                             }
                         }
 
                         const Icon = item.icon;
-                        const isActive = pathname === item.href;
+                        const isActive = pathname === item.href ||
+                            (item.href === '/dashboard/attendance' && (pathname.includes('/new-tab') || pathname.includes('/vehicle-attendance') || pathname.includes('/attendance')));
 
                         return (
                             <li key={item.href}>
@@ -126,12 +121,10 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                     </div>
                 </div>
 
-
-
                 <button
                     onClick={async () => {
-                        logout(); // Clear client state
-                        await serverLogout(); // Clear server session & redirect
+                        logout();
+                        await serverLogout();
                     }}
                     className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
                 >
