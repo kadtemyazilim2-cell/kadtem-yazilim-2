@@ -99,6 +99,13 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
         }
     }, [initialData, open]);
 
+    // [FIX] Reset form when dialog closes - prevents stale data on re-open
+    useEffect(() => {
+        if (!open && !initialData) {
+            resetForm();
+        }
+    }, [open]);
+
     const resetForm = () => {
         setFormData({
             vehicleId: '',
