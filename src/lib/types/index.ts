@@ -152,6 +152,10 @@ export interface Vehicle {
 
   licenseFile?: string; // [NEW] Ruhsat (PDF Base64)
 
+  // Consumption Ratios (Lt/100km or Lt/hour)
+  consumptionMin?: number;
+  consumptionMax?: number;
+
   // Proposal History
   lastTrafficProposalDate?: string; // [NEW]
   lastTrafficProposalAgencies?: string[]; // [NEW]

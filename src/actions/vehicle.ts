@@ -32,6 +32,8 @@ const getVehiclesFromDb = async () => {
             engineNumber: true,
             chassisNumber: true,
             fuelType: true,
+            consumptionMin: true,
+            consumptionMax: true,
             lastInspectionDate: true,
 
             lastTrafficProposalAgencies: true,

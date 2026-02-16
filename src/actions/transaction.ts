@@ -177,6 +177,12 @@ export async function createTransaction(data: Partial<CashTransaction>) {
 
         console.log('[createTransaction] Success:', transaction.id);
 
+        try {
+            revalidatePath('/dashboard/cash-book');
+        } catch (e) {
+            console.error('Revalidate failed (Create):', e);
+        }
+
         return { success: true, data: transaction };
     } catch (error: any) {
         console.error('createTransaction Error:', error);
@@ -210,11 +216,6 @@ export async function updateTransaction(id: string, data: Partial<CashTransactio
             return { success: false, error: 'Hesabınız aktif değil veya bulunamadı.' };
         }
 
-        // [DEBUG] FORCE STOP FOR EVERYONE
-        return {
-            success: false,
-            error: `[DEBUG STOP] ID: ${session.user.id} | Role: ${dbUser.role} | Lookback: ${dbUser.editLookbackDays}`
-        };
 
         // [SECURE] Date Restriction Check (Check NEW date if provided, OR existing date if not changing?)
         // Usually we check if we can EDIT this record (so existing date check) AND if we can move it to new date (new date check).

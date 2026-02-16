@@ -248,6 +248,10 @@ model Vehicle {
   fuelType      String?
   licenseFile   String? // Base64
 
+  // Consumption Ratios (Lt/100km or Lt/hour)
+  consumptionMin Float?
+  consumptionMax Float?
+
   // Proposal History
   lastTrafficProposalDate     DateTime?
   lastTrafficProposalAgencies String[]
