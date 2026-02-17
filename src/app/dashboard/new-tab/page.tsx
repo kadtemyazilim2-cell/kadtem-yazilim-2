@@ -1826,11 +1826,11 @@ export default function NewPage() {
             </div>
 
             <Tabs defaultValue="grid" className="w-full space-y-6">
-                <TabsList className="bg-white border w-full justify-start rounded-lg p-1">
-                    <TabsTrigger value="grid" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Puantaj Tablosu</TabsTrigger>
-                    {canViewSalary && <TabsTrigger value="salary-list" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Maaş Tablosu</TabsTrigger>}
-                    {canViewAllPersonnel && <TabsTrigger value="site-list" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Şantiye Personel Listesi</TabsTrigger>}
-                    {canViewAllPersonnel && <TabsTrigger value="all-list" className="px-4 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-900">Tüm Personel</TabsTrigger>}
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[700px]">
+                    <TabsTrigger value="grid" className="gap-1 text-xs sm:text-sm">Puantaj Tablosu</TabsTrigger>
+                    {canViewSalary && <TabsTrigger value="salary-list" className="gap-1 text-xs sm:text-sm">Maaş Tablosu</TabsTrigger>}
+                    {canViewAllPersonnel && <TabsTrigger value="site-list" className="gap-1 text-xs sm:text-sm">Şantiye Personel</TabsTrigger>}
+                    {canViewAllPersonnel && <TabsTrigger value="all-list" className="gap-1 text-xs sm:text-sm">Tüm Personel</TabsTrigger>}
                 </TabsList>
 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 sm:p-4 rounded-lg border shadow-sm">

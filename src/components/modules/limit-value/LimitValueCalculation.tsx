@@ -30,6 +30,8 @@ interface Bidder {
     isAboveLimit?: boolean; // Sınır değerin üzerinde mi?
     discountRatio?: number; // Tenzilat Oranı
     exclusionReason?: string; // Elenme Sebebi (Varsa)
+    hasTaxDebt?: boolean;
+    hasSgkDebt?: boolean;
 }
 
 interface TenderMetadata {
@@ -499,26 +501,16 @@ export function LimitValueCalculation() {
             // Remove everything except digits, dots, commas
             let clean = str.replace(/[^0-9.,]/g, '');
 
-            // Logic:
-            // 1. If comma exists, assume TR format (1.250,50) -> remove dots, replace comma with dot.
-            // 2. If NO comma, but dots exist:
-            //    - If last part after split is 2 digits (e.g. 12.50 or 1.250.50), treat last dot as decimal.
-            //    - Otherwise (e.g. 1.250 or 1.000.000), treat dots as thousands separator.
-
             if (clean.includes(',')) {
                 clean = clean.replace(/\./g, '').replace(',', '.');
             } else if (clean.includes('.')) {
                 const parts = clean.split('.');
                 const lastPart = parts[parts.length - 1];
 
-                // If last part is exactly 2 digits, assume it's cents (TR/EU uses comma but user said "mixes dot")
-                // User Request: "nokta olarak geliyor onları virgül olarak algıla"
                 if (lastPart.length === 2) {
-                    // Reassemble: join all but last with nothing, then add dot
                     const integerPart = parts.slice(0, -1).join('');
                     clean = `${integerPart}.${lastPart}`;
                 } else {
-                    // Assume thousands separator
                     clean = clean.replace(/\./g, '');
                 }
             }
@@ -526,7 +518,42 @@ export function LimitValueCalculation() {
             return parseFloat(clean);
         };
 
-        // --- Iterative Parsing ---
+        // --- Phase 1: Pre-scan for table column structure ---
+        // KIK documents have tables where column headers (e.g. "Vergi Borcu", "SGK Borcu")
+        // are in the header row, and data cells contain "Vardır"/"Yoktur".
+        // Mammoth linearizes tables: each cell becomes a line.
+        // We find "Teklif Bedeli" header line, then count offset to "Vergi Borcu" and "SGK Borcu" headers.
+        let taxDebtColOffset = -1;
+        let sgkDebtColOffset = -1;
+
+        for (let i = 0; i < lines.length; i++) {
+            const lineLower = lines[i].toLowerCase();
+            if (lineLower.includes('teklif bedeli') || lineLower.includes('teklif tutarı') || lineLower.includes('teklif fiyatı')) {
+                // Found the amount column header, scan forward for debt headers (within 20 lines)
+                for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+                    const headerLine = lines[j].toLowerCase();
+                    if (taxDebtColOffset < 0 && (headerLine.includes('vergi borcu') || headerLine.includes('vergi borç'))) {
+                        taxDebtColOffset = j - i;
+                    }
+                    if (sgkDebtColOffset < 0 && (headerLine.includes('sgk borcu') || headerLine.includes('sosyal güvenlik') || headerLine.includes('sigorta prim'))) {
+                        sgkDebtColOffset = j - i;
+                    }
+                    // Stop if we hit a money pattern (data row started) or a known non-header
+                    if (headerLine.match(/^[\d\.,]+\s*(?:try|tl)/i)) break;
+                }
+                if (taxDebtColOffset > 0 || sgkDebtColOffset > 0) break;
+            }
+        }
+
+        console.log("Debt column offsets - Tax:", taxDebtColOffset, "SGK:", sgkDebtColOffset);
+
+        // Helper to check if a cell value indicates debt exists
+        const cellIndicatesDebt = (cellValue: string): boolean => {
+            const v = cellValue.toLowerCase().trim();
+            return v === 'vardır' || v === 'var' || v.includes('borcu var') || v.includes('borcu mevcut');
+        };
+
+        // --- Phase 2: Iterative Parsing ---
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const nextLine = lines[i + 1] || '';
@@ -599,8 +626,10 @@ export function LimitValueCalculation() {
                 if (name && name.length > 2 && !name.match(/^(?:Tarih|Saat|Maliyet)/i)) {
                     let isInvalid = false;
                     let exclusionReason = '';
+                    let hasTaxDebt = false;
+                    let hasSgkDebt = false;
 
-                    const lookAhead = [line, nextLine, lines[i + 2] || '', lines[i + 3] || ''].join(' ').toLowerCase();
+                    const lookAhead = [line, nextLine, lines[i + 2] || '', lines[i + 3] || '', lines[i + 4] || '', lines[i + 5] || ''].join(' ').toLowerCase();
 
                     if (lookAhead.includes('yasaklı') && !lookAhead.includes('yasaklı değil')) {
                         isInvalid = true;
@@ -616,6 +645,31 @@ export function LimitValueCalculation() {
                         exclusionReason = 'Uygun Değil';
                     }
 
+                    // --- Debt detection via column offsets ---
+                    // Method 1: Use pre-scanned column offsets from table headers
+                    if (taxDebtColOffset > 0 && (i + taxDebtColOffset) < lines.length) {
+                        const cellValue = lines[i + taxDebtColOffset];
+                        console.log(`[Debt Check] ${name} | Tax col offset: ${taxDebtColOffset} | Cell value: "${cellValue}"`);
+                        if (cellIndicatesDebt(cellValue)) {
+                            hasTaxDebt = true;
+                        }
+                    }
+                    if (sgkDebtColOffset > 0 && (i + sgkDebtColOffset) < lines.length) {
+                        const cellValue = lines[i + sgkDebtColOffset];
+                        console.log(`[Debt Check] ${name} | SGK col offset: ${sgkDebtColOffset} | Cell value: "${cellValue}"`);
+                        if (cellIndicatesDebt(cellValue)) {
+                            hasSgkDebt = true;
+                        }
+                    }
+
+                    // Method 2: Fallback - look for explicit inline text mentions
+                    if (!hasTaxDebt && lookAhead.includes('vergi borcu') && !lookAhead.includes('vergi borcu yok') && !lookAhead.includes('vergi borcu bulunmam')) {
+                        hasTaxDebt = true;
+                    }
+                    if (!hasSgkDebt && (lookAhead.includes('sgk borcu') || lookAhead.includes('sosyal güvenlik borcu') || lookAhead.includes('sigorta borcu')) && !lookAhead.includes('sgk borcu yok') && !lookAhead.includes('sgk borcu bulunmam') && !lookAhead.includes('sosyal güvenlik borcu yok') && !lookAhead.includes('sigorta borcu yok')) {
+                        hasSgkDebt = true;
+                    }
+
                     const exists = foundBidders.some(b => b.name === name && b.amount === amount);
 
                     if (!exists && amount > 100) {
@@ -624,7 +678,9 @@ export function LimitValueCalculation() {
                             amount,
                             submitTime,
                             isValid: !isInvalid,
-                            exclusionReason: isInvalid ? exclusionReason : undefined
+                            exclusionReason: isInvalid ? exclusionReason : undefined,
+                            hasTaxDebt,
+                            hasSgkDebt
                         });
                     }
                 }
@@ -1398,6 +1454,16 @@ export function LimitValueCalculation() {
                                                         <div className="text-xs text-red-500 mt-0.5 flex items-center gap-1">
                                                             <XCircle className="w-3 h-3" />
                                                             {bidder.exclusionReason || 'Geçersiz Teklif'}
+                                                        </div>
+                                                    )}
+                                                    {(bidder.hasSgkDebt || bidder.hasTaxDebt) && (
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {bidder.hasSgkDebt && (
+                                                                <span className="text-[10px] font-semibold bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded border border-orange-300">⚠ SGK Borcu Var</span>
+                                                            )}
+                                                            {bidder.hasTaxDebt && (
+                                                                <span className="text-[10px] font-semibold bg-red-100 text-red-800 px-1.5 py-0.5 rounded border border-red-300">⚠ Vergi Borcu Var</span>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </TableCell>

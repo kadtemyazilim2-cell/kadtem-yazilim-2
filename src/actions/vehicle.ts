@@ -170,9 +170,25 @@ export async function createVehicle(data: Partial<Vehicle>) {
 
 export async function updateVehicle(id: string, data: Partial<Vehicle>) {
     try {
+        // Whitelist of allowed Vehicle schema columns to prevent unknown fields from reaching Prisma
+        const allowedFields = new Set([
+            'companyId', 'plate', 'brand', 'model', 'year', 'type', 'meterType', 'currentKm',
+            'status', 'ownership',
+            'insuranceExpiry', 'insuranceStartDate', 'kaskoExpiry', 'kaskoStartDate',
+            'inspectionExpiry', 'lastInspectionDate', 'vehicleCardExpiry',
+            'insuranceAgency', 'insuranceCompany', 'kaskoAgency', 'kaskoCompany',
+            'insuranceCost', 'kaskoCost',
+            'rentalCompanyName', 'monthlyRentalFee', 'rentalContact', 'rentalLastUpdate',
+            'engineNumber', 'chassisNumber', 'fuelType', 'licenseFile',
+            'consumptionMin', 'consumptionMax',
+            'lastTrafficProposalDate', 'lastTrafficProposalAgencies',
+            'lastKaskoProposalDate', 'lastKaskoProposalAgencies',
+            'assignedSiteId', 'assignedSiteIds', 'insuranceHistory'
+        ]);
+
         let cleanData: any = {};
         for (const [key, value] of Object.entries(data)) {
-            if (value !== undefined) {
+            if (value !== undefined && allowedFields.has(key)) {
                 cleanData[key] = value;
             }
         }
