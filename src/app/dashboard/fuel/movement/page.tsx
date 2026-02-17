@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -111,22 +111,22 @@ export default function FuelMovementPage() {
     const canTransferCreate = hasPermission('movement.transfer', 'CREATE') || hasPermission('movement', 'CREATE');
     const canPurchaseCreate = hasPermission('movement.purchase', 'CREATE') || hasPermission('movement', 'CREATE');
 
-    // [MOD] Persist Date and Time — hooks MUST be before any early returns
-    const [date, setDate] = useLocalStorage('fuel_form_date', new Date().toISOString().split('T')[0]);
-    const [time, setTime] = useLocalStorage('fuel_form_time', new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
+    // Date and Time state
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [time, setTime] = useState(new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }));
 
-    // 1. TRANSFER (Virman) State [SIMPLIFIED]
-    const [transferData, setTransferData] = useLocalStorage('fuel_transfer_form', {
+    // 1. TRANSFER (Virman) State
+    const [transferData, setTransferData] = useState({
         fromType: 'TANK', fromId: '', toType: 'TANK', toId: '', amount: ''
     });
 
     // 2. PURCHASE (Yakıt Alımı) State
-    const [purchaseData, setPurchaseData] = useLocalStorage('fuel_purchase_form', {
+    const [purchaseData, setPurchaseData] = useState({
         firmName: '', toType: 'TANK', toId: '', amount: '', unitPrice: ''
     });
 
     // 3. DISPENSE (Yakıt Verme) State
-    const [dispenseData, setDispenseData] = useLocalStorage('fuel_dispense_form', {
+    const [dispenseData, setDispenseData] = useState({
         tankId: '', vehicleId: '', amount: '', mileage: '', fullTank: true, description: ''
     });
 
