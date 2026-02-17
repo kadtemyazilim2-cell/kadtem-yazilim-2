@@ -88,10 +88,7 @@ export function FuelPageClient({ fuelLogs, fuelTanks, fuelTransfers }: FuelPageC
                             Depo stok durumları ve detaylı tüketim raporları.
                         </p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                        <ArrowRightLeft className="w-4 h-4 mr-2" />
-                        Verileri Yenile
-                    </Button>
+
                 </div>
 
                 {/* Existing Components... Assuming they use store internally */}

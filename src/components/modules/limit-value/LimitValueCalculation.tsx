@@ -1170,10 +1170,31 @@ export function LimitValueCalculation() {
             const cName = c.name.toLocaleLowerCase('tr');
             const cShort = c.shortName?.toLocaleLowerCase('tr');
 
-            // Check full name or short name containment
-            // e.g. "KAD-TEM İNŞAAT..." includes "kad-tem"
+            // 1. Check full name containment (Always safe for full titles)
             if (normalizedBidder.includes(cName)) return true;
-            if (cShort && normalizedBidder.includes(cShort)) return true;
+
+            // 2. Check short name with WORD BOUNDARY
+            // We use Unicode Lookarounds to ensure we don't match inside words
+            // e.g. "KAD" should NOT match "KADİR"
+            if (cShort) {
+                try {
+                    // Escape special regex chars in cShort if any
+                    const escapedShort = cShort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                    // (?<!\p{L}) means "not preceded by a letter" (Unicode aware)
+                    // (?!\p{L}) means "not followed by a letter" (Unicode aware)
+                    const pattern = `(?<!\\p{L})${escapedShort}(?!\\p{L})`;
+                    const regex = new RegExp(pattern, 'u');
+                    return regex.test(normalizedBidder);
+                } catch (e) {
+                    // Fallback for environments without Unicode Lookbehind support (rare in modern browsers)
+                    // We split by non-letter characters and check if list includes shortname
+                    // Turkish letters: a-z, ç, ğ, ı, i, ö, ş, ü
+                    // We create a simpler check
+                    const words = normalizedBidder.split(/[^a-zçğıöşü0-9]/i);
+                    return words.includes(cShort);
+                }
+            }
             return false;
         });
     };

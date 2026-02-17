@@ -367,32 +367,14 @@ export default function FuelMovementPage() {
 
 
 
-    const handleFixAnaTanks = async () => {
-        if (!confirm('Tüm "Ana Tank" kayıtları gizlenecek. Onaylıyor musunuz?')) return;
-        try {
-            const res = await deactivateAnaTanks();
-            if (res.success) {
-                toast.success(`${res.count} adet "Ana Tank" kaydı gizlendi.`);
-                // Refresh data
-                window.location.reload();
-            } else {
-                toast.error('İşlem başarısız.');
-            }
-        } catch (e) {
-            toast.error('Hata oluştu.');
-        }
-    };
+
+
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div>
                 <h2 className="text-3xl font-bold tracking-tight">Yakıt Hareketleri</h2>
-                <Button variant="destructive" size="sm" onClick={handleFixAnaTanks} className="opacity-50 hover:opacity-100">
-                    Ana Tankları Kaldır (Düzeltme)
-                </Button>
             </div>
-            {/* ... rest of the component ... */}
-
             <Tabs defaultValue="dispense" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 h-auto min-h-[3.5rem]">
                     {canDispense && (
@@ -700,6 +682,6 @@ export default function FuelMovementPage() {
                     </div>
                 </TabsContent>
             </Tabs>
-        </div>
+        </div >
     );
 }
