@@ -95,12 +95,12 @@ export default function FuelMovementPage() {
         }
     }, [accessibleTanks]);
 
-    // [NEW] Auto-select transfer source if only 1 accessible tank
+    // [NEW] Auto-select transfer source if only 1 tank in system
     useEffect(() => {
-        if (accessibleTanks.length === 1 && !transferData.fromId) {
-            setTransferData(prev => ({ ...prev, fromId: accessibleTanks[0].id }));
+        if (allTanks.length === 1 && !transferData.fromId) {
+            setTransferData(prev => ({ ...prev, fromId: allTanks[0].id }));
         }
-    }, [accessibleTanks]);
+    }, [allTanks]);
 
     const canViewPage = hasPermission('movement', 'VIEW');
     const canDispense = hasPermission('movement.dispense', 'VIEW') || hasPermission('movement', 'VIEW');
@@ -549,11 +549,11 @@ export default function FuelMovementPage() {
                                             value={transferData.fromId}
                                             onValueChange={v => setTransferData({ ...transferData, fromId: v || '' })}
                                             required
-                                            disabled={accessibleTanks.length === 1}
+                                            disabled={allTanks.length === 1}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Seçiniz" /></SelectTrigger>
                                             <SelectContent>
-                                                {accessibleTanks.map((t: any) => (
+                                                {allTanks.filter((t: any) => t.id !== transferData.toId).map((t: any) => (
                                                     <SelectItem key={t.id} value={t.id}>{t.name} ({t.currentLevel} Lt)</SelectItem>
                                                 ))}
                                             </SelectContent>
