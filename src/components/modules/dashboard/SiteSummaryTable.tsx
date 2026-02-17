@@ -2,8 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FuelLog, Site, FuelTransfer, FuelTank } from '@/lib/types';
-import { useMemo, useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { format, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Fuel } from 'lucide-react';
@@ -24,14 +23,9 @@ interface SiteSummaryTableProps {
 }
 
 export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteSummaryTableProps) {
-    // Delay rendering to avoid ResponsiveContainer dimension bug
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => {
-        const timer = setTimeout(() => setMounted(true), 100);
-        return () => clearTimeout(timer);
-    }, []);
+    const [hoveredData, setHoveredData] = useState<{ day: any; x: number; y: number } | null>(null);
 
-    // Active tanks with display names (SAME as old DailyFuelChart)
+    // Active tanks with display names
     const activeTanks = useMemo(() => {
         const tanks = (fuelTanks || []).filter((t: any) => t.status !== 'PASSIVE');
         return tanks.map((t: any) => {
@@ -54,7 +48,7 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
         return map;
     }, [activeTanks]);
 
-    // Vehicle details lookup for tooltip (separate from chart data)
+    // Vehicle details lookup for tooltip
     const detailsMap = useMemo(() => {
         const map: Record<string, Record<string, { plate: string; brand: string; liters: number; isFull: boolean }[]>> = {};
 
@@ -73,7 +67,12 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
                 map[dateKey][resolvedTankId].push({
                     plate: vehicle?.plate || '-',
                     brand: vehicle ? `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() : '',
-                    liters: Number(log.liters || 0),
+                    liters: (() => {
+                        const val = log.liters;
+                        if (typeof val === 'number') return val;
+                        if (typeof val === 'string') return parseFloat(val.replace(',', '.')) || 0;
+                        return Number(val || 0);
+                    })(),
                     isFull: log.fullTank || false,
                 });
             } catch { /* skip */ }
@@ -82,10 +81,10 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
         return map;
     }, [fuelLogs, activeTanks, siteTankMap, vehicles]);
 
-    // Chart data (EXACT SAME logic as old working DailyFuelChart)
+    // Chart data (Calculated for 7 days)
     const chartData = useMemo(() => {
-        const days = Array.from({ length: 14 }, (_, i) => {
-            const d = subDays(new Date(), 13 - i);
+        const days = Array.from({ length: 7 }, (_, i) => {
+            const d = subDays(new Date(), 6 - i);
             return {
                 label: format(d, 'dd MMM', { locale: tr }),
                 key: format(d, 'yyyy-MM-dd')
@@ -93,7 +92,12 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
         });
 
         return days.map((day) => {
-            const row: any = { name: day.label, fullDate: day.key };
+            const row: any = {
+                name: day.label,
+                fullDate: day.key,
+                key: day.key,
+                total: 0
+            };
 
             // Init all tanks to 0
             activeTanks.forEach((tank) => { row[tank.id] = 0; });
@@ -113,63 +117,25 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
                 const tank = activeTanks.find((t: any) => t.id === resolvedTankId);
                 if (!tank) return;
 
-                row[resolvedTankId] = (row[resolvedTankId] || 0) + Number(log.liters || 0);
+                const val = log.liters;
+                let liters = 0;
+                if (typeof val === 'number') liters = val;
+                else if (typeof val === 'string') liters = parseFloat(val.replace(',', '.')) || 0;
+                else liters = Number(val || 0);
+
+                row[resolvedTankId] = (row[resolvedTankId] || 0) + liters;
+                row.total += liters;
             });
 
             return row;
         });
     }, [fuelLogs, activeTanks, siteTankMap]);
 
-    // Custom tooltip with vehicle breakdown
-    const CustomTooltip = ({ active, payload, label }: any) => {
-        if (active && payload && payload.length > 0) {
-            const sorted = [...payload].filter((p: any) => p.value > 0).sort((a: any, b: any) => b.value - a.value);
-            const total = sorted.reduce((sum: number, e: any) => sum + e.value, 0);
-            if (total === 0) return null;
-
-            const dateKey = payload[0]?.payload?.fullDate;
-
-            return (
-                <div className="bg-white p-3 border border-slate-200 shadow-xl rounded-lg text-xs max-w-[340px] z-50">
-                    <div className="flex justify-between items-center border-b pb-1.5 mb-2">
-                        <span className="font-bold text-slate-700">{label}</span>
-                        <span className="font-mono font-bold text-slate-900">{Math.round(total).toLocaleString('tr-TR')} Lt</span>
-                    </div>
-                    <div className="space-y-2">
-                        {sorted.map((entry: any) => {
-                            const details = dateKey ? (detailsMap[dateKey]?.[entry.dataKey] || []) : [];
-                            return (
-                                <div key={entry.dataKey}>
-                                    <div className="flex items-center gap-1.5 mb-1">
-                                        <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: entry.color }} />
-                                        <span className="font-semibold text-slate-700">{entry.name}</span>
-                                        <span className="ml-auto font-mono font-bold text-slate-900">
-                                            {Math.round(entry.value).toLocaleString('tr-TR')} Lt
-                                        </span>
-                                    </div>
-                                    {details.length > 0 && (
-                                        <div className="ml-4 space-y-0.5 border-l-2 border-slate-100 pl-2">
-                                            {details.sort((a, b) => b.liters - a.liters).map((d, i) => (
-                                                <div key={i} className="flex items-center justify-between text-slate-500 gap-2">
-                                                    <span className="min-w-0">
-                                                        <span className="font-mono font-medium text-slate-600">{d.plate}</span>
-                                                        {d.brand && <span className="ml-1 text-[10px] text-slate-400">{d.brand}</span>}
-                                                        {d.isFull && <span className="ml-1 text-[9px] font-bold text-green-600 bg-green-50 px-1 rounded">FULL</span>}
-                                                    </span>
-                                                    <span className="font-mono text-slate-600 shrink-0">{Math.round(d.liters)} Lt</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
+    // Calculate max value for scaling
+    const maxTotal = useMemo(() => {
+        const max = Math.max(...chartData.map(d => d.total));
+        return max > 0 ? max * 1.1 : 100; // 10% buffering
+    }, [chartData]);
 
     if (activeTanks.length === 0) {
         return (
@@ -177,7 +143,7 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
                 <CardHeader className="pb-2">
                     <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
                         <Fuel className="h-4 w-4" />
-                        Günlük Depo Harcaması (Son 14 Gün)
+                        Günlük Depo Harcaması (Son 7 Gün)
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -188,64 +154,133 @@ export function SiteSummaryTable({ fuelLogs, fuelTanks, sites, vehicles }: SiteS
     }
 
     return (
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-slate-200 h-full relative">
             <CardHeader className="pb-2 border-b border-slate-100 bg-slate-50/50">
                 <CardTitle className="text-base font-semibold text-slate-700 flex items-center gap-2">
                     <Fuel className="h-4 w-4 text-slate-400" />
-                    Günlük Depo Harcaması (Son 14 Gün)
+                    Günlük Depo Harcaması (Son 7 Gün)
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">Şantiye depolarından araçlara verilen günlük yakıt — çubuğun üzerine gelince araç detaylarını görüntüleyin</p>
+                <p className="text-xs text-muted-foreground">Şantiye depolarından araçlara verilen günlük yakıt (CSS Grafik)</p>
             </CardHeader>
-            <CardContent className="px-2 sm:px-6">
-                {!mounted ? (
-                    <div className="flex items-center justify-center" style={{ height: 350 }}>
-                        <span className="text-sm text-muted-foreground">Grafik yükleniyor...</span>
+            <CardContent className="px-2 sm:px-6 py-6">
+                <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+                    <div className="min-w-[600px] h-[300px] flex items-end justify-between gap-4 px-4 relative">
+                        {/* Y-Axis visual guide lines */}
+                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-10">
+                            {[0, 0.25, 0.5, 0.75, 1].reverse().map((tick) => (
+                                <div key={`tick-${tick}`} className="w-full border-t border-slate-900 relative">
+                                    <span className="absolute -left-0 -top-2 text-[10px] text-slate-900 bg-white pr-1">
+                                        {Math.round(maxTotal * tick).toLocaleString('tr-TR')}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {chartData.map((day) => {
+                            return (
+                                <div
+                                    key={`day-${day.key}`}
+                                    className="relative flex flex-col items-center flex-1 h-full justify-end group z-10 cursor-default"
+                                    onMouseEnter={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setHoveredData({
+                                            day,
+                                            x: rect.left + rect.width / 2,
+                                            y: rect.top
+                                        });
+                                    }}
+                                    onMouseLeave={() => setHoveredData(null)}
+                                >
+                                    {/* Stacked Bar */}
+                                    <div className="w-full max-w-[40px] bg-slate-100 rounded-t-sm relative flex flex-col-reverse overflow-hidden transition-all duration-300 hover:shadow-md hover:bg-slate-200"
+                                        style={{ height: `${(day.total / maxTotal) * 100}%` }}>
+                                        {activeTanks.map((tank, idx) => {
+                                            const val = day[tank.id];
+                                            if (!val || val <= 0) return null;
+                                            const heightPerc = (val / day.total) * 100;
+                                            return (
+                                                <div
+                                                    key={`bar-${tank.id}-${idx}`}
+                                                    style={{ height: `${heightPerc}%`, backgroundColor: TANK_COLORS[idx % TANK_COLORS.length] }}
+                                                    className="w-full transition-all duration-300 opacity-90 hover:opacity-100"
+                                                />
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Date Label */}
+                                    <div className="mt-2 text-[10px] font-medium text-slate-500 whitespace-nowrap">
+                                        {day.name}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-slate-700">
+                                        {day.total > 0 ? `${Math.round(day.total).toLocaleString('tr-TR')}` : ''}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                ) : (
-                    <div style={{ width: '100%', height: 350 }}>
-                        <ResponsiveContainer width="100%" height={350} minWidth={0}>
-                            <BarChart
-                                data={chartData}
-                                margin={{ top: 10, right: 10, left: -10, bottom: 5 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis
-                                    dataKey="name"
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tick={{ fill: '#64748b' }}
-                                />
-                                <YAxis
-                                    fontSize={11}
-                                    tickLine={false}
-                                    axisLine={false}
-                                    tick={{ fill: '#64748b' }}
-                                    allowDecimals={false}
-                                    tickFormatter={(v) => `${v} Lt`}
-                                />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9' }} />
-                                <Legend
-                                    wrapperStyle={{ paddingTop: '12px', fontSize: '11px' }}
-                                    iconType="square"
-                                    iconSize={10}
-                                />
-                                {activeTanks.map((tank, index) => (
-                                    <Bar
-                                        key={tank.id}
-                                        dataKey={tank.id}
-                                        name={tank.displayName}
-                                        stackId="tanks"
-                                        fill={TANK_COLORS[index % TANK_COLORS.length]}
-                                        radius={index === activeTanks.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]}
-                                        maxBarSize={45}
-                                    />
-                                ))}
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                )}
+                </div>
+
+                {/* Legend */}
+                <div className="mt-4 flex flex-wrap gap-3 justify-center border-t border-slate-100 pt-4">
+                    {activeTanks.map((tank, idx) => (
+                        <div key={`legend-${tank.id}-${idx}`} className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: TANK_COLORS[idx % TANK_COLORS.length] }} />
+                            <span className="text-xs text-slate-600">{tank.displayName}</span>
+                        </div>
+                    ))}
+                </div>
             </CardContent>
+
+            {/* Floating Tooltip Portal-like */}
+            {hoveredData && (
+                <div
+                    className="fixed z-[9999] pointer-events-none drop-shadow-xl"
+                    style={{
+                        left: Math.min(hoveredData.x, window.innerWidth - 160),
+                        top: hoveredData.y,
+                        transform: 'translate(-50%, -100%)',
+                        marginTop: '-12px'
+                    }}
+                >
+                    <div className="bg-white p-3 border border-slate-200 shadow-xl rounded-lg text-xs min-w-[220px]">
+                        <div className="flex justify-between items-center border-b pb-1.5 mb-2">
+                            <span className="font-bold text-slate-700">{hoveredData.day.label}</span>
+                            <span className="font-mono font-bold text-slate-900">{Math.round(hoveredData.day.total).toLocaleString('tr-TR')} Lt</span>
+                        </div>
+                        <div className="space-y-1">
+                            {activeTanks.map((tank, idx) => {
+                                const val = hoveredData.day[tank.id];
+                                if (!val || val <= 0) return null;
+
+                                const details = detailsMap[hoveredData.day.key]?.[tank.id] || [];
+                                return (
+                                    <div key={`tooltip-${tank.id}-${idx}`}>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-sm shrink-0" style={{ backgroundColor: TANK_COLORS[idx % TANK_COLORS.length] }} />
+                                            <span className="text-slate-600 truncate max-w-[120px]">{tank.name}</span>
+                                            <span className="ml-auto font-mono font-semibold text-slate-900">
+                                                {Math.round(val).toLocaleString('tr-TR')}
+                                            </span>
+                                        </div>
+                                        {/* Vehicle Details */}
+                                        {details.length > 0 && (
+                                            <div className="ml-3 pl-2 border-l border-slate-100 mt-1 space-y-0.5">
+                                                {[...details].sort((a, b) => b.liters - a.liters).map((d, i) => (
+                                                    <div key={`detail-${i}`} className="text-[10px] text-slate-500 flex justify-between">
+                                                        <span>{d.plate}</span>
+                                                        <span>{Math.round(d.liters)}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </Card>
     );
 }
