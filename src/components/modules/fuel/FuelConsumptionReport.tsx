@@ -6,9 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useCallback } from 'react';
 import { FuelLog } from '@/lib/types';
-import { Pencil, Trash2, Calendar, Search, ArrowRight, ArrowLeft, FileSpreadsheet, FileDown } from 'lucide-react';
+import { Pencil, Trash2, Calendar, Search, ArrowRight, ArrowLeft, FileSpreadsheet, FileDown, Plus, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -34,7 +34,7 @@ const toDate = (d: any): Date => {
 
 // Vehicle-type-specific consumption ratio bounds (consumption / lifetimeAvg)
 // If ratio < lower or ratio > upper → anomaly (red highlight)
-const CONSUMPTION_BOUNDS: Record<string, { lower: number; upper: number }> = {
+const DEFAULT_CONSUMPTION_BOUNDS: Record<string, { lower: number; upper: number }> = {
     CAR: { lower: 1, upper: 1.5 },           // Binek
     TRUCK: { lower: 0.5, upper: 2 },          // Kamyon
     EXCAVATOR: { lower: 0.5, upper: 1.5 },    // Ekskavatör
@@ -45,6 +45,23 @@ const CONSUMPTION_BOUNDS: Record<string, { lower: number; upper: number }> = {
     BEKO_LODER: { lower: 0.7, upper: 1.2 },   // Beko Loder
     DEFAULT: { lower: 0.5, upper: 2 },        // Fallback
 };
+
+const BOUNDS_STORAGE_KEY = 'fuel_consumption_bounds';
+
+function loadBoundsFromStorage(): Record<string, { lower: number; upper: number }> {
+    if (typeof window === 'undefined') return { ...DEFAULT_CONSUMPTION_BOUNDS };
+    try {
+        const stored = localStorage.getItem(BOUNDS_STORAGE_KEY);
+        if (stored) return JSON.parse(stored);
+    } catch { /* ignore */ }
+    return { ...DEFAULT_CONSUMPTION_BOUNDS };
+}
+
+function saveBoundsToStorage(bounds: Record<string, { lower: number; upper: number }>) {
+    try {
+        localStorage.setItem(BOUNDS_STORAGE_KEY, JSON.stringify(bounds));
+    } catch { /* ignore */ }
+}
 
 function getVehicleCategory(vehicle: any): string {
     const def = (vehicle.definition || '').toLowerCase();
@@ -67,12 +84,17 @@ function getVehicleCategory(vehicle: any): string {
     return 'DEFAULT';
 }
 
-function isConsumptionAnomaly(consumption: number, lifetimeAvg: number, vehicle: any): boolean {
+function isConsumptionAnomaly(
+    consumption: number,
+    lifetimeAvg: number,
+    vehicle: any,
+    bounds: Record<string, { lower: number; upper: number }>
+): boolean {
     if (lifetimeAvg <= 0 || consumption <= 0) return false;
     const ratio = consumption / lifetimeAvg;
     const category = getVehicleCategory(vehicle);
-    const bounds = CONSUMPTION_BOUNDS[category] || CONSUMPTION_BOUNDS.DEFAULT;
-    return ratio < bounds.lower || ratio > bounds.upper;
+    const b = bounds[category] || bounds.DEFAULT || DEFAULT_CONSUMPTION_BOUNDS.DEFAULT;
+    return ratio < b.lower || ratio > b.upper;
 }
 
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
@@ -108,6 +130,40 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         end: ''
     });
     const [searchTerm, setSearchTerm] = useState('');
+
+    // [NEW] Dynamic Consumption Bounds Management
+    const [consumptionBounds, setConsumptionBounds] = useState<Record<string, { lower: number; upper: number }>>(DEFAULT_CONSUMPTION_BOUNDS);
+    const [showBoundsPanel, setShowBoundsPanel] = useState(false);
+    const [newBoundKey, setNewBoundKey] = useState('');
+    const [newBoundLower, setNewBoundLower] = useState('0.5');
+    const [newBoundUpper, setNewBoundUpper] = useState('2');
+
+    // Load bounds from localStorage on mount
+    useEffect(() => {
+        setConsumptionBounds(loadBoundsFromStorage());
+    }, []);
+
+    const handleAddBound = useCallback(() => {
+        const key = newBoundKey.trim().toUpperCase().replace(/\s+/g, '_');
+        if (!key || key === 'DEFAULT') return;
+        const lower = parseFloat(newBoundLower) || 0.5;
+        const upper = parseFloat(newBoundUpper) || 2;
+        const updated = { ...consumptionBounds, [key]: { lower, upper } };
+        setConsumptionBounds(updated);
+        saveBoundsToStorage(updated);
+        setNewBoundKey('');
+        setNewBoundLower('0.5');
+        setNewBoundUpper('2');
+    }, [consumptionBounds, newBoundKey, newBoundLower, newBoundUpper]);
+
+    const handleDeleteBound = useCallback((key: string) => {
+        if (key === 'DEFAULT') return;
+        if (!confirm(`"${key}" araç türünü silmek istediğinize emin misiniz?`)) return;
+        const updated = { ...consumptionBounds };
+        delete updated[key];
+        setConsumptionBounds(updated);
+        saveBoundsToStorage(updated);
+    }, [consumptionBounds]);
 
     const handleDelete = async (id: string) => {
         if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return;
@@ -300,45 +356,97 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             if (!vehicle) return;
 
             // [NEW] Advanced Consumption Calculation (Full-to-Full Method)
+            // With automatic first-fill exclusion and anomaly detection
             let totalValidLiters = 0;
             let totalValidDist = 0;
             const consumptionMap: Record<string, number> = {};
 
-            // Iterate to find closed Full-to-Full loops
+            // [FIX] Per-vehicle EXTRA exclusion (beyond the automatic first-fill skip)
+            // Value = number of ADDITIONAL oldest full-tank anchors to skip
+            const SKIP_EXTRA_FILLS: Record<string, number> = {
+                '20 AGV 818': 1,  // İlk dolum otomatik atlanır + 1 ek dolum daha atla
+            };
+
+            // Identify anchors to skip:
+            // 1. The OLDEST full-tank record is ALWAYS skipped (first fill = baseline only)
+            // 2. Per-vehicle extra skips from SKIP_EXTRA_FILLS
+            const fullTankLogs = logs.filter((l: any) => l.fullTank);
+            const skipAnchorIds = new Set<string>();
+
+            if (fullTankLogs.length > 0) {
+                // Always skip the oldest full-tank (last in desc-sorted array)
+                skipAnchorIds.add(fullTankLogs[fullTankLogs.length - 1].id);
+
+                // Skip additional anchors if configured
+                const extraSkip = SKIP_EXTRA_FILLS[vehicle.plate] || 0;
+                for (let s = 1; s <= extraSkip && (fullTankLogs.length - 1 - s) >= 0; s++) {
+                    skipAnchorIds.add(fullTankLogs[fullTankLogs.length - 1 - s].id);
+                }
+            }
+
+            // PASS 1: Collect all candidate Full-to-Full pairs
+            type F2FPair = { i: number; j: number; dist: number; liters: number; logId: string };
+            const candidatePairs: F2FPair[] = [];
+
             for (let i = 0; i < logs.length; i++) {
-                // If current is Full, look for previous Full
                 if (logs[i].fullTank) {
                     let j = i + 1;
-                    // Skip partials backwards to find next anchor
                     while (j < logs.length && !logs[j].fullTank) {
                         j++;
                     }
 
                     if (j < logs.length) {
-                        // Found previous full tank at index j
                         const prevFull = logs[j];
-                        const dist = logs[i].mileage - prevFull.mileage;
 
-                        // Sum liters of current + intermediate partials
-                        // Range: [i, j)
+                        // Skip if anchor has mileage 0 (import/baseline record)
+                        if (prevFull.mileage <= 0) continue;
+
+                        // Skip if anchor is the first fill or in extra-skip list
+                        if (skipAnchorIds.has(prevFull.id)) continue;
+
+                        const dist = logs[i].mileage - prevFull.mileage;
+                        if (dist <= 0) continue;
+
                         let liters = 0;
                         for (let k = i; k < j; k++) {
                             liters += logs[k].liters;
                         }
 
-                        if (dist > 0) {
-                            const cons = (liters / dist) * (vehicle.meterType === 'HOURS' ? 1 : 100);
-                            consumptionMap[logs[i].id] = cons;
-
-                            // Add to lifetime totals (Respect dynamic Site Filter)
-                            // If Site Selected: Only include logs filled at that site in the Average.
-                            // If No Site: Include all.
-                            if (!siteFilter || logs[i].siteId === siteFilter) {
-                                totalValidLiters += liters;
-                                totalValidDist += dist;
-                            }
-                        }
+                        candidatePairs.push({ i, j, dist, liters, logId: logs[i].id });
                     }
+                }
+            }
+
+            // PASS 2: Anomaly detection — exclude pairs with distance > 5x the average
+            const anomalyLogIds = new Set<string>(); // Track anomalous log IDs for red row highlighting
+
+            if (candidatePairs.length > 1) {
+                const avgDist = candidatePairs.reduce((sum, p) => sum + p.dist, 0) / candidatePairs.length;
+                const threshold = avgDist * 5;
+
+                for (const pair of candidatePairs) {
+                    if (pair.dist > threshold) {
+                        anomalyLogIds.add(pair.logId); // Mark as anomaly for UI
+                        continue; // Exclude from average
+                    }
+
+                    const cons = (pair.liters / pair.dist) * (vehicle.meterType === 'HOURS' ? 1 : 100);
+                    consumptionMap[pair.logId] = cons;
+
+                    if (!siteFilter || logs[pair.i].siteId === siteFilter) {
+                        totalValidLiters += pair.liters;
+                        totalValidDist += pair.dist;
+                    }
+                }
+            } else if (candidatePairs.length === 1) {
+                // Only one pair — no anomaly detection possible, use it directly
+                const pair = candidatePairs[0];
+                const cons = (pair.liters / pair.dist) * (vehicle.meterType === 'HOURS' ? 1 : 100);
+                consumptionMap[pair.logId] = cons;
+
+                if (!siteFilter || logs[pair.i].siteId === siteFilter) {
+                    totalValidLiters += pair.liters;
+                    totalValidDist += pair.dist;
                 }
             }
 
@@ -357,7 +465,10 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 const originalIndex = logs.findIndex((l: any) => l.id === log.id);
                 if (originalIndex < logs.length - 1) {
                     const nextLog = logs[originalIndex + 1];
-                    diffKm = log.mileage - nextLog.mileage;
+                    // [FIX] Skip diff if next log has mileage 0 (baseline/import record)
+                    if (nextLog.mileage > 0) {
+                        diffKm = log.mileage - nextLog.mileage;
+                    }
                 }
 
                 data.push({
@@ -376,7 +487,8 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     vehicleId: log.vehicleId, // [FIX] Include vehicleId for edits
                     filledByUserId: log.filledByUserId,
                     sourceName: undefined, // Fallback to filledByUserId name in render,
-                    description: log.description // [NEW] Note
+                    description: log.description, // [NEW] Note
+                    distanceAnomaly: anomalyLogIds.has(log.id) // [NEW] Flag for >5x distance anomaly
                 });
             });
         });
@@ -541,7 +653,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 const plate = normalizeSearchText(item.vehicle.plate || '');
                 const type = normalizeSearchText(item.vehicle.type || '');
                 const brand = normalizeSearchText(item.vehicle.brand || '');
-                return plate.includes(lowerSearch) || type.includes(lowerSearch) || brand.includes(lowerSearch);
+                const model = normalizeSearchText(item.vehicle.model || '');
+                const definition = normalizeSearchText(item.vehicle.definition || '');
+                return plate.includes(lowerSearch) || type.includes(lowerSearch) || brand.includes(lowerSearch) || model.includes(lowerSearch) || definition.includes(lowerSearch);
             });
         }
 
@@ -625,7 +739,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
         return processedData;
 
-    }, [vehicleLogs, vehicles, plateFilter, siteFilter, dateRange, searchTerm, sites, fuelTransfers, fuelTanks]);
+    }, [vehicleLogs, vehicles, plateFilter, siteFilter, dateRange, searchTerm, sites, fuelTransfers, fuelTanks, consumptionBounds]);
 
     const uniquePlates = Array.from(new Set(vehicles.map((v: any) => v.plate))).sort();
     const uniqueSites = Array.from(new Set(sites.map((s: any) => s.name))).sort();
@@ -724,7 +838,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder="Genel arama (Plaka, Şantiye vb.)..."
+                        placeholder="Genel arama (Plaka, Model, Şantiye vb.)..."
                         className="pl-8 bg-white"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -741,7 +855,104 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                     <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-2">
                         <FileDown className="w-4 h-4 text-red-600" /> PDF İndir
                     </Button>
+                    <Button
+                        variant={showBoundsPanel ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowBoundsPanel(!showBoundsPanel)}
+                        className="gap-2"
+                    >
+                        <Settings2 className="w-4 h-4" />
+                        Tüketim Oranları
+                        {showBoundsPanel ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </Button>
                 </div>
+            )}
+
+            {/* [NEW] Consumption Bounds Management Panel */}
+            {showBoundsPanel && (
+                <Card className="border-dashed border-slate-300">
+                    <CardHeader className="py-3 px-4">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-medium">Araç Türü Tüketim Oranları</CardTitle>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="px-4 pb-4 pt-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="text-xs">Araç Türü</TableHead>
+                                    <TableHead className="text-xs text-right">Alt Sınır</TableHead>
+                                    <TableHead className="text-xs text-right">Üst Sınır</TableHead>
+                                    <TableHead className="text-xs w-[60px]"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {Object.entries(consumptionBounds).map(([key, val]) => (
+                                    <TableRow key={key} className="h-8">
+                                        <TableCell className="text-xs font-medium py-1">
+                                            {key}
+                                            {key === 'DEFAULT' && <span className="text-muted-foreground ml-1">(Varsayılan)</span>}
+                                        </TableCell>
+                                        <TableCell className="text-xs text-right py-1">{val.lower}</TableCell>
+                                        <TableCell className="text-xs text-right py-1">{val.upper}</TableCell>
+                                        <TableCell className="py-1">
+                                            {key !== 'DEFAULT' && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => handleDeleteBound(key)}
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </Button>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {/* Add New Row */}
+                                <TableRow className="bg-slate-50">
+                                    <TableCell className="py-1">
+                                        <Input
+                                            className="h-7 text-xs"
+                                            placeholder="Araç türü adı..."
+                                            value={newBoundKey}
+                                            onChange={e => setNewBoundKey(e.target.value)}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                        <Input
+                                            className="h-7 text-xs text-right"
+                                            type="number"
+                                            step="0.1"
+                                            value={newBoundLower}
+                                            onChange={e => setNewBoundLower(e.target.value)}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                        <Input
+                                            className="h-7 text-xs text-right"
+                                            type="number"
+                                            step="0.1"
+                                            value={newBoundUpper}
+                                            onChange={e => setNewBoundUpper(e.target.value)}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="py-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-green-600 hover:text-green-800 hover:bg-green-50"
+                                            onClick={handleAddBound}
+                                            disabled={!newBoundKey.trim()}
+                                        >
+                                            <Plus className="w-3 h-3" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );
@@ -790,8 +1001,9 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                                 {reportData.map((row) => (
                                     <TableRow key={row.id} className={cn(
                                         row.recordType === 'BALANCE_START' && "bg-blue-50 hover:bg-blue-100 border-t-2 border-blue-200",
-                                        (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100"
-                                    )}>
+                                        (row.recordType === 'LOG' && !row.fullTank) && "bg-amber-50 hover:bg-amber-100",
+                                        row.distanceAnomaly && "bg-red-100 hover:bg-red-200 border-l-4 border-red-500"
+                                    )} title={row.distanceAnomaly ? 'Bu kayıt mesafe anomalisi nedeniyle ortalamadan hariç tutuldu (>5x ortalama mesafe)' : undefined}>
                                         <TableCell className="whitespace-nowrap">{row.recordType === 'BALANCE_START' ? format(new Date(row.date), 'dd.MM.yyyy') : format(new Date(row.date), 'dd.MM.yyyy HH:mm')}</TableCell>
                                         <TableCell className="max-w-[120px]">
                                             <div className="font-medium truncate" title={row.vehicle.plate}>{row.vehicle.plate}</div>
@@ -833,7 +1045,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                                             {(row.recordType === 'PURCHASE' || row.recordType === 'BALANCE_START' || row.recordType.startsWith('VIRMAN')) ? '-' : (
                                                 <div className="flex flex-col items-center">
                                                     {row.consumption > 0 ? (() => {
-                                                        const isAnomaly = row.lifetimeAvg > 0 && isConsumptionAnomaly(row.consumption, row.lifetimeAvg, row.vehicle);
+                                                        const isAnomaly = row.lifetimeAvg > 0 && isConsumptionAnomaly(row.consumption, row.lifetimeAvg, row.vehicle, consumptionBounds);
                                                         return (
                                                             <Badge variant={isAnomaly ? 'destructive' : 'secondary'}>
                                                                 {row.consumption.toFixed(2)} {row.vehicle.meterType === 'HOURS' ? 'Lt/Saat' : 'Lt/100km'}

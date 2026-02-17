@@ -11,7 +11,7 @@ import { FuelTankList } from '@/components/modules/fuel/FuelTankList';
 import { FuelTransferList } from '@/components/modules/fuel/FuelTransferList';
 import { FuelPurchaseList } from '@/components/modules/fuel/FuelPurchaseList';
 import { FuelStatsCard } from '@/components/modules/fuel/FuelStatsCard';
-import { VehicleConsumptionRatios } from '@/components/modules/fuel/VehicleConsumptionRatios';
+
 
 // Error Boundary to catch client-side rendering crashes
 class FuelErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -98,8 +98,6 @@ export function FuelPageClient({ fuelLogs, fuelTanks, fuelTransfers }: FuelPageC
 
                 {/* TODO: Add other components if needed */}
 
-                {/* Vehicle Consumption Ratios */}
-                {canViewConsumption && <VehicleConsumptionRatios />}
             </div>
         </FuelErrorBoundary>
     );
