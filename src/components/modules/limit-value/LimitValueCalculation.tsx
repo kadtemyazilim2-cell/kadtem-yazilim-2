@@ -1174,27 +1174,32 @@ export function LimitValueCalculation() {
             if (normalizedBidder.includes(cName)) return true;
 
             // 2. Check short name with WORD BOUNDARY
-            // We use Unicode Lookarounds to ensure we don't match inside words
-            // e.g. "KAD" should NOT match "KADİR"
             if (cShort) {
                 try {
-                    // Escape special regex chars in cShort if any
                     const escapedShort = cShort.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-                    // (?<!\p{L}) means "not preceded by a letter" (Unicode aware)
-                    // (?!\p{L}) means "not followed by a letter" (Unicode aware)
                     const pattern = `(?<!\\p{L})${escapedShort}(?!\\p{L})`;
                     const regex = new RegExp(pattern, 'u');
-                    return regex.test(normalizedBidder);
+                    if (regex.test(normalizedBidder)) return true;
                 } catch (e) {
-                    // Fallback for environments without Unicode Lookbehind support (rare in modern browsers)
-                    // We split by non-letter characters and check if list includes shortname
-                    // Turkish letters: a-z, ç, ğ, ı, i, ö, ş, ü
-                    // We create a simpler check
                     const words = normalizedBidder.split(/[^a-zçğıöşü0-9]/i);
-                    return words.includes(cShort);
+                    if (words.includes(cShort)) return true;
                 }
             }
+
+            // 3. Check FIRST WORD of Company Name with WORD BOUNDARY
+            const firstWord = cName.split(' ')[0];
+            if (firstWord && firstWord.length >= 2) {
+                try {
+                    const escaped = firstWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const pattern = `(?<!\\p{L})${escaped}(?!\\p{L})`;
+                    const regex = new RegExp(pattern, 'u');
+                    if (regex.test(normalizedBidder)) return true;
+                } catch (e) {
+                    const words = normalizedBidder.split(/[^a-zçğıöşü0-9]/i);
+                    if (words.includes(firstWord)) return true;
+                }
+            }
+
             return false;
         });
     };
