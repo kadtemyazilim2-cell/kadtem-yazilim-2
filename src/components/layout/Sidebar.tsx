@@ -1,5 +1,7 @@
 'use client';
 
+import NextImage from 'next/image';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -39,10 +41,22 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
     return (
         <div className={cn("flex flex-col h-full bg-slate-900 text-white w-64", className)}>
             <div className="p-6">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
-                    YapıTakip
-                </h1>
-                <p className="text-xs text-slate-400 mt-1">Kurumsal Şantiye Yönetimi</p>
+                <div className="flex flex-col items-center">
+                    <div className="relative w-full h-16 mb-2">
+                        <NextImage
+                            src="/images/kadtem-logo.png"
+                            alt="KAD-TEM Logo"
+                            fill
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
+                    <div className="text-center">
+                        <h1 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">
+                            KAD-TEM A.Ş.
+                        </h1>
+                    </div>
+                </div>
             </div>
 
             <nav className="flex-1 overflow-y-auto py-4">
