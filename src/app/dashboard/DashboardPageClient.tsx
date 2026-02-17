@@ -349,6 +349,8 @@ export function DashboardPageClient() {
                         days,
                         date: v.insuranceExpiry,
                         agencyName: v.insuranceAgency,
+                        proposalAgencies: v.lastTrafficProposalAgencies || [],
+                        proposalDate: v.lastTrafficProposalDate,
                         vehicleBrand: v.brand,
                         vehicleModel: v.model
                     });
@@ -366,6 +368,8 @@ export function DashboardPageClient() {
                         days,
                         date: v.kaskoExpiry,
                         agencyName: v.kaskoAgency,
+                        proposalAgencies: v.lastKaskoProposalAgencies || [],
+                        proposalDate: v.lastKaskoProposalDate,
                         vehicleBrand: v.brand,
                         vehicleModel: v.model
                     });
@@ -383,6 +387,8 @@ export function DashboardPageClient() {
                         days,
                         date: v.inspectionExpiry,
                         agencyName: 'TÜVTÜRK',
+                        proposalAgencies: [],
+                        proposalDate: null,
                         vehicleBrand: v.brand,
                         vehicleModel: v.model
                     });
@@ -559,7 +565,13 @@ export function DashboardPageClient() {
                                                         <span className="text-slate-400">•</span>
                                                         <span className="text-slate-500">{item.vehicleBrand} {item.vehicleModel}</span>
                                                     </div>
-                                                    {latestAgency && <div className="text-[10px] font-medium mt-0.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded w-fit border border-emerald-200">🏢 {latestAgency}</div>}
+                                                    {latestAgency && <div className="text-[10px] font-medium mt-0.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded w-fit border border-emerald-200">🏢 Son Acenta: {latestAgency}</div>}
+                                                    {item.proposalAgencies?.length > 0 && (
+                                                        <div className="text-[10px] font-medium mt-0.5 bg-blue-50 text-blue-700 px-2 py-0.5 rounded w-fit border border-blue-200">
+                                                            📨 Teklif: {item.proposalAgencies.join(', ')}
+                                                            {item.proposalDate && <span className="text-blue-400 ml-1">({format(new Date(item.proposalDate), 'dd.MM.yyyy')})</span>}
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                                                     {item.type === 'Muayene' ? (canEditPayments && <Button variant="outline" size="sm" className="h-7 text-xs bg-slate-50 hover:bg-slate-100" onClick={() => handleAlertClick(item)}>Tarih Gir</Button>) : (canEditPayments && <> <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-700 hover:bg-blue-50 hover:text-blue-800" onClick={() => handleAlertClick(item)}>Teklif İste</Button> <Button variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50 hover:border-green-300" onClick={() => handlePolicyClick(item)}>Poliçe Gir</Button> </>)}
