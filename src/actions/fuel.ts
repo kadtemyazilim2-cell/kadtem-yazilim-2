@@ -183,12 +183,28 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 export async function getFuelTanks() {
     try {
         const tanks = await prisma.fuelTank.findMany({
+            where: { status: 'ACTIVE' },
             include: { site: { select: { id: true, name: true } } }
         });
         return { success: true, data: tanks };
     } catch (error) {
         console.error('getFuelTanks Error:', error);
         return { success: false, error: 'Depolar alınamadı.' };
+    }
+}
+
+export async function deactivateAnaTanks() {
+    try {
+        const result = await prisma.fuelTank.updateMany({
+            where: { name: { contains: 'Ana Tank', mode: 'insensitive' } },
+            data: { status: 'PASSIVE' }
+        });
+        revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page');
+        return { success: true, count: result.count };
+    } catch (error) {
+        console.error('deactivateAnaTanks Error:', error);
+        return { success: false, error: 'Düzeltme yapılamadı.' };
     }
 }
 
