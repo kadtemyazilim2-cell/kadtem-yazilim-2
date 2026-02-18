@@ -1798,8 +1798,12 @@ export default function AdminPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users.map((u: any) => (
-                                        <TableRow key={u.id}>
+                                    {[...users].sort((a: any, b: any) => {
+                                        if (a.status === 'INACTIVE' && b.status !== 'INACTIVE') return 1;
+                                        if (a.status !== 'INACTIVE' && b.status === 'INACTIVE') return -1;
+                                        return 0;
+                                    }).map((u: any) => (
+                                        <TableRow key={u.id} className={u.status === 'INACTIVE' ? 'opacity-50' : ''}>
                                             <TableCell className="font-medium">
                                                 <div>{u.name}</div>
                                                 <div className="text-xs text-slate-500">{u.email}</div>
