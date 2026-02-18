@@ -54,7 +54,7 @@ export function DashboardPageClient() {
                 const [fuelLogsRes, fuelTanksRes, fuelTransfersRes, transactionsRes, siteLogsRes] = await Promise.all([
                     getFuelLogs({ limit: 1000, startDate: monthStart, endDate: monthEnd }),
                     getFuelTanks(),
-                    getFuelTransfers({ limit: 1000, startDate: monthStart, endDate: monthEnd }),
+                    getFuelTransfers({ limit: 1000 }),
                     getAllTransactions(),
                     getSiteLogEntries(),
                 ]);
