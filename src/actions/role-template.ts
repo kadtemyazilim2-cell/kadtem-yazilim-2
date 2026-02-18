@@ -58,6 +58,26 @@ export async function getRoleTemplates() {
     }
 }
 
+export async function updateRoleTemplate(id: string, permissions: any) {
+    try {
+        const session = await auth();
+        if (session?.user?.role !== 'ADMIN') {
+            return { success: false, error: 'Yetkisiz işlem.' };
+        }
+
+        const template = await prisma.roleTemplate.update({
+            where: { id },
+            data: { permissions }
+        });
+
+        revalidatePath('/dashboard/admin');
+        return { success: true, data: JSON.parse(JSON.stringify(template)) };
+    } catch (error: any) {
+        console.error('updateRoleTemplate Error:', error);
+        return { success: false, error: 'Şablon güncellenemedi.' };
+    }
+}
+
 export async function deleteRoleTemplate(id: string) {
     try {
         const session = await auth();

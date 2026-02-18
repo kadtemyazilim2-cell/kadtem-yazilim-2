@@ -17,7 +17,7 @@ import { createSite, deleteSite as deleteSiteAction, getSites, updateSite as upd
 import { createFuelTank, deleteFuelTank as deleteFuelTankAction } from '@/actions/fuel'; // [NEW]
 import { createCompany, updateCompany as updateCompanyAction, deleteCompany as deleteCompanyAction, checkCompanyDependencies, getCompanyFull } from '@/actions/company'; // [NEW]
 import { resetDatabase } from '@/actions/system';
-import { createRoleTemplate, getRoleTemplates, deleteRoleTemplate } from '@/actions/role-template'; // [NEW]
+import { createRoleTemplate, getRoleTemplates, deleteRoleTemplate, updateRoleTemplate } from '@/actions/role-template';
 import { useRouter, useSearchParams } from 'next/navigation'; // Ensure router is imported
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -248,6 +248,21 @@ export default function AdminPage() {
             }
         } catch (e) {
             toast.error('Hata oluştu.');
+        }
+    };
+
+    const handleUpdateTemplate = async (id: string, name: string) => {
+        if (!confirm(`"${name}" şablonunun izinleri mevcut tablodaki izinlerle güncellenecek. Onaylıyor musunuz?`)) return;
+        try {
+            const res = await updateRoleTemplate(id, userPermissions);
+            if (res.success) {
+                toast.success(`"${name}" şablonu güncellendi.`);
+                loadTemplates();
+            } else {
+                toast.error(res.error || 'Şablon güncellenemedi.');
+            }
+        } catch (e) {
+            toast.error('Şablon güncellenemedi.');
         }
     };
 
@@ -1643,56 +1658,65 @@ export default function AdminPage() {
                                                                     <Button type="button" variant="outline" size="sm" onClick={() => setAllPermissions('FULL')} className="h-7 text-xs font-bold text-blue-700 hover:text-blue-800 hover:bg-blue-50">
                                                                         <ShieldCheck className="w-3 h-3 mr-1" /> Tam Yetki
                                                                     </Button>
-                                                                    <Button type="button" variant="outline" size="sm" onClick={() => setIsSaveTemplateOpen(true)} className="h-7 text-xs font-bold text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50">
-                                                                        <FileText className="w-3 h-3 mr-1" /> Şablon Kaydet
-                                                                    </Button>
                                                                 </div>
                                                             </div>
-
-                                                            {/* Save Template Dialog (Inline or Popover equivalent) */}
-                                                            {isSaveTemplateOpen && (
-                                                                <div className="flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded mb-2">
-                                                                    <Input
-                                                                        placeholder="Şablon Adı (Örn: Saha Ekibi)"
-                                                                        value={newTemplateName}
-                                                                        onChange={(e) => setNewTemplateName(e.target.value)}
-                                                                        className="h-8 text-xs"
-                                                                    />
-                                                                    <Button size="sm" onClick={handleSaveTemplate} className="h-8 text-xs whitespace-nowrap bg-emerald-600 hover:bg-emerald-700">Kaydet</Button>
-                                                                    <Button size="sm" variant="ghost" onClick={() => setIsSaveTemplateOpen(false)} className="h-8 text-xs w-8 p-0"><XCircle className="w-4 h-4" /></Button>
+                                                            {/* Template Management Section */}
+                                                            <div className="border rounded-md bg-white">
+                                                                <div className="px-3 py-2 border-b bg-slate-50 flex items-center justify-between">
+                                                                    <span className="text-xs font-semibold text-slate-700">📋 Şablon Yönetimi</span>
                                                                 </div>
-                                                            )}
-
-                                                            {/* [NEW] Template Selector */}
-                                                            <Select onValueChange={handleApplyTemplate}>
-                                                                <SelectTrigger className="w-full bg-white h-8 text-xs">
-                                                                    <SelectValue placeholder="Şablon Seç..." />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectGroup>
-                                                                        <SelectLabel>Hazır Şablonlar</SelectLabel>
-                                                                        <SelectItem value="VIEW_ALL">Sadece İzleme (Tüm Modüller)</SelectItem>
-                                                                        {templates.length > 0 ? templates.map((t: any) => (
-                                                                            <SelectItem key={t.id} value={t.id}>
-                                                                                {t.name}
-                                                                            </SelectItem>
-                                                                        )) : (
-                                                                            <div className="px-2 py-1 text-xs text-muted-foreground text-center">Henüz şablon kaydedilmemiş</div>
-                                                                        )}
-                                                                    </SelectGroup>
-                                                                    {templates.length > 0 && (
-                                                                        <SelectGroup>
-                                                                            <SelectLabel>Şablon Sil</SelectLabel>
-                                                                            {templates.map((t: any) => (
-                                                                                <div key={`del-${t.id}`} className="px-2 py-1.5 flex justify-between items-center text-xs hover:bg-red-50 cursor-pointer rounded mx-1" onClick={(e) => handleDeleteTemplate(e, t.id)}>
-                                                                                    <span>{t.name}</span>
-                                                                                    <Trash2 className="w-3 h-3 text-red-500" />
-                                                                                </div>
-                                                                            ))}
-                                                                        </SelectGroup>
+                                                                <div className="divide-y">
+                                                                    {/* Built-in: View All */}
+                                                                    <div className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors">
+                                                                        <span className="text-sm text-slate-700">Sadece İzleme (Tüm Modüller)</span>
+                                                                        <Button type="button" variant="outline" size="sm" onClick={() => handleApplyTemplate('VIEW_ALL')} className="h-7 text-xs">
+                                                                            Uygula
+                                                                        </Button>
+                                                                    </div>
+                                                                    {/* Saved Templates */}
+                                                                    {templates.map((t: any) => (
+                                                                        <div key={t.id} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50 transition-colors">
+                                                                            <span className="text-sm font-medium text-slate-800">{t.name}</span>
+                                                                            <div className="flex items-center gap-1">
+                                                                                <Button type="button" variant="outline" size="sm" onClick={() => handleApplyTemplate(t.id)} className="h-7 text-xs">
+                                                                                    Uygula
+                                                                                </Button>
+                                                                                <Button type="button" variant="outline" size="sm" onClick={() => handleUpdateTemplate(t.id, t.name)} className="h-7 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50">
+                                                                                    <Pencil className="w-3 h-3" />
+                                                                                </Button>
+                                                                                <Button type="button" variant="ghost" size="sm" onClick={(e) => handleDeleteTemplate(e, t.id)} className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 w-7 p-0">
+                                                                                    <Trash2 className="w-3 h-3" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                    {templates.length === 0 && (
+                                                                        <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                                                                            Henüz şablon kaydedilmemiş
+                                                                        </div>
                                                                     )}
-                                                                </SelectContent>
-                                                            </Select>
+                                                                </div>
+                                                                {/* Save Template Section */}
+                                                                <div className="px-3 py-2 border-t bg-slate-50">
+                                                                    {isSaveTemplateOpen ? (
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Input
+                                                                                placeholder="Şablon Adı (Örn: Saha Ekibi)"
+                                                                                value={newTemplateName}
+                                                                                onChange={(e) => setNewTemplateName(e.target.value)}
+                                                                                className="h-8 text-xs"
+                                                                                autoFocus
+                                                                            />
+                                                                            <Button size="sm" onClick={handleSaveTemplate} className="h-8 text-xs whitespace-nowrap bg-emerald-600 hover:bg-emerald-700">Kaydet</Button>
+                                                                            <Button size="sm" variant="ghost" onClick={() => setIsSaveTemplateOpen(false)} className="h-8 text-xs w-8 p-0"><XCircle className="w-4 h-4" /></Button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSaveTemplateOpen(true)} className="w-full h-8 text-xs text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 border-dashed">
+                                                                            <Plus className="w-3 h-3 mr-1" /> Mevcut Yetkileri Şablon Olarak Kaydet
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div className="flex-1 overflow-y-auto">
                                                             <Table>
