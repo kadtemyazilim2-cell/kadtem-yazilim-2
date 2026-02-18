@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 import jsPDF from 'jspdf';
-import { fontBase64 } from '@/lib/pdf-font';
+import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
 
 
 interface SiteLogSummaryProps {
@@ -47,10 +47,8 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
             setIsGenerating(entry.id);
             const doc = new jsPDF('p', 'mm', 'a4');
 
-            // 1. Load Custom Font (Roboto) from Base64
-            doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
-            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
-            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold');
+            // Load Custom Font (Roboto) with Identity-H encoding for Turkish characters
+            addTurkishFont(doc);
 
             doc.setFont('Roboto', 'bold');
 
