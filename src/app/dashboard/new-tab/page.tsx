@@ -25,6 +25,7 @@ import { useAppStore } from '@/lib/store/use-store';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { fontBase64 } from '@/lib/pdf-font';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
 import { getPersonnelWithAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
 
@@ -149,6 +150,7 @@ export default function NewPage() {
     const [names, setNames] = useState<IndependentPerson[]>([]);
 
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('grid');
 
     // Site Filter State
     const [selectedSiteId, setSelectedSiteId] = useState<string>('');
@@ -1332,47 +1334,33 @@ export default function NewPage() {
     const handleExportSalaryPDF = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
 
-        // Font setup (Amiri for Turkish support) - Reusing the same base64 if available or defining it again.
-        // Ideally should assume the font is added via the existing logic or add it here.
-        // Since I can't access the variable inside the other function, I'll copy the font addition logic.
-        // To be safe and concise, I will assume I need to read the font file or string.
-        // Actually, the previous implementation likely has the font string defined inside handleExportPDF.
-        // I will try to use "courier" or "helvetica" with UTF-8 encoding enabled, OR copy the font string logic if I see it.
-        // BETTER APPROACH: Refactor font string to a module-level variable or use standard safe font with ascii mapping if custom font is too large to inject blind.
-        // However, user specifically wants Turkish characters.
-        // Let's use the trToAscii helper for safe PDF output if I can't guarantee the font.
-        // Wait, the user LOVED the previous PDF which implies the font worked.
-        // I will try to find the font string definition first. 
-        // IF I cannot find it easily, I will just use standard font + trToAscii for now to ensure it works, then refine.
-        // User request: "aynı puanta pdf çıktısı gibi" -> imply copying the style.
+        // Turkish font setup
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold');
+        doc.setFont('Roboto', 'normal');
 
-        // Let's assume I can't see the huge Base64 string in the view. I will use standard font and trToAscii for now.
-        // Re-reading usage: standard fonts DO NOT support Turkish chars well.
-        // I'll grab the font string from the other function in a previous turn or just copy the logic if I viewed it.
-        // I viewed lines 930-1000 and 996+. The font string is likely at the start of handleExportPDF.
-
-        doc.setFontSize(18);
+        // Title
         const monthName = format(date, 'MMMM', { locale: tr }).toLocaleUpperCase('tr-TR');
         const year = format(date, 'yyyy');
-        const title = `${monthName} ${year} MAAS TABLOSU`;
-        const titleWidth = doc.getTextWidth(trToAscii(title));
-        doc.text(trToAscii(title), (297 - titleWidth) / 2, 15);
+        doc.setFontSize(16);
+        doc.setFont('Roboto', 'bold');
+        doc.text(`${monthName} ${year} MAAŞ TABLOSU`, 148, 15, { align: 'center' });
 
-        let siteName = 'Tum Santiyeler';
-        if (selectedSiteId !== 'all') {
+        let siteName = 'Tüm Şantiyeler';
+        if (selectedSiteId && selectedSiteId !== 'all') {
             const site = sites.find((s: any) => s.id === selectedSiteId);
             if (site) siteName = site.name;
         }
 
         const now = format(new Date(), 'dd.MM.yyyy HH:mm');
 
-        // Sub-header line (below title)
         doc.setFontSize(10);
-        doc.text(trToAscii(siteName), 14, 22); // Left aligned, below title
+        doc.setFont('Roboto', 'normal');
+        doc.text(siteName, 14, 22);
 
         doc.setFontSize(8);
-        const dateText = `Olusturulma: ${now}`;
-        doc.text(dateText, 297 - 14 - doc.getTextWidth(dateText), 22); // Right aligned, same line as site name
+        doc.text(`Oluşturulma: ${now}`, 283, 22, { align: 'right' });
 
         const tableBody = filteredNames
             .map(p => {
@@ -1385,7 +1373,7 @@ export default function NewPage() {
                 const fmt = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 return [
                     p.tc,
-                    trToAscii(p.name),
+                    p.name,
                     formatCurrency(p.salary),
                     stats.workedDays,
                     stats.overtimeTotal || '-',
@@ -1399,22 +1387,262 @@ export default function NewPage() {
                 ];
             });
 
+        // Calculate grand total
+        let grandTotal = 0;
+        filteredNames.forEach(p => {
+            const stats = calculateStats(p, date);
+            if (stats.totalPay >= 1) grandTotal += stats.totalPay;
+        });
+        const fmtTotal = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        tableBody.push(['', '', '', '', '', '', '', '', '', '', 'TOPLAM:', fmtTotal(grandTotal) + ' ₺']);
+
         autoTable(doc, {
-            head: [['TC', 'Ad Soyad', 'Maas', 'Gun', 'Mesai', 'Hakedis', 'Mesai Tut.', 'Kalan Izin', 'Izin Ucreti', 'Prim', 'Kesinti', 'TOPLAM']],
+            head: [['TC', 'Ad Soyad', 'Maaş', 'Gün', 'Mesai', 'Hakediş', 'Mesai Tut.', 'Kalan İzin', 'İzin Ücreti', 'Prim', 'Kesinti', 'TOPLAM']],
             body: tableBody,
             startY: 25,
             theme: 'grid',
-            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold' },
-            styles: { fontSize: 9, cellPadding: 2 },
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', font: 'Roboto' },
+            styles: { fontSize: 9, cellPadding: 2, font: 'Roboto' },
             columnStyles: {
-                0: { cellWidth: 25 }, // TC
-                1: { cellWidth: 40 }, // Name
-                // Role removed
-                10: { fontStyle: 'bold', fillColor: [240, 248, 255] } // Total (New Index 10)
+                0: { cellWidth: 25 },
+                1: { cellWidth: 40 },
+                11: { fontStyle: 'bold', fillColor: [240, 248, 255] }
+            },
+            didParseCell: (data: any) => {
+                if (data.row.index === tableBody.length - 1) {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.fillColor = [240, 248, 255];
+                }
             }
         });
 
         doc.save(`Maas_Listesi_${format(date, 'yyyy_MM')}.pdf`);
+    };
+
+    // --- SITE PERSONNEL EXPORTS ---
+    const handleExportSitePersonnelExcel = () => {
+        const wb = XLSX.utils.book_new();
+        // Filter sites based on selection
+        const sitesToExport = (selectedSiteId && selectedSiteId !== 'all')
+            ? availableSites.filter(s => s.id === selectedSiteId)
+            : availableSites;
+        sitesToExport.forEach(site => {
+            const sitePersonnel = personnel.filter((p: any) => p.siteId === site.id && p.status === 'ACTIVE');
+            if (sitePersonnel.length === 0) return;
+            const header = ['#', 'Ad Soyad', 'Meslek', 'Görev', 'Maaş'];
+            const data = sitePersonnel.map((p: any, i: number) => [
+                i + 1,
+                p.fullName,
+                p.profession || '-',
+                p.role || '-',
+                formatCurrency(p.salary)
+            ]);
+            const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+            const sheetName = (site.name || 'Santiye').substring(0, 31);
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        });
+        XLSX.writeFile(wb, `Santiye_Personel_${format(date, 'yyyy_MM')}.xlsx`);
+    };
+
+    const handleExportSitePersonnelPDF = () => {
+        const doc = new jsPDF('p', 'mm', 'a4');
+
+        // Turkish font setup
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold');
+        doc.setFont('Roboto', 'normal');
+
+        // Title
+        doc.setFontSize(16);
+        doc.setFont('Roboto', 'bold');
+        doc.text('Şantiye Personel Özeti', 105, 15, { align: 'center' });
+
+        // Date info
+        doc.setFontSize(9);
+        doc.setFont('Roboto', 'normal');
+        const now = format(new Date(), 'dd.MM.yyyy HH:mm');
+        doc.text(`Oluşturulma: ${now}`, 196, 15, { align: 'right' });
+
+        let startY = 25;
+
+        // Filter sites based on selection
+        const sitesToExport = (selectedSiteId && selectedSiteId !== 'all')
+            ? availableSites.filter(s => s.id === selectedSiteId)
+            : availableSites;
+
+        sitesToExport.forEach(site => {
+            const sitePersonnel = personnel.filter((p: any) => p.siteId === site.id && p.status === 'ACTIVE');
+            if (sitePersonnel.length === 0) return;
+
+            // Calculate total salary
+            let totalSalary = 0;
+            sitePersonnel.forEach((p: any) => {
+                const raw = typeof p.salary === 'string'
+                    ? parseFloat(p.salary.replace(/\./g, '').replace(',', '.'))
+                    : (typeof p.salary === 'number' ? p.salary : 0);
+                if (!isNaN(raw)) totalSalary += raw;
+            });
+
+            if (startY > 245) {
+                doc.addPage();
+                startY = 15;
+            }
+
+            // Site header
+            doc.setFontSize(11);
+            doc.setFont('Roboto', 'bold');
+            doc.text(`${site.name} (${sitePersonnel.length} kişi)`, 14, startY);
+            startY += 2;
+
+            // Table body + total row
+            const bodyRows = sitePersonnel.map((p: any, i: number) => [
+                i + 1,
+                p.fullName || '-',
+                p.profession || '-',
+                p.role || '-',
+                formatCurrency(p.salary)
+            ]);
+
+            // Add total row
+            bodyRows.push([
+                '', '', '', 'TOPLAM:',
+                totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺'
+            ]);
+
+            autoTable(doc, {
+                head: [['#', 'Ad Soyad', 'Meslek', 'Görev', 'Maaş']],
+                body: bodyRows,
+                startY,
+                theme: 'grid',
+                headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', font: 'Roboto' },
+                styles: { fontSize: 9, cellPadding: 2.5, font: 'Roboto' },
+                columnStyles: {
+                    0: { cellWidth: 12 },
+                    4: { halign: 'right' }
+                },
+                didParseCell: (data: any) => {
+                    // Style the total row
+                    if (data.row.index === bodyRows.length - 1) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [240, 248, 255];
+                    }
+                }
+            });
+            startY = (doc as any).lastAutoTable.finalY + 12;
+        });
+
+        doc.save(`Santiye_Personel_${format(date, 'yyyy_MM')}.pdf`);
+    };
+
+    // --- ALL PERSONNEL EXPORTS ---
+    const handleExportAllPersonnelExcel = () => {
+        const wb = XLSX.utils.book_new();
+        const activePersonnel = personnel
+            .filter((p: any) => p.status === 'ACTIVE')
+            .filter((p: any) => {
+                if (selectedSiteId && selectedSiteId !== 'all' && p.siteId !== selectedSiteId) return false;
+                return true;
+            })
+            .sort((a: any, b: any) => (a.fullName || '').localeCompare(b.fullName || '', 'tr'));
+
+        const header = ['#', 'TC Kimlik', 'Ad Soyad', 'Şantiye', 'Meslek', 'Görev', 'İzin Hakkı', 'Maaş'];
+        const data = activePersonnel.map((p: any, i: number) => {
+            const siteName = sites.find((s: any) => s.id === p.siteId)?.name || '-';
+            return [
+                i + 1,
+                p.tcNumber || '-',
+                p.fullName,
+                siteName,
+                p.profession || '-',
+                p.role || '-',
+                (p.leaveAllowance || '0') + ' gün',
+                formatCurrency(p.salary)
+            ];
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet([header, ...data]);
+        XLSX.utils.book_append_sheet(wb, ws, 'Tüm Personel');
+        XLSX.writeFile(wb, `Tum_Personel_${format(date, 'yyyy_MM')}.xlsx`);
+    };
+
+    const handleExportAllPersonnelPDF = () => {
+        const doc = new jsPDF('l', 'mm', 'a4');
+
+        // Turkish font setup
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'bold');
+        doc.setFont('Roboto', 'normal');
+
+        // Title
+        doc.setFontSize(16);
+        doc.setFont('Roboto', 'bold');
+        doc.text('Tüm Personel Listesi', 148, 15, { align: 'center' });
+
+        // Date info
+        doc.setFontSize(9);
+        doc.setFont('Roboto', 'normal');
+        const now = format(new Date(), 'dd.MM.yyyy HH:mm');
+        doc.text(`Oluşturulma: ${now}`, 283, 15, { align: 'right' });
+
+        const activePersonnel = personnel
+            .filter((p: any) => p.status === 'ACTIVE')
+            .filter((p: any) => {
+                if (selectedSiteId && selectedSiteId !== 'all' && p.siteId !== selectedSiteId) return false;
+                return true;
+            })
+            .sort((a: any, b: any) => (a.fullName || '').localeCompare(b.fullName || '', 'tr'));
+
+        // Calculate total salary
+        let totalSalary = 0;
+        activePersonnel.forEach((p: any) => {
+            const raw = typeof p.salary === 'string'
+                ? parseFloat(p.salary.replace(/\./g, '').replace(',', '.'))
+                : (typeof p.salary === 'number' ? p.salary : 0);
+            if (!isNaN(raw)) totalSalary += raw;
+        });
+
+        const bodyRows = activePersonnel.map((p: any, i: number) => {
+            const siteName = sites.find((s: any) => s.id === p.siteId)?.name || '-';
+            return [
+                i + 1,
+                p.tcNumber || '-',
+                p.fullName,
+                siteName,
+                p.profession || '-',
+                p.role || '-',
+                (p.leaveAllowance || '0') + ' gün',
+                formatCurrency(p.salary)
+            ];
+        });
+
+        // Total row
+        bodyRows.push([
+            '', '', '', '', '', '', 'TOPLAM:',
+            totalSalary.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺'
+        ]);
+
+        autoTable(doc, {
+            head: [['#', 'TC Kimlik', 'Ad Soyad', 'Şantiye', 'Meslek', 'Görev', 'İzin Hakkı', 'Maaş']],
+            body: bodyRows,
+            startY: 22,
+            theme: 'grid',
+            headStyles: { fillColor: [41, 128, 185], textColor: 255, fontStyle: 'bold', font: 'Roboto' },
+            styles: { fontSize: 9, cellPadding: 2.5, font: 'Roboto' },
+            columnStyles: {
+                0: { cellWidth: 12 },
+                7: { halign: 'right' }
+            },
+            didParseCell: (data: any) => {
+                if (data.row.index === bodyRows.length - 1) {
+                    data.cell.styles.fontStyle = 'bold';
+                    data.cell.styles.fillColor = [240, 248, 255];
+                }
+            }
+        });
+
+        doc.save(`Tum_Personel_${format(date, 'yyyy_MM')}.pdf`);
     };
 
     const trToAscii = (text: string) => {
@@ -1825,7 +2053,7 @@ export default function NewPage() {
                 </div>
             </div>
 
-            <Tabs defaultValue="grid" className="w-full space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
                 <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[700px]">
                     <TabsTrigger value="grid" className="gap-1 text-xs sm:text-sm">Puantaj Tablosu</TabsTrigger>
                     {canViewSalary && <TabsTrigger value="salary-list" className="gap-1 text-xs sm:text-sm">Maaş Tablosu</TabsTrigger>}
@@ -1837,11 +2065,21 @@ export default function NewPage() {
                     <div className="flex flex-wrap gap-2">
                         {canExport && (
                             <>
-                                <Button variant="outline" size="sm" onClick={handleExportExcel}>
+                                <Button variant="outline" size="sm" onClick={() => {
+                                    if (activeTab === 'salary-list') handleExportSalaryExcel();
+                                    else if (activeTab === 'site-list') handleExportSitePersonnelExcel();
+                                    else if (activeTab === 'all-list') handleExportAllPersonnelExcel();
+                                    else handleExportExcel();
+                                }}>
                                     <FileSpreadsheet className="w-4 h-4 mr-1 text-green-600" />
                                     <span className="hidden sm:inline">Excel</span>
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                                <Button variant="outline" size="sm" onClick={() => {
+                                    if (activeTab === 'salary-list') handleExportSalaryPDF();
+                                    else if (activeTab === 'site-list') handleExportSitePersonnelPDF();
+                                    else if (activeTab === 'all-list') handleExportAllPersonnelPDF();
+                                    else handleExportPDF();
+                                }}>
                                     <Download className="w-4 h-4 mr-1 text-red-600" />
                                     <span className="hidden sm:inline">PDF</span>
                                 </Button>
@@ -2197,10 +2435,6 @@ export default function NewPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle>Maaş Hesaplama Tablosu</CardTitle>
-                            <Button variant="outline" size="sm" onClick={handleExportSalaryExcel}>
-                                <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
-                                Excel İndir
-                            </Button>
                         </CardHeader>
                         <Table>
                             <TableHeader>
