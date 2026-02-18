@@ -139,7 +139,7 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
             const contentBoxTop = 36;
             const contentBoxHeight = 200;
             const endContentY = contentBoxTop + contentBoxHeight;
-            let currentY = contentBoxTop + 6;
+            let currentY = contentBoxTop + 5.5;
 
             dayEntries.forEach((dayEntry: any, index: number) => {
                 const bullet = "• ";
@@ -152,7 +152,6 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
 
                 const lineSpacing = 7;
 
-                // FIXED: Derived splitText properly
                 const splitText = doc.splitTextToSize(contentText, 158);
 
                 for (let i = 0; i < splitText.length; i++) {
@@ -161,10 +160,14 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                         doc.addPage();
                         currentSheet++;
                         drawTemplate(currentSheet);
-                        currentY = contentBoxTop + 6;
+                        currentY = contentBoxTop + 5.5;
                     }
 
-                    doc.text(line, 22, currentY);
+                    if (i < splitText.length - 1) {
+                        doc.text(line, 22, currentY, { align: 'justify', maxWidth: 158 });
+                    } else {
+                        doc.text(line, 22, currentY);
+                    }
 
                     currentY += lineSpacing;
                 }
@@ -190,7 +193,7 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                         doc.addPage();
                         currentSheet++;
                         drawTemplate(currentSheet);
-                        currentY = contentBoxTop + 6;
+                        currentY = contentBoxTop + 5.5;
                         authorY = currentY;
                         currentY += lineSpacing;
                     } else {
@@ -204,11 +207,14 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
 
                 if (index < dayEntries.length - 1) {
                     currentY += 2;
+                    // Snap currentY to the nearest ruled line to prevent drift
+                    const baseY = contentBoxTop + 5.5;
+                    currentY = Math.ceil((currentY - baseY) / lineSpacing) * lineSpacing + baseY;
                     if (currentY > endContentY - 4) {
                         doc.addPage();
                         currentSheet++;
                         drawTemplate(currentSheet);
-                        currentY = contentBoxTop + 6;
+                        currentY = contentBoxTop + 5.5;
                     }
                 }
             });
