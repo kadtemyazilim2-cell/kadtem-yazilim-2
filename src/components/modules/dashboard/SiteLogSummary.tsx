@@ -166,11 +166,7 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                         currentY = contentBoxTop + 6;
                     }
 
-                    if (i < splitText.length - 1) {
-                        doc.text(line, 22, currentY, { align: 'justify', maxWidth: 158 });
-                    } else {
-                        doc.text(line, 22, currentY);
-                    }
+                    doc.text(line, 22, currentY);
 
                     currentY += lineSpacing;
                 }
