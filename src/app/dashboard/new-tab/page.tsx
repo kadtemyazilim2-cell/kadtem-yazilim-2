@@ -2100,9 +2100,16 @@ export default function NewPage() {
                                         }
 
                                         // 2. Aggregate from filtered list
-                                        // [FIX] Use 'names' directly to avoid TC Deduplication merging (which hides multi-site personnel)
-                                        // We want to count every active active record per site.
-                                        const sourceList = names;
+                                        // [FIX] When showing all sites, 'names' is empty because refreshData() clears it
+                                        // when no specific site is selected. Use store 'personnel' for cross-site summary.
+                                        const sourceList = showAllSites
+                                            ? personnel.filter((p: any) => p.status === 'ACTIVE').map((p: any) => ({
+                                                siteId: p.siteId || 'unknown',
+                                                salary: p.salary ? p.salary.toString() : '',
+                                                inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
+                                                attendance: {} // Not needed for count/salary summary
+                                            }))
+                                            : names;
 
                                         sourceList.forEach(p => {
                                             // 1. Basic Date Visibility Filter

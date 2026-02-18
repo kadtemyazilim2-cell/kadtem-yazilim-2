@@ -160,8 +160,8 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
             }
         }
 
-        // KM/Saat validation: cannot enter lower than last recorded mileage
-        if (lastMileage != null && Number(formData.mileage) > 0 && Number(formData.mileage) < lastMileage) {
+        // KM/Saat validation: restricted users cannot enter lower than last recorded mileage
+        if (user.role !== 'ADMIN' && lastMileage != null && Number(formData.mileage) > 0 && Number(formData.mileage) < lastMileage) {
             const label = selectedVehicle?.meterType === 'HOURS' ? 'Saat' : 'KM';
             alert(`Girilen ${label} (${Number(formData.mileage).toLocaleString('tr-TR')}) son girilen değerden (${lastMileage.toLocaleString('tr-TR')}) düşük olamaz.`);
             return;

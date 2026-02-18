@@ -254,6 +254,21 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
 
     const handleUpdate = async () => {
         if (!editingLog) return;
+
+        // [NEW] KM/Saat validation: restricted users cannot enter lower than last recorded mileage
+        if (user?.role !== 'ADMIN' && (editingLog as any).recordType !== 'TRANSFER' && editForm.vehicleId) {
+            const vehicleLastMileage = (fuelLogs || [])
+                .filter((l: any) => l.vehicleId === editForm.vehicleId && l.mileage != null && l.mileage > 0 && l.id !== editingLog.id)
+                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const lastMil = vehicleLastMileage.length > 0 ? vehicleLastMileage[0].mileage : null;
+            if (lastMil != null && Number(editForm.mileage) > 0 && Number(editForm.mileage) < lastMil) {
+                const vehicle = vehicles.find((v: any) => v.id === editForm.vehicleId);
+                const label = vehicle?.meterType === 'HOURS' ? 'Saat' : 'KM';
+                alert(`Girilen ${label} (${Number(editForm.mileage).toLocaleString('tr-TR')}) son girilen değerden (${lastMil.toLocaleString('tr-TR')}) düşük olamaz.`);
+                return;
+            }
+        }
+
         console.log('Updating Fuel Record:', editingLog.id, editForm);
         setIsUpdating(true);
 
