@@ -125,6 +125,12 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
     const [filteredInstitutions, setFilteredInstitutions] = useState<typeof institutions>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [muhatapOpen, setMuhatapOpen] = useState(false);
+    const [muhatapSearch, setMuhatapSearch] = useState('');
+    const [firmaOpen, setFirmaOpen] = useState(false);
+    const [firmaSearch, setFirmaSearch] = useState('');
+    const [siteOpen, setSiteOpen] = useState(false);
+    const [siteSearch, setSiteSearch] = useState('');
     const [hasAutoSelectedSite, setHasAutoSelectedSite] = useState(false);
 
     // [UX] Auto-select site if user has only one assigned site
@@ -412,22 +418,65 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 <div className="space-y-2">
                                     <Label>İlgili Firma</Label>
                                     <div className="flex gap-2">
-                                        <Select
-                                            value={formData.companyId}
-                                            onValueChange={(v) => setFormData({ ...formData, companyId: v })}
-                                            required
-                                        >
-                                            <SelectTrigger className="w-full">
+                                        <div className="relative w-full">
+                                            <Button
+                                                variant="outline"
+                                                type="button"
+                                                className="w-full justify-between font-normal h-10 text-left"
+                                                onClick={() => setFirmaOpen(!firmaOpen)}
+                                            >
                                                 <span className="truncate">
-                                                    <SelectValue placeholder="Seçiniz" />
+                                                    {formData.companyId ? (companies.find((c: any) => c.id === formData.companyId)?.name || 'Seçiniz') : 'Seçiniz'}
                                                 </span>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {companies.map((c: any) => (
-                                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 shrink-0 opacity-50"><path d="m6 9 6 6 6-6" /></svg>
+                                            </Button>
+                                            {firmaOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-40" onClick={() => { setFirmaOpen(false); setFirmaSearch(''); }} />
+                                                    <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-md">
+                                                        <div className="p-2 border-b">
+                                                            <Input
+                                                                placeholder="Firma ara..."
+                                                                value={firmaSearch}
+                                                                onChange={(e) => setFirmaSearch(e.target.value)}
+                                                                className="h-8 text-sm"
+                                                                autoFocus
+                                                            />
+                                                        </div>
+                                                        <div className="max-h-[150px] overflow-y-auto">
+                                                            {companies
+                                                                .filter((c: any) => {
+                                                                    if (!firmaSearch.trim()) return true;
+                                                                    return toTurkishLower(c.name).includes(toTurkishLower(firmaSearch));
+                                                                })
+                                                                .map((c: any) => (
+                                                                    <button
+                                                                        key={c.id}
+                                                                        type="button"
+                                                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-100 transition-colors ${formData.companyId === c.id ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                                                                            }`}
+                                                                        onClick={() => {
+                                                                            setFormData({ ...formData, companyId: c.id });
+                                                                            setFirmaOpen(false);
+                                                                            setFirmaSearch('');
+                                                                        }}
+                                                                    >
+                                                                        {c.name}
+                                                                    </button>
+                                                                ))}
+                                                            {companies.filter((c: any) => {
+                                                                if (!firmaSearch.trim()) return true;
+                                                                return toTurkishLower(c.name).includes(toTurkishLower(firmaSearch));
+                                                            }).length === 0 && (
+                                                                    <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                                                                        Sonuç bulunamadı
+                                                                    </div>
+                                                                )}
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                         {formData.direction === 'OUTGOING' && (
                                             <div className="flex items-center space-x-2 border p-2 rounded bg-slate-50 min-w-fit">
                                                 <Checkbox
@@ -446,20 +495,80 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             {initialType !== 'BANK' && (
                                 <div className="space-y-2">
                                     <Label>Şantiye (Opsiyonel)</Label>
-                                    <Select
-                                        value={formData.siteId}
-                                        onValueChange={(v) => setFormData({ ...formData, siteId: v })}
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Şantiye Seçiniz (Opsiyonel)" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">Seçim Yok</SelectItem>
-                                            {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
-                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="relative">
+                                        <Button
+                                            variant="outline"
+                                            type="button"
+                                            className="w-full justify-between font-normal h-10 text-left"
+                                            onClick={() => setSiteOpen(!siteOpen)}
+                                        >
+                                            <span className="truncate">
+                                                {formData.siteId && formData.siteId !== 'none'
+                                                    ? (sites.find((s: any) => s.id === formData.siteId)?.name || 'Şantiye Seçiniz (Opsiyonel)')
+                                                    : 'Şantiye Seçiniz (Opsiyonel)'}
+                                            </span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 shrink-0 opacity-50"><path d="m6 9 6 6 6-6" /></svg>
+                                        </Button>
+                                        {siteOpen && (
+                                            <>
+                                                <div className="fixed inset-0 z-40" onClick={() => { setSiteOpen(false); setSiteSearch(''); }} />
+                                                <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-md">
+                                                    <div className="p-2 border-b">
+                                                        <Input
+                                                            placeholder="Şantiye ara..."
+                                                            value={siteSearch}
+                                                            onChange={(e) => setSiteSearch(e.target.value)}
+                                                            className="h-8 text-sm"
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                    <div className="max-h-[150px] overflow-y-auto">
+                                                        <button
+                                                            type="button"
+                                                            className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-100 transition-colors ${!formData.siteId || formData.siteId === 'none' ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                                                                }`}
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, siteId: 'none' });
+                                                                setSiteOpen(false);
+                                                                setSiteSearch('');
+                                                            }}
+                                                        >
+                                                            Seçim Yok
+                                                        </button>
+                                                        {sites
+                                                            .filter((s: any) => s.status === 'ACTIVE')
+                                                            .filter((s: any) => {
+                                                                if (!siteSearch.trim()) return true;
+                                                                return toTurkishLower(s.name).includes(toTurkishLower(siteSearch));
+                                                            })
+                                                            .map((s: any) => (
+                                                                <button
+                                                                    key={s.id}
+                                                                    type="button"
+                                                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-100 transition-colors ${formData.siteId === s.id ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                                                                        }`}
+                                                                    onClick={() => {
+                                                                        setFormData({ ...formData, siteId: s.id });
+                                                                        setSiteOpen(false);
+                                                                        setSiteSearch('');
+                                                                    }}
+                                                                >
+                                                                    {s.name}
+                                                                </button>
+                                                            ))}
+                                                        {sites.filter((s: any) => s.status === 'ACTIVE').filter((s: any) => {
+                                                            if (!siteSearch.trim()) return true;
+                                                            return toTurkishLower(s.name).includes(toTurkishLower(siteSearch));
+                                                        }).length === 0 && (
+                                                                <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                                                                    Sonuç bulunamadı
+                                                                </div>
+                                                            )}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
@@ -504,7 +613,6 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                             className="h-6 text-xs px-2"
                                             onClick={() => {
                                                 setIsAddInstOpen(true);
-                                                // Initialize category based on context when opening
                                                 setNewInstCategory(initialType === 'BANK' ? 'BANK' : 'INSTITUTION');
                                             }}
                                         >
@@ -512,34 +620,69 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         </Button>
                                     </div>
                                 </div>
-                                <Select
-                                    value={formData.senderReceiver}
-                                    onValueChange={(v) => {
-                                        if (v === 'NEW') {
-                                            setIsAddInstOpen(true);
-                                        } else {
-                                            const inst = institutions.find((i: any) => i.name === v);
-                                            setFormData({
-                                                ...formData,
-                                                senderReceiver: v,
-                                                senderReceiverAlignment: inst?.alignment || formData.senderReceiverAlignment || 'center'
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Muhatap Seçiniz..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dropdownOptions.map((inst: any) => (
-                                            <SelectItem key={inst.id} value={inst.name}>{inst.name}</SelectItem>
-                                        ))}
-                                        {/* Fallback: If value is set but not in the FILTERED list, show it anyway */}
-                                        {formData.senderReceiver && !dropdownOptions.find((i: any) => i.name === formData.senderReceiver) && (
-                                            <SelectItem key="fallback-val" value={formData.senderReceiver}>{formData.senderReceiver}</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                <div className="relative">
+                                    <Button
+                                        variant="outline"
+                                        type="button"
+                                        className="w-full justify-between font-normal h-10 text-left"
+                                        onClick={() => setMuhatapOpen(!muhatapOpen)}
+                                    >
+                                        <span className="truncate">
+                                            {formData.senderReceiver || 'Muhatap Seçiniz...'}
+                                        </span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 shrink-0 opacity-50"><path d="m6 9 6 6 6-6" /></svg>
+                                    </Button>
+                                    {muhatapOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-40" onClick={() => { setMuhatapOpen(false); setMuhatapSearch(''); }} />
+                                            <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-md">
+                                                <div className="p-2 border-b">
+                                                    <Input
+                                                        placeholder="Muhatap ara..."
+                                                        value={muhatapSearch}
+                                                        onChange={(e) => setMuhatapSearch(e.target.value)}
+                                                        className="h-8 text-sm"
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <div className="max-h-[150px] overflow-y-auto">
+                                                    {dropdownOptions
+                                                        .filter((inst: any) => {
+                                                            if (!muhatapSearch.trim()) return true;
+                                                            return toTurkishLower(inst.name).includes(toTurkishLower(muhatapSearch));
+                                                        })
+                                                        .map((inst: any) => (
+                                                            <button
+                                                                key={inst.id}
+                                                                type="button"
+                                                                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-100 transition-colors ${formData.senderReceiver === inst.name ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                                                                    }`}
+                                                                onClick={() => {
+                                                                    setFormData({
+                                                                        ...formData,
+                                                                        senderReceiver: inst.name,
+                                                                        senderReceiverAlignment: inst.alignment || formData.senderReceiverAlignment || 'center'
+                                                                    });
+                                                                    setMuhatapOpen(false);
+                                                                    setMuhatapSearch('');
+                                                                }}
+                                                            >
+                                                                {inst.name}
+                                                            </button>
+                                                        ))}
+                                                    {dropdownOptions.filter((inst: any) => {
+                                                        if (!muhatapSearch.trim()) return true;
+                                                        return toTurkishLower(inst.name).includes(toTurkishLower(muhatapSearch));
+                                                    }).length === 0 && (
+                                                            <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                                                                Sonuç bulunamadı
+                                                            </div>
+                                                        )}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="space-y-2">
