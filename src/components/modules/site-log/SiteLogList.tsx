@@ -694,20 +694,23 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                                     )}
                                                 </div>
 
-                                                {/* Scrollable Content Area if too long, or just stacking */}
-                                                <div className="space-y-4">
-                                                    {group.items.map((entry: any) => (
-                                                        <div key={entry.id} className="pl-4 border-l-2 border-slate-200 group">
-                                                            <p className="text-slate-700 whitespace-pre-wrap">{entry.content}</p>
-                                                            <div className="mt-2 flex justify-between items-center">
-                                                                <div className="text-xs text-slate-400 flex items-center gap-1">
-                                                                    <UserIcon className="w-3 h-3" />
-                                                                    {users.find((u: any) => u.id === entry.authorId)?.name || 'Unknown'}
+                                                {/* Compact Entry List */}
+                                                <div className="space-y-1.5">
+                                                    {group.items.map((entry: any) => {
+                                                        const authorName = users.find((u: any) => u.id === entry.authorId)?.name || 'Bilinmeyen';
+                                                        const snippet = entry.content
+                                                            ? entry.content.replace(/\n/g, ' ').substring(0, 120) + (entry.content.length > 120 ? '...' : '')
+                                                            : '';
+                                                        return (
+                                                            <div key={entry.id} className="flex items-center gap-2 pl-3 border-l-2 border-slate-200 py-1.5 group hover:bg-slate-50 rounded-r transition-colors">
+                                                                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                                    <UserIcon className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                                                    <span className="text-xs font-semibold text-blue-800 whitespace-nowrap">{authorName}</span>
+                                                                    <span className="text-xs text-slate-400 flex-shrink-0">—</span>
+                                                                    <span className="text-sm text-slate-600 truncate">{snippet}</span>
                                                                 </div>
-
                                                                 {canEdit && (user?.id === entry.authorId || user?.role === 'ADMIN') && (
-                                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                        {/* Only show edit/delete if owner or admin? Typically yes. For now keeping existing permission check. */}
+                                                                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                                                                         <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-400 hover:text-blue-600" onClick={() => handleEdit(entry)}>
                                                                             <Pencil className="w-3 h-3" />
                                                                         </Button>
@@ -717,8 +720,8 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                                                     </div>
                                                                 )}
                                                             </div>
-                                                        </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         ))}

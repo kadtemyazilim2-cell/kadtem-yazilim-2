@@ -326,19 +326,19 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                                                         </div>
                                                     )}
 
-                                                    {/* Row 3: Contents (Stacked) */}
-                                                    <div className="space-y-2">
+                                                    {/* Row 3: Compact Entries */}
+                                                    <div className="space-y-1">
                                                         {group.items.map((log: any) => {
                                                             const author = users.find((u: any) => u.id === log.authorId);
+                                                            const snippet = log.content
+                                                                ? log.content.replace(/\n/g, ' ').substring(0, 100) + (log.content.length > 100 ? '...' : '')
+                                                                : '';
                                                             return (
-                                                                <div key={log.id}>
-                                                                    <p className="text-xs text-slate-700 line-clamp-3 leading-relaxed mb-0.5" title={log.content}>
-                                                                        {log.content}
-                                                                    </p>
-                                                                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                                                                        <User className="w-3 h-3" />
-                                                                        <span className="truncate">{author?.name || 'Bilinmeyen'}</span>
-                                                                    </div>
+                                                                <div key={log.id} className="flex items-center gap-1.5 min-w-0">
+                                                                    <User className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                                                                    <span className="text-[11px] font-semibold text-blue-800 whitespace-nowrap">{author?.name || 'Bilinmeyen'}</span>
+                                                                    <span className="text-[10px] text-slate-400 flex-shrink-0">—</span>
+                                                                    <span className="text-xs text-slate-600 truncate" title={log.content}>{snippet}</span>
                                                                 </div>
                                                             );
                                                         })}
