@@ -107,6 +107,36 @@ export async function deleteInstitution(id: string) {
     }
 }
 
+export async function permanentDeleteInstitution(id: string) {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        const user = session.user;
+        if (user.role !== 'ADMIN') {
+            const perms = user.permissions?.['correspondence.contacts'] || [];
+            if (!perms.includes('DELETE')) {
+                return { success: false, error: 'Kalıcı silme yetkiniz bulunmamaktadır.' };
+            }
+        }
+
+        // Safety: Only allow permanent deletion of PASSIVE institutions
+        const inst = await prisma.institution.findUnique({ where: { id } });
+        if (!inst) return { success: false, error: 'Muhatap bulunamadı.' };
+        if (inst.status !== 'PASSIVE') {
+            return { success: false, error: 'Sadece pasif muhataplar kalıcı olarak silinebilir. Önce pasife alın.' };
+        }
+
+        await prisma.institution.delete({ where: { id } });
+
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+        console.error('permanentDeleteInstitution Error:', error);
+        return { success: false, error: 'Muhatap kalıcı olarak silinemedi.' };
+    }
+}
+
 export async function getInstitutions() {
     try {
         const list = await prisma.institution.findMany({

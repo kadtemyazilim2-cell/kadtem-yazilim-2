@@ -306,6 +306,9 @@ export const useAppStore = create<AppState>()(
             deleteInstitution: (id) => set((state) => ({
                 institutions: state.institutions.map((i) => (i.id === id ? { ...i, status: 'PASSIVE' } : i))
             })),
+            removeInstitution: (id) => set((state) => ({
+                institutions: state.institutions.filter((i) => i.id !== id)
+            })),
 
             // Initialization
             resetData: () => {

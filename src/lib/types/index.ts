@@ -407,5 +407,6 @@ export interface AppState {
   addInstitution: (institution: Institution) => void;
   updateInstitution: (id: string, updates: Partial<Institution>) => void;
   deleteInstitution: (id: string) => void;
+  removeInstitution: (id: string) => void;
   updateSmtpConfig: (config: SmtpConfig | null) => void;
 }

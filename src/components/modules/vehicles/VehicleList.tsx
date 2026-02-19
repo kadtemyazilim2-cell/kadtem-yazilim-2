@@ -835,6 +835,126 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         doc.save(`acente-takip-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
 
+    // --- RENTAL COSTS EXPORTS ---
+    const exportRentalExcel = () => {
+        if (filteredRentalVehicles.length === 0) {
+            toast.error('Dışa aktarılacak araç bulunamadı.');
+            return;
+        }
+        const data = filteredRentalVehicles.map(v => ({
+            'Plaka': v.plate,
+            'Şantiye': getVehicleSiteName(v),
+            'Kiralama Şirketi': v.rentalCompanyName || getCompanyName(v),
+            'Aylık Kira Bedeli (₺)': v.monthlyRentalFee || 0,
+            'Son Güncelleme': formatDateSafe(v.rentalLastUpdate),
+            'Durum': statusMap[v.status] || v.status
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Araç Kira Bedeli");
+        XLSX.writeFile(wb, `arac-kira-bedeli-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        toast.success('Excel dosyası oluşturuldu.');
+    };
+
+    const exportRentalPDF = () => {
+        if (filteredRentalVehicles.length === 0) {
+            toast.error('Dışa aktarılacak araç bulunamadı.');
+            return;
+        }
+
+        const doc = new jsPDF();
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.setFont('Roboto');
+
+        doc.setFontSize(14);
+        doc.text('Araç Kira Bedeli Listesi', 14, 15);
+
+        const tableColumn = ['Plaka', 'Şantiye', 'Kiralama Şirketi', 'Aylık Kira (₺)', 'Son Güncelleme', 'Durum'];
+        const tableRows = filteredRentalVehicles.map(v => [
+            v.plate,
+            getVehicleSiteName(v),
+            v.rentalCompanyName || getCompanyName(v),
+            v.monthlyRentalFee ? v.monthlyRentalFee.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0,00',
+            formatDateSafe(v.rentalLastUpdate),
+            statusMap[v.status] || v.status
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            styles: { font: 'Roboto', fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] },
+            startY: 20,
+        });
+
+        doc.save(`arac-kira-bedeli-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        toast.success('PDF başarıyla oluşturuldu.');
+    };
+
+    // --- INSURANCE/INSPECTION EXPORTS ---
+    const exportInsuranceExcel = () => {
+        if (sortedInsuranceVehicles.length === 0) {
+            toast.error('Dışa aktarılacak araç bulunamadı.');
+            return;
+        }
+        const data = sortedInsuranceVehicles.map(v => ({
+            'Plaka': v.plate,
+            'Marka / Model': `${v.brand} - ${v.model}`,
+            'Tip': typeMap[v.type] || v.type,
+            'Trafik Sigortası Bitiş': formatDateSafe(v.insuranceExpiry),
+            'Kasko Bitiş': formatDateSafe(v.kaskoExpiry),
+            'Muayene Bitiş': formatDateSafe(v.inspectionExpiry),
+            'Taşıt Kartı Bitiş': formatDateSafe(v.vehicleCardExpiry),
+            'Durum': statusMap[v.status] || v.status
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Sigorta Muayene");
+        XLSX.writeFile(wb, `sigorta-muayene-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        toast.success('Excel dosyası oluşturuldu.');
+    };
+
+    const exportInsurancePDF = () => {
+        if (sortedInsuranceVehicles.length === 0) {
+            toast.error('Dışa aktarılacak araç bulunamadı.');
+            return;
+        }
+
+        const doc = new jsPDF('l', 'mm', 'a4');
+        doc.addFileToVFS('Roboto-Regular.ttf', fontBase64);
+        doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+        doc.setFont('Roboto');
+
+        doc.setFontSize(14);
+        doc.text('Sigorta / Muayene Takip Listesi', 14, 15);
+
+        const tableColumn = ['Plaka', 'Marka / Model', 'Tip', 'Trafik Sigortası Bitiş', 'Kasko Bitiş', 'Muayene Bitiş', 'Taşıt Kartı Bitiş', 'Durum'];
+        const tableRows = sortedInsuranceVehicles.map(v => [
+            v.plate,
+            `${v.brand} - ${v.model}`,
+            typeMap[v.type] || v.type,
+            formatDateSafe(v.insuranceExpiry),
+            formatDateSafe(v.kaskoExpiry),
+            formatDateSafe(v.inspectionExpiry),
+            formatDateSafe(v.vehicleCardExpiry),
+            statusMap[v.status] || v.status
+        ]);
+
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            styles: { font: 'Roboto', fontSize: 8 },
+            headStyles: { fillColor: [41, 128, 185] },
+            startY: 20,
+        });
+
+        doc.save(`sigorta-muayene-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        toast.success('PDF başarıyla oluşturuldu.');
+    };
+
     const handleDeleteVehicle = async (vehicle: Vehicle) => { // Async for Server Action
         // 1. Check for usage in Vehicle Attendance
         const attendanceCount = vehicleAttendance.filter((a: any) => a.vehicleId === vehicle.id).length;
@@ -970,14 +1090,24 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                             {/* Export Buttons */}
                             {canExport && (
                                 <>
-                                    <Button variant="outline" size="sm" onClick={exportPDF} title="PDF İndir">
+                                    <Button variant="outline" size="sm" onClick={() => {
+                                        if (activeTab === 'rental-costs') exportRentalPDF();
+                                        else if (activeTab === 'insurance') exportInsurancePDF();
+                                        else if (activeTab === 'agency-tracking') exportPoliciesPDF();
+                                        else exportPDF();
+                                    }} title="PDF İndir">
                                         <FileText className="h-4 w-4 text-red-600 mr-2" /> PDF Listesi
                                     </Button>
-                                    <Button variant="outline" size="sm" onClick={exportExcel} title="Excel İndir">
+                                    <Button variant="outline" size="sm" onClick={() => {
+                                        if (activeTab === 'rental-costs') exportRentalExcel();
+                                        else if (activeTab === 'insurance') exportInsuranceExcel();
+                                        else if (activeTab === 'agency-tracking') exportPoliciesExcel();
+                                        else exportExcel();
+                                    }} title="Excel İndir">
                                         <FileSpreadsheet className="h-4 w-4 text-green-600 mr-2" /> Excel Listesi
                                     </Button>
-                                </>
-                            )}
+                                </>)
+                            }
 
                             {/* Filter Toggle Button */}
                             <Button

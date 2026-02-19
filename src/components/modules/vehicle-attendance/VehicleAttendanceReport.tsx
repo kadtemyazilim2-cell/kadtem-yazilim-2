@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MultiSelect } from '@/components/ui/multi-select';
 import { useState, useMemo } from 'react';
 import { format, parseISO, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+
+// Helper: safely convert a date field (string | Date) to a Date object
+const toDate = (d: any): Date => (d instanceof Date ? d : parseISO(d));
 import { FileBarChart, Filter, CheckCircle2, Clock, PauseCircle, Wrench, UserX, CalendarOff, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
@@ -26,8 +29,9 @@ export function VehicleAttendanceReport() {
     const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
     const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
     const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
-    const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
+    const [selectedSiteId, setSelectedSiteId] = useState<string>('');
     const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
+    const [hideZeroRental, setHideZeroRental] = useState(true);
 
     // [NEW] Edit Rental Fee State
     const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -84,13 +88,13 @@ export function VehicleAttendanceReport() {
         const relevantSightings = new Set<string>(); // "vehicleId|siteId"
 
         vehicleAttendance.forEach((a: any) => {
-            if (isWithinInterval(parseISO(a.date), { start: parseISO(startDate), end: parseISO(endDate) })) {
+            if (isWithinInterval(toDate(a.date), { start: parseISO(startDate), end: parseISO(endDate) })) {
                 relevantSightings.add(`${a.vehicleId}|${a.siteId}`);
             }
         });
 
         fuelLogs.forEach((f: any) => {
-            if (isWithinInterval(parseISO(f.date), { start: parseISO(startDate), end: parseISO(endDate) })) {
+            if (isWithinInterval(toDate(f.date), { start: parseISO(startDate), end: parseISO(endDate) })) {
                 relevantSightings.add(`${f.vehicleId}|${f.siteId}`);
             }
         });
@@ -101,7 +105,7 @@ export function VehicleAttendanceReport() {
             const [vId, sId] = key.split('|');
 
             // Site Filter
-            if (selectedSiteIds.length > 0 && !selectedSiteIds.includes(sId)) return;
+            if (selectedSiteId && sId !== selectedSiteId) return;
             // Vehicle Filter
             if (selectedVehicleIds.length > 0 && !selectedVehicleIds.includes(vId)) return;
 
@@ -117,13 +121,13 @@ export function VehicleAttendanceReport() {
             const siteAttendance = vehicleAttendance.filter((a: any) =>
                 a.vehicleId === vId &&
                 a.siteId === sId &&
-                isWithinInterval(parseISO(a.date), { start: parseISO(startDate), end: parseISO(endDate) })
+                isWithinInterval(toDate(a.date), { start: parseISO(startDate), end: parseISO(endDate) })
             );
 
             const siteFuel = fuelLogs.filter((f: any) =>
                 f.vehicleId === vId &&
                 f.siteId === sId &&
-                isWithinInterval(parseISO(f.date), { start: parseISO(startDate), end: parseISO(endDate) })
+                isWithinInterval(toDate(f.date), { start: parseISO(startDate), end: parseISO(endDate) })
             );
 
             let workDays = 0;
@@ -178,8 +182,11 @@ export function VehicleAttendanceReport() {
             });
         });
 
+        // Filter out zero-day rows if toggle is active
+        const filtered = hideZeroRental ? rows.filter(r => r.totalRentalCost > 0) : rows;
+
         // Sort based on configuration
-        return rows.sort((a: any, b: any) => {
+        return filtered.sort((a: any, b: any) => {
             for (const sortItem of sortConfig) {
                 let comparison = 0;
                 if (sortItem.key === 'siteName') {
@@ -196,7 +203,7 @@ export function VehicleAttendanceReport() {
             // Secondary sort: Plate (always ASC for stability)
             return a.vehicle.plate.localeCompare(b.vehicle.plate);
         });
-    }, [vehicles, vehicleAttendance, fuelLogs, startDate, endDate, selectedSiteIds, selectedVehicleIds, selectedCompanyIds, companies, sites, sortConfig]);
+    }, [vehicles, vehicleAttendance, fuelLogs, startDate, endDate, selectedSiteId, selectedVehicleIds, selectedCompanyIds, companies, sites, sortConfig, hideZeroRental]);
 
     const totals = useMemo(() => {
         return reportData.reduce((acc: any, row: any) => ({
@@ -341,7 +348,7 @@ export function VehicleAttendanceReport() {
                 </div>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-muted/20 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6 p-4 bg-muted/20 rounded-lg">
                     <div className="space-y-2">
                         <Label>Başlangıç Tarihi</Label>
                         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
@@ -364,13 +371,17 @@ export function VehicleAttendanceReport() {
 
                     <div className="space-y-2">
                         <Label>Şantiye Filtresi</Label>
-                        <MultiSelect
-                            options={sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => ({ label: s.name, value: s.id }))}
-                            selected={selectedSiteIds}
-                            onChange={setSelectedSiteIds}
-                            placeholder="Tüm Şantiyeler"
-                            searchPlaceholder="Şantiye Ara..."
-                        />
+                        <Select value={selectedSiteId} onValueChange={(val) => setSelectedSiteId(val === 'all' ? '' : val)}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Tüm Şantiyeler" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tüm Şantiyeler</SelectItem>
+                                {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div className="space-y-2">
                         <Label>Araç Filtresi</Label>
@@ -381,6 +392,16 @@ export function VehicleAttendanceReport() {
                             placeholder="Tüm Araçlar"
                             searchPlaceholder="Araç Ara..."
                         />
+                    </div>
+                    <div className="flex items-end">
+                        <Button
+                            variant={hideZeroRental ? 'default' : 'outline'}
+                            size="sm"
+                            className="w-full"
+                            onClick={() => setHideZeroRental(!hideZeroRental)}
+                        >
+                            {hideZeroRental ? 'Tümünü Göster' : 'Kira Bedeli 0 Olanları Gizle'}
+                        </Button>
                     </div>
                 </div>
 
@@ -511,7 +532,7 @@ export function VehicleAttendanceReport() {
                                                 {row.totalWorkedDays > 0 ? row.totalWorkedDays : '-'}
                                             </TableCell>
                                             <TableCell className="text-right font-mono font-medium text-slate-700 text-xs">
-                                                {row.totalRentalCost > 0 ? `${row.totalRentalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺` : '-'}
+                                                {row.totalRentalCost > 0 ? `${row.totalRentalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺` : '-'}
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -521,7 +542,7 @@ export function VehicleAttendanceReport() {
                                         <TableCell className="text-right text-xs font-bold border-r border-slate-300">{totals.totalFuel.toLocaleString()} Lt</TableCell>
                                         <TableCell colSpan={6} className="border-r border-slate-300"></TableCell>
                                         <TableCell className="text-center text-xs font-bold text-blue-800">{totals.totalWorkedDays}</TableCell>
-                                        <TableCell className="text-right text-xs font-bold text-slate-900">{totals.totalRentalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ₺</TableCell>
+                                        <TableCell className="text-right text-xs font-bold text-slate-900">{totals.totalRentalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺</TableCell>
                                     </TableRow>
                                 </>
                             )}

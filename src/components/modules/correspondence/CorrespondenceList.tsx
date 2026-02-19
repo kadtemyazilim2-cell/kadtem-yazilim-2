@@ -69,10 +69,10 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 import * as XLSX from 'xlsx';
 import autoTable from 'jspdf-autotable';
 import { fontBase64 } from '@/lib/pdf-font'; // Assume this exists as used in other files
-import { createInstitution as createInstitutionAction, updateInstitution as updateInstitutionAction, deleteInstitution as deleteInstitutionAction } from '@/actions/institution';
+import { createInstitution as createInstitutionAction, updateInstitution as updateInstitutionAction, deleteInstitution as deleteInstitutionAction, permanentDeleteInstitution as permanentDeleteInstitutionAction } from '@/actions/institution';
 
 export function CorrespondenceList() {
-    const { correspondences, companies, updateCorrespondence, users, deleteCorrespondence, restoreCorrespondence, institutions, deleteInstitution, updateInstitution, addInstitution, addCorrespondence, sites } = useAppStore();
+    const { correspondences, companies, updateCorrespondence, users, deleteCorrespondence, restoreCorrespondence, institutions, deleteInstitution, removeInstitution, updateInstitution, addInstitution, addCorrespondence, sites } = useAppStore();
     const { user, hasPermission } = useAuth();
 
     // Permission Checks
@@ -691,6 +691,23 @@ export function CorrespondenceList() {
         }
     };
 
+    const handlePermanentDeleteInstitution = async (inst: any) => {
+        if (!confirm(`"${inst.name}" adlı muhatabı kalıcı olarak silmek istiyor musunuz?\n\n⚠️ DİKKAT: Bu işlem geri alınamaz! Muhatap veritabanından tamamen silinecektir.`)) return;
+
+        try {
+            const result = await permanentDeleteInstitutionAction(inst.id);
+            if (result.success) {
+                removeInstitution(inst.id);
+                toast.success('Muhatap kalıcı olarak silindi.');
+            } else {
+                toast.error(result.error || 'Kalıcı silme işlemi başarısız.');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Hata oluştu.');
+        }
+    };
+
     const renderAddressBook = () => {
         return (
             <div className="space-y-4">
@@ -755,9 +772,14 @@ export function CorrespondenceList() {
                                             {(user?.role === 'ADMIN' || canEditContacts) && (
                                                 <div className="flex items-center gap-1">
                                                     {inst.status === 'PASSIVE' ? (
-                                                        <Button variant="ghost" size="sm" onClick={() => handleRestoreInstitution(inst)} title="Geri Yükle (Aktif Et)">
-                                                            <RotateCcw className="w-4 h-4 text-green-600" />
-                                                        </Button>
+                                                        <>
+                                                            <Button variant="ghost" size="sm" onClick={() => handleRestoreInstitution(inst)} title="Geri Yükle (Aktif Et)">
+                                                                <RotateCcw className="w-4 h-4 text-green-600" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => handlePermanentDeleteInstitution(inst)} title="Kalıcı Olarak Sil" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </>
                                                     ) : (
                                                         <>
                                                             <Button variant="ghost" size="sm" onClick={() => openAddressModal(inst)}>
