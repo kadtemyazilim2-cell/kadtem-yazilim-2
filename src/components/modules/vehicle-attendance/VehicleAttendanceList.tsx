@@ -226,7 +226,8 @@ export function VehicleAttendanceList() {
             status: newStatus,
             hours: 8,
             note: note.trim() || null,
-            createdByUserId: user?.id
+            createdByUserId: user?.id,
+            forceUpdate: true // Always allow update from UI — user explicitly clicked and chose a status
         };
 
         try {

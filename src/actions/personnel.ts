@@ -117,7 +117,19 @@ export async function getPersonnelWithAttendance(month: Date | string, siteId?: 
                     (siteId && siteId !== 'all') ? {
                         OR: [
                             { siteId },
-                            { assignedSites: { some: { id: siteId } } }
+                            { assignedSites: { some: { id: siteId } } },
+                            // [NEW] Include personnel who have attendance at this site (transferred-out personnel)
+                            {
+                                attendance: {
+                                    some: {
+                                        siteId,
+                                        date: {
+                                            gte: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1),
+                                            lte: new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
+                                        }
+                                    }
+                                }
+                            }
                         ]
                     } : {}
                 ]

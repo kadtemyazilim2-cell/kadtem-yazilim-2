@@ -376,25 +376,20 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             let totalValidDist = 0;
             const consumptionMap: Record<string, number> = {};
 
-            // [FIX] Per-vehicle EXTRA exclusion (beyond the automatic first-fill skip)
-            // Value = number of ADDITIONAL oldest full-tank anchors to skip
+            // [FIX] Per-vehicle EXTRA exclusion
+            // Value = number of oldest full-tank anchors to skip
             const SKIP_EXTRA_FILLS: Record<string, number> = {
-                '20 AGV 818': 1,  // İlk dolum otomatik atlanır + 1 ek dolum daha atla
+                '20 AGV 818': 1,  // İlk dolumu atla (veri kaynaklı sorun)
             };
 
-            // Identify anchors to skip:
-            // 1. The OLDEST full-tank record is ALWAYS skipped (first fill = baseline only)
-            // 2. Per-vehicle extra skips from SKIP_EXTRA_FILLS
+            // Identify anchors to skip (only per-vehicle overrides, NO automatic first-fill skip)
             const fullTankLogs = logs.filter((l: any) => l.fullTank);
             const skipAnchorIds = new Set<string>();
 
             if (fullTankLogs.length > 0) {
-                // Always skip the oldest full-tank (last in desc-sorted array)
-                skipAnchorIds.add(fullTankLogs[fullTankLogs.length - 1].id);
-
-                // Skip additional anchors if configured
+                // Skip anchors only if configured per-vehicle
                 const extraSkip = SKIP_EXTRA_FILLS[vehicle.plate] || 0;
-                for (let s = 1; s <= extraSkip && (fullTankLogs.length - 1 - s) >= 0; s++) {
+                for (let s = 0; s < extraSkip && (fullTankLogs.length - 1 - s) >= 0; s++) {
                     skipAnchorIds.add(fullTankLogs[fullTankLogs.length - 1 - s].id);
                 }
             }

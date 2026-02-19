@@ -39,6 +39,13 @@ export async function POST(request: Request) {
 
         let result;
         if (existingRecord) {
+            // [FIX] If not explicitly updating, prevent overwrite
+            if (!data.forceUpdate) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'Bu araç için bu tarihte zaten bir puantaj kaydı mevcut. Mevcut kaydı değiştirmek istiyorsanız üzerine tıklayarak düzenleyebilirsiniz.'
+                }, { status: 409 });
+            }
             result = await prisma.vehicleAttendance.update({
                 where: { id: existingRecord.id },
                 data: {

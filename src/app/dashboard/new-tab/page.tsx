@@ -38,6 +38,7 @@ type AttendanceRecord = {
     note?: string;
     createdById?: string;
     createdAt?: number; // timestamp
+    siteId?: string; // [NEW] Which site this attendance was recorded at
 };
 
 type IndependentPerson = {
@@ -53,6 +54,7 @@ type IndependentPerson = {
     note?: string;
     inputDate?: string; // yyyy-MM-dd
     transferOutDate?: string; // yyyy-MM-dd (Locked after this date)
+    transferInDate?: string; // [NEW] yyyy-MM-dd (Date when person arrived at this site via transfer)
     attendance: Record<string, AttendanceRecord>;
     salaryHistory?: { amount: string; date: string }[];
     salaryAdjustments?: Record<string, { // key: yyyy-MM
@@ -388,7 +390,8 @@ export default function NewPage() {
                             overtime: a.overtime ? a.overtime.toString() : undefined,
                             note: a.note || undefined,
                             createdById: a.createdById || undefined,
-                            createdAt: new Date(a.createdAt || Date.now()).getTime()
+                            createdAt: new Date(a.createdAt || Date.now()).getTime(),
+                            siteId: a.siteId || undefined // [NEW] Track which site this record belongs to
                         };
                     });
 
@@ -407,6 +410,22 @@ export default function NewPage() {
                         });
                     }
 
+                    // [NEW] Compute transferInDate: if person's current siteId matches selected site,
+                    // find the last date with attendance at a DIFFERENT site to determine when they arrived
+                    let transferInDate: string | undefined = undefined;
+                    if (p.siteId === targetSiteId) {
+                        const otherSiteDates = Object.entries(attendanceMap)
+                            .filter(([_, r]) => r.siteId && r.siteId !== targetSiteId)
+                            .map(([k]) => k)
+                            .sort();
+                        if (otherSiteDates.length > 0) {
+                            // The day AFTER the last other-site attendance = transfer-in date
+                            const lastOtherDate = new Date(otherSiteDates[otherSiteDates.length - 1]);
+                            lastOtherDate.setDate(lastOtherDate.getDate() + 1);
+                            transferInDate = format(lastOtherDate, 'yyyy-MM-dd');
+                        }
+                    }
+
                     return {
                         id: p.id,
                         siteId: p.siteId || '',
@@ -420,6 +439,7 @@ export default function NewPage() {
                         note: p.note || '',
                         inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
                         transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
+                        transferInDate,
                         attendance: attendanceMap,
                         salaryHistory: p.salaryHistory || [],
                         salaryAdjustments: adjMap
@@ -932,9 +952,25 @@ export default function NewPage() {
         // [NEW] Permission Check
         if (!canEditAttendance) return false;
 
-        // Check Transfer Lock
+        const targetKey = format(targetDate, 'yyyy-MM-dd');
+
+        // [NEW] Transfer-In Lock: Days BEFORE the person arrived at this site are not editable
+        if (person.transferInDate && targetKey < person.transferInDate) {
+            return false;
+        }
+
+        // [NEW] Transferred-Out Lock: If person's current site is NOT this site,
+        // only allow editing days where they have attendance at THIS site
+        if (person.siteId !== selectedSiteId && selectedSiteId) {
+            const existingRecord = person.attendance[targetKey];
+            // Only allow editing existing records at this site, not creating new ones after they left
+            if (!existingRecord || existingRecord.siteId !== selectedSiteId) {
+                return false;
+            }
+        }
+
+        // Check Transfer Lock (leftDate-based)
         if (person.transferOutDate) {
-            const targetKey = format(targetDate, 'yyyy-MM-dd');
             if (targetKey >= person.transferOutDate) {
                 // Allow Admin to fix or User to revert EXIT
                 const isExitRecord = record?.status === 'EXIT';
@@ -1140,6 +1176,8 @@ export default function NewPage() {
 
         Object.entries(person.attendance || {}).forEach(([dateKey, record]) => {
             if (!dateKey.startsWith(monthPrefix)) return;
+            // [NEW] Skip records from other sites (transfer-related)
+            if (selectedSiteId && record.siteId && record.siteId !== selectedSiteId) return;
 
             if (record.status === 'FULL') fullDays += 1;
             if (record.status === 'HALF') halfDays += 1;
@@ -1159,7 +1197,32 @@ export default function NewPage() {
             }
         }
 
-        const leaveAllowance = parseFloat(person.leaveAllowance || '0');
+        const leaveAllowanceTotal = parseFloat(person.leaveAllowance || '0');
+
+        // [NEW] Proportional leave allowance: if person transferred mid-month,
+        // distribute leave days based on calendar days at each site
+        let leaveAllowance = leaveAllowanceTotal;
+        if (selectedSiteId && person.transferInDate && person.transferInDate.startsWith(monthPrefix)) {
+            // Person transferred INTO this site mid-month
+            // Days at this site = from transferInDate to end of month
+            const transferDay = parseInt(person.transferInDate.split('-')[2], 10);
+            const totalDaysInMonth = endOfMonth(referenceDate).getDate();
+            const daysAtThisSite = totalDaysInMonth - transferDay + 1;
+            leaveAllowance = Math.round(leaveAllowanceTotal * daysAtThisSite / totalDaysInMonth);
+        } else if (selectedSiteId && person.siteId !== selectedSiteId) {
+            // Person transferred OUT of this site mid-month
+            // Find last attendance day at this site to determine days here
+            const thisSiteDates = Object.entries(person.attendance || {})
+                .filter(([k, r]) => k.startsWith(monthPrefix) && r.siteId === selectedSiteId)
+                .map(([k]) => k)
+                .sort();
+            if (thisSiteDates.length > 0) {
+                const lastDay = parseInt(thisSiteDates[thisSiteDates.length - 1].split('-')[2], 10);
+                const totalDaysInMonth = endOfMonth(referenceDate).getDate();
+                leaveAllowance = Math.round(leaveAllowanceTotal * lastDay / totalDaysInMonth);
+            }
+        }
+
         const paidLeave = Math.min(leaveUsed, leaveAllowance);
 
         // Always use additive calculation (Actual days entered)
@@ -2184,8 +2247,15 @@ export default function NewPage() {
                                                     const record = (person.attendance || {})[dateKey];
                                                     const isLocked = !canEditRecord(person, record, d);
 
+                                                    // [NEW] Transfer-aware: check if this day's record belongs to another site
+                                                    const isOtherSiteRecord = record?.siteId && selectedSiteId && record.siteId !== selectedSiteId;
+                                                    // Days before transferInDate at this site = other site days (show airplane)
+                                                    const isPreTransferDay = person.transferInDate && dateKey < person.transferInDate;
+                                                    // Person has left this site (their current siteId differs)
+                                                    const isPostTransferDay = person.siteId !== selectedSiteId && selectedSiteId && !record;
+
                                                     // Sequential Logic:
-                                                    const showLine = !record && isExited;
+                                                    const showLine = !record && isExited && !isPreTransferDay && !isPostTransferDay;
                                                     const isStartDate = person.inputDate === dateKey;
 
                                                     // Update State for NEXT iteration (or subsequent empty cells)
@@ -2205,24 +2275,31 @@ export default function NewPage() {
                                                     // Default empty state: Centered dot
                                                     let cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-lg select-none">·</div>;
 
-                                                    if (showLine) {
+                                                    // [NEW] Show airplane icon for days at another site (pre-transfer or other-site records)
+                                                    if (isOtherSiteRecord || isPreTransferDay) {
+                                                        cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
+                                                        cellClass = "bg-slate-50 cursor-default";
+                                                    } else if (isPostTransferDay) {
+                                                        // Person has left this site, empty days after their last record = locked/dash
+                                                        cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300">—</div>;
+                                                        cellClass = "bg-gray-100 cursor-default";
+                                                    } else if (showLine) {
                                                         cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
-                                                    }
+                                                    } else {
+                                                        // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
+                                                        if (isStartDate && !record) {
+                                                            cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                        }
 
-                                                    // Show FULL Status for Start Date (Auto Work) - Overrides dot if no explicit record
-                                                    if (isStartDate && !record) {
-                                                        // Treat as FULL WORK
-                                                        cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'HALF') cellContent = <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-500"><Clock className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'ABSENT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><XCircle className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
                                                     }
-
-                                                    if (record?.status === 'FULL') cellContent = <div className="w-full h-full flex items-center justify-center bg-green-50 text-green-600"><CheckCircle2 className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'HALF') cellContent = <div className="w-full h-full flex items-center justify-center bg-orange-50 text-orange-500"><Clock className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'ABSENT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><XCircle className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
-                                                    if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
 
                                                     // (Logic handled sequentially above via showLine)
 
