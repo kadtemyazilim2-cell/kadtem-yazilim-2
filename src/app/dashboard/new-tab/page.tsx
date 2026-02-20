@@ -374,82 +374,116 @@ export default function NewPage() {
         setLoading(true);
         try {
             // Pass date as string to avoid serialization issues
-            const res: any = await getPersonnelWithAttendance(date.toISOString(), fetchSiteId);
+            // [FIX] Add timeout to prevent server action from hanging indefinitely
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Server action timeout (15s)')), 15000)
+            );
+            const res: any = await Promise.race([
+                getPersonnelWithAttendance(date.toISOString(), fetchSiteId),
+                timeoutPromise
+            ]);
+
+            console.log(`[refreshData] Server response:`, { success: res.success, dataCount: res.data?.length, error: res.error, queryDebug: res.queryDebug });
 
             if (res.success && res.data) {
                 // Map DB Personnel to IndependentPerson format
                 const mapped: IndependentPerson[] = res.data.map((p: any) => {
-                    const attendanceMap: Record<string, AttendanceRecord> = {};
-                    p.attendance.forEach((a: any) => {
-                        // [FIX] Use string split to get YYYY-MM-DD from ISO string safely
-                        // e.g. "2026-02-09T00:00:00.000Z" -> "2026-02-09"
-                        const dateVal = a.date instanceof Date ? a.date.toISOString() : a.date.toString();
-                        const dateKey = dateVal.split('T')[0];
-                        attendanceMap[dateKey] = {
-                            status: a.status,
-                            overtime: a.overtime ? a.overtime.toString() : undefined,
-                            note: a.note || undefined,
-                            createdById: a.createdById || undefined,
-                            createdAt: new Date(a.createdAt || Date.now()).getTime(),
-                            siteId: a.siteId || undefined // [NEW] Track which site this record belongs to
-                        };
-                    });
-
-                    // [NEW] Map Salary Adjustments
-                    const adjMap: Record<string, any> = {};
-                    if (p.salaryAdjustments) {
-                        p.salaryAdjustments.forEach((adj: any) => {
-                            const k = `${adj.year}-${adj.month.toString().padStart(2, '0')}`;
-                            adjMap[k] = {
-                                bonus: adj.bonus,
-                                deduction: adj.deduction,
-                                workedDays: adj.workedDays,
-                                overtimeHours: adj.overtimeHours,
-                                note: adj.note
+                    try {
+                        const attendanceMap: Record<string, AttendanceRecord> = {};
+                        p.attendance.forEach((a: any) => {
+                            // [FIX] Use string split to get YYYY-MM-DD from ISO string safely
+                            // e.g. "2026-02-09T00:00:00.000Z" -> "2026-02-09"
+                            const dateVal = a.date instanceof Date ? a.date.toISOString() : a.date.toString();
+                            const dateKey = dateVal.split('T')[0];
+                            attendanceMap[dateKey] = {
+                                status: a.status,
+                                overtime: a.overtime ? a.overtime.toString() : undefined,
+                                note: a.note || undefined,
+                                createdById: a.createdById || undefined,
+                                createdAt: new Date(a.createdAt || Date.now()).getTime(),
+                                siteId: a.siteId || undefined // [NEW] Track which site this record belongs to
                             };
                         });
-                    }
 
-                    // [NEW] Compute transferInDate: if person's current siteId matches selected site,
-                    // find the last date with attendance at a DIFFERENT site to determine when they arrived
-                    let transferInDate: string | undefined = undefined;
-                    if (p.siteId === targetSiteId) {
-                        const otherSiteDates = Object.entries(attendanceMap)
-                            .filter(([_, r]) => r.siteId && r.siteId !== targetSiteId)
-                            .map(([k]) => k)
-                            .sort();
-                        if (otherSiteDates.length > 0) {
-                            // The day AFTER the last other-site attendance = transfer-in date
-                            const lastOtherDate = new Date(otherSiteDates[otherSiteDates.length - 1]);
-                            lastOtherDate.setDate(lastOtherDate.getDate() + 1);
-                            transferInDate = format(lastOtherDate, 'yyyy-MM-dd');
+                        // [NEW] Map Salary Adjustments
+                        const adjMap: Record<string, any> = {};
+                        if (p.salaryAdjustments) {
+                            p.salaryAdjustments.forEach((adj: any) => {
+                                const k = `${adj.year}-${adj.month.toString().padStart(2, '0')}`;
+                                adjMap[k] = {
+                                    bonus: adj.bonus,
+                                    deduction: adj.deduction,
+                                    workedDays: adj.workedDays,
+                                    overtimeHours: adj.overtimeHours,
+                                    note: adj.note
+                                };
+                            });
                         }
-                    }
 
-                    return {
-                        id: p.id,
-                        siteId: p.siteId || '',
-                        tc: p.tcNumber || '',
-                        name: p.fullName,
-                        profession: p.profession || '',
-                        role: p.role,
-                        salary: p.salary ? p.salary.toString() : '',
-                        leaveAllowance: p.leaveAllowance || '',
-                        hasOvertime: p.hasOvertime || false,
-                        note: p.note || '',
-                        inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
-                        transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
-                        transferInDate,
-                        attendance: attendanceMap,
-                        salaryHistory: p.salaryHistory || [],
-                        salaryAdjustments: adjMap
-                    };
+                        // [NEW] Compute transferInDate: if person's current siteId matches selected site,
+                        // find the last date with attendance at a DIFFERENT site to determine when they arrived
+                        let transferInDate: string | undefined = undefined;
+                        if (p.siteId === targetSiteId) {
+                            const otherSiteDates = Object.entries(attendanceMap)
+                                .filter(([_, r]) => r.siteId && r.siteId !== targetSiteId)
+                                .map(([k]) => k)
+                                .sort();
+                            if (otherSiteDates.length > 0) {
+                                // The day AFTER the last other-site attendance = transfer-in date
+                                const lastOtherDate = new Date(otherSiteDates[otherSiteDates.length - 1]);
+                                lastOtherDate.setDate(lastOtherDate.getDate() + 1);
+                                transferInDate = format(lastOtherDate, 'yyyy-MM-dd');
+                            }
+                        }
+
+                        return {
+                            id: p.id,
+                            siteId: p.siteId || '',
+                            tc: p.tcNumber || '',
+                            name: p.fullName,
+                            profession: p.profession || '',
+                            role: p.role,
+                            salary: p.salary ? p.salary.toString() : '',
+                            leaveAllowance: p.leaveAllowance || '',
+                            hasOvertime: p.hasOvertime || false,
+                            note: p.note || '',
+                            inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
+                            transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
+                            transferInDate,
+                            attendance: attendanceMap,
+                            salaryHistory: p.salaryHistory || [],
+                            salaryAdjustments: adjMap
+                        };
+                    } catch (mapErr) {
+                        console.error(`[refreshData] Error mapping personnel ${p.fullName} (${p.id}):`, mapErr);
+                        // Return a safe fallback so one bad record doesn't break the whole list
+                        return {
+                            id: p.id,
+                            siteId: p.siteId || '',
+                            tc: p.tcNumber || '',
+                            name: p.fullName || 'HATA',
+                            profession: p.profession || '',
+                            role: p.role || '',
+                            salary: p.salary ? p.salary.toString() : '',
+                            leaveAllowance: p.leaveAllowance || '',
+                            hasOvertime: p.hasOvertime || false,
+                            note: p.note || '',
+                            attendance: {},
+                            salaryHistory: [],
+                            salaryAdjustments: {}
+                        };
+                    }
                 });
+                console.log(`[refreshData] Mapped ${mapped.length} personnel successfully`);
                 setNames(mapped);
             }
         } catch (e: any) {
-            console.error(e);
-            toast.error("Veri yüklenirken hata oluştu.");
+            console.error('[refreshData] Error:', e);
+            if (e?.message?.includes('timeout')) {
+                toast.error("Sunucu yanıt vermedi. Sayfayı yenileyip tekrar deneyin.");
+            } else {
+                toast.error("Veri yüklenirken hata oluştu: " + (e?.message || ''));
+            }
         } finally {
             setLoading(false);
         }
