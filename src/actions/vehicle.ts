@@ -34,6 +34,7 @@ const getVehiclesFromDb = async () => {
             fuelType: true,
             consumptionMin: true,
             consumptionMax: true,
+            hgsProvider: true,
             lastInspectionDate: true,
 
             lastTrafficProposalAgencies: true,
@@ -156,7 +157,8 @@ export async function createVehicle(data: Partial<Vehicle>) {
                 chassisNumber: data.chassisNumber,
                 fuelType: data.fuelType,
                 lastInspectionDate: data.lastInspectionDate,
-                licenseFile: data.licenseFile
+                licenseFile: data.licenseFile,
+                hgsProvider: data.hgsProvider || null,
             }
         });
         revalidateTag('vehicles');
@@ -180,7 +182,7 @@ export async function updateVehicle(id: string, data: Partial<Vehicle>) {
             'insuranceCost', 'kaskoCost',
             'rentalCompanyName', 'monthlyRentalFee', 'rentalContact', 'rentalLastUpdate',
             'engineNumber', 'chassisNumber', 'fuelType', 'licenseFile',
-            'consumptionMin', 'consumptionMax',
+            'consumptionMin', 'consumptionMax', 'hgsProvider',
             'lastTrafficProposalDate', 'lastTrafficProposalAgencies',
             'lastKaskoProposalDate', 'lastKaskoProposalAgencies',
             'assignedSiteId', 'assignedSiteIds', 'insuranceHistory'

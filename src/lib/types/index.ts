@@ -156,6 +156,9 @@ export interface Vehicle {
   consumptionMin?: number;
   consumptionMax?: number;
 
+  // HGS
+  hgsProvider?: string; // e.g. "PTT", "Ziraat Bankası", "Vakıfbank"
+
   // Proposal History
   lastTrafficProposalDate?: string; // [NEW]
   lastTrafficProposalAgencies?: string[]; // [NEW]

@@ -58,6 +58,7 @@ interface VehicleFormData {
     chassisNumber: string;
     fuelType: 'DIESEL' | 'GASOLINE' | 'LPG' | 'ELECTRIC' | 'HYBRID';
     licenseFile: string;
+    hgsProvider: string;
 }
 
 export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSuccess, vehicleToEdit, open: controlledOpen, onOpenChange: controlledOnOpenChange, defaultSiteId }: VehicleFormProps) {
@@ -126,6 +127,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
         chassisNumber: vehicleToEdit?.chassisNumber || '',
         fuelType: (vehicleToEdit?.fuelType as any) || 'DIESEL',
         licenseFile: vehicleToEdit?.licenseFile || '',
+        hgsProvider: vehicleToEdit?.hgsProvider || '',
     });
 
     // Auto-select site if user has only one and none is selected
@@ -168,6 +170,7 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                 chassisNumber: vehicleToEdit?.chassisNumber || '',
                 fuelType: (vehicleToEdit?.fuelType as any) || 'DIESEL',
                 licenseFile: vehicleToEdit?.licenseFile || '',
+                hgsProvider: vehicleToEdit?.hgsProvider || '',
             });
         }
     }, [open, vehicleToEdit, initialOwnership, defaultSiteId]);
@@ -508,6 +511,36 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                                 placeholder="0"
                             />
                             {formErrors.currentKm && <span className="text-xs text-red-500">{formErrors.currentKm}</span>}
+                        </div>
+                    </div>
+
+                    {/* HGS Provider */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>HGS Sağlayıcı</Label>
+                            <Select
+                                value={formData.hgsProvider || 'none'}
+                                onValueChange={(v) => setFormData({ ...formData, hgsProvider: v === 'none' ? '' : v })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="HGS Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Yok</SelectItem>
+                                    <SelectItem value="PTT">PTT</SelectItem>
+                                    <SelectItem value="Ziraat Bankası">Ziraat Bankası</SelectItem>
+                                    <SelectItem value="Vakıfbank">Vakıfbank</SelectItem>
+                                    <SelectItem value="Halkbank">Halkbank</SelectItem>
+                                    <SelectItem value="İş Bankası">İş Bankası</SelectItem>
+                                    <SelectItem value="Garanti BBVA">Garanti BBVA</SelectItem>
+                                    <SelectItem value="Yapı Kredi">Yapı Kredi</SelectItem>
+                                    <SelectItem value="Akbank">Akbank</SelectItem>
+                                    <SelectItem value="QNB Finansbank">QNB Finansbank</SelectItem>
+                                    <SelectItem value="Denizbank">Denizbank</SelectItem>
+                                    <SelectItem value="TEB">TEB</SelectItem>
+                                    <SelectItem value="Diğer">Diğer</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

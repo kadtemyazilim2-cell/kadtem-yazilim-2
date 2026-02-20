@@ -1303,8 +1303,11 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                             </Popover>
                                         </div>
                                     </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('km', e)}>
+                                    <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors text-right" onClick={(e) => handleSort('km', e)}>
                                         KM / Saat {getSortIcon('km')}
+                                    </TableHead>
+                                    <TableHead className="w-[100px]">
+                                        HGS
                                     </TableHead>
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('status', e)}>
                                         Durum {getSortIcon('status')}
@@ -1343,7 +1346,16 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                 {vehicle.ownership === 'RENTAL' ? 'Kiralık' : 'Kendi'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>{vehicle.currentKm.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-mono">{vehicle.currentKm.toLocaleString()}</TableCell>
+                                        <TableCell>
+                                            {vehicle.hgsProvider ? (
+                                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 whitespace-nowrap">
+                                                    {vehicle.hgsProvider}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                            )}
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant={vehicle.status === 'ACTIVE' ? 'outline' : 'secondary'} className={
                                                 vehicle.status === 'ACTIVE' ? "bg-green-50 text-green-700 border-green-200" :

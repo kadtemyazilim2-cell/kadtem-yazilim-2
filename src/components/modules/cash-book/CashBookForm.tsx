@@ -244,6 +244,13 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         });
     };
 
+    // [FIX] Force category to Tahsilat when type is INCOME (separate render cycle for Radix Select)
+    useEffect(() => {
+        if (formData.type === 'INCOME' && formData.category !== 'Tahsilat') {
+            setFormData(prev => ({ ...prev, category: 'Tahsilat' }));
+        }
+    }, [formData.type]);
+
     const formatMoneyInput = (value: string) => {
         if (!value) return '';
         let val = value.replace(/[^0-9,]/g, '');
@@ -525,6 +532,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                     <div className="space-y-2">
                         <Label>Kategori <span className="text-red-500">*</span></Label>
                         <Select
+                            key={`category-${formData.type}`}
                             value={formData.category}
                             onValueChange={handleCategoryChange}
                             required
