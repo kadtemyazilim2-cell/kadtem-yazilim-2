@@ -145,7 +145,7 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
             // Apply defaults if provided
             if (defaultValues) {
                 const isIncome = defaultValues.type === 'INCOME';
-                const autoCategory = isIncome ? 'Şantiye Harcaması İçin Gönderilen' : '';
+                const autoCategory = isIncome ? 'Tahsilat' : '';
 
                 setFormData(prev => ({
                     ...prev,
@@ -226,11 +226,11 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
         let newDescription = formData.description;
 
         if (val === 'INCOME') {
-            newCategory = 'Şantiye Harcaması İçin Gönderilen';
-            newDescription = generateDescription(formData.date, newCategory);
+            newCategory = 'Tahsilat';
+            newDescription = '';
         } else {
             // Reset if switching back to Expense? Maybe not, keep user input unless it was the auto one.
-            if (newCategory === 'Şantiye Harcaması İçin Gönderilen') {
+            if (newCategory === 'Tahsilat') {
                 newCategory = '';
                 newDescription = '';
             }
@@ -552,12 +552,6 @@ export function CashBookForm({ initialData, defaultValues, open: externalOpen, o
                                 ) : (
                                     <>
                                         <SelectItem value="Tahsilat">Tahsilat</SelectItem>
-                                        {(user?.role === 'ADMIN' || hasPermission('cash-book.admin-view', 'VIEW')) && (
-                                            <>
-                                                <SelectItem value="Nakit İade">Nakit İade</SelectItem>
-                                                <SelectItem value="Şantiye Harcaması İçin Gönderilen">Şantiye Harcaması İçin Gönderilen</SelectItem>
-                                            </>
-                                        )}
                                     </>
                                 )}
                             </SelectContent>
