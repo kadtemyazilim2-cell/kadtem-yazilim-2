@@ -373,17 +373,13 @@ export default function NewPage() {
         console.log(`refreshData: Fetching for site ${targetSiteId} date ${date.toISOString()}`);
         setLoading(true);
         try {
-            // Pass date as string to avoid serialization issues
-            // [FIX] Add timeout to prevent server action from hanging indefinitely
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Server action timeout (15s)')), 15000)
-            );
-            const res: any = await Promise.race([
-                getPersonnelWithAttendance(date.toISOString(), fetchSiteId),
-                timeoutPromise
-            ]);
+            // [FIX] Use API route instead of server action to avoid Next.js server action hang
+            const params = new URLSearchParams({ month: date.toISOString() });
+            if (fetchSiteId) params.set('siteId', fetchSiteId);
+            const response = await fetch(`/api/personnel/attendance/list?${params.toString()}`);
+            const res = await response.json();
 
-            console.log(`[refreshData] Server response:`, { success: res.success, dataCount: res.data?.length, error: res.error, queryDebug: res.queryDebug });
+            console.log(`[refreshData] API response:`, { success: res.success, dataCount: res.data?.length, error: res.error });
 
             if (res.success && res.data) {
                 // Map DB Personnel to IndependentPerson format
