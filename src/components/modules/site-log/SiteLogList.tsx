@@ -483,9 +483,9 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
         <div className="space-y-6">
             <Card>
                 <CardHeader className="flex flex-col gap-4">
-                    <div className="flex flex-row items-center justify-between">
-                        {user?.role === 'ADMIN' && <CardTitle>Şantiye Defteri Kayıtları</CardTitle>}
-                        <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        {user?.role === 'ADMIN' && <CardTitle className="text-lg sm:text-xl">Şantiye Defteri Kayıtları</CardTitle>}
+                        <div className="flex flex-wrap gap-2">
                             {canExport && (
                                 <>
                                     <Button variant="outline" size="sm" onClick={exportListPDF} disabled={isGeneratingPDF} title="Listeyi PDF İndir">
@@ -505,7 +505,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                 }}>
                                     {canCreate && (
                                         <DialogTrigger asChild>
-                                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                            <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                                                 <Plus className="w-4 h-4 mr-2" /> Yeni Kayıt
                                             </Button>
                                         </DialogTrigger>
@@ -640,7 +640,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                         {displayGroups.map((group: any) => (
                                             <div key={group.id} className="border rounded-lg p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
                                                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-4">
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                                         <div className="text-sm font-semibold text-blue-900 flex items-center gap-2 max-w-[180px] truncate">
                                                             <MapPin className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                                                             <span className="truncate">{getSiteName(group.siteId)}</span>
@@ -702,7 +702,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                                                             ? entry.content.replace(/\n/g, ' ').substring(0, 120) + (entry.content.length > 120 ? '...' : '')
                                                             : '';
                                                         return (
-                                                            <div key={entry.id} className="flex items-center gap-2 pl-3 border-l-2 border-slate-200 py-1.5 group hover:bg-slate-50 rounded-r transition-colors">
+                                                            <div key={entry.id} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 pl-3 border-l-2 border-slate-200 py-1.5 group hover:bg-slate-50 rounded-r transition-colors">
                                                                 <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                                     <UserIcon className="w-3 h-3 text-blue-500 flex-shrink-0" />
                                                                     <span className="text-xs font-semibold text-blue-800 whitespace-nowrap">{authorName}</span>
