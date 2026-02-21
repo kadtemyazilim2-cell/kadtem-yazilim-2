@@ -1060,7 +1060,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                 <VehicleForm initialOwnership="RENTAL" customTrigger={
                                     <Button variant="outline" className="h-8 gap-2">
                                         <Plus className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Kiralık Araç</span>
+                                        <span>Kiralık Araç</span>
                                     </Button>
                                 } />
                             )}
@@ -1068,7 +1068,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                 <VehicleForm initialOwnership="OWNED" customTrigger={
                                     <Button className="h-8 gap-2">
                                         <Plus className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Yeni Araç</span>
+                                        <span>Yeni Araç</span>
                                     </Button>
                                 } />
                             )}
