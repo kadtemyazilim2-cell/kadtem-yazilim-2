@@ -1053,9 +1053,9 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         <Card>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <CardHeader className="flex flex-col space-y-4">
-                    <div className="flex flex-row items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <CardTitle>Araç Listesi</CardTitle>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
                             {canCreateRental && (
                                 <VehicleForm initialOwnership="RENTAL" customTrigger={
                                     <Button variant="outline" className="h-8 gap-2">
@@ -1074,8 +1074,8 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative flex-1 flex gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+                        <div className="relative flex-1 flex flex-col sm:flex-row gap-2">
                             <div className="relative flex-1">
                                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -1230,7 +1230,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                     )}
 
 
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="flex w-full overflow-x-auto">
                         <TabsTrigger value="list">Araç Listesi</TabsTrigger>
 
                         {canViewFinance && <TabsTrigger value="rental-costs">Araç Kira Bedeli</TabsTrigger>}

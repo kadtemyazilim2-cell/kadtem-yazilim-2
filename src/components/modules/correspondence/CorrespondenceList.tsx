@@ -1044,7 +1044,7 @@ export function CorrespondenceList() {
                     <div className="flex flex-row items-center justify-between">
                         <CardTitle>Yazışma Listesi</CardTitle>
                     </div>
-                    <TabsList className="grid w-full grid-cols-5">
+                    <TabsList className="flex w-full overflow-x-auto">
                         {canViewIncoming && <TabsTrigger value="incoming">Gelen Evraklar</TabsTrigger>}
                         {canViewOutgoing && <TabsTrigger value="outgoing">Giden Evraklar</TabsTrigger>}
                         {canViewBank && <TabsTrigger value="bank">Banka Yazışmaları</TabsTrigger>}
@@ -1059,7 +1059,7 @@ export function CorrespondenceList() {
                                 <CorrespondenceForm
                                     initialDirection="INCOMING"
                                     customTrigger={
-                                        <Button className="bg-green-600 hover:bg-green-700">
+                                        <Button className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
                                             <Plus className="w-4 h-4 mr-2" /> Yeni Gelen Evrak
                                         </Button>
                                     }
@@ -1076,7 +1076,7 @@ export function CorrespondenceList() {
                                 <CorrespondenceForm
                                     initialDirection="OUTGOING"
                                     customTrigger={
-                                        <Button className="bg-blue-600 hover:bg-blue-700">
+                                        <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
                                             <Plus className="w-4 h-4 mr-2" /> Yeni Giden Evrak
                                         </Button>
                                     }
@@ -1093,7 +1093,7 @@ export function CorrespondenceList() {
                                 <CorrespondenceForm
                                     initialType="BANK"
                                     customTrigger={
-                                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto">
                                             <Plus className="w-4 h-4 mr-2" /> Yeni Banka Yazışması
                                         </Button>
                                     }
