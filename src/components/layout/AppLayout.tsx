@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/store/use-auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { useYiUfeAutoUpdate } from '@/hooks/use-yi-ufe-auto-update';
 import { StoreHydration } from './StoreHydration';
+import { Loader2 } from 'lucide-react';
 
 export function AppLayout({ children }: { children: ReactNode }) {
     const { isAuthenticated, user, refreshSession } = useAuth();
@@ -19,7 +20,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         setMounted(true);
-        // [FIX] Ensure session user data (assignments) is fresh from DB
         if (isAuthenticated) {
             refreshSession();
         }
@@ -27,40 +27,25 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (mounted) {
-            // If not authenticated, redirect to login
             if (!isAuthenticated) {
                 if (pathname !== '/login') router.push('/login');
                 return;
             }
 
-            // If authenticated but user data is missing or broken (e.g. no role), force logout
-            // This fixes the "Undefined Dashboard" issue with stale cookies
+            // If authenticated but user data is invalid, force logout
             if (isAuthenticated && (!user || !user.role)) {
-                console.warn("Invalid session detected, forcing logout...");
-                // We should ideally call logout() here but useAuth might not expose it directly in a way that creates a clean loop
-                // Better to just redirect to a logout route or manually clear.
-                // Assuming accessing the store's logout function via the hook.
-                // But we can't destructure logout from useAuth() inside useEffect dependencies easily if avoiding infinite loops.
-                // Let's just rely on the fact that if we push to /login, middleware might bounce back?
-                // No, middleware bounces back if it sees a cookie. We need to CLEAR the cookie.
-                // We can fetch '/api/auth/signout' or similar? 
-                // Or just use the server action signOut?
-                // Let's rely on a client-side hard reload or better, use the store's logout.
-
-                // For now, let's redirect to a special 'error' or just '/login' combined with a client-side cleanup.
-                // Actually, the StoreInitializer should have set the user if it existed. 
-                // If it didn't set the user, then the session was partial.
-
-                // Let's trigger a logout action.
-                // Since I can't easily import the action here effectively without triggering it in render (bad),
-                // I will use `window.location.href = '/api/auth/signout'` as a nuclear option for invalid states.
                 window.location.href = '/api/auth/signout';
             }
         }
     }, [mounted, isAuthenticated, pathname, router, user]);
 
     if (!mounted) {
-        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-slate-50">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                <span className="text-sm text-slate-500 font-medium">Yükleniyor...</span>
+            </div>
+        );
     }
 
     if (!isAuthenticated) {
@@ -88,3 +73,4 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
     );
 }
+

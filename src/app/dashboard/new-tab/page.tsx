@@ -71,12 +71,14 @@ const SalaryEditableCell = ({
     value,
     type,
     onSave,
-    colorClass
+    colorClass,
+    disabled
 }: {
     value: number,
     type: 'Prim' | 'Kesinti',
     onSave: (val: string) => void,
-    colorClass: string
+    colorClass: string,
+    disabled?: boolean
 }) => {
     const [open, setOpen] = useState(false);
     const [tempVal, setTempVal] = useState('');
@@ -98,34 +100,40 @@ const SalaryEditableCell = ({
     };
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <Button variant="ghost" className={cn("w-full h-full text-right font-mono px-2 justify-end hover:bg-slate-50 rounded-none h-10", colorClass)}>
-                    {value > 0 ? value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-48 p-3">
-                <div className="space-y-2">
-                    <Label className="text-xs font-semibold">{type} (₺)</Label>
-                    <Input
-                        className="h-8"
-                        placeholder="0,00"
-                        value={tempVal}
-                        onChange={(e) => {
-                            // Allow only digits and comma/dot
-                            const v = e.target.value.replace(/[^0-9,.]/g, '');
-                            setTempVal(v);
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSave();
-                        }}
-                    />
-                    <Button size="sm" className="w-full h-7 text-xs bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
-                        Kaydet
+        disabled ? (
+            <div className={cn("w-full h-full text-right font-mono px-2 flex items-center justify-end h-10", colorClass)}>
+                {value > 0 ? value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
+            </div>
+        ) : (
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="ghost" className={cn("w-full h-full text-right font-mono px-2 justify-end hover:bg-slate-50 rounded-none h-10", colorClass)}>
+                        {value > 0 ? value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'}
                     </Button>
-                </div>
-            </PopoverContent>
-        </Popover>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-3">
+                    <div className="space-y-2">
+                        <Label className="text-xs font-semibold">{type} (₺)</Label>
+                        <Input
+                            className="h-8"
+                            placeholder="0,00"
+                            value={tempVal}
+                            onChange={(e) => {
+                                // Allow only digits and comma/dot
+                                const v = e.target.value.replace(/[^0-9,.]/g, '');
+                                setTempVal(v);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSave();
+                            }}
+                        />
+                        <Button size="sm" className="w-full h-7 text-xs bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
+                            Kaydet
+                        </Button>
+                    </div>
+                </PopoverContent>
+            </Popover>
+        )
     );
 };
 
@@ -139,13 +147,13 @@ export default function NewPage() {
     // Fallback: If user has ADMIN role, all true.
     const isAdmin = user?.role === 'ADMIN';
 
-    const canViewSalary = isAdmin || (perms['new-tab.salary'] || []).includes('VIEW');
-    const canEditSalary = isAdmin || (perms['new-tab.salary'] || []).includes('EDIT');
-    const canCreatePersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('CREATE');
-    const canEditPersonnel = isAdmin || (perms['new-tab.personnel'] || []).includes('EDIT'); // For Edit/Delete
-    const canEditAttendance = isAdmin || (perms['new-tab.attendance'] || []).includes('EDIT');
-    const canExport = isAdmin || (perms['new-tab.attendance'] || []).includes('EXPORT');
-    const canTransfer = isAdmin || (perms['new-tab.transfer'] || []).includes('CREATE');
+    const canViewSalary = isAdmin || (perms['personnel-attendance.salary'] || []).includes('VIEW');
+    const canEditSalary = isAdmin || (perms['personnel-attendance.salary'] || []).includes('EDIT');
+    const canCreatePersonnel = isAdmin || (perms['personnel-attendance.personnel'] || []).includes('CREATE');
+    const canEditPersonnel = isAdmin || (perms['personnel-attendance.personnel'] || []).includes('EDIT'); // For Edit/Delete
+    const canEditAttendance = isAdmin || (perms['personnel-attendance.attendance'] || []).includes('EDIT');
+    const canExport = isAdmin || (perms['personnel-attendance.attendance'] || []).includes('EXPORT');
+    const canTransfer = isAdmin || (perms['personnel-attendance.transfer'] || []).includes('CREATE');
     const canViewAllPersonnel = isAdmin; // Only Admin can see 'All Personnel' and 'Site List' summary for now
 
 
@@ -2578,6 +2586,7 @@ export default function NewPage() {
                                                     type="Prim"
                                                     colorClass="text-green-700"
                                                     onSave={(val) => updateSalaryAdjustment(person.id, 'bonus', val)}
+                                                    disabled={!canEditSalary}
                                                 />
                                             </TableCell>
                                             <TableCell className="p-0 bg-red-50/30">
@@ -2586,6 +2595,7 @@ export default function NewPage() {
                                                     type="Kesinti"
                                                     colorClass="text-red-700"
                                                     onSave={(val) => updateSalaryAdjustment(person.id, 'deduction', val)}
+                                                    disabled={!canEditSalary}
                                                 />
                                             </TableCell>
                                             <TableCell className="text-right font-bold text-blue-700">

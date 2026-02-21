@@ -108,13 +108,13 @@ const MODULE_HIERARCHY = [
         children: [
             { id: 'personnel.list', label: 'Personel Listesi' },
             {
-                id: 'new-tab',
+                id: 'personnel-attendance',
                 label: 'Personel Puantaj',
                 children: [
-                    { id: 'new-tab.salary', label: 'Maaş Bilgileri' },
-                    { id: 'new-tab.personnel', label: 'Personel Yönetimi' },
-                    { id: 'new-tab.attendance', label: 'Puantaj Girişi' },
-                    { id: 'new-tab.transfer', label: 'Transfer İşlemi' },
+                    { id: 'personnel-attendance.salary', label: 'Maaş Bilgileri' },
+                    { id: 'personnel-attendance.personnel', label: 'Personel Yönetimi' },
+                    { id: 'personnel-attendance.attendance', label: 'Puantaj Girişi' },
+                    { id: 'personnel-attendance.transfer', label: 'Transfer İşlemi' },
                 ]
             },
         ]

@@ -400,12 +400,12 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto px-6 py-4">
-                        <form id="correspondence-form" onSubmit={handleSubmit} className="grid gap-4">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
+                        <form id="correspondence-form" onSubmit={handleSubmit} className="grid gap-4 min-w-0">
                             {/* Fields removed */}
                             {/* ... Content ... */}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-[1fr_2fr] gap-4">
                                 <div className="space-y-2">
                                     <Label>Tarih</Label>
                                     <Input
@@ -415,14 +415,14 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                                     />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-2 min-w-0">
                                     <Label>İlgili Firma</Label>
-                                    <div className="flex gap-2">
-                                        <div className="relative w-full">
+                                    <div className="flex gap-2 min-w-0">
+                                        <div className="relative w-full min-w-0">
                                             <Button
                                                 variant="outline"
                                                 type="button"
-                                                className="w-full justify-between font-normal h-10 text-left"
+                                                className="w-full justify-between font-normal h-10 text-left overflow-hidden min-w-0"
                                                 onClick={() => setFirmaOpen(!firmaOpen)}
                                             >
                                                 <span className="truncate">
@@ -493,13 +493,13 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             </div>
 
                             {initialType !== 'BANK' && (
-                                <div className="space-y-2">
+                                <div className="space-y-2 min-w-0">
                                     <Label>Şantiye (Opsiyonel)</Label>
-                                    <div className="relative">
+                                    <div className="relative min-w-0">
                                         <Button
                                             variant="outline"
                                             type="button"
-                                            className="w-full justify-between font-normal h-10 text-left"
+                                            className="w-full justify-between font-normal h-10 text-left overflow-hidden min-w-0"
                                             onClick={() => setSiteOpen(!siteOpen)}
                                         >
                                             <span className="truncate">
@@ -601,7 +601,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 </div>
                             )}
 
-                            <div className="space-y-2 relative">
+                            <div className="space-y-2 relative min-w-0">
                                 <div className="flex items-center justify-between">
                                     <Label>Muhatap (Kurum/Şahıs)</Label>
 
@@ -624,7 +624,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                     <Button
                                         variant="outline"
                                         type="button"
-                                        className="w-full justify-between font-normal h-10 text-left"
+                                        className="w-full justify-between font-normal h-10 text-left overflow-hidden min-w-0"
                                         onClick={() => setMuhatapOpen(!muhatapOpen)}
                                     >
                                         <span className="truncate">

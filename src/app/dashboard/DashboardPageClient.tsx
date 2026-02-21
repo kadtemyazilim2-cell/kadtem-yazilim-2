@@ -102,7 +102,7 @@ export function DashboardPageClient() {
                 { href: '/dashboard/fuel', perm: 'fuel' },
                 { href: '/dashboard/fuel/movement', perm: 'movement' },
                 { href: '/dashboard/cash-book', perm: 'cash-book' },
-                { href: '/dashboard/new-tab', perm: 'new-tab' },
+                { href: '/dashboard/new-tab', perm: 'personnel-attendance' },
                 { href: '/dashboard/vehicle-attendance', perm: 'vehicle-attendance' },
                 { href: '/dashboard/site-log', perm: 'site-log' },
                 { href: '/dashboard/limit-value', perm: 'limit-value' },
@@ -110,9 +110,9 @@ export function DashboardPageClient() {
 
             for (const nav of NAV_ORDER) {
                 const p = perms[nav.perm];
-                // Check main permission or sub-permissions (for new-tab)
+                // Check main permission or sub-permissions (for personnel-attendance)
                 const hasMain = p && p.length > 0 && !p.includes('NONE');
-                const hasSub = nav.perm === 'new-tab' && Object.keys(perms).some(k => k.startsWith('new-tab.') && perms[k]?.length > 0 && !perms[k].includes('NONE'));
+                const hasSub = nav.perm === 'personnel-attendance' && Object.keys(perms).some(k => k.startsWith('personnel-attendance.') && perms[k]?.length > 0 && !perms[k].includes('NONE'));
 
                 if (hasMain || hasSub) {
                     router.replace(nav.href);

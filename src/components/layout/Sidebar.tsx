@@ -88,7 +88,7 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             // For Puantaj (attendance), check if user has ANY attendance-related permission
                             if (permissionId === 'attendance') {
                                 const hasNewTabPerm = Object.keys(perms).some(p =>
-                                    (p === 'new-tab' || p.startsWith('new-tab.')) && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE')
+                                    (p === 'personnel-attendance' || p.startsWith('personnel-attendance.')) && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE')
                                 );
                                 const hasVehicleAttendancePerm = Object.keys(perms).some(p =>
                                     (p === 'vehicle-attendance' || p.startsWith('vehicle-attendance.')) && perms[p] && perms[p].length > 0 && !perms[p].includes('NONE')

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
@@ -38,9 +39,7 @@ export default function LoginPage() {
             // If no result, redirect happened server-side
         } catch (err: any) {
             // NEXT_REDIRECT throws — this is expected on success
-            // Check if it's a redirect (Next.js throws NEXT_REDIRECT)
             if (err?.digest?.startsWith('NEXT_REDIRECT')) {
-                // Let Next.js handle the redirect
                 window.location.href = '/dashboard';
                 return;
             }
@@ -52,11 +51,17 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
             <Card className="w-full max-w-md shadow-lg">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center text-blue-800">YapıTakip</CardTitle>
-                    <CardDescription className="text-center">
-                        Kurumsal Şantiye Yönetim Sistemi
-                    </CardDescription>
+                <CardHeader className="pb-4">
+                    <div className="flex justify-center w-full">
+                        <Image
+                            src="/images/kadtem-logo.png"
+                            alt="KAD-TEM Logo"
+                            width={180}
+                            height={70}
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">

@@ -514,35 +514,59 @@ export function VehicleForm({ initialOwnership = 'OWNED', customTrigger, onSucce
                         </div>
                     </div>
 
-                    {/* HGS Provider */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>HGS Sağlayıcı</Label>
-                            <Select
-                                value={formData.hgsProvider || 'none'}
-                                onValueChange={(v) => setFormData({ ...formData, hgsProvider: v === 'none' ? '' : v })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="HGS Seçiniz" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Yok</SelectItem>
-                                    <SelectItem value="PTT">PTT</SelectItem>
-                                    <SelectItem value="Ziraat Bankası">Ziraat Bankası</SelectItem>
-                                    <SelectItem value="Vakıfbank">Vakıfbank</SelectItem>
-                                    <SelectItem value="Halkbank">Halkbank</SelectItem>
-                                    <SelectItem value="İş Bankası">İş Bankası</SelectItem>
-                                    <SelectItem value="Garanti BBVA">Garanti BBVA</SelectItem>
-                                    <SelectItem value="Yapı Kredi">Yapı Kredi</SelectItem>
-                                    <SelectItem value="Akbank">Akbank</SelectItem>
-                                    <SelectItem value="QNB Finansbank">QNB Finansbank</SelectItem>
-                                    <SelectItem value="Denizbank">Denizbank</SelectItem>
-                                    <SelectItem value="TEB">TEB</SelectItem>
-                                    <SelectItem value="Diğer">Diğer</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    {/* HGS Provider - Only for OWNED vehicles */}
+                    {formData.ownership === 'OWNED' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>HGS Sağlayıcı</Label>
+                                {(() => {
+                                    const knownProviders = ['PTT', 'Ziraat Bankası', 'Vakıfbank', 'Halkbank', 'İş Bankası', 'Garanti BBVA', 'Yapı Kredi', 'Akbank', 'QNB Finansbank', 'Denizbank', 'TEB'];
+                                    const isCustom = formData.hgsProvider && !knownProviders.includes(formData.hgsProvider);
+                                    const selectValue = !formData.hgsProvider ? 'none' : (isCustom ? 'Diğer' : formData.hgsProvider);
+                                    return (
+                                        <>
+                                            <Select
+                                                value={selectValue}
+                                                onValueChange={(v) => {
+                                                    if (v === 'none') setFormData({ ...formData, hgsProvider: '' });
+                                                    else if (v === 'Diğer') setFormData({ ...formData, hgsProvider: ' ' });
+                                                    else setFormData({ ...formData, hgsProvider: v });
+                                                }}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="HGS Seçiniz" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="none">Yok</SelectItem>
+                                                    <SelectItem value="PTT">PTT</SelectItem>
+                                                    <SelectItem value="Ziraat Bankası">Ziraat Bankası</SelectItem>
+                                                    <SelectItem value="Vakıfbank">Vakıfbank</SelectItem>
+                                                    <SelectItem value="Halkbank">Halkbank</SelectItem>
+                                                    <SelectItem value="İş Bankası">İş Bankası</SelectItem>
+                                                    <SelectItem value="Garanti BBVA">Garanti BBVA</SelectItem>
+                                                    <SelectItem value="Yapı Kredi">Yapı Kredi</SelectItem>
+                                                    <SelectItem value="Akbank">Akbank</SelectItem>
+                                                    <SelectItem value="QNB Finansbank">QNB Finansbank</SelectItem>
+                                                    <SelectItem value="Denizbank">Denizbank</SelectItem>
+                                                    <SelectItem value="TEB">TEB</SelectItem>
+                                                    <SelectItem value="Diğer">Diğer</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            {(selectValue === 'Diğer') && (
+                                                <Input
+                                                    placeholder="HGS sağlayıcı adını yazınız..."
+                                                    value={formData.hgsProvider.trim()}
+                                                    onChange={(e) => setFormData({ ...formData, hgsProvider: e.target.value || ' ' })}
+                                                    className="mt-2"
+                                                    autoFocus
+                                                />
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Insurance and Kasko fields removed as per request */}
 

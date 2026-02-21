@@ -21,9 +21,9 @@ export function AttendancePageClient({ vehicleAttendanceData }: AttendancePageCl
     const isAdmin = user?.role === 'ADMIN';
 
     // Permission checks
-    const canViewPersonnel = isAdmin || hasPermission('new-tab', 'VIEW') || hasPermission('new-tab', 'EDIT') ||
+    const canViewPersonnel = isAdmin || hasPermission('personnel-attendance', 'VIEW') || hasPermission('personnel-attendance', 'EDIT') ||
         Object.keys((user?.permissions || {}) as Record<string, string[]>).some(p =>
-            p.startsWith('new-tab.') && ((user?.permissions as any)?.[p]?.length > 0) && !((user?.permissions as any)?.[p]?.includes('NONE'))
+            p.startsWith('personnel-attendance.') && ((user?.permissions as any)?.[p]?.length > 0) && !((user?.permissions as any)?.[p]?.includes('NONE'))
         );
 
     const canViewVehicle = isAdmin || hasPermission('vehicle-attendance', 'VIEW') || hasPermission('vehicle-attendance', 'EDIT') ||
