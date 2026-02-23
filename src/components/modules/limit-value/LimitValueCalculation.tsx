@@ -1614,23 +1614,7 @@ export function LimitValueCalculation() {
                     </CardContent>
                 </Card>
 
-                {/* Debug Area */}
-                <div className="lg:col-span-4 mt-8 bg-slate-100 p-4 rounded-lg border border-slate-200">
-                    <details>
-                        <summary className="cursor-pointer font-bold text-slate-700">Hata Ayıklama / Ham Veri (Tıklayınız)</summary>
-                        <div className="mt-4">
-                            <Label>Word Dosyasından Okunan Ham Metin:</Label>
-                            <textarea
-                                className="w-full h-64 p-2 text-xs font-mono border rounded mt-2"
-                                value={rawText}
-                                readOnly
-                            />
-                            <p className="text-xs text-muted-foreground mt-2">
-                                Düzgün görüntülenebilmesi için metnin formatlanması gerekebilir.
-                            </p>
-                        </div>
-                    </details>
-                </div>
+
             </TabsContent>
 
             <TabsContent value="history">
