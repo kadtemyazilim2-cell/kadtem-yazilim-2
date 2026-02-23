@@ -419,36 +419,6 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
 
 
 
-    // [NEW] Stamp Logic - stamp artık companies array'inde yok, ihtiyaç halinde çekiyoruz
-    if ((item as any).includeStamp) {
-        const company = companies.find(c => c.id === item.companyId);
-        if (company) {
-            try {
-                // [PERF] stamp'ı sadece ihtiyaç duyulduğunda çek
-                const { getCompanyFull } = await import('@/actions/company');
-                const fullResult = await getCompanyFull(company.id);
-                const stampData = fullResult.success && fullResult.data ? fullResult.data.stamp : null;
-
-                if (stampData) {
-                    const imgProps = doc.getImageProperties(stampData);
-                    const stampWidth = 40; // Approx 4cm width
-                    const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
-
-                    // Check page overflow
-                    if (yPos + stampHeight > 280) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-
-                    doc.addImage(stampData, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
-                    yPos += stampHeight;
-                }
-            } catch (e) {
-                console.error('Error adding stamp:', e);
-            }
-        }
-    }
-
     // 7. Attachments (Ekler) - No indent, just List
     if ((item.appendices && item.appendices.length > 0) || (item.attachmentUrls && item.attachmentUrls.length > 0)) {
 
@@ -485,6 +455,36 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
                 doc.text(`${startIdx + i + 1}) Ek Dosya (PDF)`, marginLeft, yPos);
                 yPos += 5;
             });
+        }
+    }
+
+    // 8. Stamp Logic (after attachments) - stamp en altta olmalı
+    if ((item as any).includeStamp) {
+        const company = companies.find(c => c.id === item.companyId);
+        if (company) {
+            try {
+                // [PERF] stamp'ı sadece ihtiyaç duyulduğunda çek
+                const { getCompanyFull } = await import('@/actions/company');
+                const fullResult = await getCompanyFull(company.id);
+                const stampData = fullResult.success && fullResult.data ? fullResult.data.stamp : null;
+
+                if (stampData) {
+                    const imgProps = doc.getImageProperties(stampData);
+                    const stampWidth = 40; // Approx 4cm width
+                    const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
+
+                    // Check page overflow
+                    if (yPos + stampHeight > 280) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    doc.addImage(stampData, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
+                    yPos += stampHeight;
+                }
+            } catch (e) {
+                console.error('Error adding stamp:', e);
+            }
         }
     }
 
