@@ -2,62 +2,37 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-    // Find ALL correspondences for IKIKAT company (comp_ikikat)
-    const ikiCorr = await prisma.correspondence.findMany({
-        where: { companyId: 'comp_ikikat' },
-        include: {
-            company: { select: { name: true, shortName: true } },
-            site: { select: { name: true } },
-            createdByUser: { select: { name: true } }
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 5
+    // Check DB connection info
+    console.log('POSTGRES_PRISMA_URL set:', !!process.env.POSTGRES_PRISMA_URL);
+    console.log('POSTGRES_URL_NON_POOLING set:', !!process.env.POSTGRES_URL_NON_POOLING);
+
+    // Count ALL correspondences
+    const total = await prisma.correspondence.count();
+    console.log('Total correspondences in DB:', total);
+
+    // Count by company
+    const byCompany = await prisma.correspondence.groupBy({
+        by: ['companyId'],
+        _count: true
     });
-    console.log('IKI company correspondences count:', ikiCorr.length);
-    for (const c of ikiCorr) {
-        console.log('---');
-        console.log('ID:', c.id);
-        console.log('Date:', c.date?.toISOString());
-        console.log('CreatedAt:', c.createdAt?.toISOString());
-        console.log('Direction:', c.direction);
-        console.log('Company:', c.company?.shortName);
-        console.log('Sayı (refNum):', JSON.stringify(c.referenceNumber));
-        console.log('Konu (subject):', JSON.stringify(c.subject));
-        console.log('Description (first 500):', JSON.stringify(c.description?.substring(0, 500)));
-        console.log('SenderReceiver:', JSON.stringify(c.senderReceiver));
-        console.log('Interest:', JSON.stringify(c.interest));
-        console.log('Appendices:', JSON.stringify(c.appendices));
-        console.log('IncludeStamp:', c.includeStamp);
+    console.log('\nCorrespondences by company:');
+    for (const g of byCompany) {
+        const comp = await prisma.company.findUnique({ where: { id: g.companyId }, select: { name: true, shortName: true } });
+        console.log(`  ${comp?.shortName || 'unknown'} (${g.companyId}): ${g._count}`);
     }
 
-    // Also try searching description for TOKAT
-    const tokatCorr = await prisma.correspondence.findMany({
-        where: {
-            OR: [
-                { subject: { contains: 'TOKAT', mode: 'insensitive' } },
-                { senderReceiver: { contains: 'TOKAT', mode: 'insensitive' } },
-                { description: { contains: 'Sosyal Güvenlik', mode: 'insensitive' } }
-            ]
-        },
-        include: {
-            company: { select: { name: true, shortName: true } },
-        },
+    // Get the absolute latest record (by createdAt)
+    const latest = await prisma.correspondence.findFirst({
         orderBy: { createdAt: 'desc' },
-        take: 5
+        select: { id: true, createdAt: true, referenceNumber: true, subject: true, companyId: true }
     });
-    console.log('\n\nCorrespondences mentioning TOKAT or Sosyal Güvenlik:');
-    for (const c of tokatCorr) {
-        console.log('---');
-        console.log('ID:', c.id);
-        console.log('Date:', c.date?.toISOString());
-        console.log('Company:', c.company?.shortName);
-        console.log('Direction:', c.direction);
-        console.log('Sayı (refNum):', JSON.stringify(c.referenceNumber));
-        console.log('Konu (subject):', JSON.stringify(c.subject));
-        console.log('Description (first 500):', JSON.stringify(c.description?.substring(0, 500)));
-        console.log('SenderReceiver:', JSON.stringify(c.senderReceiver));
-        console.log('Interest:', JSON.stringify(c.interest));
-    }
+    console.log('\nMost recent record:', JSON.stringify(latest));
+
+    // Check if there's any unstable_cache issue - query directly 
+    const ikikatDirect = await prisma.correspondence.findMany({
+        where: { companyId: 'comp_ikikat' }
+    });
+    console.log('\nDirect query for comp_ikikat:', ikikatDirect.length, 'records');
 
     await prisma['$disconnect']();
 }

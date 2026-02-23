@@ -266,7 +266,7 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
                 if (tag.includes('<b>') || tag.includes('<strong>')) { inBold = true; }
                 else if (tag.includes('</b>') || tag.includes('</strong>')) { inBold = false; }
                 else if (tag.includes('<i>') || tag.includes('<em>')) { inItalic = true; }
-                else if (tag.includes('</i>') || tag.includes('<em>')) { inItalic = false; }
+                else if (tag.includes('</i>') || tag.includes('</em>')) { inItalic = false; }
                 else if (tag.includes('<u>')) { inUnderline = true; }
                 else if (tag.includes('</u>')) { inUnderline = false; }
                 // Ignore other tags (spans, etc) but DO NOT print them
@@ -315,6 +315,11 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
                 if (availableWidth > naturalWidth) {
                     extraSpace = availableWidth - naturalWidth;
                     spacePerToken = extraSpace / spaceTokens.length;
+                    // [FIX] Cap extra space per word to prevent over-stretching on short lines
+                    const maxExtraPerSpace = 3; // mm
+                    if (spacePerToken > maxExtraPerSpace) {
+                        spacePerToken = 0; // Don't justify if it would look unnatural
+                    }
                 }
             }
 
@@ -342,41 +347,33 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
                     }
 
                     // Unified Rendering Logic
-                    const skewFactor = 0.3;
 
-                    // 1. Italic (Complex handling with Matrix)
+                    // 1. Italic (using direct PDF stream cm operator for skew transform)
                     if (tok.italic) {
-                        // Compensation: we want visual x = curX. x' = x - skewFactor * y.
-                        const adjustedX = curX + (skewFactor * yPos);
-                        try {
-                            // @ts-ignore
-                            const MatrixConstructor = (doc as any).Matrix || (jsPDF as any).Matrix || (doc.internal as any).Matrix;
-                            if (MatrixConstructor) {
-                                const mtx = new MatrixConstructor(1, 0, -skewFactor, 1, 0, 0);
-                                if (tok.bold) {
-                                    doc.text(tok.text, adjustedX + 0.15, yPos, { transform: mtx } as any);
-                                    doc.text(tok.text, adjustedX, yPos, { transform: mtx } as any);
-                                } else {
-                                    doc.text(tok.text, adjustedX, yPos, { transform: mtx } as any);
-                                }
-                            } else {
-                                // Fallback
-                                if (tok.bold) {
-                                    doc.text(tok.text, curX + 0.15, yPos);
-                                    doc.text(tok.text, curX, yPos);
-                                } else {
-                                    doc.text(tok.text, curX, yPos);
-                                }
-                            }
-                        } catch (e) {
-                            // Fallback
-                            if (tok.bold) {
-                                doc.text(tok.text, curX + 0.15, yPos);
-                                doc.text(tok.text, curX, yPos);
-                            } else {
-                                doc.text(tok.text, curX, yPos);
-                            }
+                        const skewAngle = 12; // degrees - standard italic angle
+                        const skewTan = Math.tan(skewAngle * Math.PI / 180);
+                        // PDF coordinate system: convert mm to pt (1mm = 72/25.4 pt)
+                        const ptFactor = 72 / 25.4;
+                        const xPt = curX * ptFactor;
+                        const yPt = (297 - yPos) * ptFactor; // A4 height 297mm, PDF origin is bottom-left
+
+                        // Save graphics state, apply skew, draw text, restore
+                        // @ts-ignore - jsPDF internal API, type defs incomplete
+                        doc.internal.write('q'); // Save state
+                        // Transformation matrix: [1 0 tan(angle) 1 tx ty]
+                        // We translate to origin, skew, translate back
+                        // @ts-ignore
+                        doc.internal.write(`1 0 ${skewTan.toFixed(4)} 1 ${(-skewTan * yPt).toFixed(2)} 0 cm`);
+
+                        if (tok.bold) {
+                            doc.text(tok.text, curX + 0.1, yPos);
+                            doc.text(tok.text, curX, yPos);
+                        } else {
+                            doc.text(tok.text, curX, yPos);
                         }
+
+                        // @ts-ignore
+                        doc.internal.write('Q'); // Restore state
                     }
                     // 2. Bold (Upright)
                     else if (tok.bold) {
