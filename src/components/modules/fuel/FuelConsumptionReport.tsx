@@ -618,17 +618,68 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         // A. Sort Ascending (Oldest First) for Forward Calculation
         processedData.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        // B. Initialize Balances to 0 (Tracking History purely from transactions)
-        // If we anchored to Current Stock, any drift/missing data would skew the past.
-        // By anchoring to 0 (or relying on BALANCE_START if we had one), we show "Calculated Stock".
+        // B. Back-calculate initial balance from tank currentLevel
+        // initialBalance = currentLevel + Σ(consumed) - Σ(purchased) - Σ(transferIn) + Σ(transferOut)
+        // This reverses all transaction effects to find the starting "Devredilen" amount
         const runningBalances: Record<string, number> = {};
+
+        // Pre-calculate initial balances per site from tank data
+        const siteInitialBalances: Record<string, number> = {};
+        if (fuelTanks && fuelTanks.length > 0) {
+            fuelTanks.forEach((tank: any) => {
+                const sId = tank.siteId || 'unknown';
+                if (!siteInitialBalances[sId]) siteInitialBalances[sId] = 0;
+                // Start with current level
+                siteInitialBalances[sId] += tank.currentLevel;
+            });
+
+            // Reverse all transaction effects to get initial balance
+            // FuelLogs subtract from tank -> add back
+            (fuelLogs || []).forEach((log: any) => {
+                const sId = log.siteId || 'unknown';
+                if (siteInitialBalances[sId] !== undefined) {
+                    siteInitialBalances[sId] += log.liters;
+                }
+            });
+
+            // Purchases add to tank -> subtract back
+            (fuelTransfers || []).forEach((t: any) => {
+                if (t.fromType === 'EXTERNAL' && t.toType === 'TANK') {
+                    const tank = fuelTanks.find((x: any) => x.id === t.toId);
+                    if (tank) {
+                        const sId = tank.siteId || 'unknown';
+                        if (siteInitialBalances[sId] !== undefined) {
+                            siteInitialBalances[sId] -= t.amount;
+                        }
+                    }
+                }
+                // Internal transfers
+                else if (t.fromType === 'TANK' && t.toType === 'TANK') {
+                    const fromTank = fuelTanks.find((x: any) => x.id === t.fromId);
+                    const toTank = fuelTanks.find((x: any) => x.id === t.toId);
+                    if (fromTank) {
+                        const sId = fromTank.siteId || 'unknown';
+                        if (siteInitialBalances[sId] !== undefined) {
+                            siteInitialBalances[sId] += t.amount; // Was subtracted, add back
+                        }
+                    }
+                    if (toTank) {
+                        const sId = toTank.siteId || 'unknown';
+                        if (siteInitialBalances[sId] !== undefined) {
+                            siteInitialBalances[sId] -= t.amount; // Was added, subtract back
+                        }
+                    }
+                }
+            });
+        }
 
         // C. Walk Forward
         processedData.forEach((item: any) => {
             const sId = item.siteId || 'unknown';
 
             if (runningBalances[sId] === undefined) {
-                runningBalances[sId] = 0;
+                // Initialize with back-calculated initial balance (devredilen mazot)
+                runningBalances[sId] = siteInitialBalances[sId] || 0;
             }
 
             let effect = 0;
@@ -709,15 +760,13 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 const sId = siteFilter;
                 // Find the newest transaction OLDER than startObj
                 // Data is sorted Newest First.
-                // So we scan from end? Or find first item < startObj.
                 const olderItem = processedData.find((item: any) => toDate(item.date) < startObj);
                 if (olderItem) {
                     // The stock AFTER that older item is our Opening Balance
                     devirBalance = olderItem.cumulativeTotal;
                 } else {
-                    // No older item found. Start Date is before recorded history.
-                    // Opening Balance is 0.
-                    devirBalance = 0;
+                    // No older item found. Use initial balance from tank data (devredilen mazot)
+                    devirBalance = siteInitialBalances[sId!] || 0;
                 }
             }
 
@@ -738,7 +787,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 vehicle: { plate: '-', brand: 'DEVREDEN STOK', meterType: '' } as any,
                 mileage: 0,
                 diffKm: 0,
-                liters: 0,
+                liters: devirBalance,
                 subType: '',
                 cumulativeTotal: devirBalance,
                 sourceName: 'Önceki Dönem',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppStore } from '@/lib/store/use-store';
 import { useAuth } from '@/lib/store/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +49,9 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     const canExport = hasPermission('site-log', 'EXPORT');
 
     // Form State
-    const [siteId, setSiteId] = useState('');
+    const activeSites = useMemo(() => sites.filter((s: any) => s.status === 'ACTIVE'), [sites]);
+    const defaultSiteId = activeSites.length === 1 ? activeSites[0].id : '';
+    const [siteId, setSiteId] = useState(defaultSiteId);
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [weather, setWeather] = useState('');
 
@@ -177,9 +179,16 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
         setEditingId(null);
         setContent('');
         setWeather('');
-        setSiteId('');
+        setSiteId(activeSites.length === 1 ? activeSites[0].id : '');
         setDate(new Date().toISOString().split('T')[0]);
     };
+
+    // Auto-select site when user has exactly 1 active site
+    useEffect(() => {
+        if (activeSites.length === 1 && !siteId) {
+            setSiteId(activeSites[0].id);
+        }
+    }, [activeSites]);
 
     const handleEdit = (entry: any) => {
         // [NEW] Date Restriction Check
