@@ -1434,11 +1434,29 @@ export function PersonnelList() {
                                             const newHistory = [...(p.employmentHistory || [])];
                                             newHistory.push({ type: 'EXIT', date: exitDateIso });
 
-                                            // [Step 1] Update Personnel Status
+                                            // [Step 1] Update Personnel Status (Store - for immediate UI feedback)
                                             updatePersonnel(p.id, {
                                                 status: 'LEFT',
                                                 leftDate: modalDate,
                                                 employmentHistory: newHistory
+                                            });
+
+                                            // [Step 1b] Persist to Database via Server Action
+                                            import('@/actions/personnel').then(({ updatePersonnel: serverUpdatePersonnel }) => {
+                                                serverUpdatePersonnel(p.id, {
+                                                    status: 'LEFT',
+                                                    leftDate: new Date(modalDate),
+                                                }).then(res => {
+                                                    if (!res.success) {
+                                                        console.error('[PersonnelList] İşten çıkış DB güncellemesi başarısız:', res.error);
+                                                        toast.error('İşten çıkış veritabanına kaydedilemedi!');
+                                                    } else {
+                                                        console.log('[PersonnelList] İşten çıkış DB\'ye kaydedildi:', p.fullName);
+                                                    }
+                                                }).catch(err => {
+                                                    console.error('[PersonnelList] İşten çıkış DB hatası:', err);
+                                                    toast.error('İşten çıkış veritabanına kaydedilemedi!');
+                                                });
                                             });
 
                                             // [Step 2] Clean up future attendance to ensure visual consistency

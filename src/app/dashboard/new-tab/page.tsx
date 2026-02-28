@@ -52,6 +52,7 @@ type IndependentPerson = {
     leaveAllowance?: string;
     hasOvertime?: boolean;
     note?: string;
+    status?: string; // ACTIVE, LEFT etc.
     inputDate?: string; // yyyy-MM-dd
     transferOutDate?: string; // yyyy-MM-dd (Locked after this date)
     transferInDate?: string; // [NEW] yyyy-MM-dd (Date when person arrived at this site via transfer)
@@ -451,6 +452,7 @@ export default function NewPage() {
                             leaveAllowance: p.leaveAllowance || '',
                             hasOvertime: p.hasOvertime || false,
                             note: p.note || '',
+                            status: p.status || 'ACTIVE',
                             inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
                             transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
                             transferInDate,
@@ -585,6 +587,13 @@ export default function NewPage() {
         // 2. Apply Date Filters (Start Date & Exit) on GLOBAL List
         const seenTCs = new Set<string>();
         const processedGlobalList = mergedList.filter(n => {
+
+            // [FIX] İşten ayrılan personeli sonraki aylarda gizle
+            if (n.status === 'LEFT' && n.transferOutDate) {
+                const leftMonth = n.transferOutDate.substring(0, 7); // yyyy-MM
+                const viewMonth = format(startOfCurrentMonth, 'yyyy-MM');
+                if (leftMonth < viewMonth) return false;
+            }
 
             // STRICT DEDUPLICATION FALBACK
             if (n.tc) {
