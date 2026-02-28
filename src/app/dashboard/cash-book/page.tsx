@@ -3,6 +3,7 @@ import { getAllTransactions } from '@/actions/transaction';
 import { serializeData } from '@/lib/serializer';
 
 export const maxDuration = 60; // [CONFIG] Increase duration for Vercel
+export const dynamic = 'force-dynamic'; // [FIX] Prevent Vercel full-route cache
 
 // [FIX] Next.js 15+ Page Props are Promises
 type SearchParams = { [key: string]: string | string[] | undefined }
