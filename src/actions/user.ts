@@ -12,6 +12,7 @@ export async function getUsers() {
                 id: true,
                 name: true,
                 username: true,
+                password: true,
                 role: true,
                 email: true,
                 permissions: true,

@@ -13,8 +13,8 @@ async function getUser(username: string) {
 
         // Timeout after 5 seconds
         const user = await Promise.race([
-            prisma.user.findUnique({
-                where: { username },
+            prisma.user.findFirst({
+                where: { username: { equals: username, mode: 'insensitive' } },
                 include: { assignedSites: { select: { id: true } } }
             }),
             new Promise((_, reject) =>

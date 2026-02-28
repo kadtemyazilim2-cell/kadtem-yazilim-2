@@ -1791,6 +1791,8 @@ export default function AdminPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Ad Soyad</TableHead>
+                                        <TableHead>Kullanıcı Adı</TableHead>
+                                        <TableHead>Şifre</TableHead>
                                         {/* <TableHead>E-posta</TableHead> Removed per user request */}
                                         <TableHead>Yetki Türü</TableHead>
                                         <TableHead>Erişimler</TableHead>
@@ -1807,6 +1809,12 @@ export default function AdminPage() {
                                             <TableCell className="font-medium">
                                                 <div>{u.name}</div>
                                                 <div className="text-xs text-slate-500">{u.email}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{u.username}</code>
+                                            </TableCell>
+                                            <TableCell>
+                                                <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded">{u.password}</code>
                                             </TableCell>
                                             <TableCell>
                                                 {u.role === 'ADMIN' ? (
