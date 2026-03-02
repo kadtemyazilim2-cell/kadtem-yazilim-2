@@ -589,10 +589,15 @@ export default function NewPage() {
         const processedGlobalList = mergedList.filter(n => {
 
             // [FIX] İşten ayrılan personeli sonraki aylarda gizle
-            if (n.status === 'LEFT' && n.transferOutDate) {
-                const leftMonth = n.transferOutDate.substring(0, 7); // yyyy-MM
-                const viewMonth = format(startOfCurrentMonth, 'yyyy-MM');
-                if (leftMonth < viewMonth) return false;
+            if (n.status === 'LEFT') {
+                if (n.transferOutDate) {
+                    const leftMonth = n.transferOutDate.substring(0, 7); // yyyy-MM
+                    const viewMonth = format(startOfCurrentMonth, 'yyyy-MM');
+                    if (leftMonth < viewMonth) return false;
+                } else {
+                    // leftDate yoksa, status LEFT ise sonraki aylarda görünmesin
+                    return false;
+                }
             }
 
             // STRICT DEDUPLICATION FALBACK

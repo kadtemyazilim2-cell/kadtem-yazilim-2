@@ -223,7 +223,8 @@ export function PersonnelList() {
         if (!selectedSiteId) return [];
         return personnel.filter((p: any) => {
             // [NEW] Check if left before this month
-            if (p.status === 'LEFT' && p.leftDate) {
+            if (p.status === 'LEFT') {
+                if (!p.leftDate) return false;
                 const monthStart = format(selectedDate, 'yyyy-MM-01');
                 if (p.leftDate < monthStart) return false;
             }

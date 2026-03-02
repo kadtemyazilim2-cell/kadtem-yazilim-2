@@ -22,12 +22,17 @@ export async function GET(req: NextRequest) {
         const stablePersonnel = await prisma.personnel.findMany({
             where: {
                 AND: [
-                    // İşten ayrılan ve leftDate bu aydan önce olan personeli hariç tut
+                    // İşten ayrılan ve leftDate bu aydan önce olan veya leftDate olmayan personeli hariç tut
                     {
                         NOT: {
                             AND: [
                                 { status: 'LEFT' },
-                                { leftDate: { lt: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1) } }
+                                {
+                                    OR: [
+                                        { leftDate: { lt: new Date(monthDate.getFullYear(), monthDate.getMonth(), 1) } },
+                                        { leftDate: null }
+                                    ]
+                                }
                             ]
                         }
                     },
