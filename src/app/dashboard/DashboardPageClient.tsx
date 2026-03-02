@@ -207,6 +207,7 @@ export function DashboardPageClient() {
 
     // Get Missing Reference Numbers (excluding BANK)
     const missingDocs = correspondences.filter((c: any) =>
+        c.status !== 'DELETED' &&
         c.direction === 'OUTGOING' &&
         c.type !== 'BANK' &&
         (
