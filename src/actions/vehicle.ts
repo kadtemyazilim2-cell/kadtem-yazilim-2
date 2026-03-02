@@ -23,6 +23,7 @@ const getVehiclesFromDb = async () => {
             currentKm: true,
             insuranceExpiry: true,
             kaskoExpiry: true,
+            inspectionExpiry: true,
             vehicleCardExpiry: true,
             assignedSiteId: true,
             rentalCompanyName: true,
