@@ -769,7 +769,12 @@ export default function NewPage() {
         if (!transferData.personId || !transferData.targetSiteId) return;
 
         const originalPerson = names.find(p => p.id === transferData.personId);
-        if (!originalPerson) return;
+        // [FIX] Fallback to global personnel store when person is not in current site's names
+        const globalPerson = !originalPerson ? (personnel as any[]).find((p: any) => p.id === transferData.personId) : null;
+        if (!originalPerson && !globalPerson) return;
+
+        const personId = originalPerson?.id || globalPerson?.id;
+        const personNote = originalPerson?.note || globalPerson?.note || '';
 
         setLoading(true);
         try {
@@ -786,10 +791,10 @@ export default function NewPage() {
             // 1. We should ideally have transferHistory in IndependentPerson to append to it. 
             // For now, let's just do the site change which is the core request.
 
-            const res = await updatePersonnel(originalPerson.id, {
+            const res = await updatePersonnel(personId!, {
                 siteId: transferData.targetSiteId,
                 // Optional: We can add a note about the transfer
-                note: `${originalPerson.note || ''} (Şantiye Değişikliği: ${format(new Date(), 'dd.MM.yyyy')})`
+                note: `${personNote} (Şantiye Değişikliği: ${format(new Date(), 'dd.MM.yyyy')})`
             });
 
             if (res.success) {
