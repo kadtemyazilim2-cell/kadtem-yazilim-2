@@ -791,8 +791,9 @@ export default function NewPage() {
             // 1. We should ideally have transferHistory in IndependentPerson to append to it. 
             // For now, let's just do the site change which is the core request.
 
+            const targetSiteId = transferData.targetSiteId === '__NONE__' ? null : transferData.targetSiteId;
             const res = await updatePersonnel(personId!, {
-                siteId: transferData.targetSiteId,
+                siteId: targetSiteId,
                 // Optional: We can add a note about the transfer
                 note: `${personNote} (Şantiye Değişikliği: ${format(new Date(), 'dd.MM.yyyy')})`
             });
@@ -821,7 +822,8 @@ export default function NewPage() {
         if (!formData.name) { toast.error("Ad Soyad zorunludur."); return; }
         if (!formData.profession) { toast.error("Meslek bilgisi zorunludur."); return; }
         if (!formData.role) { toast.error("Görev bilgisi zorunludur."); return; }
-        if (!formData.siteId) { toast.error("Şantiye seçimi zorunludur."); return; }
+        // siteId is optional - personnel can be "Boşta" (unassigned)
+        const effectiveSiteId = formData.siteId === '__NONE__' ? null : (formData.siteId || null);
         if (formData.leaveAllowance === '' || formData.leaveAllowance === undefined) { toast.error("İzin hakkı girilmelidir."); return; }
 
         // Salary Validation: Allow empty 'salary' IF 'newSalary' is provided during edit
@@ -855,7 +857,7 @@ export default function NewPage() {
             }
 
             const res = await updatePersonnel(editingId, {
-                siteId: formData.siteId,
+                siteId: effectiveSiteId,
                 tcNumber: formData.tc,
                 fullName: formData.name,
                 profession: formData.profession,
@@ -880,7 +882,7 @@ export default function NewPage() {
                     if (p.id === editingId) {
                         return {
                             ...p,
-                            siteId: formData.siteId,
+                            siteId: effectiveSiteId || '',
                             tc: formData.tc,
                             name: formData.name,
                             profession: formData.profession,
@@ -903,7 +905,7 @@ export default function NewPage() {
         } else {
             // Create
             const res = await createPersonnel({
-                siteId: formData.siteId,
+                siteId: effectiveSiteId,
                 tcNumber: formData.tc,
                 fullName: formData.name,
                 profession: formData.profession,
@@ -970,7 +972,7 @@ export default function NewPage() {
 
     const handleEdit = (person: IndependentPerson) => {
         setFormData({
-            siteId: person.siteId,
+            siteId: person.siteId || '__NONE__',
             tc: person.tc,
             name: person.name,
             profession: person.profession || '',
@@ -2784,7 +2786,7 @@ export default function NewPage() {
                                                         <TableCell className="font-mono text-xs">{p.tcNumber || '-'}</TableCell>
                                                         <TableCell className="font-medium">{p.fullName}</TableCell>
                                                         <TableCell>
-                                                            <Badge variant="outline" className="text-xs">{site?.name || '-'}</Badge>
+                                                            <Badge variant={site ? 'outline' : 'secondary'} className={`text-xs ${!site ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : ''}`}>{site?.name || 'Boşta'}</Badge>
                                                         </TableCell>
                                                         <TableCell>{p.profession || '-'}</TableCell>
                                                         <TableCell>{p.role || '-'}</TableCell>
@@ -3035,6 +3037,7 @@ export default function NewPage() {
                                         <SelectValue placeholder="Şantiye Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="__NONE__" className="text-yellow-700 font-medium">Boşta (Şantiyesiz)</SelectItem>
                                         {availableSites
                                             .filter(s => s.id !== names.find(n => n.id === transferData.personId)?.siteId)
                                             .map(s => (
@@ -3136,7 +3139,7 @@ export default function NewPage() {
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label>Şantiye <span className="text-red-500">*</span></Label>
+                                <Label>Şantiye</Label>
                                 {availableSites.length > 1 ? (
                                     <Select
                                         value={formData.siteId}
@@ -3146,6 +3149,7 @@ export default function NewPage() {
                                             <SelectValue placeholder="Şantiye Seçiniz" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="__NONE__" className="text-yellow-700 font-medium">Boşta (Şantiyesiz)</SelectItem>
                                             {availableSites.map(s => (
                                                 <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                             ))}
