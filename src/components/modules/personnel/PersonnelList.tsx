@@ -1442,22 +1442,21 @@ export function PersonnelList() {
                                                 employmentHistory: newHistory
                                             });
 
-                                            // [Step 1b] Persist to Database via Server Action
-                                            import('@/actions/personnel').then(({ updatePersonnel: serverUpdatePersonnel }) => {
-                                                serverUpdatePersonnel(p.id, {
-                                                    status: 'LEFT',
-                                                    leftDate: new Date(modalDate),
-                                                }).then(res => {
-                                                    if (!res.success) {
-                                                        console.error('[PersonnelList] İşten çıkış DB güncellemesi başarısız:', res.error);
-                                                        toast.error('İşten çıkış veritabanına kaydedilemedi!');
-                                                    } else {
-                                                        console.log('[PersonnelList] İşten çıkış DB\'ye kaydedildi:', p.fullName);
-                                                    }
-                                                }).catch(err => {
-                                                    console.error('[PersonnelList] İşten çıkış DB hatası:', err);
+                                            // [Step 1b] Persist to Database via API (daha güvenilir)
+                                            fetch('/api/personnel/mark-left', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ personnelId: p.id, leftDate: modalDate })
+                                            }).then(res => res.json()).then(result => {
+                                                if (!result.success) {
+                                                    console.error('[PersonnelList] İşten çıkış DB güncellemesi başarısız:', result.error);
                                                     toast.error('İşten çıkış veritabanına kaydedilemedi!');
-                                                });
+                                                } else {
+                                                    console.log('[PersonnelList] İşten çıkış DB\'ye kaydedildi:', result.data?.fullName);
+                                                }
+                                            }).catch(err => {
+                                                console.error('[PersonnelList] İşten çıkış API hatası:', err);
+                                                toast.error('İşten çıkış veritabanına kaydedilemedi!');
                                             });
 
                                             // [Step 2] Clean up future attendance to ensure visual consistency

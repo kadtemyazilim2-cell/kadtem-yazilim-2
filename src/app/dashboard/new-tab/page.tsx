@@ -2929,9 +2929,39 @@ export default function NewPage() {
                                         <Button
                                             variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
                                             className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'EXIT' ? 'bg-red-800 text-white' : 'bg-red-600 text-white hover:bg-red-700 hover:text-white border-0'} col-span-2 font-bold transition-colors shadow-sm`}
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 if (window.confirm("Bu personeli işten çıkarmak istediğinize emin misiniz?")) {
+                                                    // 1. Save EXIT attendance record
                                                     saveAttendance('EXIT');
+
+                                                    // 2. Update personnel status to LEFT in database via API
+                                                    const personId = selectedCell?.personId;
+                                                    if (personId) {
+                                                        try {
+                                                            const exitDate = selectedCell?.date ? format(selectedCell.date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+                                                            const res = await fetch('/api/personnel/mark-left', {
+                                                                method: 'POST',
+                                                                headers: { 'Content-Type': 'application/json' },
+                                                                body: JSON.stringify({ personnelId: personId, leftDate: exitDate })
+                                                            });
+                                                            const result = await res.json();
+                                                            if (result.success) {
+                                                                console.log('[İşten Ayrıldı] DB güncellendi:', result.data?.fullName);
+                                                                // Update local state
+                                                                setNames(prev => prev.map(n =>
+                                                                    n.id === personId
+                                                                        ? { ...n, status: 'LEFT', transferOutDate: exitDate }
+                                                                        : n
+                                                                ));
+                                                            } else {
+                                                                console.error('[İşten Ayrıldı] DB başarısız:', result.error);
+                                                                alert('İşten ayrıldı durumu veritabanına kaydedilemedi! Lütfen tekrar deneyin.');
+                                                            }
+                                                        } catch (err) {
+                                                            console.error('[İşten Ayrıldı] API hatası:', err);
+                                                            alert('İşten ayrıldı durumu kaydedilirken hata oluştu!');
+                                                        }
+                                                    }
                                                 }
                                             }}
                                         >
