@@ -1309,6 +1309,9 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                     <TableHead className="w-[100px]">
                                         HGS
                                     </TableHead>
+                                    <TableHead className="w-[80px] text-center">
+                                        Ruhsat
+                                    </TableHead>
                                     <TableHead className="cursor-pointer hover:bg-slate-100 transition-colors" onClick={(e) => handleSort('status', e)}>
                                         Durum {getSortIcon('status')}
                                     </TableHead>
@@ -1354,6 +1357,13 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                 </Badge>
                                             ) : (
                                                 <span className="text-muted-foreground">-</span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                            {vehicle.licenseFile ? (
+                                                <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" />
+                                            ) : (
+                                                <X className="w-4 h-4 text-red-500 mx-auto" />
                                             )}
                                         </TableCell>
                                         <TableCell>
