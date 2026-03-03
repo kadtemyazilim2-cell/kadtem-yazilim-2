@@ -79,10 +79,18 @@ const getVehiclesFromDb = async () => {
 export async function getVehicles() {
     try {
         const vehicles = await getVehiclesFromDb();
+
+        // [NEW] Lightweight query to check which vehicles have a licenseFile uploaded
+        const vehiclesWithLicense = await prisma.$queryRaw<{ id: string }[]>`
+            SELECT id FROM "Vehicle" WHERE "licenseFile" IS NOT NULL AND "licenseFile" != ''
+        `;
+        const licenseFileSet = new Set(vehiclesWithLicense.map(v => v.id));
+
         // Transform the result to include assignedSiteIds as array of strings
         const transformedVehicles = vehicles.map((v: any) => ({
             ...v,
-            assignedSiteIds: v.assignedSites ? v.assignedSites.map((s: any) => s.id) : []
+            assignedSiteIds: v.assignedSites ? v.assignedSites.map((s: any) => s.id) : [],
+            hasLicenseFile: licenseFileSet.has(v.id)
         }));
         return { success: true, data: transformedVehicles };
     } catch (error) {

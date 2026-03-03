@@ -151,6 +151,7 @@ export interface Vehicle {
   lastInspectionDate?: string; // [NEW] Son Muayane Tarihi
 
   licenseFile?: string; // [NEW] Ruhsat (PDF Base64)
+  hasLicenseFile?: boolean; // [NEW] Computed: whether licenseFile is uploaded (for list view)
 
   // Consumption Ratios (Lt/100km or Lt/hour)
   consumptionMin?: number;

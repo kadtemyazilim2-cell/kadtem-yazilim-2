@@ -1360,7 +1360,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                             )}
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            {vehicle.licenseFile ? (
+                                            {vehicle.hasLicenseFile ? (
                                                 <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" />
                                             ) : (
                                                 <X className="w-4 h-4 text-red-500 mx-auto" />
