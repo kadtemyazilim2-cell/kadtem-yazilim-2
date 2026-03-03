@@ -519,6 +519,18 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
 
     // 2. Policy List Filter
     const filteredPolicies = allPolicies.filter(policy => {
+        // [NEW] General search support
+        if (searchTerm) {
+            const lowerSearch = normalizeSearchText(searchTerm);
+            const searchFields = [
+                policy.plate, policy.owner, policy.type,
+                policy.provider, policy.agency,
+                policy.cost ? policy.cost.toString() : '',
+                policy.startDate || '', policy.endDate || '',
+                policy.transactionDate || ''
+            ];
+            if (!searchFields.some((field: string) => normalizeSearchText(field).includes(lowerSearch))) return false;
+        }
         if (filters.policyType.length > 0 && !filters.policyType.includes(policy.type)) return false;
         if (filters.policyProvider.length > 0 && !filters.policyProvider.includes(policy.provider)) return false;
         if (filters.policyAgency.length > 0 && !filters.policyAgency.includes(policy.agency)) return false;
@@ -534,6 +546,19 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         const isRentedOwned = vehicle.ownership === 'OWNED' && (vehicle.rentalCompanyName || (vehicle.monthlyRentalFee || 0) > 0);
 
         if (!isRental && !isRentedOwned) return false;
+
+        // [NEW] General search support
+        if (searchTerm) {
+            const lowerSearch = normalizeSearchText(searchTerm);
+            const searchFields = [
+                vehicle.plate, vehicle.brand, vehicle.model,
+                getVehicleSiteName(vehicle),
+                vehicle.rentalCompanyName || getCompanyName(vehicle),
+                vehicle.monthlyRentalFee ? vehicle.monthlyRentalFee.toString() : '',
+                statusMap[vehicle.status] || vehicle.status
+            ];
+            if (!searchFields.some(field => normalizeSearchText(field).includes(lowerSearch))) return false;
+        }
 
         if (rentalFilters.plate.length > 0 && !rentalFilters.plate.includes(vehicle.plate)) return false;
 
@@ -570,11 +595,26 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         return direction === 'asc' ? comparison : -comparison;
     });
 
-    const sortedInsuranceVehicles = sortedVehicles.filter(v =>
-        v.ownership === 'OWNED' &&
-        v.status === 'ACTIVE' && // [NEW] Only show Active vehicles
-        !v.rentalCompanyName && // Exclude vehicles assigned to Rental Companies
-        companies.some(c => c.id === v.companyId) // [NEW] Exclude vehicles belonging to non-managed companies
+    const sortedInsuranceVehicles = sortedVehicles.filter(v => {
+        if (!(v.ownership === 'OWNED' &&
+            v.status === 'ACTIVE' &&
+            !v.rentalCompanyName &&
+            companies.some(c => c.id === v.companyId))) return false;
+
+        // [NEW] General search support
+        if (searchTerm) {
+            const lowerSearch = normalizeSearchText(searchTerm);
+            const searchFields = [
+                v.plate, v.brand, v.model,
+                typeMap[v.type] || v.type,
+                v.insuranceExpiry || '', v.kaskoExpiry || '',
+                v.inspectionExpiry || '', v.vehicleCardExpiry || '',
+                statusMap[v.status] || v.status
+            ];
+            if (!searchFields.some(field => normalizeSearchText(field).includes(lowerSearch))) return false;
+        }
+        return true;
+    }
     ).sort((a, b) => {
         const { key, direction } = insuranceSortConfig;
         let comparison = 0;
