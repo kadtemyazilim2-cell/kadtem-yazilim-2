@@ -114,8 +114,27 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
             }
         }
 
-        const payload: any = { ...data };
-        if (payload.date) payload.date = new Date(payload.date);
+        // Explicitly pick only valid Prisma fields to prevent unknown field errors
+        const payload: any = {};
+        if (data.companyId !== undefined) payload.companyId = data.companyId;
+        if (data.date !== undefined) payload.date = new Date(data.date);
+        if (data.direction !== undefined) payload.direction = data.direction;
+        if (data.type !== undefined) payload.type = data.type;
+        if (data.subject !== undefined) payload.subject = data.subject;
+        if (data.description !== undefined) payload.description = data.description;
+        if (data.referenceNumber !== undefined) payload.referenceNumber = data.referenceNumber;
+        if (data.senderReceiver !== undefined) payload.senderReceiver = data.senderReceiver;
+        if (data.senderReceiverAlignment !== undefined) payload.senderReceiverAlignment = data.senderReceiverAlignment;
+        if (data.registrationNumber !== undefined) payload.registrationNumber = data.registrationNumber;
+        if (data.includeStamp !== undefined) payload.includeStamp = data.includeStamp;
+        if (data.interest !== undefined) payload.interest = data.interest;
+        if (data.appendices !== undefined) payload.appendices = data.appendices;
+        if (data.attachmentUrls !== undefined) payload.attachmentUrls = data.attachmentUrls;
+
+        // Handle siteId: empty string or 'none' should be null (optional FK)
+        if (data.siteId !== undefined) {
+            payload.siteId = (data.siteId && data.siteId !== 'none') ? data.siteId : null;
+        }
 
         const correspondence = await prisma.correspondence.update({
             where: { id },
@@ -123,9 +142,9 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
         });
         revalidateTag('correspondence');
         return { success: true, data: correspondence };
-    } catch (error) {
+    } catch (error: any) {
         console.error('updateCorrespondence Error:', error);
-        return { success: false, error: 'Yazışma güncellenemedi.' };
+        return { success: false, error: error.message || 'Yazışma güncellenemedi.' };
     }
 }
 

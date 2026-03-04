@@ -450,7 +450,9 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
     }
 
     // 7. Attachments (Ekler) - No indent, just List
-    if ((item.appendices && item.appendices.length > 0) || (item.attachmentUrls && item.attachmentUrls.length > 0)) {
+    // NOTE: attachmentUrls (uploaded PDF files) are intentionally excluded from PDF output.
+    // They are only visible on the website for download.
+    if (item.appendices && item.appendices.length > 0) {
 
         // Helper to check page break
         if (yPos > 250) { doc.addPage(); yPos = 20; }
@@ -461,31 +463,17 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
         doc.setFont(fontName, 'normal');
 
         // Text Appendices
-        if (item.appendices && item.appendices.length > 0) {
-            item.appendices.forEach((app: string, i: number) => {
-                if (!app) return;
-                const label = `${i + 1}) ${app}`;
-                // No extra indent, align with EKLER
-                const lines = doc.splitTextToSize(label, contentWidth);
+        item.appendices.forEach((app: string, i: number) => {
+            if (!app) return;
+            const label = `${i + 1}) ${app}`;
+            // No extra indent, align with EKLER
+            const lines = doc.splitTextToSize(label, contentWidth);
 
-                if (yPos + doc.getTextDimensions(lines).h > 280) { doc.addPage(); yPos = 20; }
+            if (yPos + doc.getTextDimensions(lines).h > 280) { doc.addPage(); yPos = 20; }
 
-                doc.text(lines, marginLeft, yPos);
-                yPos += doc.getTextDimensions(lines).h + 2;
-            });
-        }
-
-        // Start numbering for files based on text appendices count
-        const startIdx = (item.appendices?.filter((a: string) => !!a).length || 0);
-
-        // File Appendices
-        if (item.attachmentUrls && item.attachmentUrls.length > 0) {
-            item.attachmentUrls.forEach((_url: string, i: number) => {
-                if (yPos + 5 > 280) { doc.addPage(); yPos = 20; }
-                doc.text(`${startIdx + i + 1}) Ek Dosya (PDF)`, marginLeft, yPos);
-                yPos += 5;
-            });
-        }
+            doc.text(lines, marginLeft, yPos);
+            yPos += doc.getTextDimensions(lines).h + 2;
+        });
     }
 
     if (isPreview) {

@@ -284,7 +284,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
 
             const payload = {
                 companyId: formData.companyId,
-                siteId: formData.siteId === 'none' ? undefined : formData.siteId,
+                siteId: (formData.siteId && formData.siteId !== 'none') ? formData.siteId : undefined,
                 direction: formData.direction as 'INCOMING' | 'OUTGOING',
                 type: formData.type as 'OFFICIAL' | 'INTERNAL' | 'OTHER' | 'BANK',
                 senderReceiverAlignment: formData.senderReceiverAlignment as 'left' | 'center' | 'right',
