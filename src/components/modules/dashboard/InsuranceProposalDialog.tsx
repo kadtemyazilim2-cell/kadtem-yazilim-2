@@ -59,9 +59,9 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
     const effectiveSmtpConfig = companySmtp || vehicleCompany?.smtpConfig || globalSmtpConfig;
     const canUseSmtp = !!(effectiveSmtpConfig && effectiveSmtpConfig.host);
 
-    // Filter agencies
+    // Filter agencies - exclude PASSIVE and those without email (can't send proposals without email)
     const agencies = institutions
-        .filter((i: any) => (i.category === 'INSURANCE_AGENCY' || i.category === 'INSURANCE_COMPANY') && i.status !== 'PASSIVE')
+        .filter((i: any) => (i.category === 'INSURANCE_AGENCY' || i.category === 'INSURANCE_COMPANY') && i.status !== 'PASSIVE' && i.email)
         .sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
 
     // Load preferences and auto-select on open
