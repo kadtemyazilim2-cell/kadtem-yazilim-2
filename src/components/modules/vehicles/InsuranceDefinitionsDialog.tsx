@@ -138,6 +138,49 @@ export function InsuranceDefinitionsDialog({
     }
 
     const handleDelete = async (id: string) => {
+        // Find the institution being deleted
+        const inst = institutions.find((i: any) => i.id === id);
+        if (!inst) return;
+
+        // Check if this agency/company is in use by any vehicle
+        const { vehicles } = useAppStore.getState();
+        const inUseVehicles: string[] = [];
+
+        for (const v of vehicles) {
+            const vAny = v as any;
+            // Check flat fields
+            if (type === 'INSURANCE_AGENCY') {
+                if (vAny.insuranceAgency === inst.name || vAny.kaskoAgency === inst.name) {
+                    inUseVehicles.push(vAny.plate);
+                    continue;
+                }
+            } else {
+                if (vAny.insuranceCompany === inst.name || vAny.kaskoCompany === inst.name) {
+                    inUseVehicles.push(vAny.plate);
+                    continue;
+                }
+            }
+            // Check insurance history
+            const history = Array.isArray(vAny.insuranceHistory) ? vAny.insuranceHistory : [];
+            for (const h of history) {
+                if (type === 'INSURANCE_AGENCY' && h.agency === inst.name) {
+                    inUseVehicles.push(vAny.plate);
+                    break;
+                }
+                if (type === 'INSURANCE_COMPANY' && h.company === inst.name) {
+                    inUseVehicles.push(vAny.plate);
+                    break;
+                }
+            }
+        }
+
+        if (inUseVehicles.length > 0) {
+            toast.error(
+                `"${inst.name}" şu araçlarda kullanıldığı için silinemez: ${inUseVehicles.slice(0, 5).join(', ')}${inUseVehicles.length > 5 ? ` ve ${inUseVehicles.length - 5} araç daha` : ''}`
+            );
+            return;
+        }
+
         if (confirm("Bu kaydı silmek istediğinizden emin misiniz?")) {
             try {
                 const res = await deleteInstitutionAction(id);

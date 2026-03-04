@@ -61,7 +61,7 @@ export function InsuranceProposalDialog({ open, onOpenChange, item }: InsuranceP
 
     // Filter agencies
     const agencies = institutions
-        .filter((i: any) => i.category === 'INSURANCE_AGENCY' || i.category === 'INSURANCE_COMPANY')
+        .filter((i: any) => (i.category === 'INSURANCE_AGENCY' || i.category === 'INSURANCE_COMPANY') && i.status !== 'PASSIVE')
         .sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
 
     // Load preferences and auto-select on open

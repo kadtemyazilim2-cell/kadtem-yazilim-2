@@ -26,8 +26,8 @@ interface InsurancePolicyDialogProps {
 export function InsurancePolicyDialog({ vehicle, open, onOpenChange, mode = 'ADD', policy, defaultType = '' }: InsurancePolicyDialogProps) {
     const { updateVehicle, institutions } = useAppStore();
 
-    const companies = institutions.filter((i: any) => i.category === 'INSURANCE_COMPANY');
-    const agencies = institutions.filter((i: any) => i.category === 'INSURANCE_AGENCY');
+    const companies = institutions.filter((i: any) => i.category === 'INSURANCE_COMPANY' && i.status !== 'PASSIVE');
+    const agencies = institutions.filter((i: any) => i.category === 'INSURANCE_AGENCY' && i.status !== 'PASSIVE');
 
     const [formData, setFormData] = useState<Partial<InsuranceRecord>>({
         type: '' as any,
