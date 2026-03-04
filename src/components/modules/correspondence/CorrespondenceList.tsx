@@ -749,6 +749,7 @@ export function CorrespondenceList() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Muhatap Adı</TableHead>
+                                <TableHead>Kısa İsim</TableHead>
                                 <TableHead>Kategori</TableHead>
                                 <TableHead className="w-[100px]">İşlemler</TableHead>
                             </TableRow>
@@ -775,6 +776,9 @@ export function CorrespondenceList() {
                                         <TableCell className="max-w-[400px] truncate" title={inst.name}>
                                             {inst.name}
                                             {inst.status === 'PASSIVE' && <Badge variant="secondary" className="ml-2 text-[10px]">PASİF</Badge>}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {inst.shortName || '-'}
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline">{inst.category === 'BANK' ? 'Banka' : 'Kurum/Şahıs'}</Badge>

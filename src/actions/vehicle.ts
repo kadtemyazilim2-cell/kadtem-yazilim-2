@@ -111,6 +111,22 @@ export async function getVehicle(id: string) {
     }
 }
 
+export async function getVehicleLicenseFile(id: string) {
+    try {
+        const vehicle = await prisma.vehicle.findUnique({
+            where: { id },
+            select: { licenseFile: true, plate: true }
+        });
+        if (!vehicle || !vehicle.licenseFile) {
+            return { success: false, error: 'Ruhsat dosyası bulunamadı.' };
+        }
+        return { success: true, data: vehicle.licenseFile, plate: vehicle.plate };
+    } catch (error) {
+        console.error('getVehicleLicenseFile Error:', error);
+        return { success: false, error: 'Ruhsat dosyası getirilemedi.' };
+    }
+}
+
 export async function createVehicle(data: Partial<Vehicle>) {
     try {
         // [FIX] For RENTAL, if companyId is missing, try to derive from assignedSiteId

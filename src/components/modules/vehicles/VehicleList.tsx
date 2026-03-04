@@ -31,7 +31,7 @@ import { fontBase64 } from '@/lib/pdf-font';
 import { normalizeSearchText } from '@/lib/utils';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Vehicle } from '@/lib/types';
-import { deleteVehicle as deleteVehicleAction, updateVehicle as updateVehicleAction } from '@/actions/vehicle'; // [NEW] Import Server Action
+import { deleteVehicle as deleteVehicleAction, updateVehicle as updateVehicleAction, getVehicleLicenseFile } from '@/actions/vehicle'; // [NEW] Import Server Action
 
 const RentalFeeEditableCell = ({ vehicleId, initialValue, onUpdate }: { vehicleId: string, initialValue: number | null, onUpdate: (id: string, data: any, msg: string) => Promise<void> }) => {
     const [isEditing, setIsEditing] = useState(false);
@@ -1401,7 +1401,32 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {vehicle.hasLicenseFile ? (
-                                                <CheckCircle2 className="w-4 h-4 text-green-600 mx-auto" />
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            toast.info('Ruhsat dosyası indiriliyor...');
+                                                            const result = await getVehicleLicenseFile(vehicle.id);
+                                                            if (result.success && result.data) {
+                                                                const link = document.createElement('a');
+                                                                link.href = result.data;
+                                                                link.download = `ruhsat-${result.plate || vehicle.plate}.pdf`;
+                                                                document.body.appendChild(link);
+                                                                link.click();
+                                                                document.body.removeChild(link);
+                                                            } else {
+                                                                toast.error(result.error || 'Ruhsat dosyası bulunamadı.');
+                                                            }
+                                                        } catch (error) {
+                                                            console.error('License download error:', error);
+                                                            toast.error('Dosya indirirken hata oluştu.');
+                                                        }
+                                                    }}
+                                                    className="group cursor-pointer p-1 rounded hover:bg-green-50 transition-colors mx-auto flex items-center justify-center"
+                                                    title="Ruhsatı İndir"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4 text-green-600 group-hover:hidden" />
+                                                    <Download className="w-4 h-4 text-green-600 hidden group-hover:block" />
+                                                </button>
                                             ) : (
                                                 <X className="w-4 h-4 text-red-500 mx-auto" />
                                             )}

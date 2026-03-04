@@ -11,6 +11,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Trash2, Plus } from "lucide-react"
+import { createInstitution, deleteInstitution as deleteInstitutionAction } from "@/actions/institution"
+import { toast } from "sonner"
 
 interface AgencyManagerDialogProps {
     open: boolean
@@ -26,20 +28,43 @@ export function AgencyManagerDialog({
 
     const agencies = institutions.filter((i: any) => i.category === "INSURANCE_AGENCY" && i.status !== 'PASSIVE')
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (!newAgencyName.trim()) return
 
-        addInstitution({
-            id: crypto.randomUUID(),
-            name: newAgencyName.trim(),
-            category: "INSURANCE_AGENCY",
-        })
-        setNewAgencyName("")
+        try {
+            const result = await createInstitution({
+                name: newAgencyName.trim(),
+                category: "INSURANCE_AGENCY",
+                alignment: "center",
+            })
+
+            if (result.success && result.data) {
+                addInstitution(result.data as any)
+                toast.success("Acente eklendi.")
+                setNewAgencyName("")
+            } else {
+                toast.error(result.error || "Acente eklenemedi.")
+            }
+        } catch (error) {
+            console.error(error)
+            toast.error("Bir hata oluştu.")
+        }
     }
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm("Bu acenteyi silmek istediğinizden emin misiniz?")) {
-            deleteInstitution(id)
+            try {
+                const result = await deleteInstitutionAction(id)
+                if (result.success) {
+                    deleteInstitution(id)
+                    toast.success("Acente silindi.")
+                } else {
+                    toast.error(result.error || "Silme işlemi başarısız.")
+                }
+            } catch (error) {
+                console.error(error)
+                toast.error("Bir hata oluştu.")
+            }
         }
     }
 
@@ -102,3 +127,4 @@ export function AgencyManagerDialog({
         </Dialog>
     )
 }
+
