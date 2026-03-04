@@ -148,6 +148,34 @@ export async function updateCorrespondence(id: string, data: Partial<Corresponde
     }
 }
 
+export async function restoreCorrespondence(id: string) {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        // Only ADMIN can restore
+        if (session.user.role !== 'ADMIN') {
+            return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+        }
+
+        const correspondence = await prisma.correspondence.update({
+            where: { id },
+            data: {
+                status: 'ACTIVE',
+                deletionReason: null,
+                deletedByUserId: null,
+                deletionDate: null
+            }
+        });
+
+        revalidateTag('correspondence');
+        return { success: true, data: correspondence };
+    } catch (error: any) {
+        console.error('restoreCorrespondence Error:', error);
+        return { success: false, error: error.message || 'Yazışma geri alınamadı.' };
+    }
+}
+
 export async function deleteCorrespondence(id: string, reason?: string, userId?: string) {
     try {
         const session = await auth();

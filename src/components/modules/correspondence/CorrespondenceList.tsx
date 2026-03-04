@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction } from '@/actions/correspondence';
+import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction, restoreCorrespondence as restoreCorrespondenceAction } from '@/actions/correspondence';
 import { useState, useEffect } from 'react';
 import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet, Lock } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
@@ -428,9 +428,20 @@ export function CorrespondenceList() {
         }
     };
 
-    const handleRestore = (id: string) => {
+    const handleRestore = async (id: string) => {
         if (confirm('Bu kaydı geri almak istediğinize emin misiniz?')) {
-            restoreCorrespondence(id);
+            try {
+                const result = await restoreCorrespondenceAction(id);
+                if (result.success) {
+                    restoreCorrespondence(id);
+                    toast.success('Yazışma başarıyla geri alındı.');
+                } else {
+                    toast.error(result.error || 'Geri alma işlemi başarısız oldu.');
+                }
+            } catch (error) {
+                console.error('Restore error:', error);
+                toast.error('Bir hata oluştu.');
+            }
         }
     };
 
