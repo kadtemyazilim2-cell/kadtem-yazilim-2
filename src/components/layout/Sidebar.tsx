@@ -41,7 +41,7 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
     return (
         <div className={cn("flex flex-col h-full bg-slate-900 text-white w-64", className)}>
             <div className="p-6">
-                <div className="flex flex-col items-center">
+                <Link href="/dashboard" className="flex flex-col items-center cursor-pointer" onClick={onNavItemClick}>
                     <div className="relative w-full h-16 mb-2">
                         <NextImage
                             src="/images/kadtem-logo.png"
@@ -56,7 +56,7 @@ export function Sidebar({ className, onNavItemClick }: { className?: string, onN
                             KAD-TEM A.Ş.
                         </h1>
                     </div>
-                </div>
+                </Link>
             </div>
 
             <nav className="flex-1 overflow-y-auto py-4">
