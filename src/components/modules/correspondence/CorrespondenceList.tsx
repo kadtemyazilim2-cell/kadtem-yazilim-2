@@ -887,7 +887,7 @@ export function CorrespondenceList() {
                                                 <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 text-blue-500 flex-shrink-0 ml-1" />
                                             </div>
                                         ) : (
-                                            item.createdByUserId === user?.id ? (
+                                            (item.createdByUserId === user?.id || user?.role === 'ADMIN') ? (
                                                 <div
                                                     onClick={() => openRegReminder(item.id)}
                                                     className="text-[10px] text-red-600 font-bold cursor-pointer hover:underline flex items-center gap-1"

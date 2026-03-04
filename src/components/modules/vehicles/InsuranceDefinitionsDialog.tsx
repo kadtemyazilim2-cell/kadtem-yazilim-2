@@ -41,7 +41,7 @@ export function InsuranceDefinitionsDialog({
 
     // Filter based on the passed type and sort alphabetically
     const items = institutions
-        .filter((i: any) => i.category === type)
+        .filter((i: any) => i.category === type && i.status !== 'PASSIVE')
         .sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'))
 
     const title = type === 'INSURANCE_COMPANY' ? 'Sigorta Firmaları' : 'Sigorta Acenteleri'
