@@ -26,7 +26,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Sun, CloudRain, CloudSnow, Cloud, MoreHorizontal, FileText, ChevronLeft, ChevronRight,
-    CheckCircle2, XCircle, Clock, Umbrella, Stethoscope, Thermometer, Briefcase, Download, Trash2, Pencil
+    CheckCircle2, XCircle, Clock, Umbrella, Stethoscope, Thermometer, Briefcase, Download, Trash2, Pencil,
+    CloudDrizzle, Flag
 } from 'lucide-react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -60,6 +61,8 @@ function StatusCell({ record }: { record: { status: string, overtime?: number, n
         case 'REPORT': Icon = Stethoscope; color = "text-purple-500"; title = "Raporlu"; break;
         case 'HALF_DAY': Icon = Clock; color = "text-amber-500"; title = "Yarım Gün"; break;
         case 'OUT_DUTY': Icon = Briefcase; color = "text-cyan-600"; title = "Dış Görev"; break;
+        case 'RAINY': Icon = CloudDrizzle; color = "text-sky-500"; title = "Yağmurlu"; break;
+        case 'HOLIDAY': Icon = Flag; color = "text-rose-500"; title = "Resmi Tatil"; break;
         default: return null;
     }
 
@@ -198,7 +201,7 @@ export function PersonnelList() {
     const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
     const [selectedPersonnelId, setSelectedPersonnelId] = useState('');
     const [modalDate, setModalDate] = useState(''); // Specific date clicked in grid
-    const [status, setStatus] = useState<'WORK' | 'LEAVE' | 'SICK' | 'ABSENT' | 'REPORT' | 'HALF_DAY' | 'OUT_DUTY'>('WORK');
+    const [status, setStatus] = useState<'WORK' | 'LEAVE' | 'SICK' | 'ABSENT' | 'REPORT' | 'HALF_DAY' | 'OUT_DUTY' | 'RAINY' | 'HOLIDAY'>('WORK');
     const [weather, setWeather] = useState('SUNNY');
     const [note, setNote] = useState('');
     const [overtime, setOvertime] = useState(0); // [NEW] Overtime state
@@ -703,6 +706,8 @@ export function PersonnelList() {
                             case 'ABSENT': cellValue = '❌'; break;
                             case 'LEAVE': cellValue = '☂️'; leaveTotal += 1; break;
                             case 'REPORT': cellValue = '⚕️'; break;
+                            case 'RAINY': cellValue = '🌧️'; break;
+                            case 'HOLIDAY': cellValue = '🏳️'; break;
                         }
                         if (record.overtime && record.overtime > 0) {
                             overtimeTotal += record.overtime;
@@ -1309,6 +1314,8 @@ export function PersonnelList() {
                         <div className="flex items-center gap-1"><Thermometer className="w-4 h-4 text-orange-500" /> Hasta</div>
                         <div className="flex items-center gap-1"><Stethoscope className="w-4 h-4 text-purple-500" /> Raporlu</div>
                         <div className="flex items-center gap-1"><Briefcase className="w-4 h-4 text-cyan-600" /> Dış Görev</div>
+                        <div className="flex items-center gap-1"><CloudDrizzle className="w-4 h-4 text-sky-500" /> Yağmurlu</div>
+                        <div className="flex items-center gap-1"><Flag className="w-4 h-4 text-rose-500" /> Resmi Tatil</div>
                     </div>
                 </CardContent>
             </Card>
@@ -1412,6 +1419,30 @@ export function PersonnelList() {
                                 >
                                     <Briefcase className={cn("w-6 h-6", status === 'OUT_DUTY' ? "text-cyan-600" : "text-cyan-500")} />
                                     <span className="font-medium">Dış Görev</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "h-16 flex flex-col items-center justify-center gap-1 border-2",
+                                        status === 'RAINY' ? "bg-sky-50 border-sky-500 text-sky-700" : "hover:bg-sky-50 border-transparent hover:border-sky-200"
+                                    )}
+                                    onClick={() => handleSaveAttendance('RAINY')}
+                                    disabled={isReadOnly}
+                                >
+                                    <CloudDrizzle className={cn("w-6 h-6", status === 'RAINY' ? "text-sky-600" : "text-sky-500")} />
+                                    <span className="font-medium">Yağmurlu</span>
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "h-16 flex flex-col items-center justify-center gap-1 border-2",
+                                        status === 'HOLIDAY' ? "bg-rose-50 border-rose-500 text-rose-700" : "hover:bg-rose-50 border-transparent hover:border-rose-200"
+                                    )}
+                                    onClick={() => handleSaveAttendance('HOLIDAY')}
+                                    disabled={isReadOnly}
+                                >
+                                    <Flag className={cn("w-6 h-6", status === 'HOLIDAY' ? "text-rose-600" : "text-rose-500")} />
+                                    <span className="font-medium">Resmi Tatil</span>
                                 </Button>
 
                                 {/* [NEW] İşten Çıkarma Butonu (Grid İçinden) */}

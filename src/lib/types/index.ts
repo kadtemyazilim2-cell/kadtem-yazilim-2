@@ -288,7 +288,7 @@ export interface PersonnelAttendance { // Personel Puantaj
   personnelId: string;
   siteId: string;
   date: string; // YYYY-MM-DD
-  status: 'WORK' | 'LEAVE' | 'SICK' | 'ABSENT' | 'REPORT' | 'HALF_DAY' | 'OUT_DUTY'; // [NEW] Added statuses
+  status: 'WORK' | 'LEAVE' | 'SICK' | 'ABSENT' | 'REPORT' | 'HALF_DAY' | 'OUT_DUTY' | 'RAINY' | 'HOLIDAY'; // [NEW] Added statuses
   hours: number;
   overtime?: number; // [NEW] Mesai saati
   note?: string; // [NEW] Gerekçe
