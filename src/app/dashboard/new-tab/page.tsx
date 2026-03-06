@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, eachDayOfInterval, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil, Users, ReceiptTurkishLira, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Plus, CheckCircle2, Clock, XCircle, Umbrella, FileText, Car, AlertCircle, Download, FileSpreadsheet, ArrowRightLeft, Plane, Lock, Settings, LogOut, LogIn, ArrowUp, ArrowDown, Filter, Search, X, Pencil, Users, ReceiptTurkishLira, ChevronLeft, ChevronRight, CloudDrizzle, Flag } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -1213,6 +1213,8 @@ export default function NewPage() {
             case 'LEAVE': return <Umbrella className="w-5 h-5 text-blue-500" />;
             case 'REPORT': return <FileText className="w-5 h-5 text-purple-500" />;
             case 'OUT': return <Car className="w-5 h-5 text-cyan-500" />;
+            case 'RAINY': return <CloudDrizzle className="w-5 h-5 text-sky-500" />;
+            case 'HOLIDAY': return <Flag className="w-5 h-5 text-rose-500" />;
             case 'TRANSFER': case 'TRANSFER_ENTRY': return <Plane className="w-5 h-5 text-slate-400" />;
             case 'EXIT': return <LogOut className="w-5 h-5 text-red-500" />;
             default: return null;
@@ -2356,6 +2358,8 @@ export default function NewPage() {
                                                         if (record?.status === 'LEAVE') cellContent = <div className="w-full h-full flex items-center justify-center bg-blue-50 text-blue-500"><Umbrella className="w-4 h-4" /></div>;
                                                         if (record?.status === 'REPORT') cellContent = <div className="w-full h-full flex items-center justify-center bg-purple-50 text-purple-500"><FileText className="w-4 h-4" /></div>;
                                                         if (record?.status === 'OUT') cellContent = <div className="w-full h-full flex items-center justify-center bg-cyan-50 text-cyan-500"><Car className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'RAINY') cellContent = <div className="w-full h-full flex items-center justify-center bg-sky-50 text-sky-500"><CloudDrizzle className="w-4 h-4" /></div>;
+                                                        if (record?.status === 'HOLIDAY') cellContent = <div className="w-full h-full flex items-center justify-center bg-rose-50 text-rose-500"><Flag className="w-4 h-4" /></div>;
                                                         if (record?.status === 'TRANSFER') cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
                                                         if (record?.status === 'EXIT') cellContent = <div className="w-full h-full flex items-center justify-center bg-red-50 text-red-500"><LogOut className="w-4 h-4" /></div>;
                                                     }
@@ -2932,6 +2936,22 @@ export default function NewPage() {
                                         >
                                             <Car className="w-5 h-5" />
                                             <span className="text-xs font-medium">Dış Görev</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'RAINY' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'RAINY' ? 'bg-sky-500 hover:bg-sky-600' : 'hover:bg-sky-50 text-sky-700 border-sky-200'}`}
+                                            onClick={() => saveAttendance('RAINY')}
+                                        >
+                                            <CloudDrizzle className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Yağmurlu</span>
+                                        </Button>
+                                        <Button
+                                            variant={attendanceForm.status === 'HOLIDAY' ? 'default' : 'outline'}
+                                            className={`h-14 flex flex-col items-center justify-center gap-1 ${attendanceForm.status === 'HOLIDAY' ? 'bg-rose-500 hover:bg-rose-600' : 'hover:bg-rose-50 text-rose-700 border-rose-200'}`}
+                                            onClick={() => saveAttendance('HOLIDAY')}
+                                        >
+                                            <Flag className="w-5 h-5" />
+                                            <span className="text-xs font-medium">Resmi Tatil</span>
                                         </Button>
                                         <Button
                                             variant={attendanceForm.status === 'EXIT' ? 'default' : 'outline'}
