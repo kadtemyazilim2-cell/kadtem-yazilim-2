@@ -249,7 +249,11 @@ const getCorrespondenceListFromDb = unstable_cache(
 
             if (user) {
                 const assignedSiteIds = user.assignedSites.map((s: { id: string }) => s.id);
-                whereClause.siteId = { in: assignedSiteIds };
+                // Include records for assigned sites OR records with no site (e.g. bank correspondences)
+                whereClause.OR = [
+                    { siteId: { in: assignedSiteIds } },
+                    { siteId: null }
+                ];
             } else {
                 return [];
             }
