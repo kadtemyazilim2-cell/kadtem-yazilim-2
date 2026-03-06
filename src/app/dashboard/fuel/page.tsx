@@ -3,8 +3,12 @@ import { FuelPageClient } from './FuelPageClient';
 import { serializeData } from '@/lib/serializer';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
+import { unstable_noStore } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
 
 export default async function FuelPage() {
+    unstable_noStore();
     const session = await auth();
     if (!session || !session.user) {
         redirect('/login');
