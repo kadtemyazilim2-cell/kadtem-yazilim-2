@@ -1980,6 +1980,30 @@ export default function NewPage() {
                 doc.line(cx - 0.8, cy, cx - 0.3, cy - 0.5);
                 doc.line(cx - 0.8, cy, cx - 0.3, cy + 0.5);
             }
+            else if (type === 'RAINY') {
+                doc.setFillColor(14, 165, 233); // sky-500
+                doc.circle(cx, cy, 1.5, 'F');
+                doc.setDrawColor(255, 255, 255);
+                doc.setLineWidth(0.3);
+                // Cloud shape
+                doc.circle(cx - 0.3, cy - 0.3, 0.5, 'S');
+                doc.circle(cx + 0.3, cy - 0.3, 0.4, 'S');
+                // Rain drops
+                doc.line(cx - 0.5, cy + 0.3, cx - 0.6, cy + 0.9);
+                doc.line(cx, cy + 0.3, cx - 0.1, cy + 0.9);
+                doc.line(cx + 0.5, cy + 0.3, cx + 0.4, cy + 0.9);
+            }
+            else if (type === 'HOLIDAY') {
+                doc.setFillColor(245, 158, 11); // amber-500
+                doc.circle(cx, cy, 1.5, 'F');
+                doc.setDrawColor(255, 255, 255);
+                doc.setLineWidth(0.3);
+                // Flag pole
+                doc.line(cx - 0.5, cy - 1, cx - 0.5, cy + 1);
+                // Flag
+                doc.line(cx - 0.5, cy - 1, cx + 0.8, cy - 0.5);
+                doc.line(cx + 0.8, cy - 0.5, cx - 0.5, cy);
+            }
         };
 
         autoTable(doc, {
@@ -2036,6 +2060,8 @@ export default function NewPage() {
             { label: 'Raporlu', type: 'REPORT' },
             { label: 'Gelmedi', type: 'ABSENT' },
             { label: 'Dış Görev', type: 'OUT' },
+            { label: 'Yağmurlu', type: 'RAINY' },
+            { label: 'Resmi Tatil', type: 'HOLIDAY' },
             { label: 'Transfer', type: 'TRANSFER' },
             { label: 'İşten Çıkış', type: 'EXIT' },
             { label: 'İşe Giriş', type: 'ENTRY' }
