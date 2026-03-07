@@ -448,7 +448,9 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
     };
 
     const exportExcel = () => {
-        const data = siteLogEntries.map((e: any) => ({
+        // Use filtered data (respects site filter, date range, and search)
+        const filteredEntries = filteredGroups.flatMap((g: any) => g.items);
+        const data = filteredEntries.map((e: any) => ({
             'Tarih': format(new Date(e.date), 'dd.MM.yyyy', { locale: tr }),
             'Şantiye': getSiteName(e.siteId),
             'Hava': e.weather,
@@ -468,8 +470,11 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
         doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
         doc.setFont('Roboto');
 
+        // Use filtered data (respects site filter, date range, and search)
+        const filteredEntries = filteredGroups.flatMap((g: any) => g.items);
+
         const tableColumn = ["Tarih", "Şantiye", "Hava", "İçerik"];
-        const tableRows = siteLogEntries.map((e: any) => [
+        const tableRows = filteredEntries.map((e: any) => [
             format(new Date(e.date), 'dd.MM.yyyy', { locale: tr }),
             getSiteName(e.siteId),
             e.weather,
