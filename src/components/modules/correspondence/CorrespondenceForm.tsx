@@ -586,20 +586,18 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 />
                             </div>
 
-                            {initialType !== 'BANK' && (
-                                <div className="space-y-2">
-                                    <Label>
-                                        Konu
-                                        {formData.direction === 'OUTGOING' && <span className="text-red-500 ml-1">*</span>}
-                                    </Label>
-                                    <Input
-                                        placeholder="Yazışma konusu"
-                                        required // Already required
-                                        value={formData.subject}
-                                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                    />
-                                </div>
-                            )}
+                            <div className="space-y-2">
+                                <Label>
+                                    Konu
+                                    {formData.direction === 'OUTGOING' && <span className="text-red-500 ml-1">*</span>}
+                                </Label>
+                                <Input
+                                    placeholder="Yazışma konusu"
+                                    required
+                                    value={formData.subject}
+                                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                />
+                            </div>
 
                             <div className="space-y-2 relative min-w-0">
                                 <div className="flex items-center justify-between">

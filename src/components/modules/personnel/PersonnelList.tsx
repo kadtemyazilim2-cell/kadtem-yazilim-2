@@ -1045,6 +1045,32 @@ export function PersonnelList() {
                             // Bell
                             doc.circle(cx, cy + r * 0.4, r * 0.15, 'S');
                             break;
+
+                        case 'RAINY': // Rain Cloud (Sky Blue)
+                            doc.setFillColor(14, 165, 233); // sky-500
+                            doc.circle(cx, cy, r, 'F');
+                            doc.setDrawColor(255);
+                            doc.setLineWidth(0.5);
+                            // Cloud shape
+                            doc.circle(cx - r * 0.2, cy - r * 0.15, r * 0.25, 'S');
+                            doc.circle(cx + r * 0.15, cy - r * 0.15, r * 0.2, 'S');
+                            // Rain drops
+                            doc.line(cx - r * 0.25, cy + r * 0.1, cx - r * 0.3, cy + r * 0.4);
+                            doc.line(cx, cy + r * 0.1, cx - r * 0.05, cy + r * 0.4);
+                            doc.line(cx + r * 0.25, cy + r * 0.1, cx + r * 0.2, cy + r * 0.4);
+                            break;
+
+                        case 'HOLIDAY': // Flag (Amber)
+                            doc.setFillColor(245, 158, 11); // amber-500
+                            doc.circle(cx, cy, r, 'F');
+                            doc.setDrawColor(255);
+                            doc.setLineWidth(0.5);
+                            // Flag pole
+                            doc.line(cx - r * 0.3, cy - r * 0.5, cx - r * 0.3, cy + r * 0.5);
+                            // Flag (triangle/rectangle)
+                            doc.line(cx - r * 0.3, cy - r * 0.5, cx + r * 0.4, cy - r * 0.25);
+                            doc.line(cx + r * 0.4, cy - r * 0.25, cx - r * 0.3, cy);
+                            break;
                     }
                 }
             }
