@@ -688,7 +688,7 @@ export function VehicleAttendanceList() {
                                         <SelectValue placeholder="Şantiye Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.filter((s: any) => s.status === 'ACTIVE' && vehicles.some((v: any) => v.status !== 'PASSIVE' && ((v.assignedSiteIds && v.assignedSiteIds.includes(s.id)) || v.assignedSiteId === s.id))).map((s: any) => (
+                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
