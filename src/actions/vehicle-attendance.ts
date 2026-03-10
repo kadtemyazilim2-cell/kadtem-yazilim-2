@@ -103,7 +103,7 @@ export async function deleteVehicleAttendance(vehicleId: string, date: Date | st
             return { success: false, error: 'Silinecek kayıt bulunamadı.' };
         }
 
-        revalidatePath('/dashboard/vehicle-attendance');
+        revalidatePath('/dashboard/vehicle-attendance', 'page');
         revalidateTag('vehicle-attendance');
         return { success: true };
     } catch (error: any) {
@@ -170,5 +170,45 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
     } catch (error: any) {
         console.error('getVehicleAttendanceList Error:', error);
         return { success: false, error: 'Araç puantaj listesi alınamadı.' };
+    }
+}
+
+// [NEW] Get distinct site IDs that have vehicle activity (current assignments, attendance, or assignment history)
+export async function getSitesWithVehicleActivity() {
+    try {
+        // 1. Sites with attendance records
+        const attendanceSites = await prisma.vehicleAttendance.findMany({
+            select: { siteId: true },
+            distinct: ['siteId']
+        });
+
+        // 2. Sites with assignment history
+        const historySites = await prisma.vehicleAssignmentHistory.findMany({
+            select: { siteId: true },
+            distinct: ['siteId']
+        });
+
+        // 3. Sites with currently assigned vehicles
+        const assignedVehicles = await prisma.vehicle.findMany({
+            where: { status: { not: 'PASSIVE' } },
+            select: {
+                assignedSiteId: true,
+                assignedSites: { select: { id: true } }
+            }
+        });
+
+        const siteIdSet = new Set<string>();
+
+        attendanceSites.forEach(r => { if (r.siteId) siteIdSet.add(r.siteId); });
+        historySites.forEach(r => { if (r.siteId) siteIdSet.add(r.siteId); });
+        assignedVehicles.forEach(v => {
+            if (v.assignedSiteId) siteIdSet.add(v.assignedSiteId);
+            v.assignedSites?.forEach(s => siteIdSet.add(s.id));
+        });
+
+        return { success: true, data: Array.from(siteIdSet) };
+    } catch (error: any) {
+        console.error('getSitesWithVehicleActivity Error:', error);
+        return { success: false, error: 'Şantiye listesi alınamadı.' };
     }
 }

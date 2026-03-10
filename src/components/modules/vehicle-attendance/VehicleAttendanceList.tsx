@@ -24,7 +24,7 @@ import { addTurkishFont } from '@/lib/pdf-font';
 import { useUserSites } from '@/hooks/use-user-access';
 import { useAuth } from '@/lib/store/use-auth';
 import { useEffect } from 'react';
-import { deleteVehicleAttendance, getVehicleAttendanceList } from '@/actions/vehicle-attendance';
+import { deleteVehicleAttendance, getVehicleAttendanceList, getSitesWithVehicleActivity } from '@/actions/vehicle-attendance';
 import { getVehicleAssignmentHistory } from '@/actions/vehicle';
 import { VehicleForm } from '@/components/modules/vehicles/VehicleForm';
 
@@ -36,6 +36,17 @@ export function VehicleAttendanceList() {
     const { hasPermission, user } = useAuth(); // [NEW]
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedSiteId, setSelectedSiteId] = useState('');
+    const [sitesWithActivity, setSitesWithActivity] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchSitesWithActivity = async () => {
+            const res = await getSitesWithVehicleActivity();
+            if (res.success && Array.isArray(res.data)) {
+                setSitesWithActivity(res.data);
+            }
+        };
+        fetchSitesWithActivity();
+    }, []);
 
     // Auto-select if only one site is available
     useEffect(() => {
@@ -688,7 +699,7 @@ export function VehicleAttendanceList() {
                                         <SelectValue placeholder="Şantiye Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                        {sites.filter((s: any) => s.status === 'ACTIVE' && sitesWithActivity.includes(s.id)).map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>
