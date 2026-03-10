@@ -329,6 +329,47 @@ export function VehicleAttendanceList() {
         }
     };
 
+    // [NEW] Helper to check if a vehicle was assigned to the selected site on a specific date
+    const isAssignedOnDate = (vehicleId: string, date: Date) => {
+        // If there's no history loaded, allow by default (fail-safe)
+        if (!assignmentHistory || assignmentHistory.length === 0) return true;
+
+        const targetTime = new Date(date);
+        targetTime.setHours(0, 0, 0, 0);
+
+        // Find histories for this specific vehicle
+        const histories = assignmentHistory.filter(h => h.vehicleId === vehicleId);
+
+        // If no history found for this vehicle AT THIS SITE, it means it was never officially assigned,
+        // but maybe legacy assignedSiteId was used without history.
+        const vehicle = vehicles.find(v => v.id === vehicleId) as any;
+        const currentAssignment = (vehicle?.assignedSiteIds && vehicle.assignedSiteIds.includes(selectedSiteId)) ||
+            vehicle?.assignedSiteId === selectedSiteId;
+
+        if (histories.length === 0) {
+            return currentAssignment;
+        }
+
+        // Check against history intervals
+        return histories.some(h => {
+            const startStr = h.startDate ? new Date(h.startDate).toISOString().split('T')[0] : null;
+            const targetStr = targetTime.toISOString().split('T')[0];
+
+            if (!startStr) return true; // Invalid history, allow
+
+            // Valid start date
+            if (targetStr < startStr) return false;
+
+            // Check end date
+            if (h.endDate) {
+                const endStr = new Date(h.endDate).toISOString().split('T')[0];
+                if (targetStr > endStr) return false;
+            }
+
+            return true;
+        });
+    };
+
     // Filter vehicles by status (Active only) AND Assigned Site
     const activeVehicles = vehicles.filter((v: any) => {
         if (v.status === 'PASSIVE') return false;
@@ -348,8 +389,22 @@ export function VehicleAttendanceList() {
             } catch (e) { return false; }
         });
 
-        // Show if EITHER assigned currently OR has history
-        return isAssigned || hasAttendanceInMonth;
+        // 3. [NEW] Check if it has Assignment History overlapping this month
+        const hasAssignmentHistoryInMonth = assignmentHistory.some(h => {
+            if (h.vehicleId !== v.id) return false;
+
+            const startMonth = startOfMonth(selectedDate);
+            const endMonth = endOfMonth(selectedDate);
+
+            const hStart = h.startDate ? new Date(h.startDate) : startMonth;
+            const hEnd = h.endDate ? new Date(h.endDate) : endMonth;
+
+            // Check overlap: hStart <= endMonth AND hEnd >= startMonth
+            return hStart <= endMonth && hEnd >= startMonth;
+        });
+
+        // Show if EITHER assigned currently OR has attendance history OR has assignment history
+        return isAssigned || hasAttendanceInMonth || hasAssignmentHistoryInMonth;
     });
 
     // Export Logic
@@ -775,17 +830,28 @@ export function VehicleAttendanceList() {
                                                     // All cells are valid for vehicles in activeVehicles
                                                     // Determine if cell is locked (same logic as personnel attendance)
                                                     let isLocked = false;
-                                                    if (user?.role !== 'ADMIN') {
+                                                    let lockReason = '';
+
+                                                    if (!isAssignedOnDate(v.id, day)) {
+                                                        isLocked = true;
+                                                        lockReason = 'Araç bu ayda bu tarihte şantiyeye atanmamıştı.';
+                                                    } else if (user?.role !== 'ADMIN') {
                                                         const today = new Date();
                                                         today.setHours(0, 0, 0, 0);
                                                         const targetDate = new Date(day);
                                                         targetDate.setHours(0, 0, 0, 0);
                                                         // Future block
-                                                        if (targetDate > today) isLocked = true;
+                                                        if (targetDate > today) {
+                                                            isLocked = true;
+                                                            lockReason = 'İleri tarihli işlem yapılamaz.';
+                                                        }
                                                         // Past lookback block
-                                                        if (user?.editLookbackDays !== undefined) {
+                                                        if (user?.editLookbackDays !== undefined && !isLocked) {
                                                             const diff = differenceInDays(today, targetDate);
-                                                            if (diff > user.editLookbackDays) isLocked = true;
+                                                            if (diff > user.editLookbackDays) {
+                                                                isLocked = true;
+                                                                lockReason = `Geriye dönük izin süresini aştı (${user.editLookbackDays} gün).`;
+                                                            }
                                                         }
                                                     }
 
@@ -795,11 +861,15 @@ export function VehicleAttendanceList() {
                                                             className={cn(
                                                                 "p-0 border-l h-10 transition-colors relative",
                                                                 isLocked
-                                                                    ? "bg-gray-100 cursor-default"
-                                                                    : "cursor-pointer hover:bg-slate-100"
+                                                                    ? "bg-gray-100 cursor-not-allowed"
+                                                                    : "cursor-pointer hover:bg-slate-100",
+                                                                !isAssignedOnDate(v.id, day) ? "opacity-30" : "" // Visual cue that they weren't assigned
                                                             )}
                                                             onClick={() => {
-                                                                if (isLocked) return;
+                                                                if (isLocked) {
+                                                                    if (lockReason) alert(lockReason);
+                                                                    return;
+                                                                }
                                                                 handleCellClick(v.id, day);
                                                             }}
                                                             onMouseEnter={(e) => {
