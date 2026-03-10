@@ -593,7 +593,7 @@ export function VehicleAttendanceList() {
         if (activeVehicles.length > 0) {
             console.log('Active Vehicles in Grid:', activeVehicles.map((v: any) => v.plate).join(', '));
             if (vehicleAttendance.length > 0) {
-                const firstRecord = vehicleAttendance[0];
+                const firstRecord = vehicleAttendance[0] as any;
                 console.log('First Attendance Record Vehicle:', firstRecord.vehicle?.plate || firstRecord.vehicleId);
                 const foundInactive = activeVehicles.find((v: any) => v.id === firstRecord.vehicleId);
                 console.log('Is First Record Vehicle in Active List?', !!foundInactive);
@@ -765,6 +765,7 @@ export function VehicleAttendanceList() {
                                                     const dailyFuel = showFuel ? fuelLogs
                                                         .filter((l: any) => {
                                                             if (l.vehicleId !== v.id) return false;
+                                                            if (l.siteId !== selectedSiteId) return false;
                                                             try {
                                                                 return format(new Date(l.date), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
                                                             } catch (e) { return false; }
