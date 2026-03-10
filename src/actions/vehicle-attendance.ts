@@ -174,21 +174,39 @@ export async function getVehicleAttendanceList(siteId?: string, startDate?: Date
 }
 
 // [NEW] Get distinct site IDs that have vehicle activity (current assignments, attendance, or assignment history)
-export async function getSitesWithVehicleActivity() {
+export async function getSitesWithVehicleActivity(startDate?: Date, endDate?: Date) {
     try {
+        const attendanceWhere: any = {};
+        const historyWhere: any = {};
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            start.setUTCHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setUTCHours(23, 59, 59, 999);
+
+            attendanceWhere.date = { gte: start, lte: end };
+            historyWhere.OR = [
+                { startDate: { lte: end }, endDate: { gte: start } },
+                { startDate: { lte: end }, endDate: null }
+            ];
+        }
+
         // 1. Sites with attendance records
         const attendanceSites = await prisma.vehicleAttendance.findMany({
+            where: attendanceWhere,
             select: { siteId: true },
             distinct: ['siteId']
         });
 
         // 2. Sites with assignment history
         const historySites = await prisma.vehicleAssignmentHistory.findMany({
+            where: historyWhere,
             select: { siteId: true },
             distinct: ['siteId']
         });
 
-        // 3. Sites with currently assigned vehicles
+        // 3. Sites with currently assigned vehicles (Always show currently assigned)
         const assignedVehicles = await prisma.vehicle.findMany({
             where: { status: { not: 'PASSIVE' } },
             select: {

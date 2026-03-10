@@ -40,13 +40,15 @@ export function VehicleAttendanceList() {
 
     useEffect(() => {
         const fetchSitesWithActivity = async () => {
-            const res = await getSitesWithVehicleActivity();
+            const start = startOfMonth(selectedDate);
+            const end = endOfMonth(selectedDate);
+            const res = await getSitesWithVehicleActivity(start, end);
             if (res.success && Array.isArray(res.data)) {
                 setSitesWithActivity(res.data);
             }
         };
         fetchSitesWithActivity();
-    }, []);
+    }, [selectedDate]);
 
     // Auto-select if only one site is available
     useEffect(() => {
