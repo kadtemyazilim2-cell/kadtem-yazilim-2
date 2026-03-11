@@ -845,10 +845,12 @@ export function VehicleAttendanceList() {
                                                     let isLocked = false;
                                                     let lockReason = '';
 
-                                                    if (!isAssignedOnDate(v.id, day)) {
+                                                    const isAdmin = user?.role === 'ADMIN';
+
+                                                    if (!isAssignedOnDate(v.id, day) && !isAdmin) {
                                                         isLocked = true;
                                                         lockReason = 'Araç bu ayda bu tarihte şantiyeye atanmamıştı.';
-                                                    } else if (user?.role !== 'ADMIN') {
+                                                    } else if (!isAdmin) {
                                                         const today = new Date();
                                                         today.setHours(0, 0, 0, 0);
                                                         const targetDate = new Date(day);
