@@ -832,7 +832,7 @@ export function VehicleAttendanceList() {
 
                                                     const isAdmin = user?.role === 'ADMIN';
 
-                                                    if (!isAssignedOnDate(v.id, day) && !isAdmin) {
+                                                    if (!isAssignedOnDate(v.id, day) && !displayRecord && !isAdmin) {
                                                         isLocked = true;
                                                         lockReason = 'Araç bu ayda bu tarihte şantiyeye atanmamıştı.';
                                                     } else if (!isAdmin) {
@@ -863,7 +863,7 @@ export function VehicleAttendanceList() {
                                                                 isLocked
                                                                     ? "bg-gray-100 cursor-not-allowed"
                                                                     : "cursor-pointer hover:bg-slate-100",
-                                                                (!isAssignedOnDate(v.id, day) && !isAdmin) ? "opacity-30" : "" // Visual cue that they weren't assigned
+                                                                (!isAssignedOnDate(v.id, day) && !displayRecord && !isAdmin) ? "opacity-30" : "" // Visual cue that they weren't assigned
                                                             )}
                                                             onClick={() => {
                                                                 if (isLocked) {
