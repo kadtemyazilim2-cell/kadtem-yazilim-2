@@ -347,35 +347,27 @@ export function VehicleAttendanceList() {
         // If there's no history loaded, allow by default (fail-safe)
         if (!assignmentHistory || assignmentHistory.length === 0) return true;
 
-        const targetTime = new Date(date);
-        targetTime.setHours(0, 0, 0, 0);
+        const targetStr = format(date, 'yyyy-MM-dd');
 
         // Find histories for this specific vehicle
         const histories = assignmentHistory.filter(h => h.vehicleId === vehicleId);
 
-        // If no history found for this vehicle AT THIS SITE, it means it was never officially assigned,
-        // but maybe legacy assignedSiteId was used without history.
+        // Current assignment check (fallback)
         const vehicle = vehicles.find(v => v.id === vehicleId) as any;
         const currentAssignment = (vehicle?.assignedSiteIds && vehicle.assignedSiteIds.includes(selectedSiteId)) ||
             vehicle?.assignedSiteId === selectedSiteId;
 
-        if (histories.length === 0) {
-            return currentAssignment;
-        }
-
-        // Check against history intervals
+        // [FIX] Use local date formatting for robust comparison (avoid UTC shift issues)
         const assignedInHistory = histories.some(h => {
-            const startStr = h.startDate ? new Date(h.startDate).toISOString().split('T')[0] : null;
-            const targetStr = targetTime.toISOString().split('T')[0];
-
-            if (!startStr) return true; // Invalid history, allow
+            if (!h.startDate) return true;
+            const startStr = format(new Date(h.startDate), 'yyyy-MM-dd');
 
             // Valid start date
             if (targetStr < startStr) return false;
 
             // Check end date
             if (h.endDate) {
-                const endStr = new Date(h.endDate).toISOString().split('T')[0];
+                const endStr = format(new Date(h.endDate), 'yyyy-MM-dd');
                 if (targetStr > endStr) return false;
             }
 
@@ -383,8 +375,8 @@ export function VehicleAttendanceList() {
         });
 
         // If it's today or future, and we are currently assigned, override history
-        const isTodayOrFuture = targetTime >= new Date(new Date().setHours(0, 0, 0, 0));
-        if (isTodayOrFuture && currentAssignment) return true;
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        if (targetStr >= todayStr && currentAssignment) return true;
 
         return assignedInHistory;
     };
