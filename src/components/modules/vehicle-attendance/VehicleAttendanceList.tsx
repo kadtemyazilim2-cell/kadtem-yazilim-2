@@ -364,7 +364,7 @@ export function VehicleAttendanceList() {
         }
 
         // Check against history intervals
-        return histories.some(h => {
+        const assignedInHistory = histories.some(h => {
             const startStr = h.startDate ? new Date(h.startDate).toISOString().split('T')[0] : null;
             const targetStr = targetTime.toISOString().split('T')[0];
 
@@ -381,6 +381,12 @@ export function VehicleAttendanceList() {
 
             return true;
         });
+
+        // If it's today or future, and we are currently assigned, override history
+        const isTodayOrFuture = targetTime >= new Date(new Date().setHours(0, 0, 0, 0));
+        if (isTodayOrFuture && currentAssignment) return true;
+
+        return assignedInHistory;
     };
 
     // Filter vehicles by status (Active only) AND Assigned Site
