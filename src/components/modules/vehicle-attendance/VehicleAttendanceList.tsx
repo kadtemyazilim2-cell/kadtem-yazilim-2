@@ -387,13 +387,13 @@ export function VehicleAttendanceList() {
     const activeVehicles = vehicles.filter((v: any) => {
         if (v.status === 'PASSIVE') return false;
 
-        // User Request: Only show vehicles that have ACTUAL attendance records for this month/site.
-        // Ignore assignment status, strictly look for data.
-        // 1. Check current assignment
+        // Strategy: Only show if CURRENTLY assigned to this site OR has DATA in this month for this site
+
+        // 1. Current assignment check (Relational and Legacy)
         const isAssigned = (v.assignedSiteIds && v.assignedSiteIds.includes(selectedSiteId)) ||
             v.assignedSiteId === selectedSiteId;
 
-        // 2. Check if it has history/data even if moved
+        // 2. Check for actual data (attendance) in selected month/site
         const hasAttendanceInMonth = vehicleAttendance.some((a: any) => {
             if (a.vehicleId !== v.id || a.siteId !== selectedSiteId) return false;
             try {
@@ -402,22 +402,9 @@ export function VehicleAttendanceList() {
             } catch (e) { return false; }
         });
 
-        // 3. [NEW] Check if it has Assignment History overlapping this month
-        const hasAssignmentHistoryInMonth = assignmentHistory.some(h => {
-            if (h.vehicleId !== v.id) return false;
-
-            const startMonth = startOfMonth(selectedDate);
-            const endMonth = endOfMonth(selectedDate);
-
-            const hStart = h.startDate ? new Date(h.startDate) : startMonth;
-            const hEnd = h.endDate ? new Date(h.endDate) : endMonth;
-
-            // Check overlap: hStart <= endMonth AND hEnd >= startMonth
-            return hStart <= endMonth && hEnd >= startMonth;
-        });
-
-        // Show if EITHER assigned currently OR has attendance history OR has assignment history
-        return isAssigned || hasAttendanceInMonth || hasAssignmentHistoryInMonth;
+        // Show ONLY if assigned OR has data. 
+        // (Removed assignmentHistory check as it might bring up old/wrong vehicles if data is slightly inconsistent)
+        return isAssigned || hasAttendanceInMonth;
     });
 
     // Export Logic
@@ -878,7 +865,7 @@ export function VehicleAttendanceList() {
                                                                 isLocked
                                                                     ? "bg-gray-100 cursor-not-allowed"
                                                                     : "cursor-pointer hover:bg-slate-100",
-                                                                !isAssignedOnDate(v.id, day) ? "opacity-30" : "" // Visual cue that they weren't assigned
+                                                                (!isAssignedOnDate(v.id, day) && !isAdmin) ? "opacity-30" : "" // Visual cue that they weren't assigned
                                                             )}
                                                             onClick={() => {
                                                                 if (isLocked) {
