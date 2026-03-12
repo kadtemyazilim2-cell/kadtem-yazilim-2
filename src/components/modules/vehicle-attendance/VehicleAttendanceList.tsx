@@ -344,20 +344,23 @@ export function VehicleAttendanceList() {
 
     // [NEW] Helper to check if a vehicle was assigned to the selected site on a specific date
     const isAssignedOnDate = (vehicleId: string, date: Date) => {
-        // If there's no history loaded, allow by default (fail-safe)
-        if (!assignmentHistory || assignmentHistory.length === 0) return true;
-
-        const targetStr = format(date, 'yyyy-MM-dd');
-
         // Find histories for this specific vehicle
         const histories = assignmentHistory.filter(h => h.vehicleId === vehicleId);
 
-        // Current assignment check (fallback)
+        // Current assignment check (Relational and Legacy)
         const vehicle = vehicles.find(v => v.id === vehicleId) as any;
         const currentAssignment = (vehicle?.assignedSiteIds && vehicle.assignedSiteIds.includes(selectedSiteId)) ||
             vehicle?.assignedSiteId === selectedSiteId;
 
-        // [FIX] Use local date formatting for robust comparison (avoid UTC shift issues)
+        // [FIX] Relaxed Strategy: 
+        // If the vehicle is CURRENTLY assigned to this site, allow attendance entry for ANY date.
+        // This is safe because the UI already filters the list to only show vehicles 
+        // that are assigned or have data in the current month.
+        if (currentAssignment) return true;
+
+        // If not currently assigned, check historical records
+        const targetStr = format(date, 'yyyy-MM-dd');
+
         const assignedInHistory = histories.some(h => {
             if (!h.startDate) return true;
             const startStr = format(new Date(h.startDate), 'yyyy-MM-dd');
@@ -373,10 +376,6 @@ export function VehicleAttendanceList() {
 
             return true;
         });
-
-        // If it's today or future, and we are currently assigned, override history
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        if (targetStr >= todayStr && currentAssignment) return true;
 
         return assignedInHistory;
     };
