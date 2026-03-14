@@ -48,8 +48,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 
             const updateScale = () => {
                 const screenWidth = window.innerWidth;
-                // Use 750px as a precise base to expand A4 content to edges
-                setScale(screenWidth / 750);
+                // Use 660px to focus on the text area and eliminate side margins
+                setScale(screenWidth / 660);
             };
             
             updateScale();
@@ -67,20 +67,20 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-full text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full bg-slate-100 overflow-y-auto overflow-x-hidden p-0 m-0">
+        <div className="w-full h-full bg-white overflow-y-auto overflow-x-hidden p-0 m-0">
             <div 
                 style={{ 
-                    width: '750px',
-                    height: `${750 * 1.414}px`, // A4 Ratio
+                    width: '660px',
+                    height: `${660 * 1.414}px`, // A4 Ratio
                     transform: `scale(${scale})`,
                     transformOrigin: 'top center',
                     backgroundColor: 'white',
                     margin: '0 auto'
                 }}
-                className="relative shadow-sm"
+                className="relative"
             >
                 <iframe
-                    src={`${url}#view=FitH&toolbar=0`}
+                    src={`${url}#view=FitH&toolbar=0&navpanes=0`}
                     className="w-full h-full border-0 block"
                     title="PDF Preview"
                 />
