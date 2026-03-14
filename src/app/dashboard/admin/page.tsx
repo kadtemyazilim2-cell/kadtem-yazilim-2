@@ -2085,6 +2085,19 @@ export default function AdminPage() {
                                                     <Input value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="Adres satırı..." />
                                                 </div>
 
+                                                <div className="space-y-2">
+                                                    <Label>Kayıt No Sayacı (Sıradaki Numara)</Label>
+                                                    <Input 
+                                                        type="number" 
+                                                        value={companyDocumentNumber} 
+                                                        onChange={e => setCompanyDocumentNumber(e.target.value)} 
+                                                        placeholder="1" 
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground">
+                                                        Giden evrak referans numarasının sonuna eklenecek sıradaki numara.
+                                                    </p>
+                                                </div>
+
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">
                                                         <Label>Firma Kaşesi</Label>
