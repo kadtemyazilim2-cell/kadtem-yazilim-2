@@ -51,7 +51,20 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <iframe src={url} className="w-full h-full border-0" title="PDF Preview" />
+        <iframe 
+            src={`${url}#view=FitH&toolbar=0`} 
+            className="w-full h-full border-0 block" 
+            style={{ 
+                width: '100% !important', 
+                height: '100% !important', 
+                border: 'none', 
+                overflow: 'hidden',
+                maxWidth: '100% !important',
+                touchAction: 'none'
+            }}
+            scrolling="no"
+            title="PDF Preview" 
+        />
     );
 };
 
@@ -958,16 +971,16 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             </Dialog >
 
             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <DialogContent className="max-w-none w-full h-full p-0 border-none bg-white shadow-none flex flex-col z-[100] top-0 left-0 translate-x-0 translate-y-0">
+                <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none flex flex-col fixed inset-0 z-[200] translate-x-0 translate-y-0 overflow-hidden m-0" style={{ touchAction: 'none' }}>
                     <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
-                    <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden">
+                    <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden shrink-0">
                         <DialogClose asChild>
                             <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-slate-900 font-bold shadow-lg">
                                 <XIcon className="w-4 h-4 mr-2" /> Önizlemeyi Kapat
                             </Button>
                         </DialogClose>
                     </div>
-                    <div className="flex-1 bg-white rounded-t-lg overflow-hidden shadow-2xl relative">
+                    <div className="flex-1 bg-white relative w-full overflow-hidden min-h-0">
                         {previewBase64 && <PDFPreview base64={previewBase64} />}
                     </div>
                 </DialogContent>

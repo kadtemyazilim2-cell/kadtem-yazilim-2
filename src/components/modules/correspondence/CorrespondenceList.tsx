@@ -59,8 +59,17 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 
     return (
         <iframe
-            src={url}
-            className="w-full h-full"
+            src={`${url}#view=FitH&toolbar=0`}
+            className="w-full h-full border-0 block"
+            style={{ 
+                width: '100% !important', 
+                height: '100% !important', 
+                border: 'none', 
+                overflow: 'hidden',
+                maxWidth: '100% !important',
+                touchAction: 'none'
+            }}
+            scrolling="no"
             title="PDF Preview"
         />
     );
@@ -951,16 +960,16 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-none w-full h-full sm:h-[95vh] sm:max-w-7xl p-0 border-none bg-white sm:bg-transparent shadow-none flex flex-col top-0 left-0 translate-x-0 translate-y-0 sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]">
+                                                    <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none flex flex-col fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0" style={{ touchAction: 'none' }}>
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
-                                                        <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden">
+                                                        <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden shrink-0">
                                                             <DialogClose asChild>
                                                                 <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-slate-900 font-bold shadow-lg">
                                                                     <XIcon className="w-4 h-4 mr-2" /> Önizlemeyi Kapat
                                                                 </Button>
                                                             </DialogClose>
                                                         </div>
-                                                        <div className="flex-1 bg-white rounded-t-lg sm:rounded-lg overflow-hidden shadow-2xl relative">
+                                                        <div className="flex-1 bg-white relative w-full overflow-hidden min-h-0">
                                                             <PDFPreview base64={item.attachmentUrls[0]} />
                                                         </div>
                                                     </DialogContent>
