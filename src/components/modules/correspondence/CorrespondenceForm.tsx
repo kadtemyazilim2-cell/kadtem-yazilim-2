@@ -45,7 +45,7 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 
             const updateScale = () => {
                 const screenWidth = window.innerWidth;
-                setScale(screenWidth / 850);
+                setScale(screenWidth / 800);
             };
             updateScale();
             window.addEventListener('resize', updateScale);
@@ -62,14 +62,15 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full bg-slate-900/5 overflow-y-auto overflow-x-hidden">
+        <div className="w-full h-full bg-slate-900/10 overflow-y-auto overflow-x-hidden pt-0 pb-20">
             <div 
                 style={{ 
-                    width: '850px',
-                    height: `${850 * 1.414}px`, // A4 Ratio
+                    width: '800px',
+                    height: `${800 * 1.414}px`, // A4 Ratio
                     transform: `scale(${scale})`,
-                    transformOrigin: 'top left',
+                    transformOrigin: 'top center',
                     backgroundColor: 'white',
+                    margin: '0 auto'
                 }}
                 className="relative shadow-2xl"
             >

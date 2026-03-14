@@ -48,9 +48,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 
             const updateScale = () => {
                 const screenWidth = window.innerWidth;
-                // A4 at 96 DPI is roughly 794px, but browser viewers add internal margins.
-                // 850px is a safe base width for the viewer content to be scaled to fit exactly.
-                setScale(screenWidth / 850);
+                // Use 800px as a stable base for A4 width
+                setScale(screenWidth / 800);
             };
             
             updateScale();
@@ -68,14 +67,15 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-full text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full bg-slate-900/5 overflow-y-auto overflow-x-hidden">
+        <div className="w-full h-full bg-slate-900/10 overflow-y-auto overflow-x-hidden pt-0 pb-20">
             <div 
                 style={{ 
-                    width: '850px',
-                    height: `${850 * 1.414}px`, // A4 Ratio
+                    width: '800px',
+                    height: `${800 * 1.414}px`, // A4 Ratio
                     transform: `scale(${scale})`,
-                    transformOrigin: 'top left',
+                    transformOrigin: 'top center',
                     backgroundColor: 'white',
+                    margin: '0 auto'
                 }}
                 className="relative shadow-2xl"
             >
