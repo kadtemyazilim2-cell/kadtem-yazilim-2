@@ -30,6 +30,7 @@ import { useRef } from 'react';
 
 const PDFPreview = ({ base64 }: { base64: string }) => {
     const [url, setUrl] = useState<string | null>(null);
+    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         if (!base64) return;
@@ -45,8 +46,18 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             const blobUrl = URL.createObjectURL(blob);
             setUrl(blobUrl);
 
+            const updateScale = () => {
+                const screenWidth = window.innerWidth;
+                // A4 at 96 DPI is roughly 794px, but browser viewers add internal margins.
+                // 850px is a safe base width for the viewer content to be scaled to fit exactly.
+                setScale(screenWidth / 850);
+            };
+            
+            updateScale();
+            window.addEventListener('resize', updateScale);
             return () => {
                 URL.revokeObjectURL(blobUrl);
+                window.removeEventListener('resize', updateScale);
             };
         } catch (e) {
             console.error("PDF Preview Error:", e);
@@ -57,11 +68,24 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-full text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <iframe
-            src={`${url}#view=FitH&toolbar=0`}
-            className="absolute inset-0 w-full h-full border-0 block"
-            title="PDF Preview"
-        />
+        <div className="w-full h-full bg-slate-900/5 overflow-y-auto overflow-x-hidden">
+            <div 
+                style={{ 
+                    width: '850px',
+                    height: `${850 * 1.414}px`, // A4 Ratio
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    backgroundColor: 'white',
+                }}
+                className="relative shadow-2xl"
+            >
+                <iframe
+                    src={`${url}#view=FitH&toolbar=0`}
+                    className="w-full h-full border-0 block"
+                    title="PDF Preview"
+                />
+            </div>
+        </div>
     );
 };
 
@@ -950,17 +974,17 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none flex flex-col fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
+                                                    <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
-                                                        {/* Overlay Close Button for Mobile */}
-                                                        <div className="absolute top-4 right-4 z-[110] sm:hidden">
+                                                        {/* Floating Close Button */}
+                                                        <div className="fixed top-6 right-6 z-[120] sm:hidden">
                                                             <DialogClose asChild>
-                                                                <Button variant="secondary" size="sm" className="bg-slate-900/80 hover:bg-slate-900 text-white font-bold shadow-2xl rounded-full px-4 h-10 border border-white/20">
-                                                                    <XIcon className="w-4 h-4 mr-2" /> Kapat
+                                                                <Button variant="secondary" size="lg" className="bg-slate-900/90 hover:bg-slate-900 text-white font-bold shadow-2xl rounded-full px-6 h-12 border border-white/30 backdrop-blur-md">
+                                                                    <XIcon className="w-5 h-5 mr-2" /> Kapat
                                                                 </Button>
                                                             </DialogClose>
                                                         </div>
-                                                        <div className="flex-1 bg-white relative w-full h-full overflow-hidden">
+                                                        <div className="w-full h-full bg-white relative">
                                                             <PDFPreview base64={item.attachmentUrls[0]} />
                                                         </div>
                                                     </DialogContent>
