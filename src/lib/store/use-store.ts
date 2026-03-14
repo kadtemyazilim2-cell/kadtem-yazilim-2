@@ -45,6 +45,9 @@ export const useAppStore = create<AppState>()(
                     deletionDate: undefined
                 } : c)),
             })),
+            removeCorrespondence: (id) => set((state) => ({
+                correspondences: state.correspondences.filter((c) => c.id !== id)
+            })),
             addVehicle: (vehicle) => set((state) => ({ vehicles: [...state.vehicles, vehicle] })),
             updateVehicle: (id, data) => set((state) => ({
                 vehicles: state.vehicles.map((v) => (v.id === id ? { ...v, ...data } : v)),

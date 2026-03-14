@@ -37,6 +37,8 @@ export interface Company {
   smtpConfig?: any; // [NEW] kept for backward compatibility if needed, else remove
   // smtpConfig?: SmtpConfig; // Removing duplicate heavily typed version to silence error for now, or just keep one. Use 'any' for safety as per error.
   currentDocumentNumber?: number; // [NEW] Document Tracking
+  currentIncomingNumber?: number; // [NEW]
+  currentBankNumber?: number; // [NEW]
   shortName?: string; // [NEW]
 }
 
@@ -378,6 +380,7 @@ export interface AppState {
   deleteCorrespondence: (id: string, reason?: string, userId?: string) => void;
   restoreCorrespondence: (id: string) => void; // [NEW]
   updateCorrespondence: (id: string, updates: Partial<Correspondence>) => void;
+  removeCorrespondence: (id: string) => void;
   addCashTransaction: (item: CashTransaction) => void;
   deleteCashTransaction: (id: string) => void;
   updateCashTransaction: (id: string, updates: Partial<CashTransaction>) => void;

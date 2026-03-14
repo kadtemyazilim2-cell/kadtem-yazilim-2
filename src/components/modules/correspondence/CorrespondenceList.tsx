@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction, restoreCorrespondence as restoreCorrespondenceAction } from '@/actions/correspondence';
+import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction, restoreCorrespondence as restoreCorrespondenceAction, permanentDeleteCorrespondence as permanentDeleteCorrespondenceAction } from '@/actions/correspondence';
 import { useState, useEffect } from 'react';
 import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet, Lock } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
@@ -72,7 +72,7 @@ import { fontBase64 } from '@/lib/pdf-font'; // Assume this exists as used in ot
 import { createInstitution as createInstitutionAction, updateInstitution as updateInstitutionAction, deleteInstitution as deleteInstitutionAction, permanentDeleteInstitution as permanentDeleteInstitutionAction } from '@/actions/institution';
 
 export function CorrespondenceList() {
-    const { correspondences, companies, updateCorrespondence, users, deleteCorrespondence, restoreCorrespondence, institutions, deleteInstitution, removeInstitution, updateInstitution, addInstitution, addCorrespondence, sites } = useAppStore();
+    const { correspondences, companies, updateCorrespondence, users, deleteCorrespondence, restoreCorrespondence, institutions, deleteInstitution, removeInstitution, updateInstitution, addInstitution, addCorrespondence, sites, removeCorrespondence } = useAppStore();
     const { user, hasPermission } = useAuth();
 
     // Permission Checks
@@ -425,6 +425,23 @@ export function CorrespondenceList() {
         } catch (error) {
             console.error('Delete error:', error);
             alert('Bir hata oluştu.');
+        }
+    };
+
+    const handlePermanentDelete = async (id: string) => {
+        if (confirm('Bu yazışmayı KALICI olarak silmek istediğinize emin misiniz?\n\n⚠️ DİKKAT: Bu işlem geri alınamaz!')) {
+            try {
+                const result = await permanentDeleteCorrespondenceAction(id);
+                if (result.success) {
+                    removeCorrespondence(id);
+                    toast.success('Yazışma kalıcı olarak silindi.');
+                } else {
+                    toast.error(result.error || 'Silme işlemi başarısız oldu.');
+                }
+            } catch (error) {
+                console.error('Permanent Delete error:', error);
+                toast.error('Bir hata oluştu.');
+            }
         }
     };
 
@@ -1033,15 +1050,28 @@ export function CorrespondenceList() {
                             <TableCell>{getUserName(item.deletedByUserId || '')}</TableCell>
                             <TableCell className="italic text-slate-600 max-w-[200px] truncate" title={item.deletionReason}>{item.deletionReason}</TableCell>
                             <TableCell>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
-                                    onClick={() => handleRestore(item.id)}
-                                    title="Geri Al / Kurtar"
-                                >
-                                    <RotateCcw className="w-4 h-4 mr-2" /> Geri Al
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-200"
+                                        onClick={() => handleRestore(item.id)}
+                                        title="Geri Al / Kurtar"
+                                    >
+                                        <RotateCcw className="w-4 h-4 mr-2" /> Geri Al
+                                    </Button>
+                                    {user?.role === 'ADMIN' && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                                            onClick={() => handlePermanentDelete(item.id)}
+                                            title="Kalıcı Olarak Sil"
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" /> Sil
+                                        </Button>
+                                    )}
+                                </div>
                             </TableCell>
                         </TableRow>
                     ))}

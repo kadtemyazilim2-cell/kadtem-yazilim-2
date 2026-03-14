@@ -240,6 +240,28 @@ export async function deleteCorrespondence(id: string, reason?: string, userId?:
     }
 }
 
+export async function permanentDeleteCorrespondence(id: string) {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Oturum açılmamış.' };
+
+        // Only ADMIN can permanently delete
+        if (session.user.role !== 'ADMIN') {
+            return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' };
+        }
+
+        await prisma.correspondence.delete({
+            where: { id }
+        });
+
+        revalidateTag('correspondence');
+        return { success: true };
+    } catch (error: any) {
+        console.error('permanentDeleteCorrespondence Error:', error);
+        return { success: false, error: error.message || 'Yazışma kalıcı olarak silinemedi.' };
+    }
+}
+
 // [PERFORMANCE] Cached correspondence query
 const getCorrespondenceListFromDb = unstable_cache(
     async (role: string, userId: string) => {
