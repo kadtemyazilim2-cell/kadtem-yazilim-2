@@ -951,7 +951,7 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-[100vw] w-screen h-[100vh] sm:h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col">
+                                                    <DialogContent className="max-w-none w-full h-full sm:h-[95vh] sm:max-w-7xl p-0 border-none bg-white sm:bg-transparent shadow-none flex flex-col top-0 left-0 translate-x-0 translate-y-0 sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%]">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
                                                         <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden">
                                                             <DialogClose asChild>

@@ -958,7 +958,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             </Dialog >
 
             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <DialogContent className="max-w-[100vw] w-screen h-[100vh] p-0 border-none bg-transparent shadow-none flex flex-col z-[100]">
+                <DialogContent className="max-w-none w-full h-full p-0 border-none bg-white shadow-none flex flex-col z-[100] top-0 left-0 translate-x-0 translate-y-0">
                     <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
                     <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden">
                         <DialogClose asChild>
