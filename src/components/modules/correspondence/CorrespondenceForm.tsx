@@ -27,7 +27,6 @@ import { toast } from 'sonner';
 
 const PDFPreview = ({ base64 }: { base64: string }) => {
     const [url, setUrl] = useState<string | null>(null);
-    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         if (!base64) return;
@@ -43,19 +42,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             const blobUrl = URL.createObjectURL(blob);
             setUrl(blobUrl);
 
-            const updateScale = () => {
-                const screenWidth = window.innerWidth;
-                if (screenWidth < 768) {
-                    setScale(screenWidth / 800);
-                } else {
-                    setScale(1);
-                }
-            };
-            updateScale();
-            window.addEventListener('resize', updateScale);
             return () => {
                 URL.revokeObjectURL(blobUrl);
-                window.removeEventListener('resize', updateScale);
             };
         } catch (e) {
             console.error("PDF Preview Error:", e);
@@ -66,26 +54,11 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full flex justify-center bg-slate-500/10 overflow-x-hidden overflow-y-auto pt-4 pb-20 sm:p-0">
-            <div 
-                style={{ 
-                    width: scale < 1 ? '800px' : '100%',
-                    height: scale < 1 ? `${800 * 1.414}px` : '100%',
-                    transform: scale < 1 ? `scale(${scale})` : 'none',
-                    transformOrigin: 'top center',
-                    backgroundColor: 'white',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-                }}
-                className="relative"
-            >
-                <iframe 
-                    src={`${url}#view=FitH&toolbar=0`} 
-                    className="w-full h-full border-0 block" 
-                    style={{ pointerEvents: 'auto' }}
-                    title="PDF Preview" 
-                />
-            </div>
-        </div>
+        <iframe 
+            src={`${url}#view=FitH&toolbar=0`} 
+            className="absolute inset-0 w-full h-full border-0 block" 
+            title="PDF Preview" 
+        />
     );
 };
 
