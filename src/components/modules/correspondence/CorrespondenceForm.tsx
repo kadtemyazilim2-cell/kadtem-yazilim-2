@@ -22,6 +22,7 @@ import { toTurkishLower } from '@/lib/utils';
 // Server Actions
 import { createCorrespondence, updateCorrespondence } from '@/actions/correspondence';
 import { createInstitution } from '@/actions/institution';
+import { getCompanyFull } from '@/actions/company'; // [NEW]
 import { toast } from 'sonner';
 
 interface CorrespondenceFormProps {
@@ -248,6 +249,28 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     };
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [companyFull, setCompanyFull] = useState<any>(null); // [NEW]
+
+    // [NEW] Pre-fetch company details (logo, stamp) to avoid async calls during PDF preview (especially for mobile popups)
+    useEffect(() => {
+        if (!formData.companyId) {
+            setCompanyFull(null);
+            return;
+        }
+
+        const fetchFull = async () => {
+            try {
+                const res = await getCompanyFull(formData.companyId);
+                if (res.success && res.data) {
+                    setCompanyFull(res.data);
+                }
+            } catch (err) {
+                console.error("Error pre-fetching company:", err);
+            }
+        };
+
+        fetchFull();
+    }, [formData.companyId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -353,7 +376,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     };
 
     const handlePreview = async () => {
-        await generateCorrespondencePDF(formData, companies, users, true);
+        await generateCorrespondencePDF(formData, companies, users, true, companyFull);
     };
 
     // execCmd moved to SimpleRichTextEditor
@@ -405,7 +428,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             {/* Fields removed */}
                             {/* ... Content ... */}
 
-                            <div className="grid grid-cols-[1fr_2fr] gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
                                 <div className="space-y-2">
                                     <Label>Tarih</Label>
                                     <Input
@@ -417,7 +440,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                                 </div>
                                 <div className="space-y-2 min-w-0">
                                     <Label>İlgili Firma</Label>
-                                    <div className="flex gap-2 min-w-0">
+                                    <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                                         <div className="relative w-full min-w-0">
                                             <Button
                                                 variant="outline"

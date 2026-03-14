@@ -4,7 +4,7 @@ import { addTurkishFont } from '@/lib/pdf-font';
 import { format } from 'date-fns';
 import { IKIKAT_LOGO_BASE64, KADTEM_LOGO_BASE64 } from '@/lib/logos';
 
-export const generateCorrespondencePDF = async (item: any, companies: any[], users: any[], isPreview = false) => {
+export const generateCorrespondencePDF = async (item: any, companies: any[], users: any[], isPreview = false, prefetchedCompany?: any) => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     addTurkishFont(doc);
     const fontName = 'Roboto';
@@ -32,7 +32,9 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
 
     // [FIX] letterhead ve logoUrl artık store'da yok (PERF: base64 hariç tutuldu).
     // İhtiyaç duyulduğunda getCompanyFull ile çekiyoruz.
-    if (company) {
+    if (prefetchedCompany) {
+        logoToUse = prefetchedCompany.letterhead || prefetchedCompany.logoUrl || null;
+    } else if (company) {
         try {
             const { getCompanyFull } = await import('@/actions/company');
             const fullResult = await getCompanyFull(company.id);
@@ -421,15 +423,13 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
 
     // Stamp Logic - stamp artık companies array'inde yok, ihtiyaç halinde çekiyoruz
     if ((item as any).includeStamp) {
-        const company = companies.find(c => c.id === item.companyId);
-        if (company) {
-            try {
-                // [PERF] stamp'ı sadece ihtiyaç duyulduğunda çek
-                const { getCompanyFull } = await import('@/actions/company');
-                const fullResult = await getCompanyFull(company.id);
-                const stampData = fullResult.success && fullResult.data ? fullResult.data.stamp : null;
-
-                if (stampData) {
+        const companyId = item.companyId;
+        const companyData = prefetchedCompany?.id === companyId ? prefetchedCompany : null;
+        
+        if (companyData) {
+            const stampData = companyData.stamp;
+            if (stampData) {
+                try {
                     const imgProps = doc.getImageProperties(stampData);
                     const stampWidth = 40; // Approx 4cm width
                     const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
@@ -442,9 +442,36 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
 
                     doc.addImage(stampData, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
                     yPos += stampHeight;
+                } catch (e) {
+                    console.error('Error adding stamp:', e);
                 }
-            } catch (e) {
-                console.error('Error adding stamp:', e);
+            }
+        } else {
+            const company = companies.find(c => c.id === companyId);
+            if (company) {
+                try {
+                    // [PERF] stamp'ı sadece ihtiyaç duyulduğunda çek
+                    const { getCompanyFull } = await import('@/actions/company');
+                    const fullResult = await getCompanyFull(company.id);
+                    const stampData = fullResult.success && fullResult.data ? fullResult.data.stamp : null;
+
+                    if (stampData) {
+                        const imgProps = doc.getImageProperties(stampData);
+                        const stampWidth = 40; // Approx 4cm width
+                        const stampHeight = (imgProps.height * stampWidth) / imgProps.width;
+
+                        // Check page overflow
+                        if (yPos + stampHeight > 280) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+
+                        doc.addImage(stampData, 'PNG', 130, yPos - 5, stampWidth, stampHeight);
+                        yPos += stampHeight;
+                    }
+                } catch (e) {
+                    console.error('Error adding stamp:', e);
+                }
             }
         }
     }
