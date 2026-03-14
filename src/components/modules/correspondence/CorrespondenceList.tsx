@@ -30,7 +30,6 @@ import { useRef } from 'react';
 
 const PDFPreview = ({ base64 }: { base64: string }) => {
     const [url, setUrl] = useState<string | null>(null);
-    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         if (!base64) return;
@@ -46,23 +45,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             const blobUrl = URL.createObjectURL(blob);
             setUrl(blobUrl);
 
-            // Calculate scale based on screen width
-            const updateScale = () => {
-                const screenWidth = window.innerWidth;
-                if (screenWidth < 768) {
-                    // Using 1000px as a wider base to ensure all content fits
-                    // but keeping scaling subtle to allow for horizontal scrolling if needed
-                    setScale(screenWidth / 1000);
-                } else {
-                    setScale(1);
-                }
-            };
-            
-            updateScale();
-            window.addEventListener('resize', updateScale);
             return () => {
                 URL.revokeObjectURL(blobUrl);
-                window.removeEventListener('resize', updateScale);
             };
         } catch (e) {
             console.error("PDF Preview Error:", e);
@@ -73,26 +57,11 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-full text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full flex justify-center bg-slate-500/10 overflow-x-auto overflow-y-auto pt-4 pb-20 sm:p-0">
-            <div 
-                style={{ 
-                    width: scale < 1 ? '1000px' : '100%',
-                    height: scale < 1 ? `${1000 * 1.414}px` : '100%',
-                    transform: scale < 1 ? `scale(${scale})` : 'none',
-                    transformOrigin: 'top center',
-                    backgroundColor: 'white',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-                }}
-                className="relative mx-auto"
-            >
-                <iframe
-                    src={`${url}#view=FitH&toolbar=0`}
-                    className="w-full h-full border-0 block"
-                    style={{ pointerEvents: 'auto' }}
-                    title="PDF Preview"
-                />
-            </div>
-        </div>
+        <iframe
+            src={`${url}#view=FitH&toolbar=0`}
+            className="w-full h-full border-0 block"
+            title="PDF Preview"
+        />
     );
 };
 
@@ -983,14 +952,15 @@ export function CorrespondenceList() {
                                                     </DialogTrigger>
                                                     <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none flex flex-col fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
-                                                        <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden shrink-0">
+                                                        {/* Overlay Close Button for Mobile */}
+                                                        <div className="absolute top-4 right-4 z-[110] sm:hidden">
                                                             <DialogClose asChild>
-                                                                <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-slate-900 font-bold shadow-lg">
-                                                                    <XIcon className="w-4 h-4 mr-2" /> Önizlemeyi Kapat
+                                                                <Button variant="secondary" size="sm" className="bg-slate-900/80 hover:bg-slate-900 text-white font-bold shadow-2xl rounded-full px-4 h-10 border border-white/20">
+                                                                    <XIcon className="w-4 h-4 mr-2" /> Kapat
                                                                 </Button>
                                                             </DialogClose>
                                                         </div>
-                                                        <div className="flex-1 bg-white relative w-full overflow-hidden min-h-0">
+                                                        <div className="flex-1 bg-white relative w-full h-full overflow-hidden">
                                                             <PDFPreview base64={item.attachmentUrls[0]} />
                                                         </div>
                                                     </DialogContent>
