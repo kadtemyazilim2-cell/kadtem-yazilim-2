@@ -45,7 +45,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 
             const updateScale = () => {
                 const screenWidth = window.innerWidth;
-                setScale(screenWidth / 800);
+                // Use 720px as a stable base for A4 width content to fill mobile screen better
+                setScale(screenWidth / 720);
             };
             updateScale();
             window.addEventListener('resize', updateScale);
@@ -65,8 +66,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
         <div className="w-full h-full bg-slate-900/10 overflow-y-auto overflow-x-hidden pt-0 pb-20">
             <div 
                 style={{ 
-                    width: '800px',
-                    height: `${800 * 1.414}px`, // A4 Ratio
+                    width: '720px',
+                    height: `${720 * 1.414}px`, // A4 Ratio
                     transform: `scale(${scale})`,
                     transformOrigin: 'top center',
                     backgroundColor: 'white',
@@ -997,7 +998,7 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                             </Button>
                         </DialogClose>
                     </div>
-                    <div className="w-full h-full bg-white relative">
+                    <div className="w-full h-full p-0 m-0 overflow-hidden">
                         {previewBase64 && <PDFPreview base64={previewBase64} />}
                     </div>
                 </DialogContent>
