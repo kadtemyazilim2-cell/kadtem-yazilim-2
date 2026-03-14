@@ -92,8 +92,8 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
     // [NEW] Auto-Generate Reference Number
     useEffect(() => {
         if (initialData && !isCopy) return;
-        if (formData.direction !== 'OUTGOING') return;
-        if (isRefManual) return; // Don't overwrite if manually entered
+        // Don't auto-generate if manual override is active
+        if (isRefManual) return;
         if (!formData.companyId || !formData.senderReceiver) return;
 
         const company = companies.find(c => c.id === formData.companyId);
@@ -113,7 +113,17 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
             instShort = inst.name.toUpperCase();
         }
 
-        const seq = (company.currentDocumentNumber || 1).toString().padStart(4, '0');
+        let nextNum = 1;
+        const c = company as any;
+        if (formData.type === 'BANK') {
+            nextNum = c.currentBankNumber || 1;
+        } else if (formData.direction === 'INCOMING') {
+            nextNum = c.currentIncomingNumber || 1;
+        } else {
+            nextNum = c.currentDocumentNumber || 1;
+        }
+
+        const seq = nextNum.toString().padStart(4, '0');
 
         // Format: [Short]-[YY]/[RecipientShort].[Seq] (No spaces)
         const newRef = `${compShort}-${yearShort}/${instShort}.${seq}`;

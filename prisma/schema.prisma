@@ -101,7 +101,9 @@ model Company {
   smtpFromName  String?
 
   // Document Numbering
-  currentDocumentNumber Int?    @default(1)
+  currentDocumentNumber Int?    @default(1) // Outgoing
+  currentIncomingNumber Int?    @default(1) // Incoming
+  currentBankNumber     Int?    @default(1) // Bank
   shortName             String? // [NEW]
 
   // Relations

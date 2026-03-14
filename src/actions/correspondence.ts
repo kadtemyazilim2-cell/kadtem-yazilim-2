@@ -27,23 +27,27 @@ export async function createCorrespondence(data: Omit<Correspondence, 'id' | 'cr
         const result = await prisma.$transaction(async (tx) => {
             let regNum = data.registrationNumber;
 
-            // Increment Document Number for OUTGOING (Used for Reference Number Sequence)
-            if (data.direction === 'OUTGOING') {
-                const company = await tx.company.findUnique({
-                    where: { id: data.companyId }
-                });
+            // Increment Document Number based on type/direction (Used for Reference Number Sequence)
+            const company = await tx.company.findUnique({
+                where: { id: data.companyId }
+            });
 
-                if (company) {
-                    const nextNum = company.currentDocumentNumber || 1;
-
-                    // User requested Manual Entry for Registration Number.
-                    // We only increment the counter for the Reference Number generation logic.
-
-                    await tx.company.update({
-                        where: { id: data.companyId },
-                        data: { currentDocumentNumber: nextNum + 1 }
-                    });
+            if (company) {
+                let nextNumField: keyof typeof company = 'currentDocumentNumber';
+                if (data.type === 'BANK') {
+                    nextNumField = 'currentBankNumber';
+                } else if (data.direction === 'INCOMING') {
+                    nextNumField = 'currentIncomingNumber';
+                } else {
+                    nextNumField = 'currentDocumentNumber'; // OUTGOING
                 }
+
+                const nextNum = (company[nextNumField] as number) || 1;
+
+                await tx.company.update({
+                    where: { id: data.companyId },
+                    data: { [nextNumField]: nextNum + 1 }
+                });
             }
 
             return await tx.correspondence.create({

@@ -460,7 +460,9 @@ export default function AdminPage() {
     const [companyStamp, setCompanyStamp] = useState<string | null>(null);
     const [companyLetterhead, setCompanyLetterhead] = useState<string | null>(null);
     const [companyShortName, setCompanyShortName] = useState(''); // [NEW] Replaces Document Number tab content usage (logic wise doc number moved to background or other tab if needed, but per request we reuse space)
-    const [companyDocumentNumber, setCompanyDocumentNumber] = useState('1'); // Keep state if needed for API but hide UI
+    const [companyDocumentNumber, setCompanyDocumentNumber] = useState('1');
+    const [companyIncomingNumber, setCompanyIncomingNumber] = useState('1');
+    const [companyBankNumber, setCompanyBankNumber] = useState('1');
 
 
     const handleExportExcel = () => {
@@ -836,8 +838,10 @@ export default function AdminPage() {
             smtpFromEmail: companySmtpFromEmail,
             smtpFromName: companySmtpFromName,
             smtpSecure: companySmtpSecure,
-            currentDocumentNumber: parseInt(companyDocumentNumber) || 1, // [NEW] Document Tracking
-            shortName: companyShortName // [NEW]
+            currentDocumentNumber: parseInt(companyDocumentNumber) || 1,
+            currentIncomingNumber: parseInt(companyIncomingNumber) || 1,
+            currentBankNumber: parseInt(companyBankNumber) || 1,
+            shortName: companyShortName
         };
 
         try {
@@ -894,9 +898,10 @@ export default function AdminPage() {
         setCompanySmtpFromName('');
         setCompanySmtpFromName('');
         setCompanySmtpSecure(false);
-        setCompanySmtpSecure(false);
         setCompanyDocumentNumber('1');
-        setCompanyShortName(''); // [NEW]
+        setCompanyIncomingNumber('1');
+        setCompanyBankNumber('1');
+        setCompanyShortName('');
     };
 
     const openAddCompanyModal = () => {
@@ -921,7 +926,9 @@ export default function AdminPage() {
             setCompanyLetterhead(null);
         }
         setCompanyDocumentNumber(company.currentDocumentNumber?.toString() || '1');
-        setCompanyShortName(company.shortName || ''); // [NEW]
+        setCompanyIncomingNumber(company.currentIncomingNumber?.toString() || '1');
+        setCompanyBankNumber(company.currentBankNumber?.toString() || '1');
+        setCompanyShortName(company.shortName || '');
 
         // [FIX] Check for flat fields first (Prisma default), then fallback to nested config
         if (company.smtpHost || company.smtpConfig) {
@@ -2085,18 +2092,38 @@ export default function AdminPage() {
                                                     <Input value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="Adres satırı..." />
                                                 </div>
 
-                                                <div className="space-y-2">
-                                                    <Label>Kayıt No Sayacı (Sıradaki Numara)</Label>
-                                                    <Input 
-                                                        type="number" 
-                                                        value={companyDocumentNumber} 
-                                                        onChange={e => setCompanyDocumentNumber(e.target.value)} 
-                                                        placeholder="1" 
-                                                    />
-                                                    <p className="text-[10px] text-muted-foreground">
-                                                        Giden evrak referans numarasının sonuna eklenecek sıradaki numara.
-                                                    </p>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label>Giden Evrak Sayacı</Label>
+                                                        <Input 
+                                                            type="number" 
+                                                            value={companyDocumentNumber} 
+                                                            onChange={e => setCompanyDocumentNumber(e.target.value)} 
+                                                            placeholder="1" 
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Gelen Evrak Sayacı</Label>
+                                                        <Input 
+                                                            type="number" 
+                                                            value={companyIncomingNumber} 
+                                                            onChange={e => setCompanyIncomingNumber(e.target.value)} 
+                                                            placeholder="1" 
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Banka Yazışma Sayacı</Label>
+                                                        <Input 
+                                                            type="number" 
+                                                            value={companyBankNumber} 
+                                                            onChange={e => setCompanyBankNumber(e.target.value)} 
+                                                            placeholder="1" 
+                                                        />
+                                                    </div>
                                                 </div>
+                                                <p className="text-[10px] text-muted-foreground -mt-2">
+                                                    İlgili yazışma tipinin referans numarasının sonuna eklenecek sıradaki numara.
+                                                </p>
 
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">

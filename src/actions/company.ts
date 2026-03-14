@@ -28,6 +28,8 @@ export async function getCompanies() {
                 smtpFromEmail: true,
                 smtpFromName: true,
                 currentDocumentNumber: true,
+                currentIncomingNumber: true,
+                currentBankNumber: true,
                 shortName: true,
                 // stamp: EXCLUDED (base64, ~1-5MB)
                 // letterhead: EXCLUDED (base64, ~1-5MB)
@@ -86,6 +88,8 @@ export async function createCompany(data: Partial<Company>) {
                 smtpFromName: data.smtpFromName,
                 smtpSecure: data.smtpSecure,
                 currentDocumentNumber: data.currentDocumentNumber,
+                currentIncomingNumber: (data as any).currentIncomingNumber,
+                currentBankNumber: (data as any).currentBankNumber,
                 taxNumber: data.taxNumber,
                 phone: data.phone,
                 stamp: data.stamp,
@@ -127,6 +131,8 @@ export async function updateCompany(id: string, data: Partial<Company>) {
                 smtpFromName: data.smtpFromName,
                 smtpSecure: data.smtpSecure,
                 currentDocumentNumber: data.currentDocumentNumber,
+                currentIncomingNumber: (data as any).currentIncomingNumber,
+                currentBankNumber: (data as any).currentBankNumber,
                 status: data.status,
             }
         });
