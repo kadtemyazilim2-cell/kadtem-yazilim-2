@@ -30,14 +30,12 @@ import { useRef } from 'react';
 
 const PDFPreview = ({ base64 }: { base64: string }) => {
     const [url, setUrl] = useState<string | null>(null);
+    const [scale, setScale] = useState(1);
 
     useEffect(() => {
         if (!base64) return;
         try {
-            // Handle both raw base64 and data URI
             const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
-
-            // Standard base64 decoding
             const byteCharacters = atob(base64Data);
             const byteNumbers = new Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
@@ -48,7 +46,25 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             const blobUrl = URL.createObjectURL(blob);
             setUrl(blobUrl);
 
-            return () => URL.revokeObjectURL(blobUrl);
+            // Calculate scale based on screen width
+            const updateScale = () => {
+                const screenWidth = window.innerWidth;
+                if (screenWidth < 768) {
+                    // Force scale to fit 800px (A4 approx px width) into screen width
+                    // Subtracting some padding (e.g. 20px)
+                    const targetWidth = screenWidth - 0; 
+                    setScale(targetWidth / 800);
+                } else {
+                    setScale(1);
+                }
+            };
+            
+            updateScale();
+            window.addEventListener('resize', updateScale);
+            return () => {
+                URL.revokeObjectURL(blobUrl);
+                window.removeEventListener('resize', updateScale);
+            };
         } catch (e) {
             console.error("PDF Preview Error:", e);
             setUrl(null);
@@ -58,20 +74,26 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-full text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <iframe
-            src={`${url}#view=FitH&toolbar=0`}
-            className="w-full h-full border-0 block"
-            style={{ 
-                width: '100% !important', 
-                height: '100% !important', 
-                border: 'none', 
-                overflow: 'hidden',
-                maxWidth: '100% !important',
-                touchAction: 'none'
-            }}
-            scrolling="no"
-            title="PDF Preview"
-        />
+        <div className="w-full h-full flex justify-center bg-slate-500/10 overflow-x-hidden overflow-y-auto pt-4 pb-20 sm:p-0">
+            <div 
+                style={{ 
+                    width: scale < 1 ? '800px' : '100%',
+                    height: scale < 1 ? `${800 * 1.414}px` : '100%',
+                    transform: scale < 1 ? `scale(${scale})` : 'none',
+                    transformOrigin: 'top center',
+                    backgroundColor: 'white',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+                }}
+                className="relative"
+            >
+                <iframe
+                    src={`${url}#view=FitH&toolbar=0`}
+                    className="w-full h-full border-0 block"
+                    style={{ pointerEvents: 'auto' }}
+                    title="PDF Preview"
+                />
+            </div>
+        </div>
     );
 };
 
@@ -960,7 +982,7 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none flex flex-col fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0" style={{ touchAction: 'none' }}>
+                                                    <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none flex flex-col fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
                                                         <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden shrink-0">
                                                             <DialogClose asChild>
