@@ -48,8 +48,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
 
             const updateScale = () => {
                 const screenWidth = window.innerWidth;
-                // Use 720px as a stable base for A4 width content to fill mobile screen better
-                setScale(screenWidth / 720);
+                // Use 750px as a precise base to expand A4 content to edges
+                setScale(screenWidth / 750);
             };
             
             updateScale();
@@ -67,17 +67,17 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-full text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full bg-slate-900/10 overflow-y-auto overflow-x-hidden pt-0 pb-20">
+        <div className="w-full h-full bg-slate-100 overflow-y-auto overflow-x-hidden p-0 m-0">
             <div 
                 style={{ 
-                    width: '720px',
-                    height: `${720 * 1.414}px`, // A4 Ratio
+                    width: '750px',
+                    height: `${750 * 1.414}px`, // A4 Ratio
                     transform: `scale(${scale})`,
                     transformOrigin: 'top center',
                     backgroundColor: 'white',
                     margin: '0 auto'
                 }}
-                className="relative shadow-2xl"
+                className="relative shadow-sm"
             >
                 <iframe
                     src={`${url}#view=FitH&toolbar=0`}
