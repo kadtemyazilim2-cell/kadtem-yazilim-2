@@ -46,7 +46,7 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             const updateScale = () => {
                 const screenWidth = window.innerWidth;
                 if (screenWidth < 768) {
-                    setScale(screenWidth / 800);
+                    setScale(screenWidth / 1000);
                 } else {
                     setScale(1);
                 }
@@ -66,17 +66,17 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
     return (
-        <div className="w-full h-full flex justify-center bg-slate-500/10 overflow-x-hidden overflow-y-auto pt-4 pb-20 sm:p-0">
+        <div className="w-full h-full flex justify-center bg-slate-500/10 overflow-x-auto overflow-y-auto pt-4 pb-20 sm:p-0">
             <div 
                 style={{ 
-                    width: scale < 1 ? '800px' : '100%',
-                    height: scale < 1 ? `${800 * 1.414}px` : '100%',
+                    width: scale < 1 ? '1000px' : '100%',
+                    height: scale < 1 ? `${1000 * 1.414}px` : '100%',
                     transform: scale < 1 ? `scale(${scale})` : 'none',
                     transformOrigin: 'top center',
                     backgroundColor: 'white',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
                 }}
-                className="relative"
+                className="relative mx-auto"
             >
                 <iframe 
                     src={`${url}#view=FitH&toolbar=0`} 
