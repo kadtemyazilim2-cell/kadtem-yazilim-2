@@ -11,11 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // AlertDialog imports removed
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { deleteCorrespondence as deleteCorrespondenceAction, updateCorrespondence as updateCorrespondenceAction, restoreCorrespondence as restoreCorrespondenceAction, permanentDeleteCorrespondence as permanentDeleteCorrespondenceAction } from '@/actions/correspondence';
 import { useState, useEffect } from 'react';
-import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet, Lock } from "lucide-react";
+import { AlertCircle, FileText, Search, Plus, Filter, Calendar as CalendarIcon, Wallet, Download, Trash2, Edit, Printer, FileDown, Eye, Maximize2, Minimize2, AlignLeft, AlignCenter, AlignRight, Building2, Landmark, AlertTriangle, RotateCcw, Copy, Pencil, FileSpreadsheet, Lock, X as XIcon } from "lucide-react";
 import { CorrespondenceForm } from './CorrespondenceForm';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -951,9 +951,16 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-[100vw] w-screen h-[95vh] p-0 border-none bg-transparent shadow-none">
+                                                    <DialogContent className="max-w-[100vw] w-screen h-[100vh] sm:h-[95vh] p-0 border-none bg-transparent shadow-none flex flex-col">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
-                                                        <div className="h-full w-full bg-white rounded-lg overflow-hidden shadow-2xl">
+                                                        <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden">
+                                                            <DialogClose asChild>
+                                                                <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-slate-900 font-bold shadow-lg">
+                                                                    <XIcon className="w-4 h-4 mr-2" /> Önizlemeyi Kapat
+                                                                </Button>
+                                                            </DialogClose>
+                                                        </div>
+                                                        <div className="flex-1 bg-white rounded-t-lg sm:rounded-lg overflow-hidden shadow-2xl relative">
                                                             <PDFPreview base64={item.attachmentUrls[0]} />
                                                         </div>
                                                     </DialogContent>

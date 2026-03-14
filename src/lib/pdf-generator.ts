@@ -507,8 +507,11 @@ export const generateCorrespondencePDF = async (item: any, companies: any[], use
         const blob = doc.output('blob');
         const url = URL.createObjectURL(blob);
         window.open(url, '_blank');
+        return doc; // Return doc for further internal use if needed
     } else {
-        doc.save(`${(item.subject || 'dokuman').substring(0, 20)}.pdf`);
+        // [MODIFIED] If both preview and save are false, just return the doc/blob
+        // We'll use this for the in-app dialog
+        return doc;
     }
 };
 

@@ -12,8 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, FileText, AlignLeft, AlignCenter, AlignRight, Trash2, Printer, Pencil, Building2, Landmark } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Plus, FileText, AlignLeft, AlignCenter, AlignRight, Trash2, Printer, Pencil, Building2, Landmark, X as XIcon, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { Correspondence } from '@/lib/types';
 import { generateCorrespondencePDF } from '@/lib/pdf-generator';
@@ -24,6 +24,36 @@ import { createCorrespondence, updateCorrespondence } from '@/actions/correspond
 import { createInstitution } from '@/actions/institution';
 import { getCompanyFull } from '@/actions/company'; // [NEW]
 import { toast } from 'sonner';
+
+const PDFPreview = ({ base64 }: { base64: string }) => {
+    const [url, setUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!base64) return;
+        try {
+            const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'application/pdf' });
+            const blobUrl = URL.createObjectURL(blob);
+            setUrl(blobUrl);
+            return () => URL.revokeObjectURL(blobUrl);
+        } catch (e) {
+            console.error("PDF Preview Error:", e);
+            setUrl(null);
+        }
+    }, [base64]);
+
+    if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
+
+    return (
+        <iframe src={url} className="w-full h-full border-0" title="PDF Preview" />
+    );
+};
 
 interface CorrespondenceFormProps {
     customTrigger?: React.ReactNode;
@@ -385,9 +415,28 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
         }
     };
 
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [previewBase64, setPreviewBase64] = useState<string | null>(null);
+
     const handlePreview = async () => {
-        await generateCorrespondencePDF(formData, companies, users, true, companyFull);
+        // [UX] For mobile, use in-app dialog preview
+        if (window.innerWidth < 768) {
+            try {
+                const doc: any = await generateCorrespondencePDF(formData, companies, users, false, companyFull);
+                const base64 = doc.output('datauristring');
+                setPreviewBase64(base64);
+                setIsPreviewOpen(true);
+            } catch (e) {
+                console.error(e);
+                toast.error("Önizleme oluşturulamadı.");
+            }
+        } else {
+            await generateCorrespondencePDF(formData, companies, users, true, companyFull);
+        }
     };
+
+    // Re-defining internal PDFPreview for Form if needed or import from List
+    // Since it's small, let's define a light version or just fix the button
 
     // execCmd moved to SimpleRichTextEditor
 
@@ -907,6 +956,22 @@ export function CorrespondenceForm({ customTrigger, initialType, initialDirectio
                     </DialogFooter>
                 </DialogContent>
             </Dialog >
+
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-[100vw] w-screen h-[100vh] p-0 border-none bg-transparent shadow-none flex flex-col z-[100]">
+                    <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
+                    <div className="flex justify-end p-2 bg-slate-900/50 backdrop-blur-sm sm:hidden">
+                        <DialogClose asChild>
+                            <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-slate-900 font-bold shadow-lg">
+                                <XIcon className="w-4 h-4 mr-2" /> Önizlemeyi Kapat
+                            </Button>
+                        </DialogClose>
+                    </div>
+                    <div className="flex-1 bg-white rounded-t-lg overflow-hidden shadow-2xl relative">
+                        {previewBase64 && <PDFPreview base64={previewBase64} />}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }
