@@ -3,9 +3,11 @@ import { useAuth } from '@/lib/store/use-auth'; // [NEW] - Added import
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { FileText, MapPin, Calendar, User, Eye, Loader2 } from 'lucide-react';
+import { FileText, MapPin, Calendar, User, Eye, Loader2, X as XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { PDFPreview } from '@/components/shared/PDFPreview';
 
 import jsPDF from 'jspdf';
 import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
@@ -22,6 +24,8 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
     const canPrint = user?.role === 'ADMIN' || hasPermission('dashboard', 'EDIT') || hasPermission('dashboard.site-log', 'VIEW'); // [UPDATED] - Allow view permission to print
 
     const [isGenerating, setIsGenerating] = useState<string | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [previewBase64, setPreviewBase64] = useState<string | null>(null);
 
     // Filter Active Sites
     const activeSites = sites.filter(s => s.status === 'ACTIVE' && !s.finalAcceptanceDate);
@@ -220,7 +224,8 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
             });
 
             if (isPreview) {
-                window.open(doc.output('bloburl'), '_blank');
+                setPreviewBase64(doc.output('datauristring'));
+                setIsPreviewOpen(true);
             } else {
                 doc.save(`Santiye_Defteri_${dateStr}.pdf`);
             }
@@ -352,6 +357,33 @@ export function SiteLogSummary({ siteLogEntries, sites, users }: SiteLogSummaryP
                     );
                 })}
             </div>
+
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-none w-full h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[200] translate-x-0 translate-y-0 overflow-hidden m-0">
+                    <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
+                    {/* Floating Close Button */}
+                    <div className="fixed bottom-10 right-10 z-[210] sm:hidden">
+                        <DialogClose asChild>
+                            <Button variant="secondary" size="lg" className="bg-slate-900/90 hover:bg-slate-900 text-white font-bold shadow-2xl rounded-full px-6 h-12 border border-white/30 backdrop-blur-md">
+                                <XIcon className="w-5 h-5 mr-2" /> Kapat
+                            </Button>
+                        </DialogClose>
+                    </div>
+
+                    <div className="h-full w-full relative">
+                        {previewBase64 && <PDFPreview base64={previewBase64} />}
+                        
+                        {/* Desktop Close Button */}
+                        <div className="absolute top-6 right-8 z-[50] hidden sm:block">
+                            <DialogClose asChild>
+                                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 bg-white/80 backdrop-blur hover:bg-white shadow-md border-slate-200">
+                                    <XIcon className="w-5 h-5 text-slate-600" />
+                                </Button>
+                            </DialogClose>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

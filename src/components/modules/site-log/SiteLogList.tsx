@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { Plus, MapPin, Calendar, User as UserIcon, Pencil, Trash2 } from 'lucide-react';
+import { Plus, MapPin, Calendar, User as UserIcon, Pencil, Trash2, FileDown, Loader2, Eye, FileSpreadsheet, FileText, X as XIcon } from 'lucide-react';
+import { PDFPreview } from '@/components/shared/PDFPreview';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import jsPDF from 'jspdf';
-import { FileDown, Loader2, Eye, FileSpreadsheet, FileText } from 'lucide-react'; // Added icons
 import * as XLSX from 'xlsx';
 import autoTable from 'jspdf-autotable';
 import { fontBase64, addTurkishFont } from '@/lib/pdf-font';
@@ -57,6 +57,8 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
 
     const [content, setContent] = useState('');
     const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [previewBase64, setPreviewBase64] = useState<string | null>(null);
 
     const [filterStartDate, setFilterStartDate] = useState('');
     const [filterEndDate, setFilterEndDate] = useState('');
@@ -435,7 +437,8 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
             });
 
             if (isPreview) {
-                window.open(doc.output('bloburl'), '_blank');
+                setPreviewBase64(doc.output('datauristring'));
+                setIsPreviewOpen(true);
             } else {
                 doc.save(`Santiye_Defteri_${dateStr}.pdf`);
             }
@@ -758,6 +761,33 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
                     </div>
                 </CardContent>
             </Card>
+
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-none w-full h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[200] translate-x-0 translate-y-0 overflow-hidden m-0">
+                    <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
+                    {/* Floating Close Button */}
+                    <div className="fixed bottom-10 right-10 z-[210] sm:hidden">
+                        <DialogClose asChild>
+                            <Button variant="secondary" size="lg" className="bg-slate-900/90 hover:bg-slate-900 text-white font-bold shadow-2xl rounded-full px-6 h-12 border border-white/30 backdrop-blur-md">
+                                <XIcon className="w-5 h-5 mr-2" /> Kapat
+                            </Button>
+                        </DialogClose>
+                    </div>
+
+                    <div className="h-full w-full relative">
+                        {previewBase64 && <PDFPreview base64={previewBase64} />}
+                        
+                        {/* Desktop Close Button */}
+                        <div className="absolute top-6 right-8 z-[50] hidden sm:block">
+                            <DialogClose asChild>
+                                <Button variant="outline" size="icon" className="rounded-full h-10 w-10 bg-white/80 backdrop-blur hover:bg-white shadow-md border-slate-200">
+                                    <XIcon className="w-5 h-5 text-slate-600" />
+                                </Button>
+                            </DialogClose>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
