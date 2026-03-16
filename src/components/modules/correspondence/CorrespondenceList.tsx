@@ -47,7 +47,8 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             setUrl(blobUrl);
 
             const updateScale = () => {
-                const screenWidth = window.innerWidth;
+                // Use clientWidth to exclude scrollbar width
+                const screenWidth = document.documentElement.clientWidth;
                 // Use 660px to focus on the text area and eliminate side margins
                 setScale(screenWidth / 660);
             };
@@ -974,10 +975,10 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-none w-screen h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
+                                                    <DialogContent className="max-w-none w-full h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
                                                         {/* Floating Close Button */}
-                                                        <div className="fixed top-6 right-6 z-[120] sm:hidden">
+                                                        <div className="fixed bottom-10 right-10 z-[120] sm:hidden">
                                                             <DialogClose asChild>
                                                                 <Button variant="secondary" size="lg" className="bg-slate-900/90 hover:bg-slate-900 text-white font-bold shadow-2xl rounded-full px-6 h-12 border border-white/30 backdrop-blur-md">
                                                                     <XIcon className="w-5 h-5 mr-2" /> Kapat
