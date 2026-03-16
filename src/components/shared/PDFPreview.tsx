@@ -52,7 +52,7 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
 
     if (isMobile) {
         return (
-            <div className="w-screen h-full bg-white p-0 m-0 overflow-hidden">
+            <div className="w-full h-full bg-white p-0 m-0 overflow-hidden">
                 <iframe 
                     src={`${url}#view=FitW&toolbar=0&navpanes=0`} 
                     className="w-full h-full border-0 block shadow-none" 

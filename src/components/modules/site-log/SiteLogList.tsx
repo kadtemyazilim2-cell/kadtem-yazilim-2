@@ -763,7 +763,7 @@ export function SiteLogList({ siteId: filterSiteId }: { siteId?: string }) {
             </Card>
 
             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <DialogContent className="max-w-none w-screen !max-w-none h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[200] !translate-x-0 !translate-y-0 left-0 top-0 overflow-x-hidden m-0">
+                <DialogContent className="preview-dialog !block max-w-none w-full !max-w-none h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[200] !translate-x-0 !translate-y-0 left-0 top-0 overflow-x-hidden m-0">
                     <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
                     {/* Floating Close Button */}
                     <div className="fixed bottom-10 right-10 z-[210] sm:hidden">
