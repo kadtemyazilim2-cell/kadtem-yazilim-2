@@ -28,11 +28,12 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
             const updateScale = () => {
                 // Use clientWidth instead of innerWidth to exclude potential scrollbar width causing overflow
                 const screenWidth = document.documentElement.clientWidth;
-                const mobile = screenWidth < 768;
+                const mobile = screenWidth < 1024; // Increased threshold to capture tablets and larger orientation mobile views
                 setIsMobile(mobile);
                 if (!mobile) {
                     // Use 660px base to focus on content and eliminate side gaps
-                    setScale(screenWidth / 660);
+                    // Subtract 2px for safe margin against sub-pixel calculation overflow
+                    setScale((screenWidth - 2) / 660);
                 }
             };
             updateScale();
@@ -51,7 +52,7 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
 
     if (isMobile) {
         return (
-            <div className="w-full h-full bg-white p-0 m-0 overflow-hidden">
+            <div className="w-screen h-full bg-white p-0 m-0 overflow-hidden">
                 <iframe 
                     src={`${url}#view=FitW&toolbar=0&navpanes=0`} 
                     className="w-full h-full border-0 block shadow-none" 
