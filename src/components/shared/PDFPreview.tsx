@@ -53,7 +53,7 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
         return (
             <div className="w-full h-full bg-white p-0 m-0 overflow-hidden">
                 <iframe 
-                    src={`${url}#view=FitH&toolbar=0&navpanes=0`} 
+                    src={`${url}#view=FitW&toolbar=0&navpanes=0`} 
                     className="w-full h-full border-0 block shadow-none" 
                     title="PDF Preview" 
                 />
