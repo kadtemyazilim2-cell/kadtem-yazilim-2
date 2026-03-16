@@ -915,7 +915,7 @@ export function CorrespondenceList() {
                                                             Ön İzleme
                                                         </button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="max-w-none w-full h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[100] translate-x-0 translate-y-0 overflow-hidden m-0">
+                                                    <DialogContent className="preview-dialog !block max-w-none w-full !max-w-none h-[100dvh] p-0 border-none bg-white shadow-none fixed inset-0 z-[100] !translate-x-0 !translate-y-0 left-0 top-0 overflow-hidden m-0">
                                                         <DialogTitle className="sr-only">PDF Ön İzleme</DialogTitle>
                                                         {/* Floating Close Button */}
                                                         <div className="fixed bottom-10 right-10 z-[120] sm:hidden">
