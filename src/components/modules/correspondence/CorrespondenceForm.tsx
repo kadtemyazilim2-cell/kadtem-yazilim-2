@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 const PDFPreview = ({ base64 }: { base64: string }) => {
     const [url, setUrl] = useState<string | null>(null);
     const [scale, setScale] = useState(1);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         if (!base64) return;
@@ -46,8 +47,12 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
             const updateScale = () => {
                 // Use clientWidth instead of innerWidth to exclude potential scrollbar width causing overflow
                 const screenWidth = document.documentElement.clientWidth;
-                // Use 660px base to focus on content and eliminate side gaps
-                setScale(screenWidth / 660);
+                const mobile = screenWidth < 768;
+                setIsMobile(mobile);
+                if (!mobile) {
+                    // Use 660px base to focus on content and eliminate side gaps
+                    setScale(screenWidth / 660);
+                }
             };
             updateScale();
             window.addEventListener('resize', updateScale);
@@ -62,6 +67,18 @@ const PDFPreview = ({ base64 }: { base64: string }) => {
     }, [base64]);
 
     if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
+
+    if (isMobile) {
+        return (
+            <div className="w-full h-full bg-white p-0 m-0 overflow-hidden">
+                <iframe 
+                    src={`${url}#view=FitH&toolbar=0&navpanes=0`} 
+                    className="w-full h-full border-0 block shadow-none" 
+                    title="PDF Preview" 
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="w-full h-full bg-white overflow-y-auto overflow-x-hidden p-0 m-0">
