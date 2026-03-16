@@ -238,13 +238,11 @@
     -moz-appearance: textfield;
   }
 
-  /* Exempt full-screen previews from global dialog width restrictions */
-  [role="dialog"].preview-dialog > div,
-  .preview-dialog [data-slot="dialog-content"],
-  .preview-dialog * {
+  /* Surgical override for full-screen previews */
+  [role="dialog"] > .preview-dialog {
     max-width: none !important;
     width: 100% !important;
-    margin: 0 !important;
     padding: 0 !important;
+    gap: 0 !important;
   }
 }

@@ -28,12 +28,13 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
             const updateScale = () => {
                 // Use clientWidth instead of innerWidth to exclude potential scrollbar width causing overflow
                 const screenWidth = document.documentElement.clientWidth;
-                const mobile = screenWidth < 1024;
+                const mobile = screenWidth < 1024; // Increased threshold to capture tablets and larger orientation mobile views
                 setIsMobile(mobile);
-                
-                // Universal scaling: ensure the 660px content always fits the screenWidth
-                // Subtract 2px for safe margin against sub-pixel calculation overflow
-                setScale((screenWidth - 2) / 660);
+                if (!mobile) {
+                    // Use 660px base to focus on content and eliminate side gaps
+                    // Subtract 2px for safe margin against sub-pixel calculation overflow
+                    setScale((screenWidth - 2) / 660);
+                }
             };
             updateScale();
             window.addEventListener('resize', updateScale);
@@ -49,8 +50,20 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
 
     if (!url) return <div className="flex items-center justify-center h-40 text-sm text-slate-500">Önizleme hazırlanıyor...</div>;
 
+    if (isMobile) {
+        return (
+            <div className="w-full h-full bg-white p-0 m-0 overflow-hidden">
+                <iframe 
+                    src={`${url}#view=FitW&toolbar=0&navpanes=0`} 
+                    className="w-full h-full border-0 block shadow-none" 
+                    title="PDF Preview" 
+                />
+            </div>
+        );
+    }
+
     return (
-        <div className="w-full h-full bg-white overflow-hidden p-0 m-0 border-0">
+        <div className="w-full h-full bg-white overflow-y-auto overflow-x-hidden p-0 m-0">
             <div 
                 style={{ 
                     width: '660px',
@@ -60,11 +73,11 @@ export const PDFPreview = ({ base64 }: PDFPreviewProps) => {
                     backgroundColor: 'white',
                     margin: '0 auto'
                 }}
-                className="relative border-0 shadow-none"
+                className="relative"
             >
                 <iframe 
-                    src={`${url}#view=FitW&toolbar=0&navpanes=0`} 
-                    className="w-full h-full border-0 block shadow-none" 
+                    src={`${url}#view=FitH&toolbar=0&navpanes=0`} 
+                    className="w-full h-full border-0 block" 
                     title="PDF Preview" 
                 />
             </div>
