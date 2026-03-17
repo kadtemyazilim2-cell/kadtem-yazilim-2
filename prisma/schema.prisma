@@ -26,6 +26,7 @@ enum Status {
   PASSIVE // For Vehicle
   LEFT // For Personnel
   DELETED // For Correspondence
+  TRAFIKTEN_CEKILDI // For Vehicle
 }
 
 // -----------------------------------------------------------------------------

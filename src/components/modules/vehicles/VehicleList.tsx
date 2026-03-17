@@ -207,7 +207,10 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         return sites.find((s: any) => s.id === vehicle.assignedSiteId)?.name || '-';
     };
 
-    const getExpiryStatus = (dateStr?: string) => {
+    const getExpiryStatus = (dateStr?: string, vehicleStatus?: string) => {
+        if (vehicleStatus === 'TRAFIKTEN_CEKILDI') {
+            return <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-slate-200">Gerekmez</Badge>;
+        }
         if (!dateStr) return null;
         const date = parseISO(dateStr);
         const now = new Date();
@@ -237,7 +240,8 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         ACTIVE: 'Aktif',
         MAINTENANCE: 'Bakımda',
         SOLD: 'Satıldı',
-        PASSIVE: 'Pasif'
+        PASSIVE: 'Pasif',
+        TRAFIKTEN_CEKILDI: 'Trafikten Çekildi'
     };
 
     // Define Sort Order
@@ -1251,7 +1255,12 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                             <div className="space-y-2">
                                 <Label>Durum</Label>
                                 <MultiSelect
-                                    options={[{ label: 'Aktif', value: 'ACTIVE' }, { label: 'Bakımda', value: 'MAINTENANCE' }, { label: 'Pasif', value: 'PASSIVE' }]}
+                                    options={[
+                                        { label: 'Aktif', value: 'ACTIVE' },
+                                        { label: 'Bakımda', value: 'MAINTENANCE' },
+                                        { label: 'Pasif', value: 'PASSIVE' },
+                                        { label: 'Trafikten Çekildi', value: 'TRAFIKTEN_CEKILDI' }
+                                    ]}
                                     selected={filters.status}
                                     onChange={(val: string[]) => setFilters({ ...filters, status: val })}
                                     placeholder="Tümü"
@@ -1435,7 +1444,9 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                             <Badge variant={vehicle.status === 'ACTIVE' ? 'outline' : 'secondary'} className={
                                                 vehicle.status === 'ACTIVE' ? "bg-green-50 text-green-700 border-green-200" :
                                                     vehicle.status === 'MAINTENANCE' ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
-                                                        vehicle.status === 'PASSIVE' ? "bg-red-50 text-red-700 border-red-200" : "bg-gray-50 text-gray-700 border-gray-200"
+                                                        vehicle.status === 'PASSIVE' ? "bg-red-50 text-red-700 border-red-200" :
+                                                            vehicle.status === 'TRAFIKTEN_CEKILDI' ? "bg-slate-50 text-slate-700 border-slate-200" :
+                                                                "bg-gray-50 text-gray-700 border-gray-200"
                                             }>
                                                 {statusMap[vehicle.status] || vehicle.status}
                                             </Badge>
@@ -1489,6 +1500,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'ACTIVE' }, 'Araç aktif hale getirildi.')}>Aktif Yap</DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'MAINTENANCE' }, 'Araç bakıma alındı.')}>Bakıma Al</DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'TRAFIKTEN_CEKILDI' }, 'Araç trafikten çekildi.')}>Trafikten Çekildi</DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleUpdate(vehicle.id, { status: 'PASSIVE' }, 'Araç pasif hale getirildi.')} className="text-red-600">Pasif</DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => handleDeleteVehicle(vehicle)} className="text-red-600 font-bold focus:text-red-600 focus:bg-red-50">
@@ -1559,14 +1571,14 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                                 {formatDateSafe(vehicle.insuranceExpiry)}
                                                                 <Mail className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                             </span>
-                                                            {getExpiryStatus(vehicle.insuranceExpiry)}
+                                                            {getExpiryStatus(vehicle.insuranceExpiry, vehicle.status)}
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col gap-1 p-1">
                                                             <span className="font-medium text-slate-700 flex items-center gap-1">
                                                                 {formatDateSafe(vehicle.insuranceExpiry)}
                                                             </span>
-                                                            {getExpiryStatus(vehicle.insuranceExpiry)}
+                                                            {getExpiryStatus(vehicle.insuranceExpiry, vehicle.status)}
                                                         </div>
                                                     )}
                                                 </TableCell>
@@ -1581,14 +1593,14 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                                 {formatDateSafe(vehicle.kaskoExpiry)}
                                                                 <Mail className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                             </span>
-                                                            {getExpiryStatus(vehicle.kaskoExpiry)}
+                                                            {getExpiryStatus(vehicle.kaskoExpiry, vehicle.status)}
                                                         </div>
                                                     ) : (
                                                         <div className="flex flex-col gap-1 p-1">
                                                             <span className="font-medium text-slate-700 flex items-center gap-1">
                                                                 {formatDateSafe(vehicle.kaskoExpiry)}
                                                             </span>
-                                                            {getExpiryStatus(vehicle.kaskoExpiry)}
+                                                            {getExpiryStatus(vehicle.kaskoExpiry, vehicle.status)}
                                                         </div>
                                                     )}
                                                 </TableCell>
@@ -1601,7 +1613,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                                         {formatDateSafe(vehicle.inspectionExpiry)}
                                                                         <CalendarIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                     </span>
-                                                                    {getExpiryStatus(vehicle.inspectionExpiry)}
+                                                                    {getExpiryStatus(vehicle.inspectionExpiry, vehicle.status)}
                                                                 </div>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-auto p-0" align="start">
@@ -1650,7 +1662,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                     ) : (
                                                         <div className="flex flex-col gap-1">
                                                             <span className="font-medium text-slate-700">{formatDateSafe(vehicle.inspectionExpiry)}</span>
-                                                            {getExpiryStatus(vehicle.inspectionExpiry)}
+                                                            {getExpiryStatus(vehicle.inspectionExpiry, vehicle.status)}
                                                         </div>
                                                     )}
                                                 </TableCell>
@@ -1663,7 +1675,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                                         {formatDateSafe(vehicle.vehicleCardExpiry)}
                                                                         <CalendarIcon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                     </span>
-                                                                    {getExpiryStatus(vehicle.vehicleCardExpiry)}
+                                                                    {getExpiryStatus(vehicle.vehicleCardExpiry, vehicle.status)}
                                                                 </div>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-auto p-0" align="start">
@@ -1702,7 +1714,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                     ) : (
                                                         <div className="flex flex-col gap-1">
                                                             <span className="font-medium text-slate-700">{formatDateSafe(vehicle.vehicleCardExpiry)}</span>
-                                                            {getExpiryStatus(vehicle.vehicleCardExpiry)}
+                                                            {getExpiryStatus(vehicle.vehicleCardExpiry, vehicle.status)}
                                                         </div>
                                                     )}
                                                 </TableCell>
@@ -1791,7 +1803,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
                                                 <TableCell>
                                                     <div className="flex flex-col items-center">
                                                         <span>{formatDateSafe(policy.endDate)}</span>
-                                                        {!policy.isHistory && getExpiryStatus(policy.endDate)}
+                                                        {!policy.isHistory && getExpiryStatus(policy.endDate, policy.originalVehicle?.status)}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>

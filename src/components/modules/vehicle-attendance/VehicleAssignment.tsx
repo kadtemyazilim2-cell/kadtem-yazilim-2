@@ -58,7 +58,7 @@ export function VehicleAssignment() {
     const assignedVehicles = useMemo(() => {
         if (!selectedSiteId) return [];
         let list = vehicles.filter((v: any) => {
-            if (v.status === 'PASSIVE') return false;
+            if (v.status === 'PASSIVE' || v.status === 'TRAFIKTEN_CEKILDI') return false;
             return (v.assignedSiteIds?.includes(selectedSiteId)) || (v.assignedSiteId === selectedSiteId);
         });
 
@@ -80,7 +80,7 @@ export function VehicleAssignment() {
     const availableVehicles = useMemo(() => {
         if (!selectedSiteId) return [];
         let list = vehicles.filter((v: any) => {
-            if (v.status === 'PASSIVE') return false;
+            if (v.status === 'PASSIVE' || v.status === 'TRAFIKTEN_CEKILDI') return false;
             const isAssignedHere = (v.assignedSiteIds?.includes(selectedSiteId)) || (v.assignedSiteId === selectedSiteId);
             return !isAssignedHere;
         });

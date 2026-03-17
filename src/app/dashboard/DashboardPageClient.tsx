@@ -335,7 +335,7 @@ export function DashboardPageClient() {
         const alerts: any[] = [];
 
         vehicles.forEach((v: any) => {
-            if (v.status === 'SOLD' || v.status === 'PASSIVE') return;
+            if (v.status === 'SOLD' || v.status === 'PASSIVE' || v.status === 'TRAFIKTEN_CEKILDI') return;
             if (v.ownership === 'RENTAL') return;
 
             if (v.insuranceExpiry) {

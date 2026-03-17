@@ -36,7 +36,7 @@ interface VehicleFormData {
     ownership: 'OWNED' | 'RENTAL';
     meterType: 'KM' | 'HOURS';
     currentKm: number | ''; // [MODIFIED] Allow empty string for UI
-    status: 'ACTIVE' | 'PASSIVE' | 'SOLD' | 'PERT';
+    status: 'ACTIVE' | 'PASSIVE' | 'SOLD' | 'PERT' | 'TRAFIKTEN_CEKILDI' | 'MAINTENANCE';
 
     // Dates as strings for Input type="date"
     insuranceExpiry: string;

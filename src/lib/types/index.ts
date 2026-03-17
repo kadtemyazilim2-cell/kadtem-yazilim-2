@@ -138,7 +138,7 @@ export interface Vehicle {
   kaskoCost?: number; // [NEW] Kasko Tutarı
   definition?: string; // [NEW] Cinsi (e.g. Kamyon, Tır, Binek - more specific text)
   insuranceHistory?: InsuranceRecord[]; // [NEW] Past records
-  status: 'ACTIVE' | 'MAINTENANCE' | 'SOLD' | 'PASSIVE';
+  status: 'ACTIVE' | 'MAINTENANCE' | 'SOLD' | 'PASSIVE' | 'TRAFIKTEN_CEKILDI';
   assignedSiteId?: string; // Where is it currently working?
   assignedSiteIds?: string[]; // [NEW] Multiple sites assignment
   ownership: 'OWNED' | 'RENTAL'; // [NEW] Owned or Rental
