@@ -28,6 +28,7 @@ import autoTable from 'jspdf-autotable';
 import { fontBase64 } from '@/lib/pdf-font';
 import { differenceInDays, differenceInCalendarDays, differenceInCalendarMonths } from 'date-fns';
 import { getPersonnelWithAttendance, createPersonnel, updatePersonnel, deletePersonnel, upsertSalaryAdjustment } from '@/actions/personnel';
+import PersonnelAssignment from '@/components/modules/personnel-attendance/PersonnelAssignment';
 
 
 
@@ -2175,9 +2176,10 @@ export default function NewPage() {
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:w-[700px]">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:w-[900px]">
                     <TabsTrigger value="grid" className="gap-1 text-xs sm:text-sm">Puantaj Tablosu</TabsTrigger>
                     {canViewSalary && <TabsTrigger value="salary-list" className="gap-1 text-xs sm:text-sm">Maaş Tablosu</TabsTrigger>}
+                    <TabsTrigger value="assignments" className="gap-1 text-xs sm:text-sm">Atamalar</TabsTrigger>
                     {canViewAllPersonnel && <TabsTrigger value="site-list" className="gap-1 text-xs sm:text-sm">Şantiye Personel</TabsTrigger>}
                     {canViewAllPersonnel && <TabsTrigger value="all-list" className="gap-1 text-xs sm:text-sm">Tüm Personel</TabsTrigger>}
                 </TabsList>
@@ -2421,7 +2423,9 @@ export default function NewPage() {
                     </div>
                 </TabsContent>
 
-
+                <TabsContent value="assignments">
+                    <PersonnelAssignment />
+                </TabsContent>
 
                 <TabsContent value="site-list">
                     <Card>
