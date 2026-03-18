@@ -271,6 +271,7 @@ export interface Personnel {
   tcNumber: string; // [NEW] 11 digits
   profession: string; // [NEW] Mesleği
   salary: number; // [NEW] Maaş
+  assignedSites?: { id: string }[]; // [NEW] Relation array returned by DB
   assignedSiteIds?: string[]; // [NEW] Multi-site support
   siteId: string | null; // [MODIFIED] Allow null
   category: 'TECHNICAL' | 'FIELD'; // [NEW] Personel Grubu: Teknik veya Saha

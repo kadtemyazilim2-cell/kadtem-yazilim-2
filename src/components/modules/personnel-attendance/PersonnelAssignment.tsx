@@ -38,7 +38,9 @@ export default function PersonnelAssignment() {
         return personnel
             .filter(p => {
                 // Not assigned to selected site
-                const isAssignedToThis = p.assignedSiteIds?.includes(selectedSiteId) || p.siteId === selectedSiteId;
+                const isAssignedToThis = p.assignedSiteIds?.includes(selectedSiteId) ||
+                                         p.assignedSites?.some((s: any) => s.id === selectedSiteId) ||
+                                         p.siteId === selectedSiteId;
                 if (isAssignedToThis) return false;
 
                 // Status check (Active only?)
@@ -59,7 +61,9 @@ export default function PersonnelAssignment() {
         if (!selectedSiteId) return [];
         return personnel
             .filter(p => {
-                const isAssigned = p.assignedSiteIds?.includes(selectedSiteId) || p.siteId === selectedSiteId;
+                const isAssigned = p.assignedSiteIds?.includes(selectedSiteId) ||
+                                   p.assignedSites?.some((s: any) => s.id === selectedSiteId) ||
+                                   p.siteId === selectedSiteId;
                 return isAssigned && p.status !== 'LEFT';
             })
             .sort((a, b) => a.fullName.localeCompare(b.fullName, 'tr-TR'));

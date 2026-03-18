@@ -128,6 +128,7 @@ export const useAppStore = create<AppState>()(
             addPersonnelToSite: (personnelIds, siteId) => set((state) => ({
                 personnel: state.personnel.map(p => personnelIds.includes(p.id) ? {
                     ...p,
+                    assignedSites: Array.from(new Map([...(p.assignedSites || []), { id: siteId }].map(item => [item.id, item])).values()),
                     assignedSiteIds: Array.from(new Set([...(p.assignedSiteIds || []), siteId])),
                     siteId: siteId // Update primary site for display focus
                 } : p)
@@ -135,8 +136,9 @@ export const useAppStore = create<AppState>()(
             removePersonnelFromSite: (personnelIds, siteId) => set((state) => ({
                 personnel: state.personnel.map(p => personnelIds.includes(p.id) ? {
                     ...p,
+                    assignedSites: (p.assignedSites || []).filter(s => s.id !== siteId),
                     assignedSiteIds: (p.assignedSiteIds || []).filter(id => id !== siteId),
-                    // If removing from primary site, unset primary? or keep logic simple
+                    // Only unset siteId if it matches the one being removed
                     siteId: p.siteId === siteId ? null : p.siteId
                 } : p)
             })),
