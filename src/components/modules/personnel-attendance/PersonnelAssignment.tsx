@@ -156,7 +156,83 @@ export default function PersonnelAssignment() {
 
             {selectedSiteId && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-220px)] min-h-[600px]">
-                    {/* LEFT: Assigned Personnel */}
+                    {/* LEFT: Available Personnel */}
+                    <Card className="flex flex-col h-full border-dashed border-2">
+                        <CardHeader className="pb-3 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <Users className="w-4 h-4 text-emerald-600" />
+                                    Boştaki / Diğer Personel
+                                    <Badge variant="secondary" className="ml-2">{availablePersonnel.length}</Badge>
+                                </CardTitle>
+                            </div>
+                            <div className="relative mt-2">
+                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Personel ara (İsim, TC, Görev)..."
+                                    className="pl-9"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
+                            <div className="flex-1 overflow-y-auto">
+                                <Table>
+                                    <TableHeader className="bg-muted/50 sticky top-0 z-10 transition-none">
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead>Personel Bilgisi</TableHead>
+                                            <TableHead className="text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {availablePersonnel.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={2} className="h-40 text-center text-muted-foreground">
+                                                    <div className="flex flex-col items-center justify-center opacity-50">
+                                                        <Filter className="w-8 h-8 mb-2" />
+                                                        <p>Eşleşen personel bulunamadı.</p>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            availablePersonnel.map(person => {
+                                                const currentSiteName = getSiteName(person.siteId);
+                                                return (
+                                                    <TableRow key={person.id} className="hover:bg-slate-50">
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-semibold text-slate-800">{person.fullName}</span>
+                                                                <span className="text-xs text-muted-foreground">{person.role || person.profession || 'Belirtilmemiş'} • TC Sonu: {person.tcNumber?.slice(-4) || '***'}</span>
+                                                                {currentSiteName && (
+                                                                    <div className="mt-1 flex items-center gap-1 text-[11px] text-blue-600 bg-blue-50 w-fit px-1.5 py-0.5 rounded">
+                                                                        <MapPin className="w-3 h-3" />
+                                                                        {currentSiteName}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleAssign([person.id])}
+                                                                disabled={loadingIds[person.id]}
+                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white w-20"
+                                                            >
+                                                                {loadingIds[person.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ata"}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* RIGHT: Assigned Personnel */}
                     <Card className="flex flex-col h-full border-solid border-2 border-primary/20 shadow-md">
                         <CardHeader className="pb-3 bg-primary/5">
                             <div className="flex items-center justify-between">
@@ -221,82 +297,6 @@ export default function PersonnelAssignment() {
                                                                 className="w-16"
                                                             >
                                                                 {loadingIds[person.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : "Çıkar"}
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                );
-                                            })
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* RIGHT: Available Personnel */}
-                    <Card className="flex flex-col h-full border-dashed border-2">
-                        <CardHeader className="pb-3 bg-muted/30">
-                            <div className="flex items-center justify-between">
-                                <CardTitle className="text-base flex items-center gap-2">
-                                    <Users className="w-4 h-4 text-emerald-600" />
-                                    Boştaki / Diğer Personel
-                                    <Badge variant="secondary" className="ml-2">{availablePersonnel.length}</Badge>
-                                </CardTitle>
-                            </div>
-                            <div className="relative mt-2">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    placeholder="Personel ara (İsim, TC, Görev)..."
-                                    className="pl-9"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-                            <div className="flex-1 overflow-y-auto">
-                                <Table>
-                                    <TableHeader className="bg-muted/50 sticky top-0 z-10 transition-none">
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableHead>Personel Bilgisi</TableHead>
-                                            <TableHead className="text-right">İşlem</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {availablePersonnel.length === 0 ? (
-                                            <TableRow>
-                                                <TableCell colSpan={2} className="h-40 text-center text-muted-foreground">
-                                                    <div className="flex flex-col items-center justify-center opacity-50">
-                                                        <Filter className="w-8 h-8 mb-2" />
-                                                        <p>Eşleşen personel bulunamadı.</p>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ) : (
-                                            availablePersonnel.map(person => {
-                                                const currentSiteName = getSiteName(person.siteId);
-                                                return (
-                                                    <TableRow key={person.id} className="hover:bg-slate-50">
-                                                        <TableCell>
-                                                            <div className="flex flex-col">
-                                                                <span className="font-semibold text-slate-800">{person.fullName}</span>
-                                                                <span className="text-xs text-muted-foreground">{person.role || person.profession || 'Belirtilmemiş'} • TC Sonu: {person.tcNumber?.slice(-4) || '***'}</span>
-                                                                {currentSiteName && (
-                                                                    <div className="mt-1 flex items-center gap-1 text-[11px] text-blue-600 bg-blue-50 w-fit px-1.5 py-0.5 rounded">
-                                                                        <MapPin className="w-3 h-3" />
-                                                                        {currentSiteName}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => handleAssign([person.id])}
-                                                                disabled={loadingIds[person.id]}
-                                                                className="bg-emerald-600 hover:bg-emerald-700 text-white w-20"
-                                                            >
-                                                                {loadingIds[person.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : "Ata"}
                                                             </Button>
                                                         </TableCell>
                                                     </TableRow>
