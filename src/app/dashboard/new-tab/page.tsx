@@ -55,7 +55,6 @@ type IndependentPerson = {
     status?: string; // ACTIVE, LEFT etc.
     inputDate?: string; // yyyy-MM-dd
     transferOutDate?: string; // yyyy-MM-dd (Locked after this date)
-    transferInDate?: string; // [NEW] yyyy-MM-dd (Date when person arrived at this site via transfer)
     attendance: Record<string, AttendanceRecord>;
     salaryHistory?: { amount: string; date: string }[];
     salaryAdjustments?: Record<string, { // key: yyyy-MM
@@ -426,22 +425,6 @@ export default function NewPage() {
                             });
                         }
 
-                        // [NEW] Compute transferInDate: if person's current siteId matches selected site,
-                        // find the last date with attendance at a DIFFERENT site to determine when they arrived
-                        let transferInDate: string | undefined = undefined;
-                        if (p.siteId === targetSiteId) {
-                            const otherSiteDates = Object.entries(attendanceMap)
-                                .filter(([_, r]) => r.siteId && r.siteId !== targetSiteId)
-                                .map(([k]) => k)
-                                .sort();
-                            if (otherSiteDates.length > 0) {
-                                // The day AFTER the last other-site attendance = transfer-in date
-                                const lastOtherDate = new Date(otherSiteDates[otherSiteDates.length - 1]);
-                                lastOtherDate.setDate(lastOtherDate.getDate() + 1);
-                                transferInDate = format(lastOtherDate, 'yyyy-MM-dd');
-                            }
-                        }
-
                         return {
                             id: p.id,
                             siteId: p.siteId || '',
@@ -456,7 +439,6 @@ export default function NewPage() {
                             status: p.status || 'ACTIVE',
                             inputDate: p.startDate ? format(new Date(p.startDate), 'yyyy-MM-dd') : undefined,
                             transferOutDate: p.leftDate ? format(new Date(p.leftDate), 'yyyy-MM-dd') : undefined,
-                            transferInDate,
                             attendance: attendanceMap,
                             salaryHistory: p.salaryHistory || [],
                             salaryAdjustments: adjMap,
@@ -1015,26 +997,6 @@ export default function NewPage() {
         if (!canEditAttendance) return false;
 
         const targetKey = format(targetDate, 'yyyy-MM-dd');
-
-        // [NEW] Transfer-In Lock: Days BEFORE the person arrived at this site are not editable
-        if (person.transferInDate && targetKey < person.transferInDate) {
-            return false;
-        }
-
-        // Check if person is active at this site (primary OR assigned)
-        const isPrimarySite = person.siteId === selectedSiteId;
-        const isAssignedSite = person.assignedSites?.some((s: any) => s.id === selectedSiteId);
-        const isActiveAtSite = isPrimarySite || isAssignedSite;
-
-        // [NEW] Transferred-Out Lock: If person is NOT active at this site,
-        // only allow editing days where they HAVE attendance at THIS site
-        if (!isActiveAtSite && selectedSiteId) {
-            const existingRecord = person.attendance[targetKey];
-            // Only allow editing existing records at this site, not creating new ones after they left
-            if (!existingRecord || existingRecord.siteId !== selectedSiteId) {
-                return false;
-            }
-        }
 
         // Check Transfer Lock (leftDate-based)
         if (person.transferOutDate) {
@@ -2345,13 +2307,9 @@ export default function NewPage() {
 
                                                     // [NEW] Transfer-aware: check if this day's record belongs to another site
                                                     const isOtherSiteRecord = record?.siteId && selectedSiteId && record.siteId !== selectedSiteId;
-                                                    // Days before transferInDate at this site = other site days (show airplane)
-                                                    const isPreTransferDay = person.transferInDate && dateKey < person.transferInDate;
-                                                    // Person has left this site (their current siteId differs)
-                                                    const isPostTransferDay = person.siteId !== selectedSiteId && selectedSiteId && !record;
 
                                                     // Sequential Logic:
-                                                    const showLine = !record && isExited && !isPreTransferDay && !isPostTransferDay;
+                                                    const showLine = !record && isExited;
                                                     const isStartDate = person.inputDate === dateKey;
 
                                                     // Update State for NEXT iteration (or subsequent empty cells)
@@ -2375,10 +2333,6 @@ export default function NewPage() {
                                                     if (isOtherSiteRecord) {
                                                         cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
                                                         cellClass = "bg-slate-50 cursor-default";
-                                                    } else if (isPreTransferDay || isPostTransferDay) {
-                                                        // Days before transfer or after leaving: locked/dash
-                                                        cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300">—</div>;
-                                                        cellClass = "bg-gray-100 cursor-default";
                                                     } else if (showLine) {
                                                         cellContent = <div className="w-full h-full flex items-center justify-center"><div className="w-full h-[2px] bg-red-400"></div></div>;
                                                     } else {
