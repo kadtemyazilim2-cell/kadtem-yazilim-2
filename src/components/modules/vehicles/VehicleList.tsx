@@ -167,7 +167,7 @@ export function VehicleList({ currentUser }: { currentUser?: any }) {
         model: [] as string[],
         year: [] as string[],
         type: [] as string[],
-        status: ['ACTIVE'] as string[],
+        status: ['ACTIVE', 'TRAFIKTEN_CEKILDI'] as string[],
         insuranceAgency: [] as string[],
         kaskoAgency: [] as string[],
         insuranceCompany: [] as string[],

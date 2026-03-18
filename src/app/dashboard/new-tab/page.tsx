@@ -2120,9 +2120,9 @@ export default function NewPage() {
 
         // Collect all notes for the current view as table rows
         const noteRows: any[][] = [];
-        filteredNames.forEach(p => {
-            days.forEach(d => {
-                const dateKey = format(d, 'yyyy-MM-dd');
+        days.forEach(d => {
+            const dateKey = format(d, 'yyyy-MM-dd');
+            filteredNames.forEach(p => {
                 const record = p.attendance[dateKey];
                 if (record && (record.note || record.overtime)) {
                     noteRows.push([
@@ -2825,25 +2825,7 @@ export default function NewPage() {
                                                                         <Pencil className="w-3.5 h-3.5" />
                                                                     </Button>
                                                                 )}
-                                                                {canTransfer && (
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-7 w-7 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                                                                        title="Şantiye Ata"
-                                                                        onClick={() => {
-                                                                            setTransferData({
-                                                                                personId: p.id,
-                                                                                targetSiteId: '',
-                                                                                transferDate: new Date(),
-                                                                                mode: 'move'
-                                                                            });
-                                                                            setIsTransferOpen(true);
-                                                                        }}
-                                                                    >
-                                                                        <ArrowRightLeft className="w-3.5 h-3.5" />
-                                                                    </Button>
-                                                                )}
+                                                                {canTransfer && null}
                                                                 {canEditPersonnel && (
                                                                     <Button
                                                                         variant="ghost"

@@ -1095,11 +1095,11 @@ export function PersonnelList() {
         // Render details, using grouped list to maintain order
         const allOrdered = [...groupedPersonnel.technical, ...groupedPersonnel.field];
 
-        allOrdered.forEach((p: any) => {
-            daysInMonth.forEach((day: any) => {
+        daysInMonth.forEach((day: any) => {
+            const dateStr = format(day, 'dd.MM.yyyy');
+            allOrdered.forEach((p: any) => {
                 const record = getStatusForDate(p.id, day);
                 if (record && (record.note || (record.overtime && record.overtime > 0))) {
-                    const dateStr = format(day, 'dd.MM.yyyy');
                     let detail = `${p.fullName} - ${dateStr}: `;
                     if (record.note) detail += `${record.note} `;
                     if (record.overtime) detail += `(${record.overtime} sa. Mesai)`;
