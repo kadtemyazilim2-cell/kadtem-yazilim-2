@@ -11,13 +11,15 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
-    ArrowRight,
     ArrowLeft,
     Search,
     Users,
     MapPin,
     Briefcase,
-    Filter
+    Filter,
+    Plus,
+    X,
+    Loader2
 } from 'lucide-react';
 import { addPersonnelToSite, removePersonnelFromSite } from '@/actions/personnel';
 import { toast } from 'sonner';
@@ -28,6 +30,7 @@ export default function PersonnelAssignment() {
     const [search, setSearch] = useState('');
     const [selectedAvailable, setSelectedAvailable] = useState<string[]>([]);
     const [selectedAssigned, setSelectedAssigned] = useState<string[]>([]);
+    const [loadingIds, setLoadingIds] = useState<Record<string, boolean>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Filter Logic
@@ -63,41 +66,53 @@ export default function PersonnelAssignment() {
     }, [personnel, selectedSiteId]);
 
     // Handlers
-    const handleAssign = async () => {
-        if (!selectedSiteId || selectedAvailable.length === 0) return;
-        setIsSubmitting(true);
+    const handleAssign = async (ids?: string[]) => {
+        const targetIds = ids || selectedAvailable;
+        if (!selectedSiteId || targetIds.length === 0) return;
+
+        if (!ids) setIsSubmitting(true);
+        else setLoadingIds(prev => ({ ...prev, [ids[0]]: true }));
+
         try {
-            const result = await addPersonnelToSite(selectedAvailable, selectedSiteId);
+            const result = await addPersonnelToSite(targetIds, selectedSiteId);
             if (result.success) {
-                updateStoreAdd(selectedAvailable, selectedSiteId);
-                toast.success(`${selectedAvailable.length} personel şantiyeye atandı.`);
-                setSelectedAvailable([]);
+                updateStoreAdd(targetIds, selectedSiteId);
+                toast.success(`${targetIds.length} personel şantiyeye atandı.`);
+                if (!ids) setSelectedAvailable([]);
             } else {
                 toast.error(result.error);
             }
         } catch (error) {
             toast.error('Atama sırasında hata oluştu.');
         } finally {
-            setIsSubmitting(false);
+            if (!ids) setIsSubmitting(false);
+            else setLoadingIds(prev => ({ ...prev, [ids[0]]: false }));
         }
     };
 
-    const handleRemove = async () => {
-        if (!selectedSiteId || selectedAssigned.length === 0) return;
-        setIsSubmitting(true);
+    const handleRemove = async (ids?: string[]) => {
+        const targetIds = ids || selectedAssigned;
+        if (!selectedSiteId || targetIds.length === 0) return;
+
+        if (ids && !confirm('Personeli şantiyeden çıkarmak istediğinize emin misiniz?')) return;
+
+        if (!ids) setIsSubmitting(true);
+        else setLoadingIds(prev => ({ ...prev, [ids[0]]: true }));
+
         try {
-            const result = await removePersonnelFromSite(selectedAssigned, selectedSiteId);
+            const result = await removePersonnelFromSite(targetIds, selectedSiteId);
             if (result.success) {
-                updateStoreRemove(selectedAssigned, selectedSiteId);
-                toast.success(`${selectedAssigned.length} personel şantiyeden çıkarıldı.`);
-                setSelectedAssigned([]);
+                updateStoreRemove(targetIds, selectedSiteId);
+                toast.success(`${targetIds.length} personel şantiyeden çıkarıldı.`);
+                if (!ids) setSelectedAssigned([]);
             } else {
                 toast.error(result.error);
             }
         } catch (error) {
             toast.error('Çıkarma sırasında hata oluştu.');
         } finally {
-            setIsSubmitting(false);
+            if (!ids) setIsSubmitting(false);
+            else setLoadingIds(prev => ({ ...prev, [ids[0]]: false }));
         }
     };
 
@@ -170,9 +185,9 @@ export default function PersonnelAssignment() {
                                     <Badge variant="secondary" className="ml-2">{availablePersonnel.length}</Badge>
                                 </CardTitle>
                                 {selectedAvailable.length > 0 && (
-                                    <Button size="sm" onClick={handleAssign} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                                        Seçilenleri Ekle ({selectedAvailable.length})
-                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    <Button size="sm" onClick={() => handleAssign()} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                                        Ekle ({selectedAvailable.length})
+                                        <Plus className="w-4 h-4 ml-2" />
                                     </Button>
                                 )}
                             </div>
@@ -187,153 +202,161 @@ export default function PersonnelAssignment() {
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-                            {/* Header Row */}
-                            <div className="flex items-center p-3 border-b bg-muted/50 text-xs font-medium text-muted-foreground">
-                                <div className="w-8 flex justify-center">
-                                    <Checkbox
-                                        checked={availablePersonnel.length > 0 && selectedAvailable.length === availablePersonnel.length}
-                                        onCheckedChange={selectAllAvailable}
-                                    />
-                                </div>
-                                <div className="flex-1 px-2">Personel Bilgisi</div>
-                                <div className="w-24 text-right px-2">Görev</div>
-                            </div>
-
-                            {/* Scrollable List */}
                             <div className="flex-1 overflow-y-auto">
-                                {availablePersonnel.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 p-8 text-center">
-                                        <Filter className="w-8 h-8 mb-2" />
-                                        <p>Eşleşen personel bulunamadı.</p>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y relative">
-                                        {availablePersonnel.map(person => {
-                                            const isSelected = selectedAvailable.includes(person.id);
-                                            // Determine current location badge
-                                            const currentSiteName = getSiteName(person.siteId);
-
-                                            // Handle case where assignedSiteIds might be empty but siteId is set
-                                            // If siteId is set and matches a site Name, show it.
-
-                                            return (
-                                                <div
-                                                    key={person.id}
-                                                    onClick={() => toggleAvailable(person.id)}
-                                                    className={`
-                                                        flex items-center p-3 hover:bg-accent/50 cursor-pointer transition-colors text-sm
-                                                        ${isSelected ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30' : ''}
-                                                    `}
-                                                >
-                                                    <div className="w-8 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                                                        <Checkbox
-                                                            checked={isSelected}
-                                                            onCheckedChange={() => toggleAvailable(person.id)}
-                                                        />
+                                <Table>
+                                    <TableHeader className="bg-muted/50 sticky top-0 z-10 transition-none">
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead className="w-10">
+                                                <Checkbox
+                                                    checked={availablePersonnel.length > 0 && selectedAvailable.length === availablePersonnel.length}
+                                                    onCheckedChange={selectAllAvailable}
+                                                />
+                                            </TableHead>
+                                            <TableHead>Personel Bilgisi</TableHead>
+                                            <TableHead className="text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {availablePersonnel.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="h-40 text-center text-muted-foreground">
+                                                    <div className="flex flex-col items-center justify-center opacity-50">
+                                                        <Filter className="w-8 h-8 mb-2" />
+                                                        <p>Eşleşen personel bulunamadı.</p>
                                                     </div>
-                                                    <div className="flex-1 px-2 min-w-0">
-                                                        <div className="font-medium truncate  flex items-center gap-2">
-                                                            {person.fullName}
-                                                            {/* Show Location Badge if they are officially somewhere else */}
-                                                            {currentSiteName && person.siteId !== selectedSiteId && (
-                                                                <Badge variant="outline" className="text-[10px] h-4 px-1 bg-yellow-50 text-yellow-700 border-yellow-200">
-                                                                    {currentSiteName}
-                                                                </Badge>
-                                                            )}
-                                                            {/* Show Assigned Count Badge if > 0 */}
-                                                            {person.assignedSiteIds && person.assignedSiteIds.length > 0 && (
-                                                                <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                                                                    +{person.assignedSiteIds.length} Site
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground truncate flex items-center gap-2">
-                                                            <span>{person.tcNumber || 'TC Yok'}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="w-24 text-right px-2 text-xs text-muted-foreground truncate">
-                                                        {person.role}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            availablePersonnel.map(person => {
+                                                const isSelected = selectedAvailable.includes(person.id);
+                                                const currentSiteName = getSiteName(person.siteId);
+                                                return (
+                                                    <TableRow
+                                                        key={person.id}
+                                                        className={`cursor-pointer ${isSelected ? 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/30' : ''}`}
+                                                        onClick={() => toggleAvailable(person.id)}
+                                                    >
+                                                        <TableCell onClick={(e) => e.stopPropagation()}>
+                                                            <Checkbox
+                                                                checked={isSelected}
+                                                                onCheckedChange={() => toggleAvailable(person.id)}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-medium">{person.fullName}</span>
+                                                                    {currentSiteName && person.siteId !== selectedSiteId && (
+                                                                        <Badge variant="outline" className="text-[10px] h-4 px-1 bg-yellow-50 text-yellow-700 border-yellow-200">
+                                                                            {currentSiteName}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
+                                                                <span className="text-xs text-muted-foreground">{person.role}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-16 bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                                                onClick={() => handleAssign([person.id])}
+                                                                disabled={loadingIds[person.id]}
+                                                            >
+                                                                {loadingIds[person.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : "Ekle"}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* RIGHT: Assigned Personnel */}
-                    <Card className="flex flex-col h-full bg-muted/10 border-2 border-primary/20">
-                        <CardHeader className="pb-3 bg-primary/5">
+                    <Card className="flex flex-col h-full border-primary/20 bg-primary/5">
+                        <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
                                 <CardTitle className="text-base flex items-center gap-2">
                                     <MapPin className="w-4 h-4 text-primary" />
                                     Şantiyedeki Personeller
-                                    <Badge className="ml-2">{assignedPersonnel.length}</Badge>
+                                    <Badge className="ml-2 bg-primary/20 text-primary-foreground">{assignedPersonnel.length}</Badge>
                                 </CardTitle>
                                 {selectedAssigned.length > 0 && (
-                                    <Button size="sm" variant="destructive" onClick={handleRemove} disabled={isSubmitting}>
-                                        <ArrowLeft className="w-4 h-4 mr-2" />
+                                    <Button size="sm" variant="destructive" onClick={() => handleRemove()} disabled={isSubmitting}>
                                         Çıkar ({selectedAssigned.length})
+                                        <X className="w-4 h-4 ml-2" />
                                     </Button>
                                 )}
                             </div>
-                            <div className="h-9"></div> {/* Spacer to check match height with search input */}
+                            <div className="h-9"></div> {/* Alignment spacer */}
                         </CardHeader>
                         <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-                            {/* Header Row */}
-                            <div className="flex items-center p-3 border-b bg-muted/50 text-xs font-medium text-muted-foreground">
-                                <div className="w-8 flex justify-center">
-                                    <Checkbox
-                                        checked={assignedPersonnel.length > 0 && selectedAssigned.length === assignedPersonnel.length}
-                                        onCheckedChange={selectAllAssigned}
-                                    />
-                                </div>
-                                <div className="flex-1 px-2">Personel Bilgisi</div>
-                                <div className="w-24 text-right px-2">Durum</div>
-                            </div>
-
-                            {/* Scrollable List */}
                             <div className="flex-1 overflow-y-auto">
-                                {assignedPersonnel.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground opacity-50 p-8 text-center">
-                                        <Briefcase className="w-8 h-8 mb-2" />
-                                        <p>Bu şantiyede atanmış personel yok.</p>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y">
-                                        {assignedPersonnel.map(person => {
-                                            const isSelected = selectedAssigned.includes(person.id);
-                                            return (
-                                                <div
-                                                    key={person.id}
-                                                    onClick={() => toggleAssigned(person.id)}
-                                                    className={`
-                                                        flex items-center p-3 hover:bg-accent/50 cursor-pointer transition-colors text-sm
-                                                        ${isSelected ? 'bg-destructive/10' : ''}
-                                                    `}
-                                                >
-                                                    <div className="w-8 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                                                        <Checkbox
-                                                            checked={isSelected}
-                                                            onCheckedChange={() => toggleAssigned(person.id)}
-                                                        />
+                                <Table>
+                                    <TableHeader className="bg-primary/5 sticky top-0 z-10 transition-none">
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead className="w-10">
+                                                <Checkbox
+                                                    checked={assignedPersonnel.length > 0 && selectedAssigned.length === assignedPersonnel.length}
+                                                    onCheckedChange={selectAllAssigned}
+                                                />
+                                            </TableHead>
+                                            <TableHead>Personel Bilgisi</TableHead>
+                                            <TableHead className="text-right">İşlem</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {assignedPersonnel.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="h-40 text-center text-muted-foreground">
+                                                    <div className="flex flex-col items-center justify-center opacity-50">
+                                                        <Briefcase className="w-8 h-8 mb-2" />
+                                                        <p>Bu şantiyede atanmış personel yok.</p>
                                                     </div>
-                                                    <div className="flex-1 px-2 min-w-0">
-                                                        <div className="font-medium truncate">{person.fullName}</div>
-                                                        <div className="text-xs text-muted-foreground">{person.role}</div>
-                                                    </div>
-                                                    <div className="w-24 text-right px-2 text-xs">
-                                                        <Badge variant="outline" className="border-green-200 text-green-700 bg-green-50">
-                                                            Aktif
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            assignedPersonnel.map(person => {
+                                                const isSelected = selectedAssigned.includes(person.id);
+                                                return (
+                                                    <TableRow
+                                                        key={person.id}
+                                                        className={`cursor-pointer ${isSelected ? 'bg-destructive/10 hover:bg-destructive/20' : ''}`}
+                                                        onClick={() => toggleAssigned(person.id)}
+                                                    >
+                                                        <TableCell onClick={(e) => e.stopPropagation()}>
+                                                            <Checkbox
+                                                                checked={isSelected}
+                                                                onCheckedChange={() => toggleAssigned(person.id)}
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium">{person.fullName}</span>
+                                                                <span className="text-xs text-muted-foreground">{person.role}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-8 w-16 bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                                                                onClick={() => handleRemove([person.id])}
+                                                                disabled={loadingIds[person.id]}
+                                                            >
+                                                                {loadingIds[person.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : "Çıkar"}
+                                                            </Button>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </div>
                         </CardContent>
                     </Card>

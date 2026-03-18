@@ -65,6 +65,7 @@ type IndependentPerson = {
         deduction?: number; // Advance payment / cut
         note?: string;
     }>;
+    assignedSites?: { id: string }[]; // [NEW] Track assigned sites for multi-site entry
 };
 
 
@@ -458,7 +459,8 @@ export default function NewPage() {
                             transferInDate,
                             attendance: attendanceMap,
                             salaryHistory: p.salaryHistory || [],
-                            salaryAdjustments: adjMap
+                            salaryAdjustments: adjMap,
+                            assignedSites: p.assignedSites || []
                         };
                     } catch (mapErr) {
                         console.error(`[refreshData] Error mapping personnel ${p.fullName} (${p.id}):`, mapErr);
@@ -476,7 +478,8 @@ export default function NewPage() {
                             note: p.note || '',
                             attendance: {},
                             salaryHistory: [],
-                            salaryAdjustments: {}
+                            salaryAdjustments: {},
+                            assignedSites: []
                         };
                     }
                 });
@@ -1018,9 +1021,14 @@ export default function NewPage() {
             return false;
         }
 
-        // [NEW] Transferred-Out Lock: If person's current site is NOT this site,
-        // only allow editing days where they have attendance at THIS site
-        if (person.siteId !== selectedSiteId && selectedSiteId) {
+        // Check if person is active at this site (primary OR assigned)
+        const isPrimarySite = person.siteId === selectedSiteId;
+        const isAssignedSite = person.assignedSites?.some((s: any) => s.id === selectedSiteId);
+        const isActiveAtSite = isPrimarySite || isAssignedSite;
+
+        // [NEW] Transferred-Out Lock: If person is NOT active at this site,
+        // only allow editing days where they HAVE attendance at THIS site
+        if (!isActiveAtSite && selectedSiteId) {
             const existingRecord = person.attendance[targetKey];
             // Only allow editing existing records at this site, not creating new ones after they left
             if (!existingRecord || existingRecord.siteId !== selectedSiteId) {
@@ -1146,7 +1154,8 @@ export default function NewPage() {
                         overtime: attendanceForm.overtime,
                         note: attendanceForm.note,
                         createdById: user?.id,
-                        createdAt: Date.now()
+                        createdAt: Date.now(),
+                        siteId: (selectedSiteId && selectedSiteId !== 'all') ? selectedSiteId : p.siteId
                     };
                 } else {
                     delete newAttendance[dateKey];
@@ -1173,7 +1182,7 @@ export default function NewPage() {
                         hours: finalStatus === 'FULL' ? 11 : (finalStatus === 'HALF' ? 5.5 : 0),
                         overtime: attendanceForm.overtime ? parseFloat(attendanceForm.overtime) : undefined,
                         note: attendanceForm.note,
-                        siteId: person.siteId
+                        siteId: (selectedSiteId && selectedSiteId !== 'all') ? selectedSiteId : person.siteId
                     }
                 })
             });
@@ -2362,12 +2371,12 @@ export default function NewPage() {
                                                     // Default empty state: Centered dot
                                                     let cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300 font-bold text-lg select-none">·</div>;
 
-                                                    // [NEW] Show airplane icon for days at another site (pre-transfer or other-site records)
-                                                    if (isOtherSiteRecord || isPreTransferDay) {
+                                                    // [NEW] Show airplane icon ONLY for days at another site (from actual records)
+                                                    if (isOtherSiteRecord) {
                                                         cellContent = <div className="w-full h-full flex items-center justify-center bg-slate-50 text-slate-400"><Plane className="w-4 h-4" /></div>;
                                                         cellClass = "bg-slate-50 cursor-default";
-                                                    } else if (isPostTransferDay) {
-                                                        // Person has left this site, empty days after their last record = locked/dash
+                                                    } else if (isPreTransferDay || isPostTransferDay) {
+                                                        // Days before transfer or after leaving: locked/dash
                                                         cellContent = <div className="w-full h-full flex items-center justify-center text-slate-300">—</div>;
                                                         cellClass = "bg-gray-100 cursor-default";
                                                     } else if (showLine) {

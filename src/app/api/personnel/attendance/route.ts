@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Manual Upsert to avoid "Invalid invocation" due to missing @@unique constraint
+        // [FIX] Support Deletion (Clearing) and Multi-site Overwrite
         let result;
         const existing = await prisma.personnelAttendance.findFirst({
             where: {
@@ -88,6 +88,19 @@ export async function POST(req: NextRequest) {
             }
         });
 
+        // 1. If status is empty/null -> Delete (Clear)
+        if (!data.status || data.status.trim() === '') {
+            if (existing) {
+                await prisma.personnelAttendance.delete({
+                    where: { id: existing.id }
+                });
+                console.log(`[API] Deleted attendance for ${personnelId} on ${date}`);
+            }
+            revalidatePath('/dashboard/new-tab');
+            return NextResponse.json({ success: true, message: 'Kayıt temizlendi.' });
+        }
+
+        // 2. Upsert (Create or Update)
         if (existing) {
             result = await prisma.personnelAttendance.update({
                 where: { id: existing.id },
@@ -96,10 +109,11 @@ export async function POST(req: NextRequest) {
                     hours: data.hours,
                     overtime: data.overtime,
                     note: data.note,
-                    siteId: targetSiteId,
+                    siteId: targetSiteId, // [FIX] Store the site where attendance happened
                     createdByUserId: session.user.id
                 }
             });
+            console.log(`[API] Updated attendance: ${result.id} (Site: ${targetSiteId})`);
         } else {
             result = await prisma.personnelAttendance.create({
                 data: {
@@ -113,6 +127,7 @@ export async function POST(req: NextRequest) {
                     createdByUserId: session.user.id
                 }
             });
+            console.log(`[API] Created attendance: ${result.id} (Site: ${targetSiteId})`);
         }
 
         // Trigger Revalidation

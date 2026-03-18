@@ -86,6 +86,9 @@ export async function GET(req: NextRequest) {
                         year: monthDate.getFullYear(),
                         month: monthDate.getMonth() + 1
                     }
+                },
+                assignedSites: {
+                    select: { id: true }
                 }
             },
             orderBy: { fullName: 'asc' }
