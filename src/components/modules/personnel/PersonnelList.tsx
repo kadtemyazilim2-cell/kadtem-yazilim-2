@@ -1121,8 +1121,19 @@ export function PersonnelList() {
 
     const groupedPersonnel = useMemo(() => {
         return {
-            technical: filteredPersonnel.filter((p: any) => p.category === 'TECHNICAL'),
-            field: filteredPersonnel.filter((p: any) => !p.category || p.category === 'FIELD') // Default to FIELD
+            // [MODIFIED] Resilient grouping: Handle Turkish variations and case-insensitivity
+            technical: filteredPersonnel.filter((p: any) => 
+                p.category === 'TECHNICAL' || 
+                p.category === 'Teknik Ekip' || 
+                (p.category && p.category.toUpperCase() === 'TECHNICAL')
+            ),
+            // [MODIFIED] Default to FIELD for anything else to ensure no personnel is hidden
+            field: filteredPersonnel.filter((p: any) => 
+                !p.category || 
+                p.category === 'FIELD' || 
+                p.category === 'Saha Ekibi' || 
+                (p.category !== 'TECHNICAL' && p.category !== 'Teknik Ekip' && (p.category && p.category.toUpperCase() !== 'TECHNICAL'))
+            )
         };
     }, [filteredPersonnel]);
 
