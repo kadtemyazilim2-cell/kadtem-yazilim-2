@@ -270,8 +270,14 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     ] : (existingRecord.salaryHistory || [])
                 };
 
-                updatePersonnel(existingRecord.id, updatePayload);
-                toast.success("Personel kaydı tekrar aktif edildi ve geçmişi korundu.");
+                updatePersonnel(existingRecord.id, updatePayload as any);
+                // [NEW] Persist Re-hire to Server
+                const serverResult = await updatePersonnelServer(existingRecord.id, updatePayload as any);
+                if (serverResult.success) {
+                    toast.success("Personel kaydı tekrar aktif edildi ve geçmişi korundu (Veritabanı güncellendi).");
+                } else {
+                    toast.error("Personel aktifleştirme veritabanında başarısız oldu!");
+                }
                 if (setFinalOpen) setFinalOpen(false);
                 return;
             }
@@ -338,8 +344,14 @@ export function PersonnelForm({ personnelToEdit, open: controlledOpen, onOpenCha
                     ] : (existingInactiveGlobal.salaryHistory || [])
                 };
 
-                updatePersonnel(existingInactiveGlobal.id, updatePayload);
-                toast.success("Personel eski kaydıyla tekrar işe alındı (Geçmiş korundu).");
+                updatePersonnel(existingInactiveGlobal.id, updatePayload as any);
+                // [NEW] Persist Re-hire to Server
+                const serverResult = await updatePersonnelServer(existingInactiveGlobal.id, updatePayload as any);
+                if (serverResult.success) {
+                    toast.success("Personel eski kaydıyla tekrar işe alındı (Geçmiş korundu - Veritabanı güncellendi).");
+                } else {
+                    toast.error("Tekrar işe alım veritabanında başarısız oldu!");
+                }
                 if (setFinalOpen) setFinalOpen(false);
                 return;
             }

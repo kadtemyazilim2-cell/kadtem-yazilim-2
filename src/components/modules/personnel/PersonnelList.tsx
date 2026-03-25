@@ -14,7 +14,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, diffe
 import { tr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'; // [NEW]
-import { getPersonnelAttendanceList } from '@/actions/personnel'; // [NEW]
+import { getPersonnelAttendanceList, updatePersonnel as updatePersonnelServer } from '@/actions/personnel'; // [NEW]
 import { useAuth } from '@/lib/store/use-auth';
 import { useUserSites } from '@/hooks/use-user-access';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -513,6 +513,19 @@ export function PersonnelList() {
             siteId: transferTargetSiteId,
             transferHistory: newHistory
         });
+
+        // [NEW] Persist Transfer to Server
+        updatePersonnelServer(personnelToTransfer, {
+            siteId: transferTargetSiteId,
+            // transferHistory is stripped by server action but store keeps it
+        } as any).then(res => {
+            if (!res.success) {
+                toast.error("Şantiye transferi veritabanına kaydedilemedi!");
+            } else {
+                toast.success("Şantiye transferi başarıyla gerçekleştirildi.");
+            }
+        });
+
         setTransferModalOpen(false);
         setPersonnelToTransfer(null);
         setPersonnelToTransfer(null);
