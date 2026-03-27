@@ -161,8 +161,13 @@ export function VehicleAttendanceReport() {
             const siteName = site?.name || 'Bilinmeyen Şantiye';
 
             // Company Name
-            const c = companies.find((comp: any) => comp.id === vehicle.companyId);
-            const companyName = c?.name || vehicle.rentalCompanyName || '-';
+            let companyName = '-';
+            if (vehicle.ownership === 'RENTAL') {
+                companyName = vehicle.rentalCompanyName || '-';
+            } else {
+                const c = companies.find((comp: any) => comp.id === vehicle.companyId);
+                companyName = c?.name || '-';
+            }
 
             rows.push({
                 id: `${vId}-${sId}`, // unique key for table
