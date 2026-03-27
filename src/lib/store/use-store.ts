@@ -341,7 +341,9 @@ export const useAppStore = create<AppState>()(
             storage: createJSONStorage(() => indexedDBStorage), // Use IndexedDB instead of localStorage
             skipHydration: true, // We will hydrate manually to avoid hydration errors in Next.js
             partialize: (state) => {
-                const { cashTransactions, ...rest } = state;
+                // Exclude fuel data from persistence — they are always fresh-fetched from the server
+                // Persisting them caused stale IndexedDB data to overwrite fresh edits on re-hydration
+                const { cashTransactions, fuelLogs, fuelTanks, fuelTransfers, ...rest } = state;
                 return rest;
             }
         }
