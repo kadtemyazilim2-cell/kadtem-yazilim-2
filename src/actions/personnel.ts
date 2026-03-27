@@ -176,7 +176,7 @@ export async function getPersonnelWithAttendance(month: Date | string, siteId?: 
 
 export async function updatePersonnel(id: string, data: Partial<Personnel>) {
     try {
-        const { assignedSiteIds, ...rest } = data as any; // [FIX] Extract non-Prisma fields
+        const { assignedSiteIds, employmentHistory, transferHistory, ...rest } = data as any; // [FIX] Extract non-Prisma fields
 
         const person = await prisma.personnel.update({
             where: { id },

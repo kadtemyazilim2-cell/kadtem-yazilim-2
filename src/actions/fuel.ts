@@ -153,15 +153,19 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
             });
         }
 
-        // 4. Update vehicle KM if new mileage is higher
-        if (data.mileage) {
-            const vehicle = await prisma.vehicle.findUnique({ where: { id: data.vehicleId || existing.vehicleId } });
-            if (vehicle && data.mileage > (vehicle.currentKm || 0)) {
-                await prisma.vehicle.update({
-                    where: { id: vehicle.id },
-                    data: { currentKm: data.mileage }
-                });
-            }
+        // 4. Update vehicle KM if mileage changed (Always sync to MAX across all logs)
+        if (data.mileage !== undefined) {
+            const vId = data.vehicleId || existing.vehicleId;
+            const allLogs = await prisma.fuelLog.findMany({
+                where: { vehicleId: vId },
+                select: { mileage: true }
+            });
+            const maxMileage = Math.max(0, ...allLogs.map(l => l.mileage || 0));
+            
+            await prisma.vehicle.update({
+                where: { id: vId },
+                data: { currentKm: maxMileage }
+            });
         }
 
         console.log('[updateFuelLog] Successfully updated:', updatedLog.id);
@@ -427,6 +431,21 @@ export async function deleteFuelLog(id: string) {
         }
 
         await prisma.fuelLog.delete({ where: { id } });
+
+        // [NEW] Update vehicle KM (Always sync to MAX across remaining logs)
+        if (log.vehicleId) {
+            const allLogs = await prisma.fuelLog.findMany({
+                where: { vehicleId: log.vehicleId },
+                select: { mileage: true }
+            });
+            const maxMileage = Math.max(0, ...allLogs.map(l => l.mileage || 0));
+
+            await prisma.vehicle.update({
+                where: { id: log.vehicleId },
+                data: { currentKm: maxMileage }
+            });
+        }
+
         revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
