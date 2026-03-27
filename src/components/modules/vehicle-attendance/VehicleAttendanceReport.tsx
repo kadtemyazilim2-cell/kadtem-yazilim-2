@@ -114,7 +114,11 @@ export function VehicleAttendanceReport() {
 
             // Company Filter
             if (selectedCompanyIds.length > 0) {
-                if (!vehicle.companyId || !selectedCompanyIds.includes(vehicle.companyId)) return;
+                if (vehicle.ownership === 'RENTAL') {
+                    if (!vehicle.rentalCompanyName || !selectedCompanyIds.includes(`RENTAL_${vehicle.rentalCompanyName}`)) return;
+                } else {
+                    if (!vehicle.companyId || !selectedCompanyIds.includes(vehicle.companyId)) return;
+                }
             }
 
             // Records for this specific Site + Vehicle
@@ -161,8 +165,13 @@ export function VehicleAttendanceReport() {
             const siteName = site?.name || 'Bilinmeyen Şantiye';
 
             // Company Name
-            const c = companies.find((comp: any) => comp.id === vehicle.companyId);
-            const companyName = c?.name || vehicle.rentalCompanyName || '-';
+            let companyName = '-';
+            if (vehicle.ownership === 'RENTAL') {
+                companyName = vehicle.rentalCompanyName || '-';
+            } else {
+                const c = companies.find((comp: any) => comp.id === vehicle.companyId);
+                companyName = c?.name || '-';
+            }
 
             rows.push({
                 id: `${vId}-${sId}`, // unique key for table
@@ -212,6 +221,30 @@ export function VehicleAttendanceReport() {
             totalRentalCost: acc.totalRentalCost + row.totalRentalCost
         }), { totalFuel: 0, totalWorkedDays: 0, totalRentalCost: 0 });
     }, [reportData]);
+
+    const companySelectOptions = useMemo(() => {
+        const base = companies.map((c: any) => ({ label: c.name, value: c.id }));
+        
+        // Find unique rental company names
+        const rentalNames = new Set<string>();
+        vehicles.forEach((v: any) => {
+            if (v.status === 'ACTIVE' && v.ownership === 'RENTAL' && v.rentalCompanyName) {
+                rentalNames.add(v.rentalCompanyName);
+            }
+        });
+
+        const rentals = Array.from(rentalNames).map(name => ({ label: name, value: `RENTAL_${name}` }));
+        
+        // Remove duplicates by label (in case a company is both in companies table and typed as rental)
+        const uniqueOptionsMap = new Map();
+        [...base, ...rentals].forEach(opt => {
+            if (!uniqueOptionsMap.has(opt.label)) {
+                uniqueOptionsMap.set(opt.label, opt);
+            }
+        });
+
+        return Array.from(uniqueOptionsMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+    }, [companies, vehicles]);
 
     const handleExport = () => {
         const data = reportData.map((d: any, index: any) => ({
@@ -361,7 +394,7 @@ export function VehicleAttendanceReport() {
                     <div className="space-y-2">
                         <Label>Araç Sahibi Firma</Label>
                         <MultiSelect
-                            options={companies.map((c: any) => ({ label: c.name, value: c.id }))}
+                            options={companySelectOptions}
                             selected={selectedCompanyIds}
                             onChange={setSelectedCompanyIds}
                             placeholder="Tüm Firmalar"

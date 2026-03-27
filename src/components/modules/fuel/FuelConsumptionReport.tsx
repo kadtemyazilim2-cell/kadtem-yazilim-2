@@ -97,6 +97,22 @@ function isConsumptionAnomaly(
     return ratio < b.lower || ratio > b.upper;
 }
 
+const typeNames: Record<string, string> = {
+    CAR: 'Binek',
+    TRUCK: 'Kamyon',
+    EXCAVATOR: 'Ekskavatör',
+    TRACTOR: 'Traktör',
+    KAMYONET: 'Kamyonet',
+    GREYDER: 'Greyder',
+    SILINDIR: 'Silindir',
+    BEKO_LODER: 'Beko Loder',
+    DEFAULT: 'Varsayılan',
+    LORRY: 'Tır',
+    MOTORCYCLE: 'Motosiklet',
+    PICKUP: 'Pikap',
+    OTHER: 'Diğer'
+};
+
 import { FuelStatsCard } from './FuelStatsCard'; // [NEW]
 
 interface FuelConsumptionReportProps {
@@ -164,6 +180,23 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         setConsumptionBounds(updated);
         saveBoundsToStorage(updated);
     }, [consumptionBounds]);
+
+    const handleUpdateBound = useCallback((key: string, field: 'lower' | 'upper', value: string) => {
+        const num = parseFloat(value);
+        if (isNaN(num)) return;
+        
+        setConsumptionBounds(prev => {
+            const updated = {
+                ...prev,
+                [key]: {
+                    ...prev[key],
+                    [field]: num
+                }
+            };
+            saveBoundsToStorage(updated);
+            return updated;
+        });
+    }, []);
 
     const handleDelete = async (id: string) => {
         if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return;
@@ -949,11 +982,27 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                                 {Object.entries(consumptionBounds).map(([key, val]) => (
                                     <TableRow key={key} className="h-8">
                                         <TableCell className="text-xs font-medium py-1">
-                                            {key}
+                                            {typeNames[key] || key}
                                             {key === 'DEFAULT' && <span className="text-muted-foreground ml-1">(Varsayılan)</span>}
                                         </TableCell>
-                                        <TableCell className="text-xs text-right py-1">{val.lower}</TableCell>
-                                        <TableCell className="text-xs text-right py-1">{val.upper}</TableCell>
+                                        <TableCell className="text-xs text-right py-1">
+                                            <Input
+                                                className="h-7 text-xs text-right w-20 ml-auto border-transparent hover:border-slate-300 focus:border-blue-500 p-1"
+                                                type="number"
+                                                step="0.1"
+                                                defaultValue={val.lower}
+                                                onBlur={(e) => handleUpdateBound(key, 'lower', e.target.value)}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-xs text-right py-1">
+                                            <Input
+                                                className="h-7 text-xs text-right w-20 ml-auto border-transparent hover:border-slate-300 focus:border-blue-500 p-1"
+                                                type="number"
+                                                step="0.1"
+                                                defaultValue={val.upper}
+                                                onBlur={(e) => handleUpdateBound(key, 'upper', e.target.value)}
+                                            />
+                                        </TableCell>
                                         <TableCell className="py-1">
                                             {key !== 'DEFAULT' && (
                                                 <Button
