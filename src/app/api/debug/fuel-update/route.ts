@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { updateFuelLog, updateFuelTransfer } from '@/actions/fuel';
 
 export async function POST(request: Request) {
     try {
@@ -12,49 +12,46 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'ID is required' }, { status: 400 });
         }
 
-        let updatedRecord;
+        let result;
 
         if (recordType === 'TRANSFER') {
-            // Update Transfer
-            updatedRecord = await prisma.fuelTransfer.update({
-                where: { id },
-                data: {
-                    siteId: data.siteId,
-                    toId: data.toId, // Tank vs.
-                    toType: data.toType,
-                    amount: data.liters ? Number(data.liters) : undefined, // Frontend liters gonderiyor
-                    date: data.date ? new Date(data.date) : undefined,
-                    description: data.description,
-                    processed: data.processed,
-                }
+            result = await updateFuelTransfer(id, {
+                amount: data.liters ? Number(data.liters) : undefined,
+                date: data.date ? new Date(data.date) : undefined,
+                description: data.description,
+                fromType: data.fromType,
+                fromId: data.fromId,
+                toType: data.toType,
+                toId: data.toId,
+                unitPrice: data.unitPrice ? Number(data.unitPrice) : undefined,
+                totalCost: data.totalCost ? Number(data.totalCost) : undefined,
             });
         } else {
-            // Update Log
-            // Prevent payload issues by picking only necessary fields
-            updatedRecord = await prisma.fuelLog.update({
-                where: { id },
-                data: {
-                    vehicleId: data.vehicleId,
-                    siteId: data.siteId,
-                    tankId: data.tankId || null,
-                    filledByUserId: data.filledByUserId,
-                    date: data.date ? new Date(data.date) : undefined,
-                    liters: data.liters ? Number(data.liters) : undefined,
-                    cost: data.cost ? Number(data.cost) : undefined,
-                    unitPrice: data.unitPrice ? Number(data.unitPrice) : undefined,
-                    mileage: data.mileage ? Number(data.mileage) : undefined,
-                    fullTank: data.fullTank,
-                    description: data.description,
-                }
+            result = await updateFuelLog(id, {
+                vehicleId: data.vehicleId,
+                siteId: data.siteId,
+                tankId: data.tankId || null,
+                filledByUserId: data.filledByUserId,
+                date: data.date ? new Date(data.date) : undefined,
+                liters: data.liters ? Number(data.liters) : undefined,
+                cost: data.cost ? Number(data.cost) : undefined,
+                unitPrice: data.unitPrice ? Number(data.unitPrice) : undefined,
+                mileage: data.mileage ? Number(data.mileage) : undefined,
+                fullTank: data.fullTank,
+                description: data.description,
             });
         }
 
-        console.log('[API STABLE] Update Success:', updatedRecord.id);
+        if (!result.success) {
+            return NextResponse.json({ success: false, error: result.error }, { status: 500 });
+        }
+
+        console.log('[API STABLE] Update Success:', result.data?.id);
 
         return NextResponse.json({
             success: true,
             message: 'Update Successful (API Mode)',
-            data: updatedRecord
+            data: result.data
         });
 
     } catch (error: any) {

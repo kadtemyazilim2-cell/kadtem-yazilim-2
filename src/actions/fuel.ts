@@ -169,7 +169,9 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         }
 
         console.log('[updateFuelLog] Successfully updated:', updatedLog.id);
-        revalidatePath('/dashboard');
+        revalidatePath('/dashboard', 'layout');
+        revalidatePath('/dashboard/fuel', 'page');
+        revalidatePath('/dashboard/fuel/movement', 'page');
 
         return { success: true, data: updatedLog };
 

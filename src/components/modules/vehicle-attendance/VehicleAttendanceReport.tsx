@@ -223,15 +223,22 @@ export function VehicleAttendanceReport() {
     }, [reportData]);
 
     const companySelectOptions = useMemo(() => {
-        const base = companies.map((c: any) => ({ label: c.name, value: c.id }));
-        
-        // Find unique rental company names
+        const activeCompanyIds = new Set<string>();
         const rentalNames = new Set<string>();
+
         vehicles.forEach((v: any) => {
-            if (v.status === 'ACTIVE' && v.ownership === 'RENTAL' && v.rentalCompanyName) {
-                rentalNames.add(v.rentalCompanyName);
+            if (v.status === 'ACTIVE') {
+                if (v.ownership === 'RENTAL' && v.rentalCompanyName) {
+                    rentalNames.add(v.rentalCompanyName);
+                } else if (v.ownership === 'OWNED' && v.companyId) {
+                    activeCompanyIds.add(v.companyId);
+                }
             }
         });
+
+        const base = companies
+            .filter((c: any) => activeCompanyIds.has(c.id))
+            .map((c: any) => ({ label: c.name, value: c.id }));
 
         const rentals = Array.from(rentalNames).map(name => ({ label: name, value: `RENTAL_${name}` }));
         
