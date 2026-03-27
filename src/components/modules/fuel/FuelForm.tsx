@@ -346,7 +346,7 @@ export function FuelForm({ initialData, open: externalOpen, onOpenChange: extern
                     </div>
 
                     <DialogFooter>
-                        <Button type="submit" disabled={!formData.tankId || isSubmitting}>
+                        <Button type="submit" disabled={(!formData.tankId && !initialData) || isSubmitting}>
                             {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
                         </Button>
                     </DialogFooter>
