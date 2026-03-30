@@ -11,13 +11,19 @@ import { useEffect } from 'react';
 
 interface VehicleAttendancePageClientProps {
     initialData: any[];
+    sites: any[];
+    vehicles: any[];
 }
 
-export function VehicleAttendancePageClient({ initialData }: VehicleAttendancePageClientProps) {
+export function VehicleAttendancePageClient({ initialData, sites, vehicles }: VehicleAttendancePageClientProps) {
     // Hydrate store
     useEffect(() => {
-        useAppStore.setState({ vehicleAttendance: initialData });
-    }, [initialData]);
+        useAppStore.setState({ 
+            vehicleAttendance: initialData,
+            sites: sites,
+            vehicles: vehicles
+        });
+    }, [initialData, sites, vehicles]);
 
     const { user, hasPermission } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
