@@ -44,10 +44,7 @@ export async function getFuelLogs(options?: { limit?: number; startDate?: Date; 
                 site: { select: { id: true, name: true } },
                 filledByUser: { select: { id: true, name: true } },
                 tank: { select: { id: true, name: true } }
-            },
-            // [NEW] Cache Tags for robust invalidation
-            // @ts-ignore
-            next: { tags: ['fuel-logs'] }
+            }
         });
         return { success: true, data: logs };
     } catch (error) {
@@ -293,7 +290,10 @@ export async function getFuelTransfers(options?: { limit?: number; startDate?: D
 
         const transfers = await prisma.fuelTransfer.findMany({
             take: limit || 1000,
-            where,
+            where: {
+                ...where,
+                id: { not: 'cache-bust-' + Math.random().toString() }
+            },
             orderBy: { date: 'desc' },
         });
         return { success: true, data: transfers };
