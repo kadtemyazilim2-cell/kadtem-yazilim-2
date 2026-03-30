@@ -19,7 +19,7 @@ async function main() {
             { id: 'cmkpgizus000164i2nk9g2n8d', name: 'Doğanlı', level: 4936 },
             { id: 'cml27nh1j0001b27ecwyr6lkl', name: 'Zile 1', level: 16559 },
             { id: 'cmknxtc9p0001sufe6amae37c', name: 'Aydın Nazilli Yenipazar', level: 11905 },
-            { id: 'cmknxtqi50003sufe87nc7di2', name: 'Samsun Vezirköprü', level: 2905 },
+            { id: 'cmknxtqi50003sufe87nc7di2', name: 'Samsun Vezirköprü', level: 415 },
         ];
 
         console.log('\n--- Tank Seviyeleri Güncelleniyor ---');

@@ -2,12 +2,13 @@
 
 import { prisma } from '@/lib/db';
 import { FuelLog, FuelTank, FuelTransfer } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore } from 'next/cache';
 
 // [PERFORMANCE] Cached fuel logs query - CACHE ABORTED FOR DEBUGGING
 // const getFuelLogsFromDb = unstable_cache(...)
 
 export async function getFuelLogs(options?: { limit?: number; startDate?: Date; endDate?: Date }) {
+    unstable_noStore();
     const { limit, startDate, endDate } = options || {};
     console.log('[getFuelLogs] Fetching fuel logs at', new Date().toISOString(), startDate ? `from ${startDate.toISOString()}` : 'no date filter');
     try {
@@ -20,7 +21,11 @@ export async function getFuelLogs(options?: { limit?: number; startDate?: Date; 
 
         const logs = await prisma.fuelLog.findMany({
             take: limit || 1000,
-            where,
+            where: {
+                ...where,
+                // [NEW] Cache Buster to bypass any layer of caching
+                id: { not: 'cache-bust-' + Math.random().toString() }
+            },
             orderBy: { date: 'desc' },
             select: {
                 id: true,
@@ -39,7 +44,10 @@ export async function getFuelLogs(options?: { limit?: number; startDate?: Date; 
                 site: { select: { id: true, name: true } },
                 filledByUser: { select: { id: true, name: true } },
                 tank: { select: { id: true, name: true } }
-            }
+            },
+            // [NEW] Cache Tags for robust invalidation
+            // @ts-ignore
+            next: { tags: ['fuel-logs'] }
         });
         return { success: true, data: logs };
     } catch (error) {
@@ -102,10 +110,12 @@ export async function createFuelLog(data: Partial<FuelLog>) {
             }
         }
 
+
         revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
-        revalidatePath('/dashboard/fuel/movement', 'page'); // [FIX]
-        revalidatePath('/dashboard/vehicles', 'page'); // Update vehicle list
+        revalidatePath('/dashboard/fuel/movement', 'page'); 
+        revalidatePath('/dashboard/vehicles', 'page');
+        revalidatePath('/', 'layout');
         return { success: true, data: log };
     } catch (error) {
         console.error('createFuelLog Error:', error);
@@ -143,6 +153,12 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
                 fullTank: data.fullTank,
                 description: data.description,
             },
+            include: {
+                vehicle: { select: { id: true, plate: true } },
+                site: { select: { id: true, name: true } },
+                filledByUser: { select: { id: true, name: true } },
+                tank: { select: { id: true, name: true } }
+            }
         });
 
         // 3. Apply new tank level (subtract new liters)
@@ -167,11 +183,13 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
                 data: { currentKm: maxMileage }
             });
         }
-
+        
         console.log('[updateFuelLog] Successfully updated:', updatedLog.id);
+
         revalidatePath('/dashboard', 'layout');
         revalidatePath('/dashboard/fuel', 'page');
         revalidatePath('/dashboard/fuel/movement', 'page');
+        revalidatePath('/', 'layout'); 
 
         return { success: true, data: updatedLog };
 
@@ -187,9 +205,14 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
 // const getFuelTanksFromDb = unstable_cache(...)
 
 export async function getFuelTanks() {
+    unstable_noStore();
     try {
         const tanks = await prisma.fuelTank.findMany({
-            where: { status: 'ACTIVE' },
+            where: { 
+                status: 'ACTIVE',
+                // [NEW] Cache Buster
+                id: { not: 'cache-bust-' + Math.random().toString() }
+            },
             include: { site: { select: { id: true, name: true } } }
         });
         return { success: true, data: tanks };
@@ -258,6 +281,7 @@ export async function deleteFuelTank(id: string) {
 // const getFuelTransfersFromDb = unstable_cache(...)
 
 export async function getFuelTransfers(options?: { limit?: number; startDate?: Date; endDate?: Date }) {
+    unstable_noStore();
     const { limit, startDate, endDate } = options || {};
     try {
         const where: any = {};

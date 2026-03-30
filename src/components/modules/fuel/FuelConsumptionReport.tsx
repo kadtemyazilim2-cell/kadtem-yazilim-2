@@ -302,66 +302,52 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
             }
         }
 
-        console.log('Updating Fuel Record:', editingLog.id, editForm);
+        console.log('Updating Fuel Record (Direct Action):', editingLog.id, editForm);
         setIsUpdating(true);
 
-        // Safety Timeout (30 seconds)
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('İşlem zaman aşımına uğradı (Sunucu yanıt vermedi).')), 30000)
-        );
-
         try {
-            // v1.8 - API MODE - Unified logic for both Transfer and Log
-            console.log('Sending Update Action via API MODE...');
+            // [FIX] Preserve original time when updating date
+            let dateToSend = editForm.date;
+            if (dateToSend && originalEditDate && (editingLog as any).recordType !== 'TRANSFER') {
+                const origTime = new Date(originalEditDate).toTimeString().slice(0, 8); // HH:mm:ss
+                const [hh, mm, ss] = origTime.split(':').map(Number);
+                const d = new Date(dateToSend + 'T00:00:00');
+                d.setHours(hh, mm, ss);
+                dateToSend = d.toISOString();
+            }
 
-            const updatePromise = async () => {
-                // [FIX] Preserve original time when updating date
-                let dateToSend = editForm.date;
-                if (dateToSend && originalEditDate && (editingLog as any).recordType !== 'TRANSFER') {
-                    const origTime = new Date(originalEditDate).toTimeString().slice(0, 8); // HH:mm:ss
-                    const [hh, mm, ss] = origTime.split(':').map(Number);
-                    const d = new Date(dateToSend + 'T00:00:00');
-                    d.setHours(hh, mm, ss);
-                    dateToSend = d.toISOString();
-                }
+            let res: any;
+            if ((editingLog as any).recordType === 'TRANSFER') {
+                res = await updateFuelTransferAction(editingLog.id, {
+                    ...editForm,
+                    date: dateToSend ? new Date(dateToSend) : undefined,
+                    amount: Number(editForm.liters)
+                } as any);
+            } else {
+                res = await updateFuelLogAction(editingLog.id, {
+                    ...editForm,
+                    date: dateToSend ? new Date(dateToSend) : undefined,
+                    liters: Number(editForm.liters),
+                    mileage: Number(editForm.mileage),
+                    cost: Number(editForm.cost) || 0
+                } as any);
+            }
 
-                const response = await fetch('/api/debug/fuel-update', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        id: editingLog.id,
-                        ...editForm,
-                        date: dateToSend,
-                        recordType: (editingLog as any).recordType || 'LOG'
-                    })
-                });
-                if (!response.ok) throw new Error('API Hatasi (v1.8)');
-                return await response.json();
-            };
-
-            // Race against timeout
-            const res: any = await Promise.race([updatePromise(), timeoutPromise]);
             console.log('Update Action Result:', res);
 
             if (res.success) {
-                // Optimistic UI Update
+                // [STABLE] Local Store Update with Fresh Server Data (includes Relations)
                 if ((editingLog as any).recordType === 'TRANSFER') {
-                    updateFuelTransfer(editingLog.id, {
-                        ...editForm,
-                        date: editForm.date ? new Date(editForm.date) : undefined,
-                        amount: editForm.liters
-                    } as any);
+                    updateFuelTransfer(editingLog.id, res.data);
                 } else {
-                    updateFuelLog(editingLog.id, {
-                        ...editingLog,
-                        ...editForm,
-                        // Mock fields
-                    } as any);
+                    // updateFuelLog in store handles tank balancing automatically
+                    updateFuelLog(editingLog.id, res.data);
                 }
 
                 setIsEditOpen(false);
                 setEditingLog(null);
 
-                // [STABLE] Refresh data from server to reflect DB changes
+                // [STABLE] Refresh data from server to reflect DB changes and clear Data Cache
                 router.refresh();
             } else {
                 console.error('Update Failed:', res.error);

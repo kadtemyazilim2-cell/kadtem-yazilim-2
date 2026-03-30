@@ -68,32 +68,28 @@ export const useAppStore = create<AppState>()(
                 const oldLog = state.fuelLogs.find(l => l.id === id);
                 if (!oldLog) return {};
 
-                let newTanks = [...state.fuelTanks];
                 const newLiters = data.liters !== undefined ? Number(data.liters) : oldLog.liters;
+                const oldTankId = oldLog.tankId;
                 const newTankId = data.tankId !== undefined ? data.tankId : oldLog.tankId;
 
-                // If tank related changes
-                if (oldLog.tankId || newTankId) {
-                    // Scenario 1: Tank ID changed
-                    if (oldLog.tankId !== newTankId) {
-                        // Revert old tank
-                        if (oldLog.tankId) {
-                            newTanks = newTanks.map(t => t.id === oldLog.tankId ? { ...t, currentLevel: t.currentLevel + oldLog.liters } : t);
-                        }
-                        // Deduct new tank
-                        if (newTankId) {
-                            newTanks = newTanks.map(t => t.id === newTankId ? { ...t, currentLevel: t.currentLevel - newLiters } : t);
-                        }
+                const newTanks = state.fuelTanks.map(t => {
+                    let currentLevel = t.currentLevel;
+                    
+                    // 1. Revert old tank liters
+                    if (oldTankId && t.id === oldTankId) {
+                        currentLevel += oldLog.liters;
                     }
-                    // Scenario 2: Same tank, liters changed
-                    else if (oldLog.tankId && oldLog.liters !== newLiters) {
-                        const diff = newLiters - oldLog.liters;
-                        newTanks = newTanks.map(t => t.id === oldLog.tankId ? { ...t, currentLevel: t.currentLevel - diff } : t);
+                    
+                    // 2. Apply new tank liters
+                    if (newTankId && t.id === newTankId) {
+                        currentLevel -= newLiters;
                     }
-                }
+                    
+                    return { ...t, currentLevel };
+                });
 
                 return {
-                    fuelLogs: state.fuelLogs.map(l => l.id === id ? { ...l, ...data, liters: newLiters } : l),
+                    fuelLogs: state.fuelLogs.map(l => l.id === id ? { ...l, ...data, liters: newLiters, tankId: newTankId } : l),
                     fuelTanks: newTanks
                 };
             }),
@@ -177,6 +173,9 @@ export const useAppStore = create<AppState>()(
             })),
 
             addFuelTank: (tank) => set((state) => ({ fuelTanks: [...state.fuelTanks, tank] })),
+            updateFuelTank: (id, data) => set((state) => ({
+                fuelTanks: state.fuelTanks.map(t => t.id === id ? { ...t, ...data } : t)
+            })),
             updateFuelTankLevel: (id, amount, operation) => set((state) => ({
                 fuelTanks: state.fuelTanks.map(t => t.id === id ? {
                     ...t,
@@ -288,6 +287,13 @@ export const useAppStore = create<AppState>()(
                     assignedSiteId: siteId // Update primary ref mostly for legacy or UI focus
                 } : v)
             })),
+            assignVehiclesToSite: (vehicleIds, siteIds) => set((state) => ({
+                vehicles: state.vehicles.map(v => vehicleIds.includes(v.id) ? {
+                    ...v,
+                    assignedSiteIds: siteIds,
+                    assignedSiteId: siteIds[0] || undefined
+                } : v)
+            })),
             removeVehiclesFromSite: (vehicleIds, siteId) => set((state) => ({
                 vehicles: state.vehicles.map(v => vehicleIds.includes(v.id) ? {
                     ...v,
@@ -336,7 +342,7 @@ export const useAppStore = create<AppState>()(
             }
         }),
         {
-            name: 'cms-storage', // name of the item in the storage (must be unique)
+            name: 'cms-storage-v2', // [FORCE-REFRESH] Clear all stale fuel data
 
             storage: createJSONStorage(() => indexedDBStorage), // Use IndexedDB instead of localStorage
             skipHydration: true, // We will hydrate manually to avoid hydration errors in Next.js
