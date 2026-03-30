@@ -183,12 +183,8 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         
         console.log('[updateFuelLog] Successfully updated:', updatedLog.id);
 
-        revalidatePath('/dashboard', 'layout');
-        revalidatePath('/dashboard/fuel', 'page');
-        revalidatePath('/dashboard/fuel/movement', 'page');
-        revalidatePath('/', 'layout'); 
-
-        return { success: true, data: updatedLog };
+        revalidatePath('/dashboard/fuel', 'layout');
+        return { success: true, data: JSON.parse(JSON.stringify(updatedLog)) };
 
     } catch (error: any) {
         console.error('updateFuelLog FATAL ERROR:', error);
@@ -433,13 +429,11 @@ export async function updateFuelTransfer(id: string, data: Partial<FuelTransfer>
             });
         }
 
-        return { success: true, data: transfer };
+        revalidatePath('/dashboard/fuel', 'layout');
+        return { success: true, data: JSON.parse(JSON.stringify(transfer)) };
     } catch (error: any) {
         console.error('updateFuelTransfer Error:', error);
         return { success: false, error: error.message || 'Güncelleme yapılamadı.' };
-    } finally {
-        revalidatePath('/dashboard/fuel', 'page');
-        revalidatePath('/dashboard/fuel/movement', 'page');
     }
 }
 
