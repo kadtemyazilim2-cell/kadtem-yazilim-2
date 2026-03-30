@@ -169,11 +169,11 @@ export async function updateFuelLog(id: string, data: Partial<FuelLog>) {
         // 4. Update vehicle KM if mileage changed (Always sync to MAX across all logs)
         if (data.mileage !== undefined) {
             const vId = data.vehicleId || existing.vehicleId;
-            const allLogs = await prisma.fuelLog.findMany({
+            const aggregations = await prisma.fuelLog.aggregate({
                 where: { vehicleId: vId },
-                select: { mileage: true }
+                _max: { mileage: true }
             });
-            const maxMileage = Math.max(0, ...allLogs.map(l => l.mileage || 0));
+            const maxMileage = aggregations._max.mileage || 0;
             
             await prisma.vehicle.update({
                 where: { id: vId },

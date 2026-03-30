@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format, isWithinInterval, parseISO, startOfDay, endOfDay, subDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
-import { useMemo, useEffect, useCallback } from 'react';
+import { useMemo, useEffect, useCallback, useTransition } from 'react';
 import { FuelLog } from '@/lib/types';
 import { Pencil, Trash2, Calendar, Search, ArrowRight, ArrowLeft, FileSpreadsheet, FileDown, Plus, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -146,6 +146,7 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
         end: ''
     });
     const [searchTerm, setSearchTerm] = useState('');
+    const [isPending, startTransition] = useTransition();
 
     // [NEW] Dynamic Consumption Bounds Management
     const [consumptionBounds, setConsumptionBounds] = useState<Record<string, { lower: number; upper: number }>>(DEFAULT_CONSUMPTION_BOUNDS);
@@ -340,17 +341,17 @@ export function FuelConsumptionReport({ initialSiteId }: FuelConsumptionReportPr
                 if ((editingLog as any).recordType === 'TRANSFER') {
                     updateFuelTransfer(editingLog.id, res.data);
                 } else {
-                    // updateFuelLog in store handles tank balancing automatically
                     updateFuelLog(editingLog.id, res.data);
                 }
 
                 setIsEditOpen(false);
                 setEditingLog(null);
 
-                // [STABLE] Refresh data from server to reflect DB changes and clear Data Cache
-                router.refresh();
+                // [STABLE] Refresh data from server without blocking UI
+                startTransition(() => {
+                    router.refresh();
+                });
             } else {
-                console.error('Update Failed:', res.error);
                 alert(res.error || 'Güncelleme başarısız.');
             }
 
