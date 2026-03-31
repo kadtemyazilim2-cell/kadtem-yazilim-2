@@ -18,11 +18,11 @@ interface VehicleAttendancePageClientProps {
 export function VehicleAttendancePageClient({ initialData, sites, vehicles }: VehicleAttendancePageClientProps) {
     // Hydrate store
     useEffect(() => {
-        useAppStore.setState({ 
-            vehicleAttendance: initialData,
-            sites: sites,
-            vehicles: vehicles
-        });
+        const updates: any = { vehicleAttendance: initialData };
+        if (sites) updates.sites = sites;
+        if (vehicles) updates.vehicles = vehicles;
+        
+        useAppStore.setState(updates);
     }, [initialData, sites, vehicles]);
 
     const { user, hasPermission } = useAuth();

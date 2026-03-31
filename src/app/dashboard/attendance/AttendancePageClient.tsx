@@ -14,9 +14,11 @@ const VehicleAttendancePageClient = lazy(() =>
 
 interface AttendancePageClientProps {
     vehicleAttendanceData: any[];
+    sites: any[];
+    vehicles: any[];
 }
 
-export function AttendancePageClient({ vehicleAttendanceData }: AttendancePageClientProps) {
+export function AttendancePageClient({ vehicleAttendanceData, sites, vehicles }: AttendancePageClientProps) {
     const { user, hasPermission } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
 
@@ -69,7 +71,11 @@ export function AttendancePageClient({ vehicleAttendanceData }: AttendancePageCl
                 {canViewVehicle && (
                     <TabsContent value="vehicle" className="mt-6">
                         <Suspense fallback={<div className="flex items-center justify-center py-20 text-muted-foreground">Araç puantaj yükleniyor...</div>}>
-                            <VehicleAttendancePageClient initialData={vehicleAttendanceData} />
+                            <VehicleAttendancePageClient 
+                                initialData={vehicleAttendanceData} 
+                                sites={sites} 
+                                vehicles={vehicles} 
+                            />
                         </Suspense>
                     </TabsContent>
                 )}
