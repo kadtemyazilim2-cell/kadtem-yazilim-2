@@ -63,7 +63,7 @@ export function AttendancePageClient({ vehicleAttendanceData, sites, vehicles }:
                 {canViewPersonnel && (
                     <TabsContent value="personnel" className="mt-6">
                         <Suspense fallback={<div className="flex items-center justify-center py-20 text-muted-foreground">Personel puantaj yükleniyor...</div>}>
-                            <NewPage />
+                            <NewPage sites={sites} vehicles={vehicles} />
                         </Suspense>
                     </TabsContent>
                 )}

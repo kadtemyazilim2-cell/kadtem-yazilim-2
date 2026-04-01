@@ -139,7 +139,22 @@ const SalaryEditableCell = ({
     );
 };
 
-export default function NewPage() {
+interface NewPageProps {
+    sites?: any[];
+    vehicles?: any[];
+}
+
+export default function NewPage({ sites: initialSites, vehicles: initialVehicles }: NewPageProps) {
+    // [NEW] Hydrate store if props provided (important for lazy loading in tabs)
+    useEffect(() => {
+        if (initialSites || initialVehicles) {
+            const updates: any = {};
+            if (initialSites) updates.sites = initialSites;
+            if (initialVehicles) updates.vehicles = initialVehicles;
+            useAppStore.setState(updates);
+        }
+    }, [initialSites, initialVehicles]);
+
     const { user, getAccessibleSites } = useAuth();
     const { sites, personnel } = useAppStore();
     const availableSites = getAccessibleSites(sites);
@@ -2251,7 +2266,7 @@ export default function NewPage() {
                                     {isAdmin && (
                                         <SelectItem value="all" className="font-semibold text-blue-700">Şantiye Seçiniz</SelectItem>
                                     )}
-                                    {availableSites.filter(s => personnel.some((p: any) => p.siteId === s.id)).map(s => (
+                                    {availableSites.map(s => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -2631,7 +2646,10 @@ export default function NewPage() {
                 {canViewAllPersonnel && (
                     <TabsContent value="site-list" className="space-y-4">
                         {availableSites.map(site => {
-                            const sitePersonnel = personnel.filter((p: any) => p.siteId === site.id && p.status === 'ACTIVE');
+                            const sitePersonnel = personnel.filter((p: any) => 
+                                (p.siteId === site.id || (p.assignedSites || []).some((s: any) => s.id === site.id)) && 
+                                p.status === 'ACTIVE'
+                            );
                             if (sitePersonnel.length === 0) return null;
                             return (
                                 <Card key={site.id}>
