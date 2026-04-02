@@ -1382,19 +1382,29 @@ export default function NewPage({ sites: initialSites, vehicles: initialVehicles
                 const dateKey = format(d, 'yyyy-MM-dd');
                 const record = p.attendance[dateKey];
                 let cellVal = '';
-                if (record?.status === 'FULL') cellVal = '✔️';
-                if (record?.status === 'HALF') cellVal = '🕒';
-                if (record?.status === 'ABSENT') cellVal = '❌';
-                if (record?.status === 'LEAVE') cellVal = '☂️';
-                if (record?.status === 'REPORT') cellVal = '⚕️';
-                if (record?.status === 'OUT') cellVal = '🚗';
-                if (record?.status === 'TRANSFER') cellVal = '✈️';
-                if (record?.status === 'EXIT') cellVal = '🚪';
+
+                // [NEW] Transfer-aware: check if this day's record belongs to another site
+                const isOtherSiteRecord = record?.siteId && selectedSiteId && selectedSiteId !== 'all' && record.siteId !== selectedSiteId;
+
+                if (isOtherSiteRecord) {
+                    cellVal = '✈️'; // Airplane equivalent icon/placeholder for Excel
+                } else {
+                    if (record?.status === 'FULL') cellVal = '✔️';
+                    if (record?.status === 'HALF') cellVal = '🕒';
+                    if (record?.status === 'ABSENT') cellVal = '❌';
+                    if (record?.status === 'LEAVE') cellVal = '☂️';
+                    if (record?.status === 'REPORT') cellVal = '⚕️';
+                    if (record?.status === 'OUT') cellVal = '🚗';
+                    if (record?.status === 'RAINY') cellVal = '☁️';
+                    if (record?.status === 'HOLIDAY') cellVal = '🚩';
+                    if (record?.status === 'TRANSFER') cellVal = '✈️';
+                    if (record?.status === 'EXIT') cellVal = '🚪';
+                }
 
                 // Implicit Start Date Visual
-                if (dateKey === p.inputDate && !record) cellVal = '📥';
+                if (dateKey === p.inputDate && !record && !isOtherSiteRecord) cellVal = '📥';
 
-                if (record?.overtime) cellVal += ` (+${record.overtime})`;
+                if (record?.overtime && !isOtherSiteRecord) cellVal += ` (+${record.overtime})`;
                 row.push(cellVal);
             });
 
@@ -1871,11 +1881,14 @@ export default function NewPage({ sites: initialSites, vehicles: initialVehicles
                 const record = p.attendance[dateKey];
                 const isPostExit = effectiveEndDateStr ? dateKey > effectiveEndDateStr : false;
 
+                // [NEW] Transfer-aware check
+                const isOtherSiteRecord = record?.siteId && selectedSiteId && selectedSiteId !== 'all' && record.siteId !== selectedSiteId;
+
                 row.push({
                     content: isPostExit ? '-' : '',
                     custom: {
-                        status: record?.status,
-                        overtime: record?.overtime,
+                        status: isOtherSiteRecord ? 'TRANSFER' : record?.status,
+                        overtime: isOtherSiteRecord ? null : record?.overtime,
                         isImplicitStart: dateKey === p.inputDate && !record,
                         isPostExit: isPostExit
                     }
@@ -2139,7 +2152,10 @@ export default function NewPage({ sites: initialSites, vehicles: initialVehicles
             const dateKey = format(d, 'yyyy-MM-dd');
             filteredNames.forEach(p => {
                 const record = p.attendance[dateKey];
-                if (record && (record.note || record.overtime)) {
+                // [NEW] Filter by selectedSiteId for footer notes/overtime
+                const isRelevantSite = !selectedSiteId || selectedSiteId === 'all' || record?.siteId === selectedSiteId;
+
+                if (record && isRelevantSite && (record.note || record.overtime)) {
                     noteRows.push([
                         format(d, 'dd.MM.yyyy'),
                         trToAscii(p.name),

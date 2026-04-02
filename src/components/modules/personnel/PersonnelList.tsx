@@ -614,18 +614,34 @@ export function PersonnelList() {
         });
     };
 
-    const getStatusForDate = (pid: string, date: Date, preferredSiteId?: string) => {
+    const getStatusForDate = (pid: string, date: Date, preferredSiteId?: string, strict: boolean = false) => {
         if (!date || isNaN(date.getTime())) return undefined;
         const dateStr = format(date, 'yyyy-MM-dd');
 
         // Priority: Exact match for this site
         if (preferredSiteId) {
-            const siteRecord = personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr && a.siteId === preferredSiteId);
+            const siteRecord = personnelAttendance.find((a: any) => {
+                if (a.personnelId !== pid || a.siteId !== preferredSiteId) return false;
+                try {
+                    const aDate = new Date(a.date).toISOString().split('T')[0];
+                    return aDate === dateStr;
+                } catch (e) { return false; }
+            });
             if (siteRecord) return siteRecord;
+            
+            // If in strict mode and we didn't find a record for THIS site, don't fallback
+            if (strict) return undefined;
         }
 
         // Fallsback: Return any record (e.g. OUT_DUTY from another site)
-        const record = personnelAttendance.find((a: any) => a.personnelId === pid && a.date === dateStr);
+        const record = personnelAttendance.find((a: any) => {
+            if (a.personnelId !== pid) return false;
+            try {
+                // Normalize both to YYYY-MM-DD
+                const aDate = new Date(a.date).toISOString().split('T')[0];
+                return aDate === dateStr;
+            } catch (e) { return false; }
+        });
         if (record) return record;
 
         // [NEW] Start Date Auto-Attendance
@@ -696,7 +712,8 @@ export function PersonnelList() {
 
                 daysInMonth.forEach((day: any) => {
                     const dateStr = format(day, 'dd');
-                    const record = getStatusForDate(p.id, day, selectedSiteId);
+                    // [MODIFIED] Use strict mode to only get records for THIS site in Excel
+                    const record = getStatusForDate(p.id, day, selectedSiteId, true);
 
                     // Global Stats (All Sites)
                     if (record) {
@@ -728,6 +745,12 @@ export function PersonnelList() {
                     }
                     row[dateStr] = cellValue;
                 });
+
+                // Check if they have ANY activity at this site this month
+                const values = Object.values(row);
+                const hasActivity = values.some(v => v !== '' && v !== '—' && typeof v === 'string' && v.length > 2); // ✅, 🕒 etc
+
+                if (!hasActivity) return null;
 
                 // [NEW] 30-Day Cap Logic for 31-Day Months
                 if (daysInMonth.length === 31) {
@@ -829,6 +852,22 @@ export function PersonnelList() {
         if (!selectedSiteId) return;
         const siteName = availableSites.find((s: any) => s.id === selectedSiteId)?.name || 'Şantiye';
         const monthStr = format(selectedDate, 'MMMM yyyy', { locale: tr });
+        const monthPrefix = format(selectedDate, 'yyyy-MM');
+
+        // [NEW] Filter personnel strictly for THIS site context
+        const sitePersonnel = personnel.filter((p: any) => {
+            const isPrimary = p.siteId === selectedSiteId;
+            const isAssigned = p.assignedSiteIds?.includes(selectedSiteId);
+            const hasAttendance = personnelAttendance.some((a: any) => 
+                a.personnelId === p.id && 
+                a.siteId === selectedSiteId && 
+                a.date.startsWith(monthPrefix)
+            );
+            return isPrimary || isAssigned || hasAttendance;
+        });
+
+        const techPersonnel = sitePersonnel.filter((p: any) => p.isTechnical);
+        const fieldPersonnel = sitePersonnel.filter((p: any) => !p.isTechnical);
 
         const doc = new jsPDF('l', 'mm', 'a4');
         const fontName = addTurkishFont(doc);
@@ -852,7 +891,8 @@ export function PersonnelList() {
                 let actualLeaveCount = 0;
 
                 const dayCells = daysInMonth.map((day: any) => {
-                    const record = getStatusForDate(p.id, day, selectedSiteId);
+                    // [MODIFIED] Use strict mode to only get records for THIS site in PDF
+                    const record = getStatusForDate(p.id, day, selectedSiteId, true);
                     const isActive = isPersonnelActive(p, day);
 
                     if (!isActive) return 'LEFT_MARKER';
@@ -906,6 +946,11 @@ export function PersonnelList() {
                     }
                 }
 
+                // [MODIFIED] Check if they have ANY activity at this site this month
+                const hasActivityAtThisSite = dayCells.some(cell => cell !== '' && cell !== 'LEFT_MARKER');
+
+                if (!hasActivityAtThisSite) return null;
+
                 // Collect summary data for the bottom table (only if payment > 0)
                 summaryData.push({
                     name: p.fullName,
@@ -925,22 +970,19 @@ export function PersonnelList() {
                     leaveDisplay,
                     paymentDisplay
                 ];
-            });
+            }).filter(row => row !== null);
         };
 
-        // Add Technical Group
-        if (groupedPersonnel.technical.length > 0) {
-            // Header Row
-            const headerRow = ['TEKNİK PERSONEL', ...Array(tableColumn.length - 1).fill('')];
-            tableRows.push(headerRow);
-            tableRows.push(...generateTableRows(groupedPersonnel.technical));
+        const techRows = generateTableRows(techPersonnel);
+        if (techRows.length > 0) {
+            tableRows.push(['TEKNİK PERSONEL', ...Array(tableColumn.length - 1).fill('')]);
+            tableRows.push(...techRows);
         }
 
-        // Add Field Group
-        if (groupedPersonnel.field.length > 0) {
-            const headerRow = ['SAHA PERSONELİ', ...Array(tableColumn.length - 1).fill('')];
-            tableRows.push(headerRow);
-            tableRows.push(...generateTableRows(groupedPersonnel.field));
+        const fieldRows = generateTableRows(fieldPersonnel);
+        if (fieldRows.length > 0) {
+            tableRows.push(['SAHA PERSONELİ', ...Array(tableColumn.length - 1).fill('')]);
+            tableRows.push(...fieldRows);
         }
 
         autoTable(doc, {
@@ -1111,8 +1153,9 @@ export function PersonnelList() {
         daysInMonth.forEach((day: any) => {
             const dateStr = format(day, 'dd.MM.yyyy');
             allOrdered.forEach((p: any) => {
-                const record = getStatusForDate(p.id, day);
-                if (record && (record.note || (record.overtime && record.overtime > 0))) {
+                // [MODIFIED] Pass strict=true to ensure we only get notes/overtime for THIS site in description
+                const record = getStatusForDate(p.id, day, selectedSiteId, true);
+                if (record && record.siteId === selectedSiteId && (record.note || (record.overtime && record.overtime > 0))) {
                     let detail = `${p.fullName} - ${dateStr}: `;
                     if (record.note) detail += `${record.note} `;
                     if (record.overtime) detail += `(${record.overtime} sa. Mesai)`;
@@ -1586,7 +1629,7 @@ export function PersonnelList() {
 
                         {/* Creator Info */}
                         {(() => {
-                            const record = modalDate ? getStatusForDate(selectedPersonnelId, new Date(modalDate)) : undefined;
+                            const record = modalDate ? getStatusForDate(selectedPersonnelId, new Date(modalDate), selectedSiteId) : undefined;
                             const creator = record?.createdByUserId ? users.find((u: any) => u.id === record.createdByUserId) : undefined;
                             if (creator) {
                                 return (
@@ -1599,7 +1642,7 @@ export function PersonnelList() {
                         })()}
                     </div>
                     <DialogFooter className="flex justify-between items-center sm:justify-between">
-                        {!isReadOnly && modalDate && getStatusForDate(selectedPersonnelId, new Date(modalDate)) ? (
+                        {!isReadOnly && modalDate && getStatusForDate(selectedPersonnelId, new Date(modalDate), selectedSiteId) ? (
                             <Button variant="destructive" onClick={handleDeleteAttendance}>
                                 Sil
                             </Button>

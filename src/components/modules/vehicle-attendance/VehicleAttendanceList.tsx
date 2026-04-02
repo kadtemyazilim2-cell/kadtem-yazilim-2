@@ -299,28 +299,30 @@ export function VehicleAttendanceList() {
         }
     }, [vehicleAttendance]);
 
-    const getStatusForDate = (vid: string, date: Date) => {
+    const getStatusForDate = (vid: string, date: Date, preferredSiteId?: string, strict: boolean = false) => {
         const targetDateStr = format(date, 'yyyy-MM-dd');
+
+        // Priority: Exact match for this site
+        if (preferredSiteId) {
+            const siteRecord = vehicleAttendance.find((a: any) =>
+                a.vehicleId === vid &&
+                format(new Date(a.date), 'yyyy-MM-dd') === targetDateStr &&
+                a.siteId === preferredSiteId
+            );
+            if (siteRecord) return siteRecord;
+
+            // If in strict mode and we didn't find a record for THIS site, don't fallback
+            if (strict) return undefined;
+        }
+
         return vehicleAttendance.find((a: any) => {
             if (!a.vehicleId || !a.date) return false;
-            // [DEBUG] Removed strict siteId check to allow debug logs to catch mismatches
-            if (a.vehicleId !== vid) return false;
             try {
                 const recordDate = new Date(a.date);
                 if (isNaN(recordDate.getTime())) return false;
                 const recordDateStr = format(recordDate, 'yyyy-MM-dd');
-
-                // [DEBUG] Trace comparison for today
-                const isToday = targetDateStr === format(new Date(), 'yyyy-MM-dd');
-                // Log only if it's today AND matches the vehicle in the first record of our dataset
-                if (isToday && vehicleAttendance.length > 0 && a.vehicleId === vehicleAttendance[0].vehicleId) {
-                    console.log(`Comp: Target=${targetDateStr} Record=${recordDateStr} Match=${recordDateStr === targetDateStr} VID=${a.vehicleId}`);
-                }
-
-                return recordDateStr === targetDateStr;
-            } catch (e) {
-                return false;
-            }
+                return a.vehicleId === vid && recordDateStr === targetDateStr;
+            } catch (e) { return false; }
         });
     };
 
@@ -420,7 +422,8 @@ export function VehicleAttendanceList() {
 
             daysInMonth.forEach((day: any) => {
                 const dateStr = format(day, 'dd'); // Column header as day number
-                const record = getStatusForDate(v.id, day);
+                // Use strict mode for Excel export
+                const record = getStatusForDate(v.id, day, selectedSiteId, true);
 
                 let cellValue = '';
                 if (record && record.siteId === selectedSiteId) {
@@ -436,8 +439,12 @@ export function VehicleAttendanceList() {
                 row[dateStr] = cellValue;
             });
 
+            // Check if they have ANY activity at this site this month
+            const hasActivity = Object.values(row).some((val, idx) => idx > 1 && val !== '');
+            if (!hasActivity) return;
+
             row['Toplam'] = totalWorked;
-            return row;
+            data.push(row);
         });
 
         // Define explicit header order
@@ -468,19 +475,26 @@ export function VehicleAttendanceList() {
 
         activeVehicles.forEach((v: any) => {
             let totalWorked = 0;
+            let hasAnyActivity = false;
+
+            const daysData = daysInMonth.map((day: any) => {
+                // Use strict mode for PDF export
+                const record = getStatusForDate(v.id, day, selectedSiteId, true);
+                if (record && record.siteId === selectedSiteId) {
+                    if (record.status === 'WORK') totalWorked += 1;
+                    if (record.status === 'HALF_DAY') totalWorked += 0.5;
+                    hasAnyActivity = true;
+                    return record.status;
+                }
+                return '';
+            });
+
+            if (!hasAnyActivity) return; // Skip vehicles that have no records at this site
+
             const rowData = [
                 v.plate,
-                v.plate + (v.model ? `\\n${v.model}` : ''),
-                // v.definition || v.type,
-                ...daysInMonth.map((day: any) => {
-                    const record = getStatusForDate(v.id, day);
-                    if (record && record.siteId === selectedSiteId) {
-                        if (record.status === 'WORK') totalWorked += 1;
-                        if (record.status === 'HALF_DAY') totalWorked += 0.5;
-                        return record.status; // Return raw status for processing
-                    }
-                    return '';
-                }),
+                v.plate + (v.model ? `\n${v.model}` : ''),
+                ...daysData,
                 totalWorked.toString()
             ];
             tableRows.push(rowData);
@@ -599,7 +613,8 @@ export function VehicleAttendanceList() {
 
         activeVehicles.forEach((v: any) => {
             daysInMonth.forEach((day: any) => {
-                const record = getStatusForDate(v.id, day);
+                // [MODIFIED] Use strict mode for notes in PDF
+                const record = getStatusForDate(v.id, day, selectedSiteId, true);
                 if (record && record.siteId === selectedSiteId && record.note) {
                     notesData.push([
                         format(day, 'dd.MM.yyyy'),
@@ -799,7 +814,7 @@ export function VehicleAttendanceList() {
                                                 {/* Cinsi cell removed */}
 
                                                 {daysInMonth.map((day: any) => {
-                                                    const record = getStatusForDate(v.id, day);
+                                                    const record = getStatusForDate(v.id, day, selectedSiteId);
                                                     const isRelevant = record?.siteId === selectedSiteId;
 
                                                     // [DEBUG] Check why record is hidden
@@ -1039,22 +1054,24 @@ export function VehicleAttendanceList() {
                         </div>
 
                         {/* Creator Info */}
-                        {(() => {
-                            if (!editingCell) return null;
-                            const record = getStatusForDate(editingCell.vehicleId, editingCell.date);
-                            const creator = record?.createdByUserId ? useAppStore.getState().users.find((u: any) => u.id === record.createdByUserId) : undefined;
-                            if (creator) {
-                                return (
-                                    <div className="text-xs text-muted-foreground">
-                                        Kaydı Yapan: <span className="font-medium">{creator.name}</span>
-                                    </div>
-                                );
-                            }
-                            return null;
-                        })()}
+                        <div className="flex flex-col gap-4">
+                            {(() => {
+                                if (!editingCell) return null;
+                                const record = getStatusForDate(editingCell.vehicleId, editingCell.date, selectedSiteId);
+                                const creator = record?.createdByUserId ? useAppStore.getState().users.find((u: any) => u.id === record.createdByUserId) : undefined;
+                                if (creator) {
+                                    return (
+                                        <div className="text-xs text-muted-foreground">
+                                            Kaydı Yapan: <span className="font-medium">{creator.name}</span>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+                        </div>
                     </div>
-                    <DialogFooter className="sm:justify-between">
-                        {!isReadOnly && editingCell && getStatusForDate(editingCell.vehicleId, editingCell.date) ? (
+                    <DialogFooter className="flex flex-row justify-between gap-2 p-4 pt-2 border-t bg-slate-50/50">
+                        {!isReadOnly && editingCell && getStatusForDate(editingCell.vehicleId, editingCell.date, selectedSiteId) ? (
                             <Button
                                 variant="destructive"
                                 size="sm"
