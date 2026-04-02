@@ -685,7 +685,17 @@ export function VehicleAttendanceList() {
                                         <SelectValue placeholder="Şantiye Seçiniz" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {sites.filter((s: any) => s.status === 'ACTIVE').map((s: any) => (
+                                        {sites.filter((s: any) => {
+                                            if (s.status !== 'ACTIVE') return false;
+                                            // Check if any vehicle is assigned to this site
+                                            const hasVehicles = vehicles.some((v: any) => 
+                                                v.assignedSiteId === s.id || 
+                                                (v.assignedSiteIds && v.assignedSiteIds.includes(s.id))
+                                            );
+                                            // Check if there is activity in the selected month
+                                            const hasActivity = sitesWithActivity.includes(s.id);
+                                            return hasVehicles || hasActivity;
+                                        }).map((s: any) => (
                                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                         ))}
                                     </SelectContent>

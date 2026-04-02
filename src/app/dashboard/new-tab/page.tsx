@@ -2266,7 +2266,7 @@ export default function NewPage({ sites: initialSites, vehicles: initialVehicles
                                     {isAdmin && (
                                         <SelectItem value="all" className="font-semibold text-blue-700">Şantiye Seçiniz</SelectItem>
                                     )}
-                                    {availableSites.map(s => (
+                                    {availableSites.filter(s => personnel.some((p: any) => p.siteId === s.id || (p.assignedSites || []).some((as: any) => as.id === s.id))).map(s => (
                                         <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                     ))}
                                 </SelectContent>
